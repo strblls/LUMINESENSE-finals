@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!--Bootstrap and JS CDN-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+
+    <!--CSS files-->
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/containers.css">
+</head>
+
+<body class="contrast-bg">
+    <div class="parent-container">
+        <div class="topbar d-flex">
+            <button type="button" id="sidebarTrigger">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="d-flex flex-column px-3">
+                <h1 class="bold">Profile Settings</h1> <!--ALERT: PHP | DISPLAY-->
+            </div>
+        </div>
+        <div class="child-container homepage-modal">
+            <div class="main-container homepage gap-3">
+                <div class="group-container gap-3">
+                    <div style="background-color: #f8f9fa;" class="section-container">
+                        <div class="d-flex gap-1 justify-content-center align-items-center">
+                            <div class="d-flex flex-column mx-2 align-items-start justify-content-center">
+                                <h2 class="bold">Time Left</h2><br>
+                                <h2 class="medium fs-6">until end of class</h2>
+                            </div>
+                            <div class="d-flex flex-column mx-1 align-items-center justify-content-center">
+                                <h1 class="bold display-1">00:00:00</h1>
+                                <!-- ALERT: PHP | DISPLAY (like conditional formatting for time left) -->
+                            </div>
+                            <div class="d-flex flex-column mx-2 align-items-end justify-content-center">
+                                <button class="light">View Schedule</button>
+                                <button class="light">Extend</button>
+                            </div>
+                        </div>
+                        <!--ALERT: PHP | DISPLAY (like no schedule yet, limit exceeded)-->
+                    </div>
+                    <div style="background-color: #f8f9fa;" class="fit-width section-container">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">Lighting Grid</h2>
+                            </div>
+                            <div class="d-flex mx-2 align-items-end">
+                                <button class="light mx-2">More</button>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-row align-items-center justify-content-center">
+                            <div class="lighting-grid">
+                                <img src="../../images/bulb-off.png">
+                                <img src="../../images/bulb-off.png">
+                                <img src="../../images/bulb-off.png">
+                                <hr class="w-100">
+                                <img src="../../images/bulb-off.png">
+                                <img src="../../images/bulb-off.png">
+                                <img src="../../images/bulb-off.png">
+                                <hr class="w-100">
+                                <img src="../../images/bulb-off.png">
+                                <img src="../../images/bulb-off.png">
+                                <img src="../../images/bulb-off.png">
+                                <hr class="w-100">
+                            </div>
+                            <div class="p-5">
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <label class="form-check-label" for="row-1-switch">Row 1</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="row-1-switch">
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <label class="form-check-label" for="row-2-switch">Row 2</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="row-2-switch">
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <label class="form-check-label" for="row-3-switch">Row 3</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="row-3-switch">
+                                    </div>
+                                </div>
+                                <br>
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <h5 class="bold">All Lights</h5>
+                                    <h4 class="bold off">OFF</h4>
+                                    <div
+                                        class="all-lights-off d-flex flex-column align-items-center justify-content-center">
+                                        <i class="bi bi-power" id="all-lights"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="group-container gap-3">
+                    <div style="background-color: #f8f9fa;" class="section-container recents">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">Recent Activities</h2>
+                            </div>
+                            <div class="d-flex mx-2 align-items-end">
+                                <button class="light mx-2">Details</button>
+                            </div>
+                        </div>
+                        <div class="gap-2">
+                            <div class="activity-list px-2 gap-2 align-items-center max-width">
+                                <div>
+                                    <h5>Detected Motion</h5>
+                                    <p class="light mb-0">10:15 AM</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Lights Off - Class Over</h5>
+                                    <p class="light mb-0">12:00 PM</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Lights Off - Class Over</h5>
+                                    <p class="light mb-0">12:00 PM</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Lights Off - Class Over</h5>
+                                    <p class="light mb-0">12:00 PM</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Lights Off - Class Over</h5>
+                                    <p class="light mb-0">12:00 PM</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Lights Off - Class Over</h5>
+                                    <p class="light mb-0">12:00 PM</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Lights Off - Class what</h5>
+                                    <p class="light mb-0">12:00 PM</p>
+                                </div>
+                                <hr>
+
+                                <!--ALERT: PHP | DISPLAY (dynamic depending sa status)-->
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background-color: #f8f9fa;" class="section-container">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">System Status</h2>
+                            </div>
+                        </div>
+                        <div class="gap-2">
+                            <div class="activity-list px-2 gap-2 align-items-center max-width">
+                                <h5>Lighting: Disconnected</h5>
+                                <h5>Server: Connected</h5>
+                                <h5>Webcam: Disabled</h5>
+                                <h5>Sensor Reading: Disconnected</h5>
+                                <h5>System Uptime: 00:00:00</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas"
+                    aria-labelledby="sidebarOffcanvasLabel">
+                    <div class="offcanvas-header justify-content-center">
+                        <img src="../../images/logo.png" class="logo" onclick="dissolve('../../index.html')">
+                    </div>
+                    <div class="offcanvas-body align-items-center d-flex flex-column">
+                        <button class="wb-2"><i class="bi bi-lightbulb"></i></button>
+                        <button class="wb-2"><i class="bi bi-broadcast"></i></button>
+                        <button class="wb-2"><i class="bi bi-hand-thumbs-up"></i></button>
+                        <button class="wb-2"><i class="bi bi-calendar-event"></i></button>
+                        <button class="wb-2"><i class="bi bi-gear"></i></button>
+                    </div>
+                    <div class="offcanvas-footer">
+                        <img src="../../images/team-logo.png" class="logo">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="../../script/animations.js"></script>
+        <script src="../../script/toggles.js"></script>
+    </div>
+</body>
+
+</html>
