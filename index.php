@@ -29,14 +29,12 @@
             <!--
                 CHANGE from original:
                 Buttons now link directly with <a> tags pointing to the pages folder.
-                The dissolve() JS animation still works because animations.js is loaded below.
             -->
-            <button class="medium" onclick="dissolve('php/pages/faculty-login.php', 1)">Faculty</button>
-            <button class="medium" onclick="dissolve('php/pages/admin-login.php', 1)">Administrator</button>
+            <button class="medium" onclick="dissolve('php/pages/faculty-login-page.php', 1)">Faculty</button>
+            <button class="medium" onclick="dissolve('php/pages/admin-login-page.php', 1)">Administrator</button>
         </div>
     </div>
 
     <script src="script/animations.js"></script>
 </body>
-
 </html>
