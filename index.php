@@ -23,7 +23,7 @@
 
 <body>
     <div class="parent-container">
-        <div id="landing" class="child-container zoom-animation">
+        <div id="landing" class="landing-container zoom-animation">
             <img src="images/logo.png" alt="LumineSense Logo">
 
             <!--
@@ -31,8 +31,9 @@
                 Buttons now link directly with <a> tags pointing to the pages folder.
                 The dissolve() JS animation still works because animations.js is loaded below.
             -->
-            <button class="medium" onclick="dissolve('php/pages/faculty-login.php', 1)">Faculty</button>
-            <button class="medium" onclick="dissolve('php/pages/admin-login.php', 1)">Administrator</button>
+
+            <button class="medium" onclick="dissolve('pages/faculty-login.php')">Faculty</button>
+            <button class="medium" onclick="dissolve('pages/admin-login.php')">Administrator</button>
         </div>
     </div>
 

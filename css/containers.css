@@ -89,15 +89,15 @@
         width: 100%;
     }
 
-    .form-group form:nth-child(1) {
+    .form-group .child-1 {
         flex: 1;
     }
 
-    .form-group form:nth-child(2) {
+    .form-group .child-2 {
         flex: 1;
     }
 
-    .form-group form:nth-child(3) {
+    .form-group .child-3 {
         flex: 0.5;
     }
 
