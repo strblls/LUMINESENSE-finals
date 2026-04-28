@@ -1,0 +1,11 @@
+img {
+    width: auto;
+    height: 50vh;
+    object-fit: cover;
+}
+
+body {
+    background-color: var(--primary-color);
+    font-family: var(--font-primary);
+    font-size: 14px;
+}

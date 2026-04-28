@@ -1,0 +1,251 @@
+.parent-container {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+}
+
+.child-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.return-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    border-radius: 5px;
+    overflow: hidden;
+    width: 50px;
+    height: 50px;
+    background-color: var(--primary-color);
+    border-radius: 10px;
+
+    a {
+        color: var(--secondary-color-4);
+        font-size: 24px;
+        transition: color 0.3s ease;
+        width: 50px;
+        height: 50px;
+        padding: 5px;
+    }
+
+    a:hover {
+        color: var(--secondary-color-4);
+    }
+}
+
+.return-container:hover {
+    border-color: var(--secondary-color-2);
+    box-shadow: 0 0 8px #ffffffeb;
+}
+
+.registration-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 50vh;
+
+    h4 {
+        color: var(--secondary-color-1);
+    }
+
+    input::placeholder {
+        font-style: italic;
+    }
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    form {
+        margin: 0;
+        width: 100%;
+    }
+
+    .form-group form:nth-child(1) {
+        flex: 1;
+    }
+
+    .form-group form:nth-child(2) {
+        flex: 1;
+    }
+
+    .form-group form:nth-child(3) {
+        flex: 0.5;
+    }
+
+    h6 {
+        margin: 0;
+    }
+
+    input {
+        border-color: var(--secondary-color-3);
+    }
+
+    input:hover {
+        border-color: var(--secondary-color-2);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    }
+
+    input:focus {
+        border-color: var(--secondary-color-2);
+        box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+    }
+
+    .password-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .password-wrapper input {
+        width: 100%;
+        padding-right: 40px;
+    }
+
+    .password-wrapper i {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: var(--secondary-color-3);
+    }
+}
+
+.form-group {
+    min-width: 10px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    box-sizing: border-box;
+}
+
+.submit-container {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+
+    a {
+        color: var(--secondary-color-1);
+        cursor: pointer;
+    }
+}
+
+/*Modals*/
+.notify-modal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    inset: 0;
+    backdrop-filter: blur(15px);
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal-box {
+    background: var(--primary-color);
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+    box-shadow: 0 0 10px var(--black);
+    border-radius: 8px;
+    overflow: hidden;
+
+    #modal-header {
+        background-color: var(--secondary-color-1);
+        color: var(--primary-color);
+    }
+
+    #modal-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 0px 20px;
+
+        i {
+            color: #ff9500;
+        }
+    }
+
+    #modal-footer {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: var(--primary-color);
+
+        button {
+            width: 50%;
+        }
+    }
+
+    #cautionTriangle {
+        font-size: 50px;
+    }
+}
+
+/*Sidebar*/
+.topbar {
+    position: fixed;
+    width: 100%;
+    padding: 20px;
+
+    button {
+        background-color: var(--primary-color);
+        color: var(--secondary-color-1);
+        border-radius: 10px;
+        padding: 10px 10px;
+        height: 50px;
+        width: 50px;
+
+        i {
+            font-size: 24px;
+        }
+    }
+
+    color: var(--primary-color);
+}
+
+.offcanvas {
+    width: 100px !important;
+    background-color: var(--primary-color);
+
+    .logo {
+        width: 100px;
+        height: 100px;
+        object-fit: contain;
+    }
+
+    .team-logo{
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+    }
+
+    .offcanvas-body button {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        
+        i {
+            font-size: 24px;
+        }
+    }
+}
