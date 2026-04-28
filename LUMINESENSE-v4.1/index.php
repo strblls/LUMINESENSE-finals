@@ -18,20 +18,17 @@
     <link rel="stylesheet" href="css/containers.css">
     <link rel="stylesheet" href="css/landing.css">
 
-    <title>LumineSense</title>
+    <title>Welcome to LumineSense</title>
 </head>
 
 <body>
     <div class="parent-container">
-        <div id="landing" class="child-container zoom-animation">
-            <img src="images/logo.png" alt="LumineSense Logo">
-
-            <!--
-                CHANGE from original:
-                Buttons now link directly with <a> tags pointing to the pages folder.
-            -->
-            <button class="medium" onclick="dissolve('php/pages/faculty-login-page.php', 1)">Faculty</button>
-            <button class="medium" onclick="dissolve('php/pages/admin-login-page.php', 1)">Administrator</button>
+        <div id="landing" class="landing-container zoom-animation">
+            <img src="images/logo.png">
+            <button class="medium" onclick="dissolve('pages/faculty-login.php', 1)">Faculty</button>
+            <!--ALERT: JS-->
+            <button class="medium" onclick="dissolve('pages/admin-login.php', 1)">Administrator</button>
+            <!--ALERT: JS-->
         </div>
     </div>
 

@@ -18,11 +18,15 @@
     <link rel="stylesheet" href="../css/containers.css">
     <link rel="stylesheet" href="../css/registration.css">
 
+    <title>Admin Login – LumineSense</title>
 </head>
 
 <body>
     <div class="return-container">
-        <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('../index.html')"><i class="bi bi-house"></i></a>
+        <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('../index.html')">
+            onclick="dissolve('../index.php')">
+            <i class="bi bi-house"></i>
+        </a>
     </div>
     <div class="parent-container">
         <div class="registration-container">
@@ -30,22 +34,36 @@
                 <img src="../images/logo.png">
             </div>
             <h4 class="pb-4 semibold">Administrator Login</h4>
+            
+            <?php
+                if (session_status() === PHP_SESSION_NONE) session_start();
+
+                if (!empty($_SESSION['login_error'])) {
+                    echo '<div class="alert alert-danger">' . htmlspecialchars($_SESSION['login_error']) . '</div>';
+                    unset($_SESSION['login_error']);
+                }
+                if (!empty($_SESSION['signup_success'])) {
+                    echo '<div class="alert alert-success">' . htmlspecialchars($_SESSION['signup_success']) . '</div>';
+                    unset($_SESSION['signup_success']);
+                }
+            ?>
+            
             <div class="form-container">
                 <form> <!--ALERT: PHP-->
                     <label for="email">Admin E-mail</label>
-                    <input type="email" class="form-control" id="email" placeholder="Enter your admin e-mail">
+                    <input type="email" class="form-control" id="email" placeholder="Enter your admin e-mail" autocomplete="email" required>
                 </form>
                 <form> <!--ALERT: PHP-->
                     <label for="password">Password</label>
                     <div class="password-wrapper">
-                        <input type="password" class="form-control" id="password" placeholder="Enter your password">
+                        <input type="password" class="form-control" id="password" placeholder="Enter your password" autocomplete="current-password" required>
                         <i class="bi bi-eye-slash" id="togglePassword"></i>
                     </div>
                 </form>
                 <div class="submit-container">
                     <button class="medium" type="submit" onclick="dissolve('admin-home/admin-homepage.html')">LOGIN</button>
                     or<br>
-                    <a class="medium" onclick="dissolve('admin-signup.html')">SIGN-UP</a>
+                    <a class="medium" onclick="dissolve('admin-signup.php')">SIGN-UP</a>
                 </div>
             </div>
         </div>
