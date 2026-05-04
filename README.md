@@ -2,7 +2,7 @@
 Changes: 
 - tasks.json - automatic mag run ang server for host-based camera for gesture control
 - analytics-gauge.js - static javascript for energy analytics tidbits/gauge (facutly-lighting.html)
-Lacking:
+Lacking: 
 - Basic profile settings - separate .html
 - Disable camera button - in gesture-controls.html
 - Timetable - static data
