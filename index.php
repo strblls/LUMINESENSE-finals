@@ -26,8 +26,8 @@
         <div id="landing" class="landing-container zoom-animation">
             <img src="images/logo.png" alt="LumineSense Logo">
 
-            <button class="medium" onclick="dissolve('pages/faculty-login.php', 1)">Faculty</button>
-            <button class="medium" onclick="dissolve('pages/admin-login.php', 1)">Administrator</button>
+            <button class="medium" onclick="dissolve('pages/faculty-login.php')">Faculty</button>
+            <button class="medium" onclick="dissolve('pages/admin-login.php')">Administrator</button>
         
         </div>
     </div>
