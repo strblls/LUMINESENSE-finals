@@ -25,19 +25,8 @@
     <div class="parent-container">
         <div id="landing" class="landing-container zoom-animation">
             <img src="images/logo.png" alt="LumineSense Logo">
-
-            <!--
-                CHANGE from original:
-                Buttons now link directly with <a> tags pointing to the pages folder.
-            -->
-<<<<<<< HEAD
             <button class="medium" onclick="dissolve('php/pages/faculty-login-page.php', 1)">Faculty</button>
             <button class="medium" onclick="dissolve('php/pages/admin-login-page.php', 1)">Administrator</button>
-=======
-
-            <button class="medium" onclick="dissolve('pages/faculty-login.php')">Faculty</button>
-            <button class="medium" onclick="dissolve('pages/admin-login.php')">Administrator</button>
->>>>>>> 346c158c7a282309cd7012b59d4d77aee0aa3c84
         </div>
     </div>
 
