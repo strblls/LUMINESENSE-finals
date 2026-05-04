@@ -21,4 +21,9 @@ img {
     border-radius: 50% 50% 0 0; 
 }
 
+.image-background.faculty img {
+    width: 20vh;
+    height: 20vh;
+}
+
 
