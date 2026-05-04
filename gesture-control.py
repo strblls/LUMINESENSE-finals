@@ -12,6 +12,10 @@ cap = cv2.VideoCapture(0)
 def generate_frames():
     while True:
         success, frame = cap.read()
+        
+        if not success or frame is None:  
+            continue                      
+        
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = hands.process(frame_rgb)
 

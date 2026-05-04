@@ -100,7 +100,7 @@ p {
   animation: 0.8s zoom cubic-bezier(0.37, 0, 0.63, 1);
 }
 
-/*Animation - Betwen pages*/
+/*Animation - Between pages*/
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -208,4 +208,45 @@ body.contrast-bg {
 .form-check-input[type="checkbox"]:checked:hover {
   background-color: #4dd980;
   border-color: #4dd980;
+}
+
+/*Gauge styling*/
+.gauge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  canvas {
+    width: 340px;
+    height: 180px;
+  }
+}
+
+.gauge-value {
+  position: absolute;
+  bottom: 24px;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--secondary-color-1);
+}
+
+.gauge-unit {
+  font-size: 1.8rem;
+  font-weight: 400;
+}
+
+.gauge-label {
+  font-size: 13px;
+  color: var(--secondary-color-1);
+  margin-top: 4px;
+}
+
+/*Avatar css*/
+.avatar-icon {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  background-color: #8e8b8b;
+  color: #3f3f3f;
 }

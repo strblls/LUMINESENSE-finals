@@ -89,7 +89,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success']);
 
                     <div class="d-flex flex-column align-items-center justify-content-center">
                         <div class="submit-container">
-                            <button class="medium" type="submit" onclick="dissolve('faculty-home/faculty-homepage.php')">LOGIN</button> <!--ALERT: PHP|REQUIRE FORMS-->
+                            <button class="medium" type="submit" onclick="dissolve('faculty-home/faculty-homepage.html')">LOGIN</button>
                             or<br>
                             <a class="medium" onclick="dissolve('faculty-signup.php')">SIGN-UP</a>
                         </div>

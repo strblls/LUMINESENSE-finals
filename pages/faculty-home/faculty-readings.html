@@ -24,9 +24,15 @@
             <button type="button" id="sidebarTrigger">
                 <i class="bi bi-list"></i>
             </button>
-            <div class="d-flex flex-column px-3">
+            <div class="col d-flex flex-column px-3">
                 <h1 class="bold">Sensor Readings</h1> <!--ALERT: PHP | DISPLAY-->
                 <h5 class="light">Current Schedule: sched</h5> <!--ALERT: PHP | DISPLAY-->
+            </div>
+            <div class="d-flex align-items-center justify-content-center gap-2 mx-2">
+                <h4>John Doe</h4> <!--ALERT: PHP | DISPLAY-->
+                <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
+                    <h3 class="bold">JD</h3> <!--ALERT: PHP | DISPLAY (like profile picture or initials)-->
+                </div>
             </div>
         </div>
         <div class="child-container">
@@ -207,6 +213,22 @@
                     </div>
                     <div class="offcanvas-footer">
                         <img src="../../images/team-logo.png" class="logo">
+                    </div>
+                </div>
+
+                                <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas"
+                    aria-labelledby="sidebarOffcanvasLabel">
+                    <div class="offcanvas-body align-items-center d-flex flex-column">
+                        <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
+                            <h3 class="bold">JD</h3> <!--ALERT: PHP | DISPLAY (like profile picture or initials)-->
+                        </div>
+                        <h4 class="bold">John Doe</h4>
+                        <h6 class="light email-limit">john.doe@raffles.uni.edu</h6>
+                        <div class="d-flex flex-column align-items-center justify-content-center">
+                            <button>Profile Settings</button>
+                            <button>Classroom Details</button>
+                            <button>Logout</button>
+                        </div>
                     </div>
                 </div>
             </div>
