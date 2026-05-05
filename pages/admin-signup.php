@@ -18,7 +18,6 @@
     <link rel="stylesheet" href="../css/containers.css">
     <link rel="stylesheet" href="../css/registration.css">
 
-    <title>Admin Sign Up – LumineSense</title>
 </head>
 
 <body>
