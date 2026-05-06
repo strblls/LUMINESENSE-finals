@@ -3,7 +3,7 @@ session_start();
 require_once 'db_connect.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: pages/faculty-signup-page.php'); exit;
+    header('Location: ../pages/faculty-signup.php'); exit;
 }
 
 $last  = trim(htmlspecialchars($_POST['last_name']      ?? ''));
@@ -23,7 +23,7 @@ if ($pass !== $pass2)                    $errors[] = 'Passwords do not match.';
 if (!empty($errors)) {
     $_SESSION['signup_errors'] = $errors;
     $_SESSION['signup_form']   = compact('last','first','mi','email');
-    header('Location: pages/faculty-signup-page.php'); exit;
+    header('Location: ../pages/faculty-signup.php'); exit;
 }
 
 $stmt = $conn->prepare('SELECT id FROM faculty WHERE email = ?');
@@ -32,7 +32,7 @@ $stmt->execute();
 $stmt->store_result();
 if ($stmt->num_rows > 0) {
     $_SESSION['signup_errors'] = ['This email is already registered.'];
-    header('Location: pages/faculty-signup-page.php');
+    header('Location: ../pages/faculty-signup.php');
     $stmt->close(); exit;
 }
 $stmt->close();
@@ -44,4 +44,4 @@ $stmt->execute();
 $stmt->close();
 
 $_SESSION['signup_success'] = 'Account created! Wait for an Administrator to approve it before logging in.';
-header('Location: pages/faculty-login-page.php'); exit;
+header('Location: ../pages/faculty-login.php'); exit;
