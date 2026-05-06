@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset=" UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!--Bootstrap and JS CDN-->
@@ -23,152 +23,72 @@
 
 <body>
     <div class="return-container">
-        <a class="medium d-flex justify-content-center align-items-center"
-           onclick="dissolve('../index.php')">
-            <i class="bi bi-house"></i>
-        </a>
+        <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('../index.html')"><i class="bi bi-house"></i></a>
     </div>
-
     <div class="parent-container">
         <div class="registration-container">
             <div class="image-background">
-                <img src="../images/logo.png" alt="LumineSense Logo">
+                <img src="../images/logo.png">
             </div>
-
             <h4 class="pb-4 semibold">Administrator Sign Up</h4>
 
-            <!--
-                FIXES FROM ORIGINAL:
-                1. Merged all separate <form> tags into ONE.
-                2. name="" attributes added — matching exactly what admin-signup.php reads.
-                3. Label changed from "Faculty E-mail" → "Admin E-mail" (was a copy-paste bug).
-                4. Modal confirm button now submits the form.
-            -->
-
-            <!-- SESSION ERROR MESSAGES -->
+            <!-- SESSION MESSAGES -->
             <?php
                 if (session_status() === PHP_SESSION_NONE) session_start();
 
                 if (!empty($_SESSION['signup_errors'])) {
-                    foreach ($_SESSION['signup_errors'] as $err) {
-                        echo '<div class="alert alert-danger">' . htmlspecialchars($err) . '</div>';
+                    foreach ($_SESSION['signup_errors'] as $error) {
+                        echo '<div class="alert alert-danger">' . htmlspecialchars($error) . '</div>';
                     }
                     unset($_SESSION['signup_errors']);
                 }
-
-                $old = $_SESSION['signup_form'] ?? [];
-                unset($_SESSION['signup_form']);
+                if (!empty($_SESSION['signup_success'])) {
+                    echo '<div class="alert alert-success">' . htmlspecialchars($_SESSION['signup_success']) . '</div>';
+                    unset($_SESSION['signup_success']);
+                }
             ?>
 
             <div class="form-container">
-                <form id="admin-signup-form" action="../admin-signup-process.php" method="POST">
-
-                    <div class="form-group mb-3">
-                        <div>
-                            <label for="fname">Last Name</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="fname"
-                                name="last_name"
-                                placeholder="Family Name"
-                                value="<?= htmlspecialchars($old['last_name'] ?? '') ?>"
-                                required>
-                        </div>
-                        <div>
-                            <label for="lname">First Name</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="lname"
-                                name="first_name"
-                                placeholder="First Name"
-                                value="<?= htmlspecialchars($old['first_name'] ?? '') ?>"
-                                required>
-                        </div>
-                        <div>
-                            <label for="middle">M.I.</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="middle"
-                                name="middle_initial"
-                                placeholder="M.I."
-                                maxlength="5"
-                                value="<?= htmlspecialchars($old['middle_initial'] ?? '') ?>">
-                        </div>
+                <form action="../php/admin-signup-process.php" method="POST">
+                    <div class="form-group">
+                        <label for="last_name">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Family Name" required>
                     </div>
-
-                    <div class="mb-3">
-                        <!--
-                            BUG FIX: Original said "Faculty E-mail" — changed to "Admin E-mail"
-                        -->
+                    <div class="form-group">
+                        <label for="first_name">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="middle_initial">M.I.</label>
+                        <input type="text" class="form-control" id="middle_initial" name="middle_initial" placeholder="M.I." maxlength="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="admin_code">Admin Code</label>
+                        <input type="text" class="form-control" id="admin_code" name="admin_code" placeholder="Enter admin code" required>
+                    </div>
+                    <div class="form-group">
                         <label for="email">Admin E-mail</label>
-                        <input
-                            type="email"
-                            class="form-control"
-                            id="email"
-                            name="email"
-                            placeholder="Enter your admin email"
-                            autocomplete="email"
-                            value="<?= htmlspecialchars($old['email'] ?? '') ?>"
-                            required>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
                     </div>
-
-                    <div class="mb-3">
+                    <div class="form-group">
                         <label for="password">Password</label>
                         <div class="password-wrapper">
-                            <input
-                                type="password"
-                                class="form-control"
-                                id="password"
-                                name="password"
-                                placeholder="Enter your password (min 8 characters)"
-                                autocomplete="new-password"
-                                minlength="8"
-                                required>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
                             <i class="bi bi-eye-slash" id="togglePassword"></i>
                         </div>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="confirmPassword">Confirm Password</label>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm Password</label>
                         <div class="password-wrapper">
-                            <input
-                                type="password"
-                                class="form-control"
-                                id="confirmPassword"
-                                name="confirm_password"
-                                placeholder="Confirm your password"
-                                autocomplete="new-password"
-                                required>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
                             <i class="bi bi-eye-slash" id="toggleConfirmPassword"></i>
                         </div>
                     </div>
-
                     <div class="submit-container">
-                        <button class="medium" type="button" onclick="showSignupModal()">SIGN UP</button>
+                        <button class="medium" type="submit">SIGN UP</button>
                         or<br>
-                        <a class="medium" onclick="dissolve('admin-login-page.php')">LOG IN</a>
+                        <button type="button" class="medium" onclick="dissolve('admin-login.php')">LOG IN</button>
                     </div>
-
-                    <!-- Confirmation Modal -->
-                    <div class="notify-modal" id="notify-modal" style="display:none;">
-                        <div class="modal-box">
-                            <div id="modal-header">
-                                <h5><strong>!</strong> Validation Required</h5>
-                            </div>
-                            <div id="modal-body">
-                                <i class="bi bi-exclamation-triangle" id="cautionTriangle"></i>
-                                <h5>Validate your Admin ID from the <strong>Information Systems Office</strong> for validation and authentication.</h5>
-                            </div>
-                            <div id="modal-footer">
-                                <button class="medium" type="submit">CONFIRM & SIGN UP</button>
-                                <button class="medium" type="button" onclick="hideSignupModal()">CANCEL</button>
-                            </div>
-                        </div>
-                    </div>
-
                 </form>
             </div>
         </div>
@@ -177,27 +97,6 @@
     <script src="../script/modals.js"></script>
     <script src="../script/animations.js"></script>
     <script src="../script/password.js"></script>
-    <script>
-        function showSignupModal() {
-            const pass    = document.getElementById('password').value;
-            const confirm = document.getElementById('confirmPassword').value;
-
-            if (pass !== confirm) {
-                alert('Passwords do not match! Please check again.');
-                return;
-            }
-            if (pass.length < 8) {
-                alert('Password must be at least 8 characters long.');
-                return;
-            }
-
-            document.getElementById('notify-modal').style.display = 'flex';
-        }
-
-        function hideSignupModal() {
-            document.getElementById('notify-modal').style.display = 'none';
-        }
-    </script>
 </body>
 
 </html>

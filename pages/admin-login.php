@@ -54,14 +54,39 @@
                     echo '<div class="alert alert-danger">' . htmlspecialchars($_SESSION['login_error']) . '</div>';
                     unset($_SESSION['login_error']);
                 }
-                if (!empty($_SESSION['signup_success'])) {
-                    echo '<div class="alert alert-success">' . htmlspecialchars($_SESSION['signup_success']) . '</div>';
-                    unset($_SESSION['signup_success']);
-                }
+             ?>
+
+            <?php if (!empty($_SESSION['signup_success_modal'])): ?>
+                <div class="modal fade" id="signupSuccessModal" tabindex="-1" aria-labelledby="signupSuccessModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="signupSuccessModalLabel">Signup Successful</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <?= htmlspecialchars($_SESSION['signup_success_modal']) ?>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Continue to Login</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var modalEl = document.getElementById('signupSuccessModal');
+                        var modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                    });
+                </script>
+            <?php
+                unset($_SESSION['signup_success_modal']);
+            endif;
             ?>
 
             <div class="form-container">
-                <form action="../admin-login-process.php" method="POST">
+                <form action="../php/admin-login-process.php" method="POST">
 
                     <div class="mb-3">
                         <label for="email">Admin E-mail</label>
@@ -93,7 +118,7 @@
                     <div class="submit-container">
                         <button type="submit" class="medium">LOGIN</button>
                         or<br>
-                        <button type="button" class="medium" onclick="dissolve('admin-signup-page.php')">SIGN-UP</button>
+                        <button type="button" class="medium" onclick="dissolve('admin-signup.php')">SIGN-UP</button>
                     </div>
 
                 </form>

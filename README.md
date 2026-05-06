@@ -1,3 +1,7 @@
+🟩May 5
+Work on version 5 pls
+Check liwat ang sa IS to Admin basta ayh 
+
 🟩May 3 -  Faculty Front-end Progress part 2.
 Changes: 
 - tasks.json - automatic mag run ang server for host-based camera for gesture control
@@ -10,3 +14,4 @@ Lacking:
 
 Outdated:
 🔴April 29 - Faculty front-end progress. (Soon to push: Front-ends of Lighting page, Profile settings, Sidebar logout)
+
