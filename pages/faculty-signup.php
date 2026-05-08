@@ -1,6 +1,5 @@
 <?php
     if (session_status() === PHP_SESSION_NONE) session_start();
-    
     $old = $_SESSION['signup_form'] ?? [];
     unset($_SESSION['signup_form']);
 ?>
@@ -11,7 +10,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!--Bootstrap and JS CDN-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -19,7 +17,6 @@
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 
-    <!--CSS files-->
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/containers.css">
     <link rel="stylesheet" href="../css/registration.css">
@@ -30,7 +27,7 @@
 <body>
     <div class="return-container">
         <a class="medium d-flex justify-content-center align-items-center"
-           onclick="dissolve('../index.php')">
+           href="../index.php">
             <i class="bi bi-house"></i>
         </a>
     </div>
@@ -42,6 +39,16 @@
             </div>
 
             <h4 class="pb-2 semibold">Faculty Sign Up</h4>
+<<<<<<< HEAD
+
+            <?php if (!empty($_SESSION['signup_errors'])): ?>
+                <?php foreach ($_SESSION['signup_errors'] as $err): ?>
+                    <div class="alert alert-danger"><?= htmlspecialchars($err) ?></div>
+                <?php endforeach; ?>
+                <?php unset($_SESSION['signup_errors']); ?>
+            <?php endif; ?>
+
+=======
             <?php
                 if (!empty($_SESSION['signup_errors'])) {
                    foreach ($_SESSION['signup_errors'] as $err) {
@@ -51,70 +58,49 @@
                 }
             ?>
 
+>>>>>>> d0b2f54ab6a744ef84b6ef2054f0e82beaf0c156
             <div class="form-container">
-                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST">
+
+                <!-- The actual form — posts directly to the process file -->
+                <form id="faculty-signup-form"
+                      action="../php/faculty-signup-process.php"
+                      method="POST"
+                      novalidate>
 
                     <div class="form-group mb-3">
                         <div class="child-1">
                             <label for="fname">Last Name</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="fname"
-                                name="last_name"
+                            <input type="text" class="form-control" id="fname" name="last_name"
                                 placeholder="Family Name"
-                                value="<?= htmlspecialchars($old['last_name'] ?? '') ?>"
-                                required>
+                                value="<?= htmlspecialchars($old['last_name'] ?? '') ?>">
                         </div>
                         <div class="child-2">
                             <label for="lname">First Name</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="lname"
-                                name="first_name"
+                            <input type="text" class="form-control" id="lname" name="first_name"
                                 placeholder="First Name"
-                                value="<?= htmlspecialchars($old['first_name'] ?? '') ?>"
-                                required>
+                                value="<?= htmlspecialchars($old['first_name'] ?? '') ?>">
                         </div>
                         <div class="child-3">
                             <label for="middle">M.I.</label>
-                            <input
-                                type="text"
-                                class="form-control"
-                                id="middle"
-                                name="middle_initial"
-                                placeholder="M.I."
-                                maxlength="5"
+                            <input type="text" class="form-control" id="middle" name="middle_initial"
+                                placeholder="M.I." maxlength="5"
                                 value="<?= htmlspecialchars($old['middle_initial'] ?? '') ?>">
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label for="email">Faculty E-mail</label>
-                        <input
-                            type="email"
-                            class="form-control"
-                            id="email"
-                            name="email"
-                            placeholder="Enter your email"
-                            autocomplete="email"
-                            value="<?= htmlspecialchars($old['email'] ?? '') ?>"
-                            required>
+                        <input type="email" class="form-control" id="email" name="email"
+                            placeholder="Enter your email" autocomplete="email"
+                            value="<?= htmlspecialchars($old['email'] ?? '') ?>">
                     </div>
 
                     <div class="mb-3">
                         <label for="password">Password</label>
                         <div class="password-wrapper">
-                            <input
-                                type="password"
-                                class="form-control"
-                                id="password"
-                                name="password"
+                            <input type="password" class="form-control" id="password" name="password"
                                 placeholder="Enter your password (min 8 characters)"
-                                autocomplete="new-password"
-                                minlength="8"
-                                required>
+                                autocomplete="new-password">
                             <i class="bi bi-eye-slash" id="togglePassword"></i>
                         </div>
                     </div>
@@ -122,39 +108,39 @@
                     <div class="mb-1">
                         <label for="confirmPassword">Confirm Password</label>
                         <div class="password-wrapper">
-                            <input
-                                type="password"
-                                class="form-control"
-                                id="confirmPassword"
-                                name="confirm_password"
-                                placeholder="Confirm your password"
-                                autocomplete="new-password"
-                                required>
+                            <input type="password" class="form-control" id="confirmPassword"
+                                name="confirm_password" placeholder="Confirm your password"
+                                autocomplete="new-password">
                             <i class="bi bi-eye-slash" id="toggleConfirmPassword"></i>
                         </div>
                     </div>
 
                     <div class="d-flex flex-column align-items-center justify-content-center">
                         <div class="submit-container">
+<<<<<<< HEAD
+                            <!-- type="button" so the form is validated in JS before submit -->
+                            <button class="medium" type="button" id="signupBtn">SIGN UP</button>
+=======
                             <button class="medium" type="button" onclick="showSignupModal()">SIGN UP</button>
+>>>>>>> d0b2f54ab6a744ef84b6ef2054f0e82beaf0c156
                             or<br>
-                            <a class="medium" onclick="dissolve('faculty-login.php')">LOG IN</a>
+                            <a class="medium" href="faculty-login.php">LOG IN</a>
                         </div>
                     </div>
 
-                    <!-- Confirmation Modal -->
-                    <div class="notify-modal" id="notify-modal" style="display:none;">
+                    <!-- Confirmation modal sits inside the form so a confirmed submit can work reliably -->
+                    <div id="notify-modal" class="notify-modal" style="display:none;">
                         <div class="modal-box">
                             <div id="modal-header">
                                 <h5><strong>!</strong> Validation Required</h5>
                             </div>
                             <div id="modal-body">
                                 <i class="bi bi-exclamation-triangle" id="cautionTriangle"></i>
-                                <h5>Validate your account e-mail to the <strong>Administrator</strong> for verification and authentication.</h5>
+                                <h5>Your account will need to be approved by an <strong>Administrator</strong> before you can log in.</h5>
                             </div>
                             <div id="modal-footer">
-                                <button class="medium" type="submit">CONFIRM & SIGN UP</button>
-                                <button class="medium" type="button" onclick="hideSignupModal()">CANCEL</button>
+                                <button class="medium" type="button" id="confirmBtn">CONFIRM & SIGN UP</button>
+                                <button class="medium" type="button" id="cancelBtn">CANCEL</button>
                             </div>
                         </div>
                     </div>
@@ -164,30 +150,51 @@
         </div>
     </div>
 
-    <script src="../script/modals.js"></script>
     <script src="../script/animations.js"></script>
     <script src="../script/password.js"></script>
+
     <script>
-        function showSignupModal() {
-            const pass    = document.getElementById('password').value;
-            const confirm = document.getElementById('confirmPassword').value;
+        const signupBtn  = document.getElementById('signupBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const cancelBtn  = document.getElementById('cancelBtn');
+        const modal      = document.getElementById('notify-modal');
+        const form       = document.getElementById('faculty-signup-form');
 
-            if (pass !== confirm) {
-                alert('Passwords do not match! Please check again.');
-                return;
-            }
-            if (pass.length < 8) {
-                alert('Password must be at least 8 characters long.');
-                return;
-            }
+        if (signupBtn && confirmBtn && cancelBtn && modal && form) {
+            signupBtn.addEventListener('click', function () {
+                const last    = document.getElementById('fname').value.trim();
+                const first   = document.getElementById('lname').value.trim();
+                const email   = document.getElementById('email').value.trim();
+                const pass    = document.getElementById('password').value;
+                const confirm = document.getElementById('confirmPassword').value;
 
-            document.getElementById('notify-modal').style.display = 'flex';
+                if (!last || !first) {
+                    alert('Please enter your first and last name.');
+                    return;
+                }
+                if (!email || !email.includes('@')) {
+                    alert('Please enter a valid email address.');
+                    return;
+                }
+                if (pass.length < 8) {
+                    alert('Password must be at least 8 characters long.');
+                    return;
+                }
+                if (pass !== confirm) {
+                    alert('Passwords do not match! Please check again.');
+                    return;
+                }
+
+                modal.style.display = 'flex';
+            });
+
+            confirmBtn.addEventListener('click', function () {
+                modal.style.display = 'none';
+                form.submit();
+            });
+
+            cancelBtn.addEventListener('click', function () {
+                modal.style.display = 'none';
+            });
         }
-
-        function hideSignupModal() {
-            document.getElementById('notify-modal').style.display = 'none';
-        }
-    </script>
-</body>
-
 </html>

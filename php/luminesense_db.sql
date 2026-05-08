@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS admins (
     middle_initial VARCHAR(5)   DEFAULT '',
     email          VARCHAR(100) NOT NULL UNIQUE,
     password       VARCHAR(255) NOT NULL,
-    is_verified    TINYINT(1)   DEFAULT 0,
+    is_verified    TINYINT(1)   DEFAULT 1,  -- Auto-approved for prototype (no IS needed)
     created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
