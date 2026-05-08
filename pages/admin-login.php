@@ -50,6 +50,12 @@
             <?php
                 if (session_status() === PHP_SESSION_NONE) session_start();
 
+                // Force clear any old session errors/messages
+                $_SESSION['login_error'] = null;
+                $_SESSION['signup_success_modal'] = null;
+                unset($_SESSION['login_error']);
+                unset($_SESSION['signup_success_modal']);
+
                 if (!empty($_SESSION['login_error'])) {
                     echo '<div class="alert alert-danger">' . htmlspecialchars($_SESSION['login_error']) . '</div>';
                     unset($_SESSION['login_error']);

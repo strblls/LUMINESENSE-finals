@@ -52,7 +52,7 @@
             ?>
 
             <div class="form-container">
-                <form id="faculty-signup-form" action="../faculty-signup-process.php" method="POST">
+                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST">
 
                     <div class="form-group mb-3">
                         <div class="child-1">

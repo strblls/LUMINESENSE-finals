@@ -58,7 +58,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success']);
 
             <div class="form-container">
                 <!-- ONE form tag wrapping everything -->
-                <form action="../faculty-login-process.php" method="POST">
+                <form action="../php/faculty-login-process.php" method="POST">
 
                     <div class="mb-3">
                         <label for="email">E-mail</label>
@@ -89,7 +89,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success']);
 
                     <div class="d-flex flex-column align-items-center justify-content-center">
                         <div class="submit-container">
-                            <button class="medium" type="submit" onclick="dissolve('faculty-home/faculty-homepage.html')">LOGIN</button>
+                            <button class="medium" type="submit">LOGIN</button>
                             or<br>
                             <a class="medium" onclick="dissolve('faculty-signup.php')">SIGN-UP</a>
                         </div>

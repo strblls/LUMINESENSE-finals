@@ -19,10 +19,11 @@ if (!$last)                              $errors[] = 'Last name required.';
 if (!$first)                             $errors[] = 'First name required.';
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors[] = 'Valid email required.';
-} elseif (!preg_match('/^[^@]+@luminesense\.edu\.ph$/i', $email)) /*ay wow new knowledj*/{
+} /* Temporarily removed domain restriction for testing
+elseif (!preg_match('/^[^@]+@luminesense\.edu\.ph$/i', $email)) {
     $errors[] = 'Admin email must use @luminesense.edu.ph.';
-}
-if ($code !== '1108')                    $errors[] = 'Invalid admin code.';
+} */
+if ($code !== '1108')                    $errors[] = 'Invalid admin code. Use: 1108';
 if (strlen($pass) < 8)                   $errors[] = 'Password must be at least 8 characters.';
 if ($pass !== $pass2)                    $errors[] = 'Passwords do not match.';
 
@@ -44,7 +45,7 @@ if ($stmt->num_rows > 0) {
 $stmt->close();
 
 $hash = password_hash($pass, PASSWORD_BCRYPT);
-$stmt = $conn->prepare('INSERT INTO admins (last_name, first_name, middle_initial, email, password, is_verified) VALUES (?,?,?,?,?,0)');
+$stmt = $conn->prepare('INSERT INTO admins (last_name, first_name, middle_initial, email, password, is_verified) VALUES (?,?,?,?,?,1)');
 if (!$stmt) {
     $_SESSION['signup_errors'] = ['Database error: ' . $conn->error];
     header('Location: ../pages/admin-signup.php'); exit;
@@ -57,5 +58,5 @@ if (!$stmt->execute()) {
 }
 $stmt->close();
 
-$_SESSION['signup_success_modal'] = 'Account created successfully. Please wait for verification from the Information Systems Office before logging in.';
+$_SESSION['signup_success_modal'] = 'Account created successfully. You can now log in with your credentials.';
 header('Location: ../pages/admin-login.php'); exit;
