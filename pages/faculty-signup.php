@@ -42,18 +42,6 @@
             </div>
 
             <h4 class="pb-2 semibold">Faculty Sign Up</h4>
-
-            <!--
-                FIXES APPLIED:
-                1. All separate <form> tags merged into ONE <form>.
-                2. name="" added to every input — must match exactly what PHP reads:
-                   last_name, first_name, middle_initial, email, password, confirm_password
-                3. action points to faculty-signup.php.
-                4. method="POST".
-                5. The modal still works — it fires on button click, then PHP is called on CONFIRM.
-            -->
-
-            <!-- SESSION ERROR MESSAGES -->
             <?php
                 if (!empty($_SESSION['signup_errors'])) {
                    foreach ($_SESSION['signup_errors'] as $err) {
@@ -148,11 +136,6 @@
 
                     <div class="d-flex flex-column align-items-center justify-content-center">
                         <div class="submit-container">
-                            <!--
-                                The button type="button" (NOT submit) so it shows the modal first.
-                                The CONFIRM button inside the modal is type="submit" which actually
-                                submits the form to PHP.
-                            -->
                             <button class="medium" type="button" onclick="showSignupModal()">SIGN UP</button>
                             or<br>
                             <a class="medium" onclick="dissolve('faculty-login.php')">LOG IN</a>

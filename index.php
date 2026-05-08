@@ -34,5 +34,4 @@
 
     <script src="script/animations.js"></script>
 </body>
-
 </html>
