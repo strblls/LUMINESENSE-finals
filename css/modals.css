@@ -1,0 +1,194 @@
+.notify-modal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    inset: 0;
+    backdrop-filter: blur(15px);
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.modal-box {
+    background: var(--primary-color);
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    justify-content: center;
+    box-shadow: 0 0 10px var(--black);
+    border-radius: 8px;
+    overflow: hidden;
+
+    #modal-header {
+        background-color: var(--secondary-color-1);
+        color: var(--primary-color);
+    }
+
+    #modal-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 0px 20px;
+
+        i {
+            color: #ff9500;
+        }
+    }
+
+    #modal-footer {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: var(--primary-color);
+
+        button {
+            width: 50%;
+        }
+    }
+
+    #cautionTriangle {
+        font-size: 50px;
+    }
+}
+
+.child-container.homepage-modal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-center;
+    height: auto;
+    width: 100%;
+}
+
+.room-details-modal {
+
+    .modal-header {
+        background: linear-gradient(135deg, #2d0d5f 0%, #4a1d8f 100%);
+        color: white;
+
+        .modal-title {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+    }
+
+    .modal-body {
+
+        .current-schedule {
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+
+            h6 {
+                font-weight: bold !important;
+                margin-bottom: 15px;
+            }
+
+            .faculty-info {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+                padding-bottom: 15px;
+                border-bottom: 2px solid #e0e0e0;
+
+                .avatar-icon {
+                    width: 5rem;
+                    height: 5rem;
+                    min-width: 5rem;
+
+                    h5 {
+                        margin: 0;
+                    }
+                }
+
+                .display-info {
+                    width: 100%;
+                }
+
+                margin-left: 12px;
+
+                p {
+                    margin: 0;
+                }
+
+                div p.faculty-name {
+                    font-size: 2rem;
+                }
+
+                span {
+                    font-weight: bold;
+                }
+
+                small {
+                    color: #666666;
+                }
+
+                button.light {
+                    width: 25%;
+                    margin-left: auto;
+                }
+            }
+
+            .room-details {
+                margin-bottom: 15px;
+
+                p {
+                    margin: 5px 0;
+                    font-size: 0.9rem;
+                }
+            }
+
+            .lighting-grid {
+                margin-top: 20px;
+            }
+        }
+
+        h6 {
+            font-size: 1.2rem;
+        }
+    }
+}
+
+.status-cards-modal {
+
+    i {
+        font-size: 3.5rem;
+        font-weight: bolder;
+    }
+
+    h1 {
+        font-size: 4rem;
+        margin: 0;
+    }
+
+    h6 {
+        font-size: 1.2rem;
+        margin: 0;
+    }
+
+    .bi-box,
+    .fa-person-shelter {
+        color: green;
+    }
+
+    .bi-lightbulb {
+        color: orange;
+    }
+
+    .bi-info-circle {
+        color: red;
+    }
+}
+
+.modal-content {
+    width: fit-content;
+}

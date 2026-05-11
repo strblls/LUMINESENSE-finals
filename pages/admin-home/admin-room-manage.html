@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!--Bootstrap and JS CDN-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+    <!--Font Awesome additional icons-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <!--CSS files-->
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/containers.css">
+    <link rel="stylesheet" href="../../css/modals.css">
+</head>
+
+<body class="contrast-bg">
+    <div class="parent-container">
+        <div class="topbar d-flex">
+            <button type="button" id="sidebarTrigger">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="col d-flex flex-column px-3">
+                <h1 class="bold">Room Management</h1> <!--ALERT: PHP | DISPLAY-->
+            </div>
+            <div class="d-flex align-items-center justify-content-center gap-3 mx-2">
+                <div class="search-container">
+                    <input type="text" class="form-control search-input" placeholder="Search...">
+                    <i class="fas fa-search search-icon"></i>
+                    <!--ALERT: PHP | DISPLAY (by searching, dynamic mag gwa ang)-->
+                </div>
+                <h4>Admin Name</h4> <!--ALERT: PHP | DISPLAY-->
+                <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
+                    <h3 class="bold">AN</h3> <!--ALERT: PHP | DISPLAY (like profile picture or initials)-->
+                </div>
+            </div>
+        </div>
+        <div class="child-container">
+            <div class="main-container gap-3">
+                <div class="group-container gap-3 m-3">
+                    <div class="status-cards d-flex flex-wrap gap-3 w-100">
+                        <!--ALERT: PHP | DISPLAY (Everything is static, bale search bar ma dynamic click "View" button for result)-->
+                        <div style="background-color: #f8f9fa;" class="section-container rooms flex-fill">
+                            <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                                <div class="d-flex mx-2 align-items-start">
+                                    <h2 class="bold">Grade 6 Narra</h2>
+                                </div>
+                                <div class="d-flex mx-2 align-items-end">
+                                    <button class="light mx-2" data-bs-toggle="modal"
+                                        data-bs-target="#roomModal">View</button>
+                                </div>
+                            </div>
+                            <div class="gap-2 m-3 align-items-center">
+                                <p class="mb-0">Faculty-in-charge: <span>John Doe</span></p>
+                                <p class="mb-0">Room Status: <span>Occupied</span></p>
+                                <p class="mb-0">Lighting Status: <span>OFF</span></p>
+                            </div>
+                        </div>
+                        <div style="background-color: #f8f9fa;" class="section-container rooms flex-fill">
+                            <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                                <div class="d-flex mx-2 align-items-start">
+                                    <h2 class="bold">Grade 6 Narra</h2>
+                                </div>
+                                <div class="d-flex mx-2 align-items-end">
+                                    <button class="light mx-2" data-bs-toggle="modal"
+                                        data-bs-target="#roomModal">View</button>
+                                </div>
+                            </div>
+                            <div class="gap-2 m-3 align-items-center">
+                                <p class="mb-0">Faculty-in-charge: <span>John Doe</span></p>
+                                <p class="mb-0">Room Status: <span>Occupied</span></p>
+                                <p class="mb-0">Lighting Status: <span>OFF</span></p>
+                            </div>
+                        </div>
+                        <div style="background-color: #f8f9fa;" class="section-container rooms flex-fill">
+                            <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                                <div class="d-flex mx-2 align-items-start">
+                                    <h2 class="bold">Grade 6 Narra</h2>
+                                </div>
+                                <div class="d-flex mx-2 align-items-end">
+                                    <button class="light mx-2" data-bs-toggle="modal"
+                                        data-bs-target="#roomModal">View</button>
+                                </div>
+                            </div>
+                            <div class="gap-2 m-3 align-items-center">
+                                <p class="mb-0">Faculty-in-charge: <span>John Doe</span></p>
+                                <p class="mb-0">Room Status: <span>Occupied</span></p>
+                                <p class="mb-0">Lighting Status: <span>OFF</span></p>
+                            </div>
+                        </div>
+                        <div style="background-color: #f8f9fa;" class="section-container rooms flex-fill">
+                            <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                                <div class="d-flex mx-2 align-items-start">
+                                    <h2 class="bold">Grade 6 Narra</h2>
+                                </div>
+                                <div class="d-flex mx-2 align-items-end">
+                                    <button class="light mx-2" data-bs-toggle="modal"
+                                        data-bs-target="#roomModal">View</button>
+                                </div>
+                            </div>
+                            <div class="gap-2 m-3 align-items-center">
+                                <p class="mb-0">Faculty-in-charge: <span>John Doe</span></p>
+                                <p class="mb-0">Room Status: <span>Occupied</span></p>
+                                <p class="mb-0">Lighting Status: <span>OFF</span></p>
+                            </div>
+                        </div>
+                        <div style="background-color: #f8f9fa;" class="section-container rooms flex-fill">
+                            <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                                <div class="d-flex mx-2 align-items-start">
+                                    <h2 class="bold">Grade 6 Narra</h2>
+                                </div>
+                                <div class="d-flex mx-2 align-items-end">
+                                    <button class="light mx-2" data-bs-toggle="modal"
+                                        data-bs-target="#roomModal">View</button>
+                                </div>
+                            </div>
+                            <div class="gap-2 m-3 align-items-center">
+                                <p class="mb-0">Faculty-in-charge: <span>John Doe</span></p>
+                                <p class="mb-0">Room Status: <span>Occupied</span></p>
+                                <p class="mb-0">Lighting Status: <span>OFF</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+
+            </div>
+
+            <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas"
+                aria-labelledby="sidebarOffcanvasLabel">
+                <div class="offcanvas-header justify-content-center">
+                    <img src="../../images/logo.png" class="logo" onclick="dissolve('admin-homepage.html')">
+                </div>
+                <div class="offcanvas-body align-items-center d-flex flex-column">
+                    <button class="wb-2" onclick="dissolve('admin-room-manage.html')"><i
+                            class="fa-solid fa-person-shelter"></i></button>
+                    <button class="wb-2" onclick="dissolve('admin-energy-rate.html')"><i
+                            class="bi bi-clipboard2-data"></i></button>
+                    <button class="wb-2" onclick="dissolve('admin-alerts.html')"><i
+                            class="bi bi-exclamation-triangle"></i></button>
+                    <button class="wb-2" onclick="dissolve('admin-user-manage.html')"><i
+                            class="bi bi-people"></i></button>
+                    <button class="wb-2" onclick="dissolve('admin-profile-settings.html')"><i
+                            class="bi bi-gear"></i></button>
+                </div>
+                <div class="offcanvas-footer">
+                    <img src="../../images/team-logo.png" class="logo">
+                </div>
+            </div>
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas"
+                aria-labelledby="sidebarOffcanvasLabel">
+                <div class="offcanvas-body align-items-center d-flex flex-column">
+                    <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
+                        <h3 class="bold">JD</h3> <!--ALERT: PHP | DISPLAY (like profile picture or initials)-->
+                    </div>
+                    <h4 class="bold">Admin Name</h4>
+                    <h6 class="light email-limit">admin@raffles.uni.edu</h6>
+                    <div class="d-flex flex-column align-items-center justify-content-center">
+                        <button>Profile Settings</button>
+                        <button>Classroom Details</button>
+                        <button>Logout</button>
+                    </div>
+                </div>
+            </div>
+
+            <!--Room Details Modal-->
+            <div class="room-details-modal modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <!--Modal Header-->
+                        <div class="modal-header">
+                            <div>
+                                <h5 class="modal-title" id="roomModalLabel">Grade 6 Narra</h5>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+
+                        <!--Modal Body-->
+                        <div class="modal-body">
+                            <div class="main-container d-flex flex-row gap-3 align-items-start">
+
+                                <!--Left Column-->
+                                <div class="group-container gap-3">
+                                    <div class="section-container current-schedule">
+                                        <h6>Current Schedule</h6>
+
+                                        <!--Faculty Info-->
+                                        <div class="faculty-info gap-3">
+                                            <div class="avatar-icon d-flex align-items-center justify-content-center">
+                                                <h5>JD</h5>
+                                            </div>
+                                            <div class="display-info">
+                                                <p class="bold faculty-name">John Doe</p>
+                                                <small>Faculty Member</small>
+                                                <hr>
+                                                <p>Room Status: <span>Occupied</span></p>
+                                                <p>Time: <span>4:30 PM - 5:30 PM</span></p>
+                                            </div>
+                                            <button class="light">Details</button>
+                                        </div>
+
+                                        <!--Lighting Status-->
+                                        <div class="d-flex justify-content-between align-items-center py-2">
+                                            <span>Lighting Status: <span class="text-success fw-bold">ON</span></span>
+                                            <span>PIR Sensor: <span class="text-success fw-bold">ACTIVE</span></span>
+                                        </div>
+                                        <p class="mb-0" style="font-size: 0.85rem; color: #666;">
+                                            Web Camera: <span>OFF</span>
+                                        </p>
+
+                                        <!--Lighting Grid-->
+                                        <div class="d-flex flex-row align-items-center justify-content-center mt-3">
+                                            <div class="lighting-grid">
+                                                <img src="../../images/bulb-off.png">
+                                                <img src="../../images/bulb-off.png">
+                                                <img src="../../images/bulb-off.png">
+                                                <hr class="w-100">
+                                                <img src="../../images/bulb-off.png">
+                                                <img src="../../images/bulb-off.png">
+                                                <img src="../../images/bulb-off.png">
+                                                <hr class="w-100">
+                                                <img src="../../images/bulb-off.png">
+                                                <img src="../../images/bulb-off.png">
+                                                <img src="../../images/bulb-off.png">
+                                                <hr class="w-100">
+                                            </div>
+                                            <div class="p-3">
+                                                <div class="d-flex flex-column align-items-center gap-1">
+                                                    <label class="form-check-label" for="row-1-switch">Row 1</label>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" role="switch"
+                                                            id="row-1-switch">
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex flex-column align-items-center gap-1">
+                                                    <label class="form-check-label" for="row-2-switch">Row 2</label>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" role="switch"
+                                                            id="row-2-switch">
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex flex-column align-items-center gap-1">
+                                                    <label class="form-check-label" for="row-3-switch">Row 3</label>
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" type="checkbox" role="switch"
+                                                            id="row-3-switch">
+                                                    </div>
+                                                </div>
+                                                <br>
+                                                <div class="d-flex flex-column align-items-center gap-1">
+                                                    <h5 class="bold">All Lights</h5>
+                                                    <h4 class="bold off">OFF</h4>
+                                                    <div
+                                                        class="all-lights-off d-flex flex-column align-items-center justify-content-center">
+                                                        <i class="bi bi-power" id="all-lights"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!--Right Column-->
+                                <div class="group-container gap-3">
+
+                                    <!--Timetable-->
+                                    <div class="section-container">
+                                        <div
+                                            class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                                            <div class="d-flex mx-2 align-items-start">
+                                                <h6 class="bold">Timetable</h6>
+                                            </div>
+                                            <div class="d-flex mx-2 align-items-end">
+                                                <button class="light mx-2">View</button>
+                                            </div>
+                                        </div>
+                                        <div style="background-color: #f8f9fa;" class="section-container status-cards-modal flex-fill">
+                                            <div class="d-flex gap-2 m-3 justify-content-center align-items-center">
+                                                <i class="bi bi-info-circle"></i>
+                                                <h1 class="bold">4</h1>
+                                                <!--ALERT: PHP | DISPLAY (number of active lights)-->
+                                                <h6 class="semibold">Needs Resolution</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!--Room Alerts-->
+                                    <div class="section-container">
+                                        <div
+                                            class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                                            <div class="d-flex mx-2 align-items-start">
+                                                <h6 class="bold">Room Alerts</h6>
+                                            </div>
+                                            <div class="d-flex mx-2 align-items-end">
+                                                <button class="light mx-2">Details</button>
+                                            </div>
+                                        </div>
+                                        <div class="activity-list px-2 gap-2">
+                                            <div>
+                                                <p class="mb-0 bold" style="font-size: 0.9rem;">Detected Motion</p>
+                                                <small class="text-muted">10:30AM on February 9, 2026</small>
+                                            </div>
+                                            <hr>
+                                            <div>
+                                                <p class="mb-0 bold" style="font-size: 0.9rem;">Detected Motion</p>
+                                                <small class="text-muted">11:31AM on February 9, 2026</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="../../script/animations.js"></script>
+    <script src="../../script/toggles.js"></script>
+
+</body>
+
+</html>

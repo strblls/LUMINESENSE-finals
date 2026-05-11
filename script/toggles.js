@@ -1,10 +1,10 @@
 const allLightsBtn = document.getElementById('all-lights');
-const statusText = document.querySelector('h4.bold');
 const btnContainer = allLightsBtn.closest('div[class^="all-lights"]');
+const statusText = btnContainer.parentElement.querySelector('h4.bold');
 
-const row1Bulbs = document.querySelectorAll('.lighting-grid img:nth-child(-n+3)');
-const row2Bulbs = document.querySelectorAll('.lighting-grid img:nth-child(n+5):nth-child(-n+7)');
-const row3Bulbs = document.querySelectorAll('.lighting-grid img:nth-child(n+9):nth-child(-n+11)');
+const row1Bulbs = document.querySelectorAll('.lighting-grid img:nth-of-type(-n+3)');
+const row2Bulbs = document.querySelectorAll('.lighting-grid img:nth-of-type(n+4):nth-of-type(-n+6)');
+const row3Bulbs = document.querySelectorAll('.lighting-grid img:nth-of-type(n+7):nth-of-type(-n+9)');
 
 const bulbOff = '../../images/bulb-off.png';
 const bulbOn = '../../images/bulb-on.png';
