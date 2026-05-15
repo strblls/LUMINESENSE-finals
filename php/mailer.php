@@ -19,8 +19,8 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 // ── Gmail SMTP credentials ────────────────────────────────────────────────
 // TODO: Move these to a .env file or config file before going live.
-define('GMAIL_USER',         'luminesense.noreply@gmail.com');  
-define('GMAIL_APP_PASSWORD', 'wmcr wfqa zgpv vrdy');                
+define('GMAIL_USER',         /*'luminesense.noreply@gmail.com'*/ 'ballesteros.alexandra08@gmail.com');  
+define('GMAIL_APP_PASSWORD', /*'wmcrwfqazgpvvrdy'*/ 'tueheqpmmkublpzp');                
 define('MAIL_FROM_NAME',     'LumineSense');
 
 /**
@@ -55,6 +55,11 @@ function sendVerificationEmail(string $to, string $otp_code, string $name = 'Use
         $mail->Body    = buildEmailBody($name, $otp_code);
         $mail->AltBody = "Hi $name,\n\nYour LumineSense verification code is: $otp_code\n\nThis code expires in 15 minutes.\n\nIf you did not sign up, please ignore this email.";
 
+        //ADDED ALEXXXXXXXXXXXXXXXXXXXXXXXX
+        $mail->SMTPDebug = 2;
+        $mail->Debugoutput = function($str, $level) {
+            error_log("SMTP: $str");
+        };
         $mail->send();
         return true;
 
@@ -63,6 +68,59 @@ function sendVerificationEmail(string $to, string $otp_code, string $name = 'Use
         return false;
     }
 }
+
+function sendApprovalEmail(string $to, string $name): bool
+{
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = GMAIL_USER;
+        $mail->Password   = GMAIL_APP_PASSWORD;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 587;
+
+        $mail->setFrom(GMAIL_USER, MAIL_FROM_NAME);
+        $mail->addAddress($to, $name);
+
+        $mail->isHTML(true);
+        $mail->Subject = 'LumineSense – Your Account Has Been Approved!';
+        $mail->Body    = "
+            <div style='font-family:Arial,sans-serif;max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);'>
+                <div style='background:#1a1a2e;padding:28px 32px;text-align:center;'>
+                    <h1 style='color:#f5c518;font-size:20px;margin:0;letter-spacing:2px;'>💡 LUMINESENSE</h1>
+                </div>
+                <div style='padding:32px;color:#333;'>
+                    <p>Hi <strong>{$name}</strong>,</p>
+                    <p>Great news! Your LumineSense faculty account has been <strong style='color:#28a745;'>approved</strong> by an Administrator.</p>
+                    <p>You can now log in and access your dashboard.</p>
+                    <div style='text-align:center;margin:28px 0;'>
+                        <a href='http://localhost/LUMINESENSE_VERSIONS/LUMINESENSE-finals/pages/faculty-login.php'
+                           style='background:#4a6cf7;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:700;'>
+                            LOG IN NOW
+                        </a>
+                    </div>
+                    <p style='font-size:13px;color:#888;'>If you did not create a LumineSense account, please ignore this email.</p>
+                </div>
+                <div style='background:#f9f9f9;text-align:center;padding:16px;font-size:12px;color:#aaa;border-top:1px solid #eee;'>
+                    © 2025 LumineSense · University of Negros Occidental – Recoletos
+                </div>
+            </div>
+        ";
+        $mail->AltBody = "Hi {$name},\n\nYour LumineSense faculty account has been approved! You can now log in.\n\nIf you did not create an account, ignore this email.";
+
+        $mail->send();
+        return true;
+
+    } catch (Exception $e) {
+        error_log('LumineSense Approval Mailer Error: ' . $mail->ErrorInfo);
+        return false;
+    }
+}
+
+
 
 /**
  * Builds the HTML email body.
