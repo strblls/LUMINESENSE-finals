@@ -24,7 +24,9 @@ $conn->query("
         middle_initial VARCHAR(5)   DEFAULT '',
         email          VARCHAR(100) NOT NULL UNIQUE,
         password       VARCHAR(255) NOT NULL,
-        is_verified    TINYINT(1)   DEFAULT 1,
+        is_verified    TINYINT(1)   DEFAULT 0,
+        otp_code       VARCHAR(6)   DEFAULT NULL,
+        otp_expires_at DATETIME     DEFAULT NULL,
         created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
     )
 ");
@@ -40,6 +42,8 @@ $conn->query("
         is_verified    TINYINT(1)   DEFAULT 0,
         approved_by    INT          DEFAULT NULL,
         approved_at    TIMESTAMP    NULL DEFAULT NULL,
+        otp_code       VARCHAR(6)   DEFAULT NULL,
+        otp_expires_at DATETIME     DEFAULT NULL,
         created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (approved_by) REFERENCES admins(id) ON DELETE SET NULL
     )

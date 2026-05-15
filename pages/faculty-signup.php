@@ -136,7 +136,7 @@
 
                     <div class="d-flex flex-column align-items-center justify-content-center">
                         <div class="submit-container">
-                            <button class="medium" type="button" onclick="showSignupModal()">SIGN UP</button>
+                            <button class="medium" type="submit">SIGN UP</button>
                             or<br>
                             <a class="medium" onclick="dissolve('faculty-login.php')">LOG IN</a>
                         </div>

@@ -26,7 +26,7 @@ if ($_SESSION['faculty_attempts'] >= 3) {
     header('Location: ../pages/faculty-login.php'); exit;
 }
 
-$stmt = $conn->prepare('SELECT id, first_name, last_name, password, is_verified FROM faculty WHERE email = ?');
+$stmt = $conn->prepare('SELECT id, first_name, last_name, password, is_verified, approved_by FROM faculty WHERE email = ?');
 $stmt->bind_param('s', $email);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
@@ -39,6 +39,11 @@ if (!$row || !password_verify($password, $row['password'])) {
 }
 
 if (!$row['is_verified']) {
+    $_SESSION['login_error'] = 'Please verify your email first. Check your inbox for the verification code.';
+    header('Location: ../pages/faculty-login.php'); exit;
+}
+
+if ($row['approved_by'] === null) {
     $_SESSION['login_error'] = 'Your account is pending approval from an Administrator.';
     header('Location: ../pages/faculty-login.php'); exit;
 }
