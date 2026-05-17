@@ -158,6 +158,31 @@
     }
 }
 
+.profile-details-modal {
+
+    .modal-header {
+        background: linear-gradient(135deg, #2d0d5f 0%, #4a1d8f 100%);
+        color: white;
+
+        .modal-title {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+    }
+
+    .modal-body {
+
+        .edit-button {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        h6 {
+            font-size: 1.2rem;
+        }
+    }
+}
+
 .status-cards-modal {
 
     i {

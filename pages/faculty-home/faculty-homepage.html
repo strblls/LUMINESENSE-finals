@@ -212,9 +212,135 @@
                         <h4 class="bold">John Doe</h4>
                         <h6 class="light email-limit">john.doe@raffles.uni.edu</h6>
                         <div class="d-flex flex-column align-items-center justify-content-center">
-                            <button>Profile Settings</button>
-                            <button>Classroom Details</button>
+                            <button data-bs-toggle="modal" data-bs-target="#profileModal">Profile Settings</button>
+                            <button data-bs-toggle="modal" data-bs-target="#classroomModal">Classroom Details</button>
                             <button>Logout</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!--Profile Modal-->
+                <div class="profile-details-modal modal fade" id="profileModal" tabindex="-1"
+                    aria-labelledby="profileModalLabel" aria-hidden="true">
+                    <div class="d-flex justify-content-center modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <div>
+                                    <h5 class="modal-title" id="profileModalLabel">Profile</h5>
+                                </div>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="card border-0 shadow-sm rounded-4">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex flex-between align-items-center gap-3 mb-4">
+                                            <div
+                                                class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0">
+                                                <h3 class="bold mb-0">JD</h3>
+                                            </div>
+                                            <div>
+                                                <h4 class="bold mb-1">John Doe</h4>
+                                                <p class="mb-0">Faculty Member</p>
+                                            </div>
+                                            <button type="button"
+                                                class="edit-button btn btn-sm btn-light border rounded-circle ms-auto"
+                                                aria-label="Edit profile details">
+                                                <i class="bi bi-pencil"></i> <!-- ALERT | PHP: Edit profile details -->
+                                            </button>
+                                        </div>
+
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="p-3 bg-light rounded-3">
+                                                    <small class="text-muted d-block">Email</small>
+                                                    <p class="mb-0">j*******@raffles.uni.edu</p>
+                                                    <!--ALERT: PHP | DISPLAY (like masked email for privacy)-->
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="p-3 bg-light rounded-3">
+                                                    <small class="text-muted d-block">Department</small>
+                                                    <p class="mb-0">N/A</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="p-3 bg-light rounded-3">
+                                                    <small class="text-muted d-block">Address</small>
+                                                    <p class="mb-0">N/A</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!--Classroom Details Modal-->
+                <div class="profile-details-modal modal fade" id="classroomModal" tabindex="-1"
+                    aria-labelledby="classroomModalLabel" aria-hidden="true">
+                    <div class="d-flex justify-content-center modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <div>
+                                    <h5 class="modal-title" id="classroomModalLabel">Classroom Details</h5>
+                                </div>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="card border-0 shadow-sm rounded-4">
+                                    <div class="card-body p-4">
+                                        <div class="d-flex flex-between align-items-center gap-3 mb-4">
+                                            <div class="flex-grow-1 min-w-0">
+                                                <h4 class="bold mb-1">Grade 6 Narra</h4>
+                                                <p class="mb-0">Classroom Overview</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="p-3 bg-light rounded-3">
+                                                    <small class="text-muted d-block">Faculty In-Charge</small>
+                                                    <p class="mb-0">John Doe</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="p-3 bg-light rounded-3">
+                                                    <small class="text-muted d-block">Room Status</small>
+                                                    <p class="mb-0">Occupied</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="p-3 bg-light rounded-3">
+                                                    <small class="text-muted d-block">Current Schedule</small>
+                                                    <p class="mb-0">4:30 PM - 5:30 PM</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="p-3 bg-light rounded-3">
+                                                    <small class="text-muted d-block">Lighting Status</small>
+                                                    <p class="mb-0">OFF</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="p-3 bg-light rounded-3">
+                                                    <small class="text-muted d-block">Specifications (in compliance with
+                                                        DepEd Order No.64 s. 2017)</small>
+                                                    <p class="mb-0">Dimensions (meters): 7 m x 9 m x 2.1 m<br>
+                                                        Floor Space (sq. meters): 63 sq. m.<br>
+                                                        Target Brightness (lux): 250 lux or lumen per sq. m.<br>
+                                                        Luminous Efficacy (lumens per watt): 104 lm/W minimum<br>
+                                                        Calculated Wattage: 81W - 108W<br>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
