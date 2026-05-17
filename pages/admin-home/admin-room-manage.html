@@ -4,27 +4,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!--Bootstrap and JS CDN-->
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
-    <!--Font Awesome additional icons-->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-
-    <!--CSS files-->
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
+
+
+    <!-- ═══ SHARED SIDEBAR & PROFILE STYLES ═══ -->
+    <style>
+        /* ── Sidebar nav buttons ── */
+        .nav-btn {
+            width: 52px; height: 52px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            background-color: var(--secondary-color-1); color: var(--primary-color);
+            border: none; cursor: pointer;
+            transition: background-color 0.2s, transform 0.15s;
+        }
+        .nav-btn i, .nav-btn svg { font-size: 22px; }
+        .nav-btn:hover { background-color: var(--secondary-color-4); transform: scale(1.06); }
+
+        /* ── Sidebar offcanvas shell ── */
+        #sidebarOffcanvas { width: 100px !important; background-color: var(--primary-color); }
+        #sidebarOffcanvas .offcanvas-header { justify-content: center; padding: 1rem 0.5rem; }
+        #sidebarOffcanvas .logo { width: 75px; height: 75px; object-fit: contain; cursor: pointer; }
+        #sidebarOffcanvas .offcanvas-body { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 0.5rem; }
+        #sidebarOffcanvas .offcanvas-footer { display: flex; justify-content: center; padding: 1rem; }
+        #sidebarOffcanvas .offcanvas-footer img { width: 4rem; }
+
+        /* ── Profile offcanvas shell ── */
+        #profileOffcanvas { width: 240px !important; background-color: var(--primary-color); }
+        #profileOffcanvas .avatar-icon {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: #d9d6d6; color: var(--secondary-color-1);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ── Profile offcanvas buttons ── */
+        .profile-btn {
+            width: 100%; padding: 8px; margin: 3px 0; border-radius: 8px;
+            background-color: var(--secondary-color-1); color: var(--primary-color);
+            border: none; font-size: 14px; cursor: pointer; font-family: var(--font-primary);
+            transition: background-color 0.2s, transform 0.15s;
+        }
+        .profile-btn:hover { background-color: var(--secondary-color-4); transform: scale(1.02); }
+    </style>
 </head>
 
 <body class="contrast-bg">
+
     <div class="parent-container">
         <div class="topbar d-flex">
-            <button type="button" id="sidebarTrigger">
+            <button type="button" id="sidebarTrigger" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
                 <i class="bi bi-list"></i>
             </button>
             <div class="col d-flex flex-column px-3">
@@ -34,11 +71,12 @@
                 <div class="search-container">
                     <input type="text" class="form-control search-input" placeholder="Search...">
                     <i class="fas fa-search search-icon"></i>
-                    <!--ALERT: PHP | DISPLAY (by searching, dynamic mag gwa ang)-->
+                    <!--ALERT: PHP | DISPLAY-->
                 </div>
                 <h4>Admin Name</h4> <!--ALERT: PHP | DISPLAY-->
-                <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
-                    <h3 class="bold">AN</h3> <!--ALERT: PHP | DISPLAY (like profile picture or initials)-->
+                <div class="avatar-icon d-flex align-items-center justify-content-center"
+                    data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas" style="cursor:pointer;">
+                    <h3 class="bold">AN</h3> <!--ALERT: PHP | DISPLAY-->
                 </div>
             </div>
         </div>
@@ -132,43 +170,6 @@
                 </div>
 
 
-            </div>
-
-            <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas"
-                aria-labelledby="sidebarOffcanvasLabel">
-                <div class="offcanvas-header justify-content-center">
-                    <img src="../../images/logo.png" class="logo" onclick="dissolve('admin-homepage.html')">
-                </div>
-                <div class="offcanvas-body align-items-center d-flex flex-column">
-                    <button class="wb-2" onclick="dissolve('admin-room-manage.html')"><i
-                            class="fa-solid fa-person-shelter"></i></button>
-                    <button class="wb-2" onclick="dissolve('admin-energy-rate.html')"><i
-                            class="bi bi-clipboard2-data"></i></button>
-                    <button class="wb-2" onclick="dissolve('admin-alerts.html')"><i
-                            class="bi bi-exclamation-triangle"></i></button>
-                    <button class="wb-2" onclick="dissolve('admin-user-manage.html')"><i
-                            class="bi bi-people"></i></button>
-                    <button class="wb-2" onclick="dissolve('admin-profile-settings.html')"><i
-                            class="bi bi-gear"></i></button>
-                </div>
-                <div class="offcanvas-footer">
-                    <img src="../../images/team-logo.png" class="logo">
-                </div>
-            </div>
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas"
-                aria-labelledby="sidebarOffcanvasLabel">
-                <div class="offcanvas-body align-items-center d-flex flex-column">
-                    <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
-                        <h3 class="bold">JD</h3> <!--ALERT: PHP | DISPLAY (like profile picture or initials)-->
-                    </div>
-                    <h4 class="bold">Admin Name</h4>
-                    <h6 class="light email-limit">admin@raffles.uni.edu</h6>
-                    <div class="d-flex flex-column align-items-center justify-content-center">
-                        <button>Profile Settings</button>
-                        <button>Classroom Details</button>
-                        <button>Logout</button>
-                    </div>
-                </div>
             </div>
 
             <!--Room Details Modal-->
@@ -330,6 +331,41 @@
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
 
-</body>
 
+
+    <!-- ═══ SIDEBAR OFFCANVAS ═══ -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+        <div class="offcanvas-header justify-content-center">
+            <img src="../../images/logo.png" class="logo" alt="Logo" onclick="dissolve('admin-homepage.html')" style="cursor:pointer;">
+        </div>
+        <div class="offcanvas-body align-items-center d-flex flex-column gap-2">
+            <button class="nav-btn" title="Home"             onclick="dissolve('admin-homepage.html')"><i class="bi bi-house-door"></i></button>
+            <button class="nav-btn" title="Room Management"  onclick="dissolve('admin-room-manage.html')"><i class="fa-solid fa-person-shelter"></i></button>
+            <button class="nav-btn" title="Analytics"        onclick="dissolve('admin-analytics.html')"><i class="bi bi-clipboard2-data"></i></button>
+            <button class="nav-btn" title="Reports"          onclick="dissolve('admin-reports.html')"><i class="bi bi-exclamation-triangle"></i></button>
+            <button class="nav-btn" title="Faculty"          onclick="dissolve('admin-faculty-management.html')"><i class="bi bi-people"></i></button>
+            <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.html')"><i class="bi bi-gear"></i></button>
+        </div>
+        <div class="offcanvas-footer">
+            <img src="../../images/team-logo.png" alt="Team Logo" style="width:4rem;">
+        </div>
+    </div>
+
+    <!-- ═══ PROFILE OFFCANVAS ═══ -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas" aria-labelledby="profileOffcanvasLabel">
+        <div class="offcanvas-body align-items-center d-flex flex-column pt-4 gap-2">
+            <div class="avatar-icon d-flex align-items-center justify-content-center">
+                <h3 class="bold">AN</h3> <!--ALERT: PHP | DISPLAY-->
+            </div>
+            <h4 class="bold mt-2" style="color:var(--secondary-color-1);">Admin Name</h4> <!--ALERT: PHP | DISPLAY-->
+            <h6 class="light" style="word-break:break-all;text-align:center;">admin@raffles.uni.edu</h6>
+            <div class="d-flex flex-column align-items-center justify-content-center w-100 mt-2 gap-1">
+                <button class="profile-btn" onclick="dissolve('admin-profile-settings.html')">Profile Settings</button>
+                <button class="profile-btn">Classroom Details</button>
+                <button class="profile-btn" onclick="window.location.href='../../index.html'">Logout</button>
+            </div>
+        </div>
+    </div>
+
+</body>
 </html>
