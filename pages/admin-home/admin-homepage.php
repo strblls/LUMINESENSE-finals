@@ -1,7 +1,11 @@
 <?php
-require_once dirname(__DIR__, 2) . '/session_guard.php';
+$phpRoot = realpath(__DIR__ . '/../../php');
+if ($phpRoot === false) {
+    die('Unable to resolve PHP root path.');
+}
+require_once $phpRoot . '/session_guard.php';
 check_admin();
-require_once dirname(__DIR__, 2) . '/db_connect.php';
+require_once $phpRoot . '/db_connect.php';
 
 $admin_name = htmlspecialchars($_SESSION['admin_name']);
 
@@ -20,402 +24,311 @@ $conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin Dashboard – LumineSense</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap and icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Poppins font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+
+    <!-- Project CSS -->
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/containers.css">
+
+    <style>
+        :root {
+            --primary-color: #f9edfa;
+            --secondary-color-1: #2f004f;
+            --secondary-color-2: #58078f;
+            --secondary-color-3: #790faf;
+            --secondary-color-4: #9b00e9;
+            --muted: #9f9f9f;
+            --font-primary: 'Poppins', sans-serif;
+        }
+
+        .stat-row {
+            display: flex;
+            flex-direction: row;
+            gap: 0.75rem;
+            width: 100%;
+        }
+        .stat-card {
+            flex: 1 1 0;
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem 1rem;
+        }
+        .stat-card .stat-icon { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--secondary-color-1);
+        }
+        .stat-card .stat-label {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin: 0;
+            line-height: 1.3;
+            font-family: var(--font-primary);
+        }
+
+        .room-list {
+            max-height: 38vh;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+        .room-item {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.5rem 0.25rem;
+            border-bottom: 1px solid var(--secondary-color-1);
+        }
+        .room-item:last-child { border-bottom: none; }
+        .room-icon { font-size: 1.8rem; color: var(--secondary-color-2); flex-shrink: 0; }
+        .room-info { flex: 1; min-width: 0; }
+        .room-info h5 { margin: 0; font-size: 15px; font-weight: 600; }
+        .room-info p  { margin: 0; font-size: 11px; font-weight: 450; color: var(--muted); }
+    </style>
 </head>
-<body class="bg-light">
-<nav class="navbar navbar-dark bg-dark px-4">
-    <span class="navbar-brand fw-bold">LumineSense Admin</span>
-    <div class="d-flex gap-2 align-items-center">
-        <span class="text-white small">👤 <?= $admin_name ?></span>
-        <a onclick="dissolve('php/logout.php')" class="btn btn-sm btn-outline-light">Logout</a>
-    </div>
-</nav>
 
-<!-- Nav tabs -->
-<div class="container-fluid px-4 pt-3">
-    <ul class="nav nav-tabs" id="adminTabs">
-        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#overview">Overview</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#accounts">
-            Faculty Accounts <?= $pending > 0 ? "<span class='badge bg-warning text-dark'>$pending</span>" : '' ?>
-        </a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#classrooms">Classrooms</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#schedule">Timetable</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#logs">Logs</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#analytics">Analytics</a></li>
-    </ul>
-</div>
+<body class="contrast-bg">
+    <div class="parent-container">
 
-<div class="container-fluid px-4 py-3">
-<div class="tab-content">
-
-<!-- ══ OVERVIEW ════════════════════════════════════════════════ -->
-<div class="tab-pane fade show active" id="overview">
-    <div class="row g-3 mb-4 mt-1">
-        <div class="col-6 col-md-3"><div class="card border-0 shadow-sm text-center p-3">
-            <div class="fs-2 fw-bold text-primary"><?= $total_rooms ?></div><div class="small text-muted">Classrooms</div>
-        </div></div>
-        <div class="col-6 col-md-3"><div class="card border-0 shadow-sm text-center p-3">
-            <div class="fs-2 fw-bold text-warning"><?= $lights_on ?></div><div class="small text-muted">Lights ON</div>
-        </div></div>
-        <div class="col-6 col-md-3"><div class="card border-0 shadow-sm text-center p-3">
-            <div class="fs-2 fw-bold text-orange" style="color:#e65100"><?= $pending ?></div><div class="small text-muted">Pending Accounts</div>
-        </div></div>
-        <div class="col-6 col-md-3"><div class="card border-0 shadow-sm text-center p-3">
-            <div class="fs-2 fw-bold text-danger"><?= $alerts_today ?></div><div class="small text-muted">Alerts Today</div>
-        </div></div>
-    </div>
-    <h6 class="fw-bold">Recent Activity</h6>
-    <table class="table table-sm table-bordered bg-white shadow-sm">
-        <thead class="table-dark"><tr><th>Room</th><th>Event</th><th>By</th><th>Time</th></tr></thead>
-        <tbody>
-        <?php foreach ($logs as $l): ?>
-        <tr>
-            <td><?= htmlspecialchars($l['room_name']) ?></td>
-            <td><span class="badge bg-secondary"><?= $l['event_type'] ?></span></td>
-            <td><?= htmlspecialchars($l['triggered_by']) ?></td>
-            <td class="text-muted small"><?= date('M d h:i A', strtotime($l['event_time'])) ?></td>
-        </tr>
-        <?php endforeach; ?>
-        <?php if (empty($logs)): ?><tr><td colspan="4" class="text-muted text-center">No activity yet.</td></tr><?php endif; ?>
-        </tbody>
-    </table>
-</div>
-
-<!-- ══ ACCOUNTS ════════════════════════════════════════════════ -->
-<div class="tab-pane fade" id="accounts">
-    <div class="d-flex justify-content-between align-items-center my-3">
-        <h6 class="fw-bold mb-0">Faculty Accounts</h6>
-        <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary active" onclick="loadAccounts('all',this)">All</button>
-            <button class="btn btn-outline-warning" onclick="loadAccounts('pending',this)">Pending</button>
-            <button class="btn btn-outline-success" onclick="loadAccounts('verified',this)">Verified</button>
-        </div>
-    </div>
-    <div id="accounts-table">Loading...</div>
-</div>
-
-<!-- ══ CLASSROOMS ═══════════════════════════════════════════════ -->
-<div class="tab-pane fade" id="classrooms">
-    <div class="d-flex justify-content-between align-items-center my-3">
-        <h6 class="fw-bold mb-0">Classrooms</h6>
-        <button class="btn btn-sm btn-dark" onclick="document.getElementById('add-room-form').classList.toggle('d-none')">+ Add Classroom</button>
-    </div>
-    <div id="add-room-form" class="card p-3 mb-3 d-none">
-        <div class="row g-2">
-            <div class="col-md-4"><input class="form-control form-control-sm" id="new-room-name" placeholder="Room name (e.g. Room 101)" required></div>
-            <div class="col-md-3">
-                <select class="form-select form-select-sm" id="new-room-size">
-                    <option value="small">Small (7m×7m)</option>
-                    <option value="medium" selected>Medium (7m×9m)</option>
-                    <option value="large">Large (9m×10m+)</option>
-                </select>
+        <!-- ══ TOPBAR — identical structure to faculty ══ -->
+        <div class="topbar d-flex">
+            <button type="button" id="sidebarTrigger">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="col d-flex flex-column px-3">
+                <h1 class="bold">Welcome, <?= $admin_name ?>!</h1>
+                <h5 class="light">Administrator</h5>
             </div>
-            <div class="col-md-4"><input class="form-control form-control-sm" id="new-room-desc" placeholder="Description (optional)"></div>
-            <div class="col-md-1"><button class="btn btn-sm btn-success w-100" onclick="addClassroom()">Add</button></div>
-        </div>
-    </div>
-    <div id="classrooms-table">Loading...</div>
-</div>
-
-<!-- ══ SCHEDULE ═════════════════════════════════════════════════ -->
-<div class="tab-pane fade" id="schedule">
-    <div class="d-flex justify-content-between align-items-center my-3">
-        <h6 class="fw-bold mb-0">Timetable</h6>
-        <button class="btn btn-sm btn-dark" onclick="document.getElementById('add-sched-form').classList.toggle('d-none')">+ Add Slot</button>
-    </div>
-    <div id="add-sched-form" class="card p-3 mb-3 d-none">
-        <div class="row g-2">
-            <div class="col-md-3"><select class="form-select form-select-sm" id="sched-room"><option value="">Select room...</option></select></div>
-            <div class="col-md-2">
-                <select class="form-select form-select-sm" id="sched-day">
-                    <?php foreach(['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as $d): ?>
-                    <option><?= $d ?></option>
-                    <?php endforeach; ?>
-                </select>
+            <div class="d-flex align-items-center justify-content-center gap-2 mx-2">
+                <h4><?= explode(' ', $admin_name)[0] ?></h4>
+                <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
+                    <h3 class="bold"><?= strtoupper(substr($admin_name, 0, 1)) ?></h3>
+                </div>
             </div>
-            <div class="col-md-2"><input type="time" class="form-control form-control-sm" id="sched-start"></div>
-            <div class="col-md-2"><input type="time" class="form-control form-control-sm" id="sched-end"></div>
-            <div class="col-md-1"><button class="btn btn-sm btn-success w-100" onclick="addSchedule()">Add</button></div>
+        </div>
+
+        <div class="child-container">
+            <div class="main-container homepage gap-3">
+
+                <!-- ══ LEFT COLUMN ══ -->
+                <div class="group-container gap-3">
+
+                    <!-- Stat summary -->
+                    <div style="background-color:#f8f9fa;" class="section-container">
+                        <div class="stat-row">
+                            <div class="stat-card">
+                                <span class="stat-icon"><img src="../../images/room.png" alt="Rooms"></span>
+                                <div>
+                                    <div class="stat-value"><?= $total_rooms ?></div>
+                                    <p class="stat-label">Rooms<br>Active</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-icon"><img src="../../images/bulb.png" alt="Lights"></span>
+                                <div>
+                                    <div class="stat-value"><?= $lights_on ?></div>
+                                    <p class="stat-label">Rooms Currently<br>Running</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <span class="stat-icon"><img src="../../images/alert.png" alt="Alerts"></span>
+                                <div>
+                                    <div class="stat-value"><?= $pending ?></div>
+                                    <p class="stat-label">Actions to<br>be Resolved</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rooms list -->
+                    <div style="background-color:#f8f9fa;" class="fit-width section-container">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">Rooms</h2>
+                            </div>
+                            <div class="d-flex mx-2 align-items-end">
+                                <button class="light mx-2">All Rooms</button>
+                            </div>
+                        </div>
+                        <div class="room-list px-1 mt-1">
+                            <div class="room-item">
+                                <i class="bi bi-building room-icon"></i>
+                                <div class="room-info">
+                                    <h5>Room 3A-B Grade 12 Newton</h5>
+                                    <p>Room Status: <strong>Occupied</strong> &nbsp;·&nbsp; Lighting: Off &nbsp;·&nbsp; Mode: Default</p>
+                                </div>
+                                <button class="light">View Room</button>
+                            </div>
+                            <div class="room-item">
+                                <i class="bi bi-building room-icon"></i>
+                                <div class="room-info">
+                                    <h5>Room 1B-B Grade 11 Torvalds</h5>
+                                    <p>Room Status: <strong>Vacant</strong> &nbsp;·&nbsp; Lighting: Off &nbsp;·&nbsp; Mode: Default</p>
+                                </div>
+                                <button class="light">View Room</button>
+                            </div>
+                            <div class="room-item">
+                                <i class="bi bi-building room-icon"></i>
+                                <div class="room-info">
+                                    <h5>Room 3A-C Grade 10 Newton</h5>
+                                    <p>Room Status: <strong>Vacant</strong> &nbsp;·&nbsp; Lighting: Off &nbsp;·&nbsp; Mode: Scheduled</p>
+                                </div>
+                                <button class="light">View Room</button>
+                            </div>
+                            <div class="room-item">
+                                <i class="bi bi-building room-icon"></i>
+                                <div class="room-info">
+                                    <h5>Materials Lab</h5>
+                                    <p>Room Status: <strong>Vacant</strong> &nbsp;·&nbsp; Lighting: Off &nbsp;·&nbsp; Mode: Scheduled</p>
+                                </div>
+                                <button class="light">View Room</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /LEFT COLUMN -->
+
+                <!-- ══ RIGHT COLUMN ══ -->
+                <div class="group-container gap-3">
+
+                    <div style="background-color:#f8f9fa;" class="section-container recents">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">Alerts</h2>
+                            </div>
+                            <div class="d-flex mx-2 align-items-end">
+                                <button class="light mx-2">Details</button>
+                            </div>
+                        </div>
+                        <div class="gap-2">
+                            <div class="activity-list px-2 gap-2 align-items-center max-width">
+                                <div>
+                                    <h5>Extension – Faculty Request</h5>
+                                    <p class="light mb-0">Room 2B-C Grade 9 Lovelace</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Classes Started</h5>
+                                    <p class="light mb-0">Room 2B – Grade 9 Lovelace</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Classes Ended</h5>
+                                    <p class="light mb-0">Room 1A-C Grade 10 Fleming</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Classes Ended</h5>
+                                    <p class="light mb-0">Room 1A-C Grade 10 Fleming</p>
+                                </div>
+                                <hr>
+                                <div>
+                                    <h5>Extension – Faculty Request</h5>
+                                    <p class="light mb-0">Room 3A-B Grade 12 Newton</p>
+                                </div>
+                                <hr>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background-color:#f8f9fa;" class="section-container">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">System Status</h2>
+                            </div>
+                        </div>
+                        <div class="gap-2">
+                            <div class="activity-list px-2 gap-2 align-items-center max-width">
+                                <h5>Lighting: Disconnected</h5>
+                                <h5>Server: Connected</h5>
+                                <h5>Webcam: Disabled</h5>
+                                <h5>Sensor Reading: Disconnected</h5>
+                                <h5>System Uptime: 00:00:00</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ══ SIDEBAR OFFCANVAS (left) ══ -->
+                <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+                    <div class="offcanvas-header justify-content-center">
+                        <img src="../../images/logo.png" class="logo" onclick="dissolve('admin-homepage.php')">
+                    </div>
+                    <div class="offcanvas-body align-items-center d-flex flex-column">
+                        <button class="wb-2" onclick="dissolve('admin-homepage.php')">
+                            <i class="bi bi-building"></i>
+                        </button>
+                        <button class="wb-2" onclick="dissolve('admin-homepage.php')">
+                            <i class="bi bi-people"></i>
+                        </button>
+                        <button class="wb-2" onclick="dissolve('admin-homepage.php')">
+                            <i class="bi bi-bar-chart-line"></i>
+                        </button>
+                        <button class="wb-2" onclick="dissolve('admin-homepage.php')">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </button>
+                        <button class="wb-2" onclick="dissolve('admin-homepage.php')">
+                            <i class="bi bi-gear"></i>
+                        </button>
+                    </div>
+                    <div class="offcanvas-footer">
+                        <img src="../../images/team-logo.png" class="logo">
+                    </div>
+                </div>
+
+                <!-- ══ PROFILE OFFCANVAS (right) ══ -->
+                <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas" aria-labelledby="profileOffcanvasLabel">
+                    <div class="offcanvas-body align-items-center d-flex flex-column">
+                        <div class="avatar-icon d-flex align-items-center justify-content-center">
+                            <h3 class="bold"><?= strtoupper(substr($admin_name, 0, 1)) ?></h3>
+                        </div>
+                        <h4 class="bold"><?= $admin_name ?></h4>
+                        <h6 class="light email-limit"><?= $_SESSION['admin_email'] ?? 'Administrator' ?></h6>
+                        <div class="d-flex flex-column align-items-center justify-content-center">
+                            <button class="light" onclick="dissolve('../../php/logout.php')">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    <div id="schedule-table">Loading...</div>
-</div>
 
-<!-- ══ LOGS ═════════════════════════════════════════════════════ -->
-<div class="tab-pane fade" id="logs">
-    <div class="d-flex gap-2 align-items-center my-3 flex-wrap">
-        <h6 class="fw-bold mb-0 me-2">Activity Logs</h6>
-        <select class="form-select form-select-sm" style="width:160px" id="log-filter-room"><option value="">All Rooms</option></select>
-        <select class="form-select form-select-sm" style="width:160px" id="log-filter-type">
-            <option value="">All Types</option>
-            <option>on</option><option>off</option><option>gesture</option><option>schedule</option><option>security_alert</option>
-        </select>
-        <input type="date" class="form-control form-control-sm" style="width:160px" id="log-filter-date">
-        <button class="btn btn-sm btn-dark" onclick="loadLogs()">Filter</button>
-        <button class="btn btn-sm btn-outline-secondary" onclick="clearLogFilters()">Clear</button>
-    </div>
-    <div id="logs-table">Loading...</div>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+    <script src="../../script/animations.js"></script>
+    <script src="../../script/toggles.js"></script>
 
-<!-- ══ ANALYTICS ════════════════════════════════════════════════ -->
-<div class="tab-pane fade" id="analytics">
-    <div class="d-flex gap-2 align-items-center my-3">
-        <h6 class="fw-bold mb-0 me-2">Energy Analytics</h6>
-        <select class="form-select form-select-sm" style="width:140px" id="analytics-range" onchange="loadAnalytics()">
-            <option value="7" selected>Last 7 days</option>
-            <option value="14">Last 14 days</option>
-            <option value="30">Last 30 days</option>
-        </select>
-    </div>
-    <div id="analytics-table">Loading...</div>
-</div>
-
-</div><!-- /tab-content -->
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-const API = '../../api/';
-
-// ── helpers ────────────────────────────────────────────────────
-function post(url, data) {
-    const fd = new FormData();
-    Object.entries(data).forEach(([k,v]) => fd.append(k,v));
-    return fetch(url, {method:'POST', body:fd}).then(r=>r.json());
-}
-function get(url) { return fetch(url).then(r=>r.json()); }
-function msg(text, ok=true) {
-    const el = document.createElement('div');
-    el.className = `alert alert-${ok?'success':'danger'} alert-dismissible fade show`;
-    el.innerHTML = `${text}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-    document.querySelector('.container-fluid.px-4.py-3').prepend(el);
-    setTimeout(()=>el.remove(), 4000);
-}
-
-// ── ACCOUNTS ──────────────────────────────────────────────────
-let cachedRooms = [];
-
-function loadAccounts(filter='all', btn=null) {
-    if(btn){ document.querySelectorAll('#accounts .btn-group .btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
-    document.getElementById('accounts-table').innerHTML = 'Loading...';
-    get(API+'accounts.php?filter='+filter).then(res => {
-        if (!res.success) { document.getElementById('accounts-table').innerHTML = '<p class="text-danger">'+res.message+'</p>'; return; }
-        if (!res.data.length) { document.getElementById('accounts-table').innerHTML = '<p class="text-muted">No accounts found.</p>'; return; }
-        let html = `<table class="table table-sm table-bordered bg-white shadow-sm">
-            <thead class="table-dark"><tr><th>Name</th><th>Email</th><th>Registered</th><th>Status</th><th>Approved By</th><th>Actions</th></tr></thead><tbody>`;
-        res.data.forEach(f => {
-            const status = f.is_verified=='1'
-                ? '<span class="badge bg-success">Verified</span>'
-                : '<span class="badge bg-warning text-dark">Pending</span>';
-            const approvedBy = f.approved_by_name ? f.approved_by_name : '—';
-            const actions = f.is_verified=='0'
-                ? `<button class="btn btn-xs btn-success btn-sm me-1" onclick="accountAction('approve',${f.id})">Approve</button>
-                   <button class="btn btn-xs btn-danger btn-sm" onclick="accountAction('reject',${f.id})">Reject</button>`
-                : `<button class="btn btn-xs btn-warning btn-sm me-1" onclick="accountAction('revoke',${f.id})">Revoke</button>
-                   <button class="btn btn-xs btn-danger btn-sm" onclick="accountAction('delete',${f.id})">Delete</button>`;
-            html += `<tr>
-                <td><strong>${f.last_name}</strong>, ${f.first_name} ${f.middle_initial}</td>
-                <td>${f.email}</td>
-                <td class="small text-muted">${f.created_at.substring(0,10)}</td>
-                <td>${status}</td>
-                <td class="small">${approvedBy}</td>
-                <td>${actions}</td></tr>`;
+    <script>
+        document.getElementById('sidebarTrigger').addEventListener('click', function () {
+            bootstrap.Offcanvas.getOrCreateInstance(
+                document.getElementById('sidebarOffcanvas')
+            ).toggle();
         });
-        html += '</tbody></table>';
-        document.getElementById('accounts-table').innerHTML = html;
-    });
-}
-
-function accountAction(action, id) {
-    const labels = {approve:'Approve',reject:'Reject',revoke:'Revoke',delete:'Delete'};
-    if (!confirm(`${labels[action]} this faculty account?`)) return;
-    post(API+'accounts.php', {action, faculty_id:id}).then(res => {
-        msg(res.message, res.success);
-        loadAccounts();
-    });
-}
-
-// ── CLASSROOMS ────────────────────────────────────────────────
-function loadClassrooms() {
-    document.getElementById('classrooms-table').innerHTML = 'Loading...';
-    get(API+'classrooms.php').then(res => {
-        cachedRooms = res.data || [];
-        // Populate schedule room dropdown
-        const sel = document.getElementById('sched-room');
-        sel.innerHTML = '<option value="">Select room...</option>';
-        cachedRooms.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.room_name}</option>`);
-        // Populate log filter
-        const lsel = document.getElementById('log-filter-room');
-        lsel.innerHTML = '<option value="">All Rooms</option>';
-        cachedRooms.forEach(c => lsel.innerHTML += `<option value="${c.id}">${c.room_name}</option>`);
-
-        if (!res.data.length) { document.getElementById('classrooms-table').innerHTML = '<p class="text-muted">No classrooms yet.</p>'; return; }
-        const sizes = {small:'Small (7m×7m)',medium:'Medium (7m×9m)',large:'Large (9m×10m+)'};
-        let html = `<table class="table table-sm table-bordered bg-white shadow-sm">
-            <thead class="table-dark"><tr><th>Room</th><th>Size</th><th>Description</th><th>Schedules</th><th>Action</th></tr></thead><tbody>`;
-        res.data.forEach(c => {
-            html += `<tr>
-                <td><strong>${c.room_name}</strong></td>
-                <td><span class="badge bg-info text-dark">${sizes[c.room_size]||c.room_size}</span></td>
-                <td class="small text-muted">${c.description||'—'}</td>
-                <td>${c.schedule_count}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteClassroom(${c.id},'${c.room_name}')"><i class="bi bi-trash"></i></button></td></tr>`;
+        document.getElementById('sidebarTrigger2').addEventListener('click', function () {
+            bootstrap.Offcanvas.getOrCreateInstance(
+                document.getElementById('profileOffcanvas')
+            ).toggle();
         });
-        html += '</tbody></table>';
-        document.getElementById('classrooms-table').innerHTML = html;
-    });
-}
+    </script>
 
-function addClassroom() {
-    const name = document.getElementById('new-room-name').value.trim();
-    const size = document.getElementById('new-room-size').value;
-    const desc = document.getElementById('new-room-desc').value.trim();
-    if (!name) { alert('Room name required.'); return; }
-    post(API+'classrooms.php', {action:'add', room_name:name, room_size:size, description:desc}).then(res => {
-        msg(res.message, res.success);
-        if (res.success) { document.getElementById('new-room-name').value=''; loadClassrooms(); }
-    });
-}
-
-function deleteClassroom(id, name) {
-    if (!confirm(`Delete "${name}"? This also removes its schedules and logs.`)) return;
-    post(API+'classrooms.php', {action:'delete', classroom_id:id}).then(res => {
-        msg(res.message, res.success);
-        if (res.success) loadClassrooms();
-    });
-}
-
-// ── SCHEDULE ──────────────────────────────────────────────────
-function loadSchedule() {
-    document.getElementById('schedule-table').innerHTML = 'Loading...';
-    get(API+'schedules.php').then(res => {
-        if (!res.data.length) { document.getElementById('schedule-table').innerHTML = '<p class="text-muted">No schedules yet.</p>'; return; }
-        let html = `<table class="table table-sm table-bordered bg-white shadow-sm">
-            <thead class="table-dark"><tr><th>Room</th><th>Day</th><th>Start</th><th>End</th><th>Action</th></tr></thead><tbody>`;
-        res.data.forEach(s => {
-            html += `<tr><td>${s.room_name}</td><td>${s.day_of_week}</td>
-                <td>${fmtTime(s.start_time)}</td><td>${fmtTime(s.end_time)}</td>
-                <td><button class="btn btn-danger btn-sm" onclick="deleteSchedule(${s.id})"><i class="bi bi-trash"></i></button></td></tr>`;
-        });
-        html += '</tbody></table>';
-        document.getElementById('schedule-table').innerHTML = html;
-    });
-}
-
-function addSchedule() {
-    const cid   = document.getElementById('sched-room').value;
-    const day   = document.getElementById('sched-day').value;
-    const start = document.getElementById('sched-start').value;
-    const end   = document.getElementById('sched-end').value;
-    if (!cid || !start || !end) { alert('Fill in all fields.'); return; }
-    post(API+'schedules.php', {action:'add', classroom_id:cid, day_of_week:day, start_time:start, end_time:end}).then(res => {
-        msg(res.message, res.success);
-        if (res.success) loadSchedule();
-    });
-}
-
-function deleteSchedule(id) {
-    if (!confirm('Remove this schedule slot?')) return;
-    post(API+'schedules.php', {action:'delete', schedule_id:id}).then(res => {
-        msg(res.message, res.success);
-        if (res.success) loadSchedule();
-    });
-}
-
-// ── LOGS ──────────────────────────────────────────────────────
-function loadLogs() {
-    const room = document.getElementById('log-filter-room').value;
-    const type = document.getElementById('log-filter-type').value;
-    const date = document.getElementById('log-filter-date').value;
-    let url = API+'logs.php?limit=200';
-    if (room) url += '&room='+room;
-    if (type) url += '&type='+type;
-    if (date) url += '&date='+date;
-    document.getElementById('logs-table').innerHTML = 'Loading...';
-    get(url).then(res => {
-        if (!res.data.length) { document.getElementById('logs-table').innerHTML = '<p class="text-muted">No logs found.</p>'; return; }
-        const badges = {on:'success',off:'secondary',gesture:'info',schedule:'primary',security_alert:'danger'};
-        let html = `<table class="table table-sm table-bordered bg-white shadow-sm">
-            <thead class="table-dark"><tr><th>#</th><th>Room</th><th>Event</th><th>Triggered By</th><th>Time</th></tr></thead><tbody>`;
-        res.data.forEach((l,i) => {
-            html += `<tr><td class="text-muted">${i+1}</td><td>${l.room_name}</td>
-                <td><span class="badge bg-${badges[l.event_type]||'secondary'}">${l.event_type}</span></td>
-                <td>${l.triggered_by}</td>
-                <td class="small text-muted">${l.event_time}</td></tr>`;
-        });
-        html += '</tbody></table>';
-        document.getElementById('logs-table').innerHTML = html;
-    });
-}
-
-function clearLogFilters() {
-    document.getElementById('log-filter-room').value='';
-    document.getElementById('log-filter-type').value='';
-    document.getElementById('log-filter-date').value='';
-    loadLogs();
-}
-
-// ── ANALYTICS ─────────────────────────────────────────────────
-function loadAnalytics() {
-    const range = document.getElementById('analytics-range').value;
-    get(API+'analytics.php?range='+range).then(res => {
-        if (!res.success) { document.getElementById('analytics-table').innerHTML='<p class="text-danger">Error loading analytics.</p>'; return; }
-        let html = `<div class="alert alert-info small mb-3">
-            <strong>Formula:</strong> kWh = (27W × ON events) ÷ 1000 &nbsp;|&nbsp; Prototype: 9 bulbs × 3W = 27W
-        </div>
-        <table class="table table-sm table-bordered bg-white shadow-sm mb-4">
-            <thead class="table-dark"><tr><th>Room</th><th>Size</th><th>ON Events</th><th>Est. kWh</th><th>Alerts</th></tr></thead><tbody>`;
-        res.classrooms.forEach(c => {
-            html += `<tr><td><strong>${c.room_name}</strong></td>
-                <td>${c.room_size}</td>
-                <td>${c.on_count}</td>
-                <td><strong>${c.est_kwh} kWh</strong></td>
-                <td>${c.alert_count > 0 ? '<span class="badge bg-danger">'+c.alert_count+'</span>' : '—'}</td></tr>`;
-        });
-        html += '</tbody></table>';
-        html += `<h6 class="fw-bold">Daily Activations</h6>
-        <table class="table table-sm table-bordered bg-white shadow-sm">
-            <thead class="table-dark"><tr><th>Date</th><th>Light ON Events</th></tr></thead><tbody>`;
-        res.daily.forEach(d => {
-            html += `<tr><td>${d.label}</td><td>${d.count > 0 ? '<span class="badge bg-warning text-dark">'+d.count+'</span>' : '<span class="text-muted">0</span>'}</td></tr>`;
-        });
-        html += '</tbody></table>';
-        document.getElementById('analytics-table').innerHTML = html;
-    });
-}
-
-// ── helpers ────────────────────────────────────────────────────
-function fmtTime(t) {
-    if (!t) return '';
-    const [h,m] = t.split(':');
-    const hr = parseInt(h);
-    return `${hr%12||12}:${m} ${hr<12?'AM':'PM'}`;
-}
-
-// ── Init: load all tabs ────────────────────────────────────────
-loadAccounts();
-loadClassrooms();
-loadSchedule();
-loadLogs();
-loadAnalytics();
-
-// Re-load on tab click
-document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
-    tab.addEventListener('shown.bs.tab', e => {
-        const target = e.target.getAttribute('href');
-        if (target==='#accounts')   loadAccounts();
-        if (target==='#classrooms') loadClassrooms();
-        if (target==='#schedule')   loadSchedule();
-        if (target==='#logs')       loadLogs();
-        if (target==='#analytics')  loadAnalytics();
-    });
-});
-</script>
-<script src="../../script/animations.js"></script>
 </body>
+
 </html>

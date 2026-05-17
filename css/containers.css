@@ -11,7 +11,7 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: flex-center;
+    justify-content: center;
     height: auto;
     width: 100%;
 }
@@ -20,7 +20,7 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: flex-center;
+    justify-content: center;
     height: auto;
 }
 

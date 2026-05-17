@@ -178,7 +178,8 @@ a:hover {
 }
 
 body.contrast-bg {
-  background-color: var(--secondary-color-1);
+  background: #2f004f;
+  min-height: 100vh;
 }
 
 /*Toggle switch styling*/
