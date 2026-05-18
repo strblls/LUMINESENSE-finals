@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/containers.css">
+    <link rel="stylesheet" href="../../css/admin-analytics.css">
+
+
+    <!-- ═══ SHARED SIDEBAR & PROFILE STYLES ═══ -->
+    <style>
+        /* ── Sidebar nav buttons ── */
+        .nav-btn {
+            width: 52px; height: 52px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            background-color: var(--secondary-color-1); color: var(--primary-color);
+            border: none; cursor: pointer;
+            transition: background-color 0.2s, transform 0.15s;
+        }
+        .nav-btn i, .nav-btn svg { font-size: 22px; }
+        .nav-btn:hover { background-color: var(--secondary-color-4); transform: scale(1.06); }
+
+        /* ── Sidebar offcanvas shell ── */
+        #sidebarOffcanvas { width: 100px !important; background-color: var(--primary-color); }
+        #sidebarOffcanvas .offcanvas-header { justify-content: center; padding: 1rem 0.5rem; }
+        #sidebarOffcanvas .logo { width: 75px; height: 75px; object-fit: contain; cursor: pointer; }
+        #sidebarOffcanvas .offcanvas-body { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 0.5rem; }
+        #sidebarOffcanvas .offcanvas-footer { display: flex; justify-content: center; padding: 1rem; }
+        #sidebarOffcanvas .offcanvas-footer img { width: 4rem; }
+
+        /* ── Profile offcanvas shell ── */
+        #profileOffcanvas { width: 240px !important; background-color: var(--primary-color); }
+        #profileOffcanvas .avatar-icon {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: #d9d6d6; color: var(--secondary-color-1);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ── Profile offcanvas buttons ── */
+        .profile-btn {
+            width: 100%; padding: 8px; margin: 3px 0; border-radius: 8px;
+            background-color: var(--secondary-color-1); color: var(--primary-color);
+            border: none; font-size: 14px; cursor: pointer; font-family: var(--font-primary);
+            transition: background-color 0.2s, transform 0.15s;
+        }
+        .profile-btn:hover { background-color: var(--secondary-color-4); transform: scale(1.02); }
+    </style>
+</head>
+
+<body class="contrast-bg">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <button class="topbar-menu-btn" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
+            <i class="bi bi-list"></i>
+        </button>
+        <h1 class="topbar-title bold">Energy Analytics</h1> <!--ALERT: PHP | DISPLAY-->
+        <div class="topbar-right">
+            <div class="search-container">
+                <input type="text" class="search-input" id="roomSearch" placeholder="Search...">
+                <i class="fas fa-search search-icon" onclick="applyRoomSearch()"></i>
+            </div>
+            <span class="topbar-admin">Admin 10</span> <!--ALERT: PHP | DISPLAY-->
+            <div class="avatar-icon" data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas">
+                <span class="bold" style="font-size:16px;">A1</span> <!--ALERT: PHP | DISPLAY-->
+            </div>
+        </div>
+    </div>
+
+    <!-- ROOM LABEL -->
+    <div class="room-label bold" id="roomLabel">Room 3A-B</div> <!--ALERT: PHP | DISPLAY-->
+
+    <!-- MAIN CONTENT -->
+    <div class="content-area">
+
+        <!-- TOP ROW: Usage + Chart -->
+        <div class="top-row">
+
+            <!-- Usage Card -->
+            <div class="card-white">
+                <div class="usage-card-title bold">Usage</div>
+
+                <div class="usage-stat">
+                    <div class="usage-number up">
+                        <span class="usage-arrow">↗</span>
+                        <span>23%</span>
+                    </div>
+                    <p class="usage-desc">Higher usage this week.<br>Check schedules for optimization.</p>
+                </div>
+
+                <div class="usage-stat">
+                    <div class="usage-number down">
+                        <span class="usage-arrow">↙</span>
+                        <span>8%</span>
+                    </div>
+                    <p class="usage-desc">Daily average down 8%.<br>Great energy efficiency!</p>
+                </div>
+            </div>
+
+            <!-- Chart Card -->
+            <div class="card-white">
+                <div class="chart-card-header">
+                    <span class="chart-card-title bold">Electric Usage Report</span>
+                    <div class="chart-controls">
+                        <div class="view-select-group">
+                            <label>View</label>
+                            <select id="periodSelect" onchange="updateChart()">
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <div class="view-select-group">
+                            <label>Select Room</label>
+                            <!--ALERT: PHP | DISPLAY-->
+                            <select id="roomSelect" onchange="updateRoomLabel()">
+                                <option value="3A-B">Room 3A-B</option>
+                                <option value="SEL 08">SEL 08</option>
+                                <option value="SEL 11">SEL 11</option>
+                                <option value="SEL 05">SEL 05</option>
+                                <option value="Rich Nest">Rich Nest</option>
+                                <option value="Consultation Room">Consultation Room</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="usageChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Usage Breakdown -->
+        <div class="card-white">
+            <div class="breakdown-card">
+                <!-- Left: table -->
+                <div>
+                    <div class="breakdown-header">
+                        <span class="breakdown-title bold">Usage Breakdown</span>
+                        <div class="view-select-group">
+                            <label>View</label>
+                            <select>
+                                <option>Weekly</option>
+                                <option>Monthly</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!--ALERT: PHP | DISPLAY-->
+                    <table class="breakdown-table">
+                        <thead>
+                            <tr>
+                                <th>Room</th>
+                                <th>Hours of Lighting Used</th>
+                                <th>Estimated kWh</th>
+                            </tr>
+                        </thead>
+                        <tbody id="breakdownBody">
+                            <tr><td>Consultation Room</td><td>7.0 hrs</td><td>2.10 kWh</td></tr>
+                            <tr><td>SEL 08</td><td>3.8 hrs</td><td>1.14 kWh</td></tr>
+                            <tr><td>SEL 11</td><td>8.1 hrs</td><td>2.43 kWh</td></tr>
+                            <tr><td>SEL 05</td><td>4.0 hrs</td><td>1.65 kWh</td></tr>
+                            <tr><td>Rich Nest</td><td>6.5 hrs</td><td>1.95 kWh</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Right: Total Usage + Export -->
+                <!--ALERT: PHP | DISPLAY-->
+                <div class="total-usage">
+                    <div class="total-usage-title bold">Total Usage</div>
+                    <p>Hours of Lighting Used: <span class="val">29.5hrs</span></p>
+                    <p>Estimated kWh: <span class="val">9.27 kWh</span></p>
+                    <div class="export-btns">
+                        <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
+                        <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+
+    
+    
+
+    <!-- ═══ SIDEBAR OFFCANVAS ═══ -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+        <div class="offcanvas-header justify-content-center">
+            <img src="../../images/logo.png" class="logo" alt="Logo" onclick="dissolve('admin-homepage.html')" style="cursor:pointer;">
+        </div>
+        <div class="offcanvas-body align-items-center d-flex flex-column gap-2">
+            <button class="nav-btn" title="Home"             onclick="dissolve('admin-homepage.html')"><i class="bi bi-house-door"></i></button>
+            <button class="nav-btn" title="Room Management"  onclick="dissolve('admin-room-manage.html')"><i class="fa-solid fa-person-shelter"></i></button>
+            <button class="nav-btn" title="Analytics"        onclick="dissolve('admin-analytics.html')"><i class="bi bi-clipboard2-data"></i></button>
+            <button class="nav-btn" title="Reports"          onclick="dissolve('admin-reports.html')"><i class="bi bi-exclamation-triangle"></i></button>
+            <button class="nav-btn" title="Faculty"          onclick="dissolve('admin-faculty-management.html')"><i class="bi bi-people"></i></button>
+            <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.html')"><i class="bi bi-gear"></i></button>
+        </div>
+        <div class="offcanvas-footer">
+            <img src="../../images/team-logo.png" alt="Team Logo" style="width:4rem;">
+        </div>
+    </div>
+
+    <!-- ═══ PROFILE OFFCANVAS ═══ -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas" aria-labelledby="profileOffcanvasLabel">
+        <div class="offcanvas-body align-items-center d-flex flex-column pt-4 gap-2">
+            <div class="avatar-icon d-flex align-items-center justify-content-center">
+                <h3 class="bold">AN</h3> <!--ALERT: PHP | DISPLAY-->
+            </div>
+            <h4 class="bold mt-2" style="color:var(--secondary-color-1);">Admin Name</h4> <!--ALERT: PHP | DISPLAY-->
+            <h6 class="light" style="word-break:break-all;text-align:center;">admin@raffles.uni.edu</h6>
+            <div class="d-flex flex-column align-items-center justify-content-center w-100 mt-2 gap-1">
+                <button class="profile-btn" onclick="dissolve('admin-profile-settings.html')">Profile Settings</button>
+                <button class="profile-btn">Classroom Details</button>
+                <button class="profile-btn" onclick="window.location.href='../../index.html'">Logout</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

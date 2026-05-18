@@ -1,144 +1,197 @@
-# from flask import Flask, Response
-# import cv2
-# import mediapipe as mp
-# from mediapipe.tasks import python
-# from mediapipe.tasks.python import vision
+import time
+from threading import Lock
 
-# app = Flask(__name__)
-
-# # New MediaPipe API
-# BaseOptions = mp.tasks.BaseOptions
-# GestureRecognizer = mp.tasks.vision.GestureRecognizer
-# GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
-# VisionRunningMode = mp.tasks.vision.RunningMode
-
-# cap = cv2.VideoCapture(0)
-# mp_draw = mp.solutions.drawing_utils
-# mp_hands = mp.solutions.hands
-# hands = mp_hands.Hands(
-#     static_image_mode=False,
-#     max_num_hands=1,
-#     min_detection_confidence=0.7
-# )
-
-# def generate_frames():
-#     while True:
-#         success, frame = cap.read()
-#         if not success or frame is None:
-#             continue
-
-#         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#         results = hands.process(frame_rgb)
-
-#         if results.multi_hand_landmarks:
-#             for hand_landmarks in results.multi_hand_landmarks:
-#                 mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-
-#         _, buffer = cv2.imencode('.jpg', frame)
-#         frame_bytes = buffer.tobytes()
-#         yield (b'--frame\r\n'
-#                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-
-# @app.route('/video_feed')
-# def video_feed():
-#     return Response(generate_frames(),
-#                     mimetype='multipart/x-mixed-replace; boundary=frame')
-
-# if __name__ == '__main__':
-#     app.run(host='0.0.0.0', port=5000, debug=False)
-
-from flask import Flask, Response
+from flask import Flask, Response, jsonify
 import cv2
 import mediapipe as mp
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
 
 app = Flask(__name__)
-cap = cv2.VideoCapture(0)
-
-# Drawing utilities
-draw_utils  = mp.tasks.vision.drawing_utils
-draw_styles = mp.tasks.vision.drawing_styles
-HandLandmarksConnections = mp.tasks.vision.HandLandmarksConnections
-
-# Latest detected gesture
-latest_gesture  = '—'
-latest_accuracy = 0.0
-
-def on_result(result, output_image, timestamp_ms):
-    global latest_gesture, latest_accuracy
-    if result.gestures:
-        gesture  = result.gestures[0][0]
-        latest_gesture  = gesture.category_name
-        latest_accuracy = gesture.score
-
-# Build recognizer
-options = vision.GestureRecognizerOptions(
-    base_options=mp_python.BaseOptions(
-        model_asset_path='gesture_recognizer.task'
-    ),
-    running_mode=vision.RunningMode.LIVE_STREAM,
-    result_callback=on_result,
-    num_hands=1
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(
+    max_num_hands=2,
+    min_detection_confidence=0.7,
+    min_tracking_confidence=0.6,
 )
-recognizer = vision.GestureRecognizer.create_from_options(options)
+mp_draw = mp.solutions.drawing_utils
+cap = None
 
-frame_timestamp = 0
+AVAILABLE_GESTURES = [
+    'Open_Palm',
+    'Thumb_Up',
+    'Closed_Fist',
+    'Pointing_Up',
+    'Victory',
+    'ILoveYou',
+]
+
+gesture_state = {
+    'gesture': 'No Gesture',
+    'confidence': 0,
+    'updatedAt': None,
+}
+
+state_lock = Lock()
+
+
+def set_gesture_state(gesture, confidence):
+    with state_lock:
+        gesture_state['gesture'] = gesture
+        gesture_state['confidence'] = int(max(0, min(100, confidence)))
+        gesture_state['updatedAt'] = time.time()
+
+
+def is_finger_extended(landmarks, tip_index, pip_index):
+    return landmarks[tip_index].y < landmarks[pip_index].y
+
+
+def is_thumb_extended(landmarks, handedness_label):
+    thumb_tip = landmarks[4]
+    thumb_ip = landmarks[3]
+
+    if handedness_label == 'Left':
+        return thumb_tip.x > thumb_ip.x
+
+    return thumb_tip.x < thumb_ip.x
+
+
+def is_thumb_up(landmarks, handedness_label):
+    thumb_tip = landmarks[4]
+    thumb_ip = landmarks[3]
+    wrist = landmarks[0]
+    index_mcp = landmarks[5]
+    pinky_mcp = landmarks[17]
+    palm_width = abs(index_mcp.x - pinky_mcp.x) + 1e-6
+
+    direction_is_vertical = thumb_tip.y < thumb_ip.y and thumb_tip.y < wrist.y
+    centered_over_palm = abs(thumb_tip.x - wrist.x) < palm_width * 0.7
+
+    return direction_is_vertical and centered_over_palm
+
+
+def score_conditions(conditions):
+    if not conditions:
+        return 0
+
+    matches = sum(1 for condition in conditions if condition)
+    return round((matches / len(conditions)) * 100)
+
+
+def classify_gesture(landmarks, handedness_label='Right'):
+    thumb_extended = is_thumb_extended(landmarks, handedness_label)
+    index_extended = is_finger_extended(landmarks, 8, 6)
+    middle_extended = is_finger_extended(landmarks, 12, 10)
+    ring_extended = is_finger_extended(landmarks, 16, 14)
+    pinky_extended = is_finger_extended(landmarks, 20, 18)
+    thumb_up = is_thumb_up(landmarks, handedness_label)
+
+    candidates = [
+        ('Open_Palm', score_conditions([
+            thumb_extended,
+            index_extended,
+            middle_extended,
+            ring_extended,
+            pinky_extended,
+        ])),
+        ('Thumb_Up', score_conditions([
+            thumb_up,
+            not index_extended,
+            not middle_extended,
+            not ring_extended,
+            not pinky_extended,
+        ])),
+        ('Closed_Fist', score_conditions([
+            not thumb_extended,
+            not index_extended,
+            not middle_extended,
+            not ring_extended,
+            not pinky_extended,
+        ])),
+        ('Pointing_Up', score_conditions([
+            index_extended,
+            not thumb_extended,
+            not middle_extended,
+            not ring_extended,
+            not pinky_extended,
+        ])),
+        ('Victory', score_conditions([
+            index_extended,
+            middle_extended,
+            not thumb_extended,
+            not ring_extended,
+            not pinky_extended,
+        ])),
+        ('ILoveYou', score_conditions([
+            thumb_extended,
+            index_extended,
+            pinky_extended,
+            not middle_extended,
+            not ring_extended,
+        ])),
+    ]
+
+    return max(candidates, key=lambda item: item[1])
+
 
 def generate_frames():
-    global frame_timestamp
+    global cap
+    if cap is None:
+        cap = cv2.VideoCapture(0)
+
     while True:
         success, frame = cap.read()
+
         if not success or frame is None:
             continue
 
-        frame_timestamp += 1
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-        recognizer.recognize_async(mp_image, frame_timestamp)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = hands.process(frame_rgb)
 
-        # Overlay gesture label on frame
-        label = f'{latest_gesture} ({int(latest_accuracy * 100)}%)'
-        cv2.putText(frame, label, (10, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        best_gesture = 'No Gesture'
+        best_confidence = 0
+
+        if results.multi_hand_landmarks:
+            handedness_list = results.multi_handedness or []
+
+            for hand_index, hand_landmarks in enumerate(results.multi_hand_landmarks):
+                handedness_label = 'Right'
+                if hand_index < len(handedness_list):
+                    handedness_label = handedness_list[hand_index].classification[0].label
+
+                gesture_name, confidence = classify_gesture(hand_landmarks.landmark, handedness_label)
+
+                if confidence > best_confidence:
+                    best_gesture = gesture_name
+                    best_confidence = confidence
+
+                mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+        if best_confidence >= 75 and best_gesture in AVAILABLE_GESTURES:
+            set_gesture_state(best_gesture, best_confidence)
+        else:
+            set_gesture_state('No Gesture', 0)
 
         _, buffer = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
 
 @app.route('/video_feed')
 def video_feed():
     return Response(generate_frames(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route('/latest_gesture')
-def get_latest_gesture():
-    return {'gesture': latest_gesture, 'accuracy': latest_accuracy}
+
+@app.route('/status')
+def status():
+    with state_lock:
+        payload = dict(gesture_state)
+
+    payload['availableGestures'] = AVAILABLE_GESTURES
+    payload['running'] = cap is not None
+    return jsonify(payload)
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
-
-import time
-
-def generate_frames():
-    global frame_timestamp
-    while True:
-        success, frame = cap.read()
-        if not success or frame is None:
-            continue
-
-        frame_timestamp += 1
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-        recognizer.recognize_async(mp_image, frame_timestamp)
-
-        # Overlay gesture label
-        label = f'{latest_gesture} ({int(latest_accuracy * 100)}%)'
-        cv2.putText(frame, label, (10, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-        _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])  # lower quality = lighter
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-
-        time.sleep(0.05)  # ~20fps instead of max speed
+    app.run(host='127.0.0.1', port=5000, debug=False)
