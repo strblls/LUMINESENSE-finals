@@ -4,6 +4,8 @@ from threading import Lock
 from flask import Flask, Response, jsonify
 import cv2
 import mediapipe as mp
+from mediapipe.tasks import python as mp_python
+from mediapipe.tasks.python import vision
 
 app = Flask(__name__)
 mp_hands = mp.solutions.hands
@@ -171,7 +173,6 @@ def generate_frames():
             set_gesture_state('No Gesture', 0)
 
         _, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 

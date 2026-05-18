@@ -2,7 +2,7 @@
 // api/logs.php
 // GET  ?room=X&type=X&date=YYYY-MM-DD&limit=200   → filtered log
 // POST (from Arduino or dashboard)
-//      classroom_id, event_type, triggered_by
+// classroom_id, event_type, triggered_by
 
 require_once '../php/db_connect.php';
 header('Content-Type: application/json');
@@ -52,20 +52,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 
 // POST: Arduino or dashboard writes a log entry
-// No session check here — Arduino has no session.
-// In production add an API key check. For prototype this is fine.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $cid  = (int)($_POST['classroom_id'] ?? 0);
-    $type = $_POST['event_type']   ?? '';
-    $by   = $_POST['triggered_by'] ?? 'sensor';
+    $cid        = (int)($_POST['classroom_id'] ?? 0);
+    $type       = $_POST['event_type']   ?? '';
+    $by         = $_POST['triggered_by'] ?? 'sensor';
+    $faculty_id = !empty($_POST['faculty_id']) ? (int)$_POST['faculty_id'] : null;
 
     $valid = ['on','off','gesture','schedule','security_alert'];
     if (!$cid || !in_array($type, $valid)) {
         echo json_encode(['success'=>false,'message'=>'classroom_id and valid event_type required.']); exit;
     }
 
-    $stmt = $conn->prepare('INSERT INTO lighting_logs (classroom_id, event_type, triggered_by) VALUES (?,?,?)');
-    $stmt->bind_param('iss', $cid, $type, $by);
+    $stmt = $conn->prepare('INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by) VALUES (?,?,?,?)');
+    $stmt->bind_param('iiss', $cid, $faculty_id, $type, $by);
     $stmt->execute();
     $new_id = $conn->insert_id;
     $stmt->close();
