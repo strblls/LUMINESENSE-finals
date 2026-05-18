@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -12,69 +12,36 @@
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
+    <link rel="stylesheet" href="../../css/modals.css">
     <link rel="stylesheet" href="../../css/admin-analytics.css">
-
-
-    <!-- ═══ SHARED SIDEBAR & PROFILE STYLES ═══ -->
-    <style>
-        /* ── Sidebar nav buttons ── */
-        .nav-btn {
-            width: 52px; height: 52px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            background-color: var(--secondary-color-1); color: var(--primary-color);
-            border: none; cursor: pointer;
-            transition: background-color 0.2s, transform 0.15s;
-        }
-        .nav-btn i, .nav-btn svg { font-size: 22px; }
-        .nav-btn:hover { background-color: var(--secondary-color-4); transform: scale(1.06); }
-
-        /* ── Sidebar offcanvas shell ── */
-        #sidebarOffcanvas { width: 100px !important; background-color: var(--primary-color); }
-        #sidebarOffcanvas .offcanvas-header { justify-content: center; padding: 1rem 0.5rem; }
-        #sidebarOffcanvas .logo { width: 75px; height: 75px; object-fit: contain; cursor: pointer; }
-        #sidebarOffcanvas .offcanvas-body { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 0.5rem; }
-        #sidebarOffcanvas .offcanvas-footer { display: flex; justify-content: center; padding: 1rem; }
-        #sidebarOffcanvas .offcanvas-footer img { width: 4rem; }
-
-        /* ── Profile offcanvas shell ── */
-        #profileOffcanvas { width: 240px !important; background-color: var(--primary-color); }
-        #profileOffcanvas .avatar-icon {
-            width: 80px; height: 80px; border-radius: 50%;
-            background: #d9d6d6; color: var(--secondary-color-1);
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        /* ── Profile offcanvas buttons ── */
-        .profile-btn {
-            width: 100%; padding: 8px; margin: 3px 0; border-radius: 8px;
-            background-color: var(--secondary-color-1); color: var(--primary-color);
-            border: none; font-size: 14px; cursor: pointer; font-family: var(--font-primary);
-            transition: background-color 0.2s, transform 0.15s;
-        }
-        .profile-btn:hover { background-color: var(--secondary-color-4); transform: scale(1.02); }
-    </style>
 </head>
 
 <body class="contrast-bg">
 
-    <!-- TOPBAR -->
-    <div class="topbar">
-        <button class="topbar-menu-btn" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
+       <!-- Topbar -->
+    <div class="topbar d-flex"
+        style="background: linear-gradient(0deg, rgba(255,255,255,0) 9%, rgba(47,0,79,0.76) 40%, rgba(47,0,79,0.95) 70%, rgba(47,0,79,1) 100%);">
+        <button type="button" id="sidebarTrigger" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
             <i class="bi bi-list"></i>
         </button>
-        <h1 class="topbar-title bold">Energy Analytics</h1> <!--ALERT: PHP | DISPLAY-->
-        <div class="topbar-right">
+        <div class="col d-flex flex-column px-3">
+            <h1 class="bold">Room Management</h1>
+        </div>
+        <div class="d-flex align-items-center justify-content-center gap-3 mx-2">
             <div class="search-container">
-                <input type="text" class="search-input" id="roomSearch" placeholder="Search...">
-                <i class="fas fa-search search-icon" onclick="applyRoomSearch()"></i>
+                <input type="text" class="form-control search-input" placeholder="Search">
+                <i class="bi bi-search search-icon"></i>
             </div>
-            <span class="topbar-admin">Admin 10</span> <!--ALERT: PHP | DISPLAY-->
-            <div class="avatar-icon" data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas">
-                <span class="bold" style="font-size:16px;">A1</span> <!--ALERT: PHP | DISPLAY-->
+            <h4>Admin 10</h4>
+            <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2"
+                data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas">
+                <h3 class="bold">AN</h3>
             </div>
         </div>
     </div>
@@ -166,11 +133,31 @@
                             </tr>
                         </thead>
                         <tbody id="breakdownBody">
-                            <tr><td>Consultation Room</td><td>7.0 hrs</td><td>2.10 kWh</td></tr>
-                            <tr><td>SEL 08</td><td>3.8 hrs</td><td>1.14 kWh</td></tr>
-                            <tr><td>SEL 11</td><td>8.1 hrs</td><td>2.43 kWh</td></tr>
-                            <tr><td>SEL 05</td><td>4.0 hrs</td><td>1.65 kWh</td></tr>
-                            <tr><td>Rich Nest</td><td>6.5 hrs</td><td>1.95 kWh</td></tr>
+                            <tr>
+                                <td>Consultation Room</td>
+                                <td>7.0 hrs</td>
+                                <td>2.10 kWh</td>
+                            </tr>
+                            <tr>
+                                <td>SEL 08</td>
+                                <td>3.8 hrs</td>
+                                <td>1.14 kWh</td>
+                            </tr>
+                            <tr>
+                                <td>SEL 11</td>
+                                <td>8.1 hrs</td>
+                                <td>2.43 kWh</td>
+                            </tr>
+                            <tr>
+                                <td>SEL 05</td>
+                                <td>4.0 hrs</td>
+                                <td>1.65 kWh</td>
+                            </tr>
+                            <tr>
+                                <td>Rich Nest</td>
+                                <td>6.5 hrs</td>
+                                <td>1.95 kWh</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -193,21 +180,27 @@
 
 
 
-    
-    
+
+
 
     <!-- ═══ SIDEBAR OFFCANVAS ═══ -->
     <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
         <div class="offcanvas-header justify-content-center">
-            <img src="../../images/logo.png" class="logo" alt="Logo" onclick="dissolve('admin-homepage.html')" style="cursor:pointer;">
+            <img src="../../images/logo.png" class="logo" alt="Logo">
         </div>
         <div class="offcanvas-body align-items-center d-flex flex-column gap-2">
-            <button class="nav-btn" title="Home"             onclick="dissolve('admin-homepage.html')"><i class="bi bi-house-door"></i></button>
-            <button class="nav-btn" title="Room Management"  onclick="dissolve('admin-room-manage.html')"><i class="fa-solid fa-person-shelter"></i></button>
-            <button class="nav-btn" title="Analytics"        onclick="dissolve('admin-analytics.html')"><i class="bi bi-clipboard2-data"></i></button>
-            <button class="nav-btn" title="Reports"          onclick="dissolve('admin-reports.html')"><i class="bi bi-exclamation-triangle"></i></button>
-            <button class="nav-btn" title="Faculty"          onclick="dissolve('admin-faculty-management.html')"><i class="bi bi-people"></i></button>
-            <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.html')"><i class="bi bi-gear"></i></button>
+            <button class="nav-btn" title="Home" onclick="dissolve('admin-homepage.html')"><i
+                    class="bi bi-house-door"></i></button>
+            <button class="nav-btn" title="Room Management" onclick="dissolve('admin-room-manage.html')"><i
+                    class="fa-solid fa-person-shelter"></i></button>
+            <button class="nav-btn" title="Analytics" onclick="dissolve('admin-analytics.html')"><i
+                    class="bi bi-clipboard2-data"></i></button>
+            <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.html')"><i
+                    class="bi bi-exclamation-triangle"></i></button>
+            <button class="nav-btn" title="Faculty" onclick="dissolve('admin-faculty-management.html')"><i
+                    class="bi bi-people"></i></button>
+            <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.html')"><i
+                    class="bi bi-gear"></i></button>
         </div>
         <div class="offcanvas-footer">
             <img src="../../images/team-logo.png" alt="Team Logo" style="width:4rem;">
@@ -229,6 +222,77 @@
             </div>
         </div>
     </div>
+    <script src="../../script/animations.js"></script>
+    <script src="../../script/toggles.js"></script>
+    <script src="../../script/initialize-gesture.js"></script>
+    <script>
+        const chartLabels = ['Jan 26', 'Jan 27', 'Jan 28', 'Jan 29', 'Jan 30', 'Jan 31'];
+        const usageData = {
+            labels: chartLabels,
+            datasets: [{
+                label: 'Estimated kWh',
+                data: [5.0, 6.5, 7.2, 8.0, 7.8, 6.9],
+                backgroundColor: 'rgba(116, 47, 211, 0.95)',
+                borderRadius: 14,
+                maxBarThickness: 28
+            }]
+        };
 
+        const usageChart = new Chart(document.getElementById('usageChart'), {
+            type: 'bar',
+            data: usageData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 13 } },
+                        grid: { display: false }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 13 }, precision: 0 },
+                        grid: { color: 'rgba(47,0,79,0.08)' }
+                    }
+                }
+            }
+        });
+
+        function updateChart() {
+            const period = document.getElementById('periodSelect').value;
+            if (period === 'monthly') {
+                usageChart.data.labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                usageChart.data.datasets[0].data = [24, 28, 31, 29];
+            } else {
+                usageChart.data.labels = chartLabels;
+                usageChart.data.datasets[0].data = [5.0, 6.5, 7.2, 8.0, 7.8, 6.9];
+            }
+            usageChart.update();
+        }
+
+        function updateRoomLabel() {
+            const roomSelect = document.getElementById('roomSelect');
+            const roomLabel = document.getElementById('roomLabel');
+            if (roomSelect && roomLabel) roomLabel.textContent = roomSelect.value;
+        }
+
+        function applyRoomSearch() {
+            const searchInput = document.getElementById('roomSearch');
+            const roomLabel = document.getElementById('roomLabel');
+            if (searchInput && roomLabel) roomLabel.textContent = searchInput.value || 'Room 3A-B';
+        }
+
+        function exportPDF() {
+            alert('Export PDF is not configured yet.');
+        }
+
+        function exportCSV() {
+            alert('Export CSV is not configured yet.');
+        }
+    </script>
 </body>
+
 </html>
