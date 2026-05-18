@@ -76,10 +76,28 @@ $conn->query("
     CREATE TABLE IF NOT EXISTS lighting_logs (
         id            INT AUTO_INCREMENT PRIMARY KEY,
         classroom_id  INT NOT NULL,
+        faculty_id    INT DEFAULT NULL,
         event_type    ENUM('on','off','security_alert','gesture','schedule') NOT NULL,
         triggered_by  VARCHAR(100) DEFAULT '',
         event_time    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE
+        FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
+        FOREIGN KEY (faculty_id)   REFERENCES faculty(id) ON DELETE SET NULL
+    )
+");
+
+$conn->query("
+    CREATE TABLE IF NOT EXISTS extension_requests (
+        id           INT AUTO_INCREMENT PRIMARY KEY,
+        schedule_id  INT NOT NULL,
+        faculty_id   INT NOT NULL,
+        requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        extend_mins  INT DEFAULT 30,
+        status       ENUM('pending','approved','rejected') DEFAULT 'pending',
+        reviewed_by  INT DEFAULT NULL,
+        reviewed_at  TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (schedule_id) REFERENCES schedules(id) ON DELETE CASCADE,
+        FOREIGN KEY (faculty_id)  REFERENCES faculty(id) ON DELETE CASCADE,
+        FOREIGN KEY (reviewed_by) REFERENCES admins(id) ON DELETE SET NULL
     )
 ");
 

@@ -57,10 +57,12 @@ CREATE TABLE IF NOT EXISTS schedules (
 CREATE TABLE IF NOT EXISTS lighting_logs (
     id           INT AUTO_INCREMENT PRIMARY KEY,
     classroom_id INT NOT NULL,
+    faculty_id   INT DEFAULT NULL,
     event_type   ENUM('on','off','gesture','schedule','security_alert') NOT NULL,
     triggered_by VARCHAR(50) DEFAULT 'sensor',
     event_time   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE
+    FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
+    FOREIGN KEY (faculty_id)   REFERENCES faculty(id) ON DELETE SET NULL
 );
 
 -- ═══════════════════════════════════════════════════════════════
@@ -82,3 +84,8 @@ VALUES ('Room 101', 'medium', '7m x 9m – 3x3 bulb grid prototype');
 --    echo password_hash('YourPassword123!', PASSWORD_BCRYPT);
 --  Copy that output and paste it here for the password column.
 -- ───────────────────────────────────────────────────────────────
+
+-- Added: Para sa lighting logs per faculty(faculty_id) 
+ALTER TABLE lighting_logs
+ADD COLUMN faculty_id INT DEFAULT NULL,
+ADD CONSTRAINT fk_log_faculty FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE SET NULL;s
