@@ -12,9 +12,19 @@ enableBtn.addEventListener('click', async function () {
         const data = await res.json();
 
         if (data.status === 'started' || data.status === 'already running') {
-            img.src             = 'http://127.0.0.1:5000/video_feed';
-            img.style.display   = 'block';
+            img.src = 'http://127.0.0.1:5000/video_feed';
+            img.style.display = 'block';
             enableBtn.style.display = 'none';
+
+            // Add error handler
+            img.onerror = () => {
+                console.error('Stream failed to load');
+                enableBtn.disabled = false;
+                enableBtn.textContent = 'Enable Camera';
+                enableBtn.style.display = 'block';
+                img.style.display = 'none';
+                alert('Camera stream lost. Please try again.');
+            };
         }
 
     } catch (error) {

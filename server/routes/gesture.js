@@ -6,8 +6,8 @@ let flaskProcess = null;
 router.post('/start', (req, res) => {
     if (flaskProcess) return res.json({ status: 'already running' });
 
-    flaskProcess = spawn('python', ['gesture-control.py'], {
-        cwd: 'C:/xampp/htdocs/LUMINESENSE-finals',  //absolute path
+    flaskProcess = spawn('C:/Users/ACER/AppData/Local/Programs/Python/Python314/python.exe', ['gesture-control.py'], {
+        cwd: 'C:/xampp_fr/htdocs/LUMINESENSE_VERSIONS/LUMINESENSE-finals',
         stdio: 'inherit'
     });
 

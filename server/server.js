@@ -5,8 +5,14 @@ const app     = express();
 app.use(express.json());
 
 // CORS — explicitly allow Live Server
+// app.use(cors({
+//     origin: 'http://127.0.0.1:5500',
+//     methods: ['GET', 'POST', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type']
+// }));
+
 app.use(cors({
-    origin: 'http://127.0.0.1:5500',
+    origin: ['http://127.0.0.1:5500', 'http://localhost', 'http://127.0.0.1'],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type']
 }));
