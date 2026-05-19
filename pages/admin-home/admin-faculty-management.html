@@ -162,6 +162,16 @@
                 <p class="mb-0 profile-label">
                     Department: <span class="semibold" id="profileDept">SHS</span>
                 </p>
+                <p class="mb-0 profile-label">
+                    Status: <span class="semibold" id="profileStatusText">Pending</span>
+                </p>
+                <div class="mt-2">
+                    <select id="facultyStatusSelect" class="faculty-status-select select-status" onchange="updateStatus(this.value)">
+                        <option value="Pending" style="color: orange;" selected>Pending</option>
+                        <option value="Approved" style="color: green;">Approved</option>
+                        <option value="Disapproved" style="color: red;">Disapproved</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -169,15 +179,15 @@
             <button class="light info-action-btn"
                 style="width:auto; padding: 8px 16px; font-size: 0.85rem; border-radius: 8px;" data-bs-toggle="modal"
                 data-bs-target="#editFacultyModal">
-                <i class="bi bi-pencil me-1"></i>Edit Profile
+                Edit Profile
             </button>
             <button class="light info-action-btn"
                 style="width:auto; padding: 8px 16px; font-size: 0.85rem; border-radius: 8px;">
-                <i class="bi bi-door-open me-1"></i>Manage Rooms
+                Manage Rooms
             </button>
             <button class="light info-action-btn"
                 style="width:auto; padding: 8px 16px; font-size: 0.85rem; border-radius: 8px;">
-                <i class="bi bi-activity me-1"></i>View Activity
+                View Activity
             </button>
         </div>
 
@@ -276,10 +286,10 @@
                         </div>
                         <div class="mb-3">
                             <label for="editStatusModal" class="modal-label">Status</label>
-                            <select class="form-select mt-1" id="editStatusModal">
-                                <option value="Validated" selected>Validated</option>
+                            <select class="form-select mt-1 select-status" id="editStatusModal" onchange="applyStatusSelectStyle(this, this.value)">
                                 <option value="Pending">Pending</option>
-                                <option value="Inactive">Inactive</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Disapproved">Disapproved</option>
                             </select>
                         </div>
                         <div class="d-flex justify-content-end gap-2 mt-4">
@@ -322,6 +332,39 @@
         .faculty-status-select option {
             background: #2f004f;
             color: #fff;
+        }
+
+        .status-pending {
+            color: #f0ad4e !important;
+        }
+
+        .status-approved {
+            color: #28a745 !important;
+        }
+
+        .status-disapproved {
+            color: #dc3545 !important;
+        }
+
+        .status-pending.select-status,
+        .status-approved.select-status,
+        .status-disapproved.select-status {
+            border-width: 1.5px;
+        }
+
+        .select-status.status-pending {
+            border-color: #f0ad4e !important;
+            color: #f0ad4e !important;
+        }
+
+        .select-status.status-approved {
+            border-color: #28a745 !important;
+            color: #28a745 !important;
+        }
+
+        .select-status.status-disapproved {
+            border-color: #dc3545 !important;
+            color: #dc3545 !important;
         }
 
         /* Toast */
@@ -382,32 +425,243 @@
             setTimeout(() => t.classList.remove('show'), 2700);
         }
 
+        const faculties = [
+            {
+                id: 1,
+                name: 'John Doe',
+                dept: 'SHS',
+                email: 'john.doe@school.edu',
+                status: 'Pending',
+                rooms: ['SEL 08', 'SEL 11'],
+                schedule: [
+                    { time: '8:00 - 9:00 AM', subject: 'Earth and Life Science II', room: 'SEL 08' },
+                    { time: '9:00 - 12:00 PM', subject: 'Earth and Life Science II', room: 'SEL 11' }
+                ],
+                lighting: true,
+                gesture: true,
+                requestAccess: true
+            },
+            {
+                id: 2,
+                name: 'Anna Reyes',
+                dept: 'Math',
+                email: 'anna.reyes@school.edu',
+                status: 'Approved',
+                rooms: ['SEL 12'],
+                schedule: [
+                    { time: '10:00 - 12:00 PM', subject: 'Algebra II', room: 'SEL 12' }
+                ],
+                lighting: false,
+                gesture: true,
+                requestAccess: false
+            }
+        ];
+
+        let currentFaculty = null;
+
+        function renderFacultyList() {
+            const tbody = document.getElementById('facultyListBody');
+            tbody.innerHTML = '';
+
+            faculties.forEach(faculty => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="avatar-icon" style="width: 42px; height: 42px; font-size: 1rem;">
+                                ${faculty.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                                <div class="bold">${faculty.name}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${faculty.dept}</td>
+                    <td>${faculty.email}</td>
+                    <td>${formatStatusBadge(faculty.status)}</td>
+                    <td class="text-end"><button type="button" class="light info-action-btn btn-sm" onclick="viewFaculty(${faculty.id})">View</button></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function formatStatusBadge(status) {
+            const color = status === 'Approved' ? 'text-success' : status === 'Disapproved' ? 'text-danger' : 'text-warning';
+            return `<span class="semibold ${color}">${status}</span>`;
+        }
+
+        function statusClass(status) {
+            return status === 'Approved'
+                ? 'status-approved'
+                : status === 'Disapproved'
+                ? 'status-disapproved'
+                : 'status-pending';
+        }
+
+        function applyStatusTextStyle(element, status) {
+            if (!element) return;
+            element.classList.remove('status-approved', 'status-disapproved', 'status-pending');
+            element.classList.add(statusClass(status));
+        }
+
+        function applyStatusSelectStyle(select, status) {
+            if (!select) return;
+            select.classList.remove('status-approved', 'status-disapproved', 'status-pending');
+            select.classList.add(statusClass(status));
+        }
+
+        function viewFaculty(id) {
+            currentFaculty = faculties.find(f => f.id === id);
+            if (!currentFaculty) return;
+
+            populateDetailView(currentFaculty);
+            exitEditMode(false);
+            const modal = new bootstrap.Modal(document.getElementById('facultyDetailModal'));
+            modal.show();
+        }
+
+        function populateDetailView(faculty) {
+            document.getElementById('detailAvatarText').textContent = faculty.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+            document.getElementById('detailName').textContent = faculty.name;
+            document.getElementById('detailDept').textContent = faculty.dept;
+            document.getElementById('detailEmail').textContent = faculty.email;
+            const detailStatusText = document.getElementById('detailStatusText');
+            detailStatusText.textContent = faculty.status;
+            applyStatusTextStyle(detailStatusText, faculty.status);
+            document.getElementById('detailLightingText').textContent = faculty.lighting ? 'Enabled' : 'Disabled';
+            document.getElementById('detailGestureText').textContent = faculty.gesture ? 'Enabled' : 'Disabled';
+            document.getElementById('detailRequestText').textContent = faculty.requestAccess ? 'Enabled' : 'Disabled';
+
+            const roomsElement = document.getElementById('detailRooms');
+            roomsElement.innerHTML = faculty.rooms.map(room => `<span class="badge faculty-badge">${room}</span>`).join(' ');
+
+            const scheduleElement = document.getElementById('detailSchedule');
+            scheduleElement.innerHTML = faculty.schedule.map(item => `
+                <div class="d-flex align-items-center justify-content-between py-2 schedule-row">
+                    <div>
+                        <p class="bold mb-0 schedule-time">${item.time}</p>
+                        <small class="text-muted">${item.subject}</small>
+                    </div>
+                    <span class="badge schedule-badge">${item.room}</span>
+                </div>
+            `).join('');
+
+            const subtitle = document.getElementById('detailSubtitle');
+            subtitle.textContent = `Faculty ID ${faculty.id} · ${faculty.status}`;
+
+            populateEditFields(faculty);
+        }
+
+        function populateEditFields(faculty) {
+            document.getElementById('detailEditName').value = faculty.name;
+            document.getElementById('detailEditDept').value = faculty.dept;
+            document.getElementById('detailEditEmail').value = faculty.email;
+            const statusSelect = document.getElementById('detailEditStatus');
+            statusSelect.value = faculty.status;
+            applyStatusSelectStyle(statusSelect, faculty.status);
+        }
+            document.getElementById('detailViewSection').classList.add('d-none');
+            document.getElementById('detailEditSection').classList.remove('d-none');
+            document.getElementById('detailModalNote').textContent = 'Edit the faculty details and save when ready.';
+        }
+
+        function exitEditMode(clearNote = true) {
+            document.getElementById('detailViewSection').classList.remove('d-none');
+            document.getElementById('detailEditSection').classList.add('d-none');
+            if (clearNote) {
+                document.getElementById('detailModalNote').textContent = 'Use the action buttons to manage this faculty member.';
+            }
+        }
+
+        function saveDetailChanges() {
+            if (!currentFaculty) return;
+
+            const name = document.getElementById('detailEditName').value.trim();
+            const dept = document.getElementById('detailEditDept').value.trim();
+            const email = document.getElementById('detailEditEmail').value.trim();
+            const status = document.getElementById('detailEditStatus').value;
+
+            if (!name || !dept || !email) {
+                alert('Please complete all profile fields before saving.');
+                return;
+            }
+
+            currentFaculty.name = name;
+            currentFaculty.dept = dept;
+            currentFaculty.email = email;
+            currentFaculty.status = status;
+
+            populateDetailView(currentFaculty);
+            renderFacultyList();
+            exitEditMode();
+            showToast('Faculty details saved successfully.');
+        }
+
+        function manageRooms() {
+            if (!currentFaculty) return;
+            showToast(`Manage rooms for ${currentFaculty.name}.`);
+        }
+
+        function viewActivity() {
+            if (!currentFaculty) return;
+            showToast(`View activity for ${currentFaculty.name}.`);
+        }
+
         function updateStatus(val) {
+            const statusText = document.getElementById('profileStatusText');
+            const statusSelect = document.getElementById('facultyStatusSelect');
+            if (statusText) {
+                statusText.textContent = val;
+                applyStatusTextStyle(statusText, val);
+            }
+            if (statusSelect) {
+                statusSelect.value = val;
+                applyStatusSelectStyle(statusSelect, val);
+            }
             showToast('Status updated to: ' + val);
         }
 
         function saveEdit() {
             const name = document.getElementById('editName').value.trim();
             const dept = document.getElementById('editDept').value.trim();
+            const email = document.getElementById('editEmail').value.trim();
             const status = document.getElementById('editStatusModal').value;
 
-            if (!name) { alert('Please enter a name.'); return; }
-
-            // Update profile card
-            document.getElementById('profileName').textContent = name;
-            document.getElementById('profileDept').textContent = dept;
-            const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-            document.getElementById('profileAvatarText').textContent = initials;
-
-            // Sync status dropdown if present
-            const statusSelect = document.getElementById('facultyStatusSelect');
-            if (statusSelect) {
-                statusSelect.value = status;
+            if (!name || !dept || !email) {
+                alert('Please fill all fields before saving.');
+                return;
             }
 
-            bootstrap.Modal.getInstance(document.getElementById('editFacultyModal')).hide();
+            const profileName = document.getElementById('profileName');
+            const profileDept = document.getElementById('profileDept');
+            const statusText = document.getElementById('profileStatusText');
+            const statusSelect = document.getElementById('facultyStatusSelect');
+
+            if (profileName) profileName.textContent = name;
+            if (profileDept) profileDept.textContent = dept;
+            if (statusText) {
+                statusText.textContent = status;
+                applyStatusTextStyle(statusText, status);
+            }
+            if (statusSelect) {
+                statusSelect.value = status;
+                applyStatusSelectStyle(statusSelect, status);
+            }
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editFacultyModal'));
+            if (modal) modal.hide();
             showToast('Faculty details saved successfully.');
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFacultyList();
+            const statusSelect = document.getElementById('editStatusModal');
+            if (statusSelect) applyStatusSelectStyle(statusSelect, statusSelect.value);
+            const profileStatusText = document.getElementById('profileStatusText');
+            if (profileStatusText) applyStatusTextStyle(profileStatusText, profileStatusText.textContent.trim());
+            const currentProfileSelect = document.getElementById('facultyStatusSelect');
+            if (currentProfileSelect) applyStatusSelectStyle(currentProfileSelect, currentProfileSelect.value);
+        });
     </script>
 
     <script src="../../script/animations.js" onerror="void(0)"></script>
