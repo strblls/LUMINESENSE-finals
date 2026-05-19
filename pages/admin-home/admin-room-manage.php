@@ -1,3 +1,23 @@
+<?php
+$phpRoot = realpath(__DIR__ . '/../../php');
+require_once $phpRoot . '/session_guard.php';
+check_admin();
+require_once $phpRoot . '/db_connect.php';
+
+$admin_name  = htmlspecialchars($_SESSION['admin_name']);
+$name_parts  = explode(' ', $admin_name);
+$initials    = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
+
+$admin_email = '';
+$stmt = $conn->prepare('SELECT email FROM admins WHERE id = ?');
+$stmt->bind_param('i', $_SESSION['admin_id']);
+$stmt->execute();
+$stmt->bind_result($admin_email);
+$stmt->fetch();
+$stmt->close();
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -135,10 +155,10 @@
                 <input type="text" class="form-control search-input" placeholder="Search">
                 <i class="bi bi-search search-icon"></i>
             </div>
-            <h4>Admin 10</h4>
+            <h4><?= $admin_name?></h4>
             <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2"
                 data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas">
-                <h3 class="bold">AN</h3>
+                <h3 class="bold"><?= $admin_email?></h3>
             </div>
         </div>
     </div>
@@ -176,9 +196,9 @@
                                 </div>
                             </div>
                             <div class="gap-2 m-3 align-items-center">
-                                <p class="mb-0">Faculty-in-charge: <span>John Doe</span></p>
-                                <p class="mb-0">Room Status: <span>Occupied</span></p>
-                                <p class="mb-0">Lighting Status: <span>OFF</span></p>
+                                <p class="mb-0">Faculty-in-charge: <span>John Doe</span></p>     
+                                <p class="mb-0">Room Status: <span>Occupied</span></p> 
+                                <p class="mb-0">Lighting Status: <span>OFF</span></p> 
                             </div>
                         </div>
                         <div style="background-color: #f8f9fa;" class="section-container rooms flex-fill">
@@ -404,17 +424,17 @@
             <img src="../../images/logo.png" class="logo" alt="Logo">
         </div>
         <div class="offcanvas-body align-items-center d-flex flex-column gap-2">
-            <button class="nav-btn" title="Home" onclick="dissolve('admin-homepage.html')"><i
+            <button class="nav-btn" title="Home" onclick="dissolve('admin-homepage.php')"><i
                     class="bi bi-house-door"></i></button>
-            <button class="nav-btn" title="Room Management" onclick="dissolve('admin-room-manage.html')"><i
+            <button class="nav-btn" title="Room Management" onclick="dissolve('admin-room-manage.php')"><i
                     class="fa-solid fa-person-shelter"></i></button>
-            <button class="nav-btn" title="Analytics" onclick="dissolve('admin-analytics.html')"><i
+            <button class="nav-btn" title="Analytics" onclick="dissolve('admin-analytics.php')"><i
                     class="bi bi-clipboard2-data"></i></button>
-            <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.html')"><i
+            <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.php')"><i
                     class="bi bi-exclamation-triangle"></i></button>
-            <button class="nav-btn" title="Faculty" onclick="dissolve('admin-faculty-management.html')"><i
+            <button class="nav-btn" title="Faculty" onclick="dissolve('admin-faculty-management.php')"><i
                     class="bi bi-people"></i></button>
-            <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.html')"><i
+            <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.php')"><i
                     class="bi bi-gear"></i></button>
         </div>
         <div class="offcanvas-footer">
@@ -426,14 +446,14 @@
     <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas" aria-labelledby="profileOffcanvasLabel">
         <div class="offcanvas-body align-items-center d-flex flex-column pt-4 gap-2">
             <div class="avatar-icon d-flex align-items-center justify-content-center">
-                <h3 class="bold">AN</h3> <!--ALERT: PHP | DISPLAY-->
+                <h3 class="bold"><? $initials?></h3>
             </div>
-            <h4 class="bold mt-2" style="color:var(--secondary-color-1);">Admin Name</h4> <!--ALERT: PHP | DISPLAY-->
-            <h6 class="light" style="word-break:break-all;text-align:center;">admin@raffles.uni.edu</h6>
+            <h4 class="bold mt-2" style="color:var(--secondary-color-1);"><?$admin_name?></h4>
+            <h6 class="light" style="word-break:break-all;text-align:center;"><? htmlspecialchars($admin_email)?></h6>
             <div class="d-flex flex-column align-items-center justify-content-center w-100 mt-2 gap-1">
-                <button class="profile-btn" onclick="dissolve('admin-profile-settings.html')">Profile Settings</button>
+                <button class="profile-btn" onclick="dissolve('admin-profile-settings.php')">Profile Settings</button>
                 <button class="profile-btn">Classroom Details</button>
-                <button class="profile-btn" onclick="window.location.href='../../index.html'">Logout</button>
+                <button class="profile-btn" onclick="window.location.href='../../index.php'">Logout</button>
             </div>
         </div>
     </div>

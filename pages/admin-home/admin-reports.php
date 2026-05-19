@@ -1,0 +1,234 @@
+<?php
+$phpRoot = realpath(__DIR__ . '/../../php');
+require_once $phpRoot . '/session_guard.php';
+check_admin();
+require_once $phpRoot . '/db_connect.php';
+
+$admin_name  = htmlspecialchars($_SESSION['admin_name']);
+$name_parts  = explode(' ', $admin_name);
+$initials    = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
+
+$admin_email = '';
+$stmt = $conn->prepare('SELECT email FROM admins WHERE id = ?');
+$stmt->bind_param('i', $_SESSION['admin_id']);
+$stmt->execute();
+$stmt->bind_result($admin_email);
+$stmt->fetch();
+$stmt->close();
+$conn->close();
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/containers.css">
+    <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/admin-reports.css">
+</head>
+
+<body class="contrast-bg">
+
+
+
+    <!-- Topbar -->
+    <div class="topbar d-flex"
+        style="background: linear-gradient(0deg, rgba(255,255,255,0) 9%, rgba(47,0,79,0.76) 40%, rgba(47,0,79,0.95) 70%, rgba(47,0,79,1) 100%);">
+        <button type="button" id="sidebarTrigger" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
+            <i class="bi bi-list"></i>
+        </button>
+        <div class="col d-flex flex-column px-3">
+            <h1 class="bold">Reports Management</h1>
+        </div>
+        <div class="d-flex align-items-center justify-content-center gap-3 mx-2">
+            <div class="search-container">
+                <input type="text" class="form-control search-input" placeholder="Search">
+                <i class="bi bi-search search-icon"></i>
+            </div>
+            <h4><?= $admin_name ?></h4>
+            <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2"
+                data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas">
+                <h3 class="bold"><?= $initials ?></h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="child-container">
+        <div class="reports-card">
+            <table class="reports-table">
+                <thead>
+                    <tr>
+                        <th>Room</th>
+                        <th>Status</th>
+                        <th>Current Class</th>
+                        <th>Lighting</th>
+                        <th>Issues</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Row 1: Occupied -->
+                    <tr>
+                        <td>
+                            <div class="room-name">Room 3A-B</div>
+                            <div class="room-section">Grade 12 Newton</div>
+                        </td>
+                        <td>
+                            <span class="badge-status badge-occupied">Occupied</span>
+                        </td>
+                        <td>
+                            <div class="class-subject">Earth Life And Science</div>
+                            <div class="class-faculty">Faculty Member</div>
+                            <div class="class-time">Fri: 11:00 AM – 12:00 PM</div>
+                        </td>
+                        <td>
+                            <span class="lighting-on">ON</span>
+                        </td>
+                        <td>
+                            <div class="issues-cell">
+                                <span class="issue-badge">1</span>
+                                <button class="issue-more-btn" data-bs-toggle="modal" data-bs-target="#issueModal"
+                                    title="View issues">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Row 2: Scheduled -->
+                    <tr>
+                        <td>
+                            <div class="room-name">Room 1B-B</div>
+                            <div class="room-section">Grade 11 Torvalds</div>
+                        </td>
+                        <td>
+                            <span class="badge-status badge-scheduled">Scheduled</span>
+                        </td>
+                        <td>
+                            <div class="class-subject">Advance Physics</div>
+                            <div class="class-faculty">John Doe</div>
+                            <div class="class-time">Fri: 1:00 PM – 2:00 PM</div>
+                        </td>
+                        <td>
+                            <span class="lighting-off">OFF</span>
+                        </td>
+                        <td>
+                            <span class="no-issues">No issues</span>
+                        </td>
+                    </tr>
+
+                    <!-- Row 3: Vacant -->
+                    <tr>
+                        <td>
+                            <div class="room-name">Room 3A-C</div>
+                            <div class="room-section">Grade 10 Newton</div>
+                        </td>
+                        <td>
+                            <span class="badge-status badge-vacant">Vacant</span>
+                        </td>
+                        <td>
+                            <div class="class-subject">ICT: Simple Softwares</div>
+                            <div class="class-faculty">John Doe</div>
+                            <div class="class-time">Thurs: 8:00 AM – 12:00 PM</div>
+                        </td>
+                        <td>
+                            <span class="lighting-off">OFF</span>
+                        </td>
+                        <td>
+                            <span class="no-issues">No issues</span>
+                        </td>
+                    </tr>
+
+                    <!-- Row 4: Vacant -->
+                    <tr>
+                        <td>
+                            <div class="room-name">Materials Lab</div>
+                            <div class="room-section"></div>
+                        </td>
+                        <td>
+                            <span class="badge-status badge-vacant">Vacant</span>
+                        </td>
+                        <td>
+                            <div class="class-subject">Robotic Systems</div>
+                            <div class="class-faculty">John Doe</div>
+                            <div class="class-time">Fri: 1:00 PM – 3:00 PM</div>
+                        </td>
+                        <td>
+                            <span class="lighting-off">OFF</span>
+                        </td>
+                        <td>
+                            <span class="no-issues">No issues</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+
+        <!-- ═══ SIDEBAR OFFCANVAS ═══ -->
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas"
+            aria-labelledby="sidebarOffcanvasLabel">
+            <div class="offcanvas-header justify-content-center">
+                <img src="../../images/logo.png" class="logo" alt="Logo">
+            </div>
+            <div class="offcanvas-body align-items-center d-flex flex-column gap-2">
+                <button class="nav-btn" title="Home" onclick="dissolve('admin-homepage.html')"><i
+                        class="bi bi-house-door"></i></button>
+                <button class="nav-btn" title="Room Management" onclick="dissolve('admin-room-manage.html')"><i
+                        class="fa-solid fa-person-shelter"></i></button>
+                <button class="nav-btn" title="Analytics" onclick="dissolve('admin-analytics.html')"><i
+                        class="bi bi-clipboard2-data"></i></button>
+                <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.html')"><i
+                        class="bi bi-exclamation-triangle"></i></button>
+                <button class="nav-btn" title="Faculty" onclick="dissolve('admin-faculty-management.html')"><i
+                        class="bi bi-people"></i></button>
+                <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.html')"><i
+                        class="bi bi-gear"></i></button>
+            </div>
+            <div class="offcanvas-footer">
+                <img src="../../images/team-logo.png" alt="Team Logo" style="width:4rem;">
+            </div>
+        </div>
+
+        <!-- ═══ PROFILE OFFCANVAS ═══ -->
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas"
+            aria-labelledby="profileOffcanvasLabel">
+            <div class="offcanvas-body align-items-center d-flex flex-column pt-4 gap-2">
+                <div class="avatar-icon d-flex align-items-center justify-content-center">
+                    <h3 class="bold">AN</h3> <!--ALERT: PHP | DISPLAY-->
+                </div>
+                <h4 class="bold mt-2" style="color:var(--secondary-color-1);">Admin Name</h4>
+                <!--ALERT: PHP | DISPLAY-->
+                <h6 class="light" style="word-break:break-all;text-align:center;">admin@raffles.uni.edu</h6>
+                <div class="d-flex flex-column align-items-center justify-content-center w-100 mt-2 gap-1">
+                    <button class="profile-btn" onclick="dissolve('admin-profile-settings.html')">Profile
+                        Settings</button>
+                    <button class="profile-btn">Classroom Details</button>
+                    <button class="profile-btn" onclick="window.location.href='../../index.html'">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="../../script/animations.js"></script>
+        <script src="../../script/toggles.js"></script>
+        <script src="../../script/initialize-gesture.js"></script>
+
+    </div>
+</body>
+
+</html>
