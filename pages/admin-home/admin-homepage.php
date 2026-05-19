@@ -18,36 +18,71 @@ $stmt->fetch();
 $stmt->close();
 
 // Summary counts
-$total_rooms  = $conn->query("SELECT COUNT(*) AS c FROM classrooms")->fetch_assoc()['c'];
-$lights_on    = $conn->query("SELECT COUNT(*) AS c FROM lighting_logs l WHERE l.id IN (SELECT MAX(id) FROM lighting_logs GROUP BY classroom_id) AND l.event_type='on'")->fetch_assoc()['c'];
-$pending      = $conn->query("SELECT COUNT(*) AS c FROM faculty WHERE is_verified=1 AND approved_by IS NULL")->fetch_assoc()['c'];
-$alerts_today = $conn->query("SELECT COUNT(*) AS c FROM lighting_logs WHERE event_type='security_alert' AND DATE(event_time)=CURDATE()")->fetch_assoc()['c'];
+$total_rooms = $conn->query("SELECT COUNT(*) AS c FROM classrooms")->fetch_assoc()['c'];
 
-// Recent logs
+// Lights on = classrooms whose LATEST log entry is 'on'
+$lights_on = $conn->query("
+    SELECT COUNT(*) AS c FROM lighting_logs l
+    WHERE l.id IN (SELECT MAX(id) FROM lighting_logs GROUP BY classroom_id)
+    AND l.event_type = 'on'
+")->fetch_assoc()['c'];
+
+// Pending faculty = email verified but not yet approved by admin
+$pending = $conn->query("
+    SELECT COUNT(*) AS c FROM faculty
+    WHERE is_verified = 1 AND approved_by IS NULL
+")->fetch_assoc()['c'];
+
+// Extension requests — table may not exist yet, so we guard it
+$ext_pending = 0;
+if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
+    $ext_pending = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE status='pending'")->fetch_assoc()['c'];
+}
+
+// System status checks
+$server_ok   = true; // we're running PHP so server is up
+$db_ok       = ($conn && !$conn->connect_error);
+$lights_data = $conn->query("SELECT COUNT(*) AS c FROM lighting_logs WHERE DATE(event_time)=CURDATE()")->fetch_assoc()['c'];
+
+// Recent activity logs (includes faculty approvals)
 $logs = [];
 $r = $conn->query("
     SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
-    FROM lighting_logs l JOIN classrooms c ON c.id = l.classroom_id
-    ORDER BY l.event_time DESC LIMIT 6
+    FROM lighting_logs l
+    JOIN classrooms c ON c.id = l.classroom_id
+    ORDER BY l.event_time DESC
+    LIMIT 6
 ");
 while ($row = $r->fetch_assoc()) $logs[] = $row;
 
-// Classrooms
+// Faculty approval events for recent activity
+$approval_logs = [];
+$r2 = $conn->query("
+    SELECT CONCAT(first_name, ' ', last_name) AS faculty_name,
+           approved_at
+    FROM faculty
+    WHERE approved_by IS NOT NULL
+    ORDER BY approved_at DESC
+    LIMIT 3
+");
+while ($row = $r2->fetch_assoc()) $approval_logs[] = $row;
+
+// Classrooms with their description and latest light status
 $classrooms = [];
 $r = $conn->query("
-    SELECT c.id, c.room_name, c.room_size,
-           COALESCE(l.event_type,'off') AS light_status
+    SELECT c.id, c.room_name, c.room_size, c.description,
+           COALESCE(l.event_type, 'off') AS light_status
     FROM classrooms c
-    LEFT JOIN lighting_logs l ON l.id = (SELECT MAX(id) FROM lighting_logs WHERE classroom_id = c.id)
+    LEFT JOIN lighting_logs l
+           ON l.id = (SELECT MAX(id) FROM lighting_logs WHERE classroom_id = c.id)
     ORDER BY c.room_name
 ");
 while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
-// Extension requests count
-$ext_pending = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE status='pending'")->fetch_assoc()['c'];
-
 $conn->close();
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -157,7 +192,7 @@ $conn->close();
                             <span class="stat-icon"><img src="../../images/room.png" alt="Rooms" style="width:2rem;"></span>
                             <div>
                                 <div class="stat-value"><?= $total_rooms ?></div>
-                                <p class="stat-label">Rooms<br>Active</p>
+                                <p class="stat-label">Total<br>Rooms</p>
                             </div>
                         </div>
                         <div class="stat-card">
@@ -198,15 +233,25 @@ $conn->close();
                         <?php else: foreach ($classrooms as $c):
                             $on = ($c['light_status'] === 'on'); ?>
                             <div class="room-item">
-                                <i class="bi bi-building room-icon"></i>
-                                <div class="room-info">
-                                    <h5><?= htmlspecialchars($c['room_name']) ?></h5>
-                                    <p>Size: <?= ucfirst($c['room_size']) ?> &nbsp;·&nbsp;
-                                       Lighting: <strong><?= $on ? 'ON' : 'Off' ?></strong>
-                                    </p>
-                                </div>
-                                <button class="light" onclick="dissolve('admin-room-manage.php')">View</button>
+                        <i class="bi bi-building room-icon"></i>
+                        <div class="room-info">
+                            <div class="d-flex align-items-center gap-2">
+                                <h5 class="mb-0"><?= htmlspecialchars($c['room_name']) ?></h5>
+                                <span style="font-size:10px; padding:2px 8px; border-radius:20px; font-weight:600;
+                                    background:<?= $on ? '#d1e7dd' : '#f8d7da' ?>;
+                                    color:<?= $on ? '#0f5132' : '#842029' ?>;">
+                                    <?= $on ? 'ON' : 'OFF' ?>
+                                </span>
                             </div>
+                            <p class="mb-0" style="font-size:11px; color:var(--muted);">
+                                <?= ucfirst($c['room_size']) ?> room
+                                <?php if (!empty($c['description'])): ?>
+                                    &nbsp;·&nbsp; <?= htmlspecialchars($c['description']) ?>
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                    <button class="light flex-shrink-0" onclick="dissolve('admin-room-manage.php')">View</button>
+                </div>
                         <?php endforeach; endif; ?>
                     </div>
                 </div>
@@ -226,15 +271,41 @@ $conn->close();
                     </div>
                     <div class="gap-2">
                         <div class="activity-list px-2 gap-2 align-items-center max-width">
-                            <?php if (empty($logs)): ?>
+                            <?php if (empty($logs) && empty($approval_logs)): ?>
                                 <p class="text-muted">No recent activity.</p>
-                            <?php else: foreach ($logs as $log): ?>
-                                <div>
-                                    <h5><?= ucfirst($log['event_type']) ?> – <?= htmlspecialchars($log['room_name']) ?></h5>
-                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> · <?= date('M j', strtotime($log['event_time'])) ?></p>
-                                </div>
-                                <hr>
-                            <?php endforeach; endif; ?>
+                            <?php else: ?>
+                                <?php foreach ($approval_logs as $al): ?>
+                                    <div class="d-flex justify-content-between align-items-start py-1">
+                                        <div>
+                                            <h5 class="mb-0" style="font-size:13px;">
+                                                <i class="bi bi-person-check text-success me-1"></i>
+                                                Faculty Approved – <?= htmlspecialchars($al['faculty_name']) ?>
+                                            </h5>
+                                            <p class="mb-0" style="font-size:11px; color:var(--muted);">
+                                                <?= date('g:i A', strtotime($al['approved_at'])) ?> · <?= date('M j', strtotime($al['approved_at'])) ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <hr class="my-1">
+                                <?php endforeach; ?>
+                                <?php foreach ($logs as $log): ?>
+                                    <div class="d-flex justify-content-between align-items-start py-1">
+                                        <div>
+                                            <h5 class="mb-0" style="font-size:13px;">
+                                                <?= ucfirst(str_replace('_', ' ', $log['event_type'])) ?>
+                                                – <?= htmlspecialchars($log['room_name']) ?>
+                                            </h5>
+                                            <p class="mb-0" style="font-size:11px; color:var(--muted);">
+                                                <?= date('g:i A', strtotime($log['event_time'])) ?> · <?= date('M j', strtotime($log['event_time'])) ?>
+                                                <?php if (!empty($log['triggered_by'])): ?>
+                                                    · <?= htmlspecialchars($log['triggered_by']) ?>
+                                                <?php endif; ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <hr class="my-1">
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -244,13 +315,29 @@ $conn->close();
                     <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
                         <div class="d-flex mx-2 align-items-start"><h2 class="bold">System Status</h2></div>
                     </div>
-                    <div class="gap-2">
-                        <div class="activity-list px-2 gap-2 align-items-center max-width">
-                            <h5>Lighting: Disconnected</h5>
-                            <h5>Server: Connected</h5>
-                            <h5>Webcam: Disabled</h5>
-                            <h5>Sensor Reading: Disconnected</h5>
-                            <h5>System Uptime: 00:00:00</h5>
+                    <div class="activity-list px-2 gap-2 max-width">
+                        <?php
+                        $statuses = [
+                            ['label' => 'Server',         'ok' => $db_ok,       'ok_text' => 'Connected',    'fail_text' => 'Disconnected'],
+                            ['label' => 'Database',        'ok' => $db_ok,       'ok_text' => 'Connected',    'fail_text' => 'Error'],
+                            ['label' => 'Lighting System', 'ok' => ($lights_on > 0), 'ok_text' => $lights_on . ' room(s) active', 'fail_text' => 'No active lights'],
+                            ['label' => 'Sensor Reading',  'ok' => ($lights_data > 0), 'ok_text' => 'Receiving data', 'fail_text' => 'No data today'],
+                            ['label' => 'Webcam',          'ok' => false,        'ok_text' => 'Active',       'fail_text' => 'Disabled'],
+                        ];
+                        foreach ($statuses as $s):
+                        ?>
+                        <div class="d-flex justify-content-between align-items-center py-1" style="border-bottom:1px solid #eee;">
+                            <h5 class="mb-0" style="font-size:13px;"><?= $s['label'] ?></h5>
+                            <span style="font-size:11px; padding:2px 10px; border-radius:20px; font-weight:600;
+                                background:<?= $s['ok'] ? '#d1e7dd' : '#f8d7da' ?>;
+                                color:<?= $s['ok'] ? '#0f5132' : '#842029' ?>;">
+                                <?= $s['ok'] ? $s['ok_text'] : $s['fail_text'] ?>
+                            </span>
+                        </div>
+                        <?php endforeach; ?>
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <h5 class="mb-0" style="font-size:13px;">System Uptime</h5>
+                            <span style="font-size:11px; color:var(--muted);" id="uptime-display">Calculating...</span>
                         </div>
                     </div>
                 </div>
@@ -310,5 +397,19 @@ $conn->close();
 
 <script src="../../script/animations.js"></script>
 <script src="../../script/toggles.js"></script>
+<script>
+// Live uptime counter (counts from page load — resets on refresh)
+const start = Date.now();
+function updateUptime() {
+    const s = Math.floor((Date.now() - start) / 1000);
+    const h = String(Math.floor(s / 3600)).padStart(2, '0');
+    const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+    const sec = String(s % 60).padStart(2, '0');
+    const el = document.getElementById('uptime-display');
+    if (el) el.textContent = `${h}:${m}:${sec}`;
+}
+setInterval(updateUptime, 1000);
+updateUptime();
+</script>
 </body>
 </html>
