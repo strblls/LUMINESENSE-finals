@@ -1,3 +1,13 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$_SESSION['login_error'] = null;
+$_SESSION['signup_success_modal'] = null;
+unset($_SESSION['login_error']);
+unset($_SESSION['signup_success_modal']);
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -37,30 +47,13 @@
 
             <h4 class="pb-4 semibold">Administrator Login</h4>
 
-            <!--
-                NOTE on "Admin ID" field:
-                The original HTML labeled the field "Admin ID" but used type="text".
-                Based on the capstone, Admins register with an email and their account
-                is verified by the ISO. So we use email as the login identifier.
-                If your system uses a separate numeric Admin ID, change name="email"
-                to name="admin_id" and update admin-login.php to match.
-            -->
-
             <!-- SESSION MESSAGES -->
             <?php
-                if (session_status() === PHP_SESSION_NONE) session_start();
-
-                // Force clear any old session errors/messages
-                $_SESSION['login_error'] = null;
-                $_SESSION['signup_success_modal'] = null;
-                unset($_SESSION['login_error']);
-                unset($_SESSION['signup_success_modal']);
-
                 if (!empty($_SESSION['login_error'])) {
                     echo '<div class="alert alert-danger">' . htmlspecialchars($_SESSION['login_error']) . '</div>';
                     unset($_SESSION['login_error']);
                 }
-             ?>
+            ?>
 
             <?php if (!empty($_SESSION['signup_success_modal'])): ?>
                 <div class="modal fade" id="signupSuccessModal" tabindex="-1" aria-labelledby="signupSuccessModalLabel" aria-hidden="true">
@@ -121,10 +114,10 @@
                         </div>
                     </div>
 
-                    <div class="submit-container">
-                        <button type="submit" class="medium">LOGIN</button>
+                    <div class="submit-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; width:100%;">
+                        <button type="submit" class="medium" style="width: auto; padding: 6px 40px;">LOGIN</button>
                         or<br>
-                        <button type="button" class="medium" onclick="dissolve('admin-signup.php')">SIGN-UP</button>
+                        <a type="button" class="medium" onclick="dissolve('admin-signup.php')">SIGN-UP</a>
                     </div>
 
                 </form>

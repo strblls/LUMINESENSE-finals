@@ -1,8 +1,11 @@
+<?php
+    if (session_status() === PHP_SESSION_NONE) session_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset=" UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!--Bootstrap and JS CDN-->
@@ -23,7 +26,9 @@
 
 <body>
     <div class="return-container">
-        <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('../index.html')"><i class="bi bi-house"></i></a>
+        <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('../index.html')">
+            <i class="bi bi-house"></i>
+        </a>
     </div>
     <div class="parent-container">
         <div class="registration-container">
@@ -34,8 +39,6 @@
 
             <!-- SESSION MESSAGES -->
             <?php
-                if (session_status() === PHP_SESSION_NONE) session_start();
-
                 if (!empty($_SESSION['signup_errors'])) {
                     foreach ($_SESSION['signup_errors'] as $error) {
                         echo '<div class="alert alert-danger">' . htmlspecialchars($error) . '</div>';
@@ -50,45 +53,57 @@
 
             <div class="form-container">
                 <form action="../php/admin-signup-process.php" method="POST">
-                    <div class="form-group">
-                        <label for="last_name">Last Name</label>
-                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Family Name" required>
+
+                    <!-- Full Name Row -->
+                    <div class="mb-3">
+                        <div class="d-flex gap-2">
+                            <div class="d-flex flex-column flex-grow-1">
+                                <small class="text-muted mb-1">Last Name</small>
+                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Family Name" required>
+                            </div>
+                            <div class="d-flex flex-column flex-grow-1">
+                                <small class="text-muted mb-1">First Name</small>
+                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First Name" required>
+                            </div>
+                            <div class="d-flex flex-column" style="width: 70px;">
+                                <small class="text-muted mb-1">M.I.</small>
+                                <input type="text" class="form-control" id="middle_initial" name="middle_initial" placeholder="M.I." maxlength="1">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="first_name">First Name</label>
-                        <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First Name" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="middle_initial">M.I.</label>
-                        <input type="text" class="form-control" id="middle_initial" name="middle_initial" placeholder="M.I." maxlength="1">
-                    </div>
-                    <div class="form-group">
+
+                    <div class="mb-3">
                         <label for="admin_code">Admin Code</label>
                         <input type="text" class="form-control" id="admin_code" name="admin_code" placeholder="Enter admin code" required>
                     </div>
-                    <div class="form-group">
+
+                    <div class="mb-3">
                         <label for="email">Admin E-mail</label>
                         <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
                     </div>
-                    <div class="form-group">
+
+                    <div class="mb-3">
                         <label for="password">Password</label>
                         <div class="password-wrapper">
                             <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
                             <i class="bi bi-eye-slash" id="togglePassword"></i>
                         </div>
                     </div>
-                    <div class="form-group">
+
+                    <div class="mb-3">
                         <label for="confirm_password">Confirm Password</label>
                         <div class="password-wrapper">
                             <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
                             <i class="bi bi-eye-slash" id="toggleConfirmPassword"></i>
                         </div>
                     </div>
-                    <div class="submit-container">
-                        <button class="medium" type="submit">SIGN UP</button>
+
+                    <div class="submit-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; width:100%;">
+                        <button class="medium" type="submit" style="width: auto; padding: 6px 40px;">SIGN UP</button>
                         or<br>
-                        <button type="button" class="medium" onclick="dissolve('admin-login.php')">LOG IN</button>
+                        <a type="button" class="medium" onclick="dissolve('admin-login.php')">LOG IN</a>
                     </div>
+
                 </form>
             </div>
         </div>
