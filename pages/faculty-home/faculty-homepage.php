@@ -333,7 +333,7 @@ $conn->close();
                         <h6 class="light email-limit"><?= htmlspecialchars($faculty_email) ?></h6>
                         <div class="d-flex flex-column align-items-center justify-content-center">
                             <button onclick="dissolve('faculty-profile-settings.php')">Profile Settings</button>
-                            <button onclick="dissolve('faculty-classroom-details.php')">Classroom Details</button>
+                            <button>Classroom Details</button>
                             <button onclick="dissolve('../../php/logout.php')">Logout</button>
                         </div>
                     </div>
