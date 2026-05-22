@@ -1,85 +1,16 @@
 <?php
-$phpRoot = realpath(__DIR__ . '/../../php');
-require_once $phpRoot . '/session_guard.php';
-check_admin();
-require_once $phpRoot . '/db_connect.php';
+$page_title = 'Dashboard';
+require_once '../../php/includes/admin-head.php';
 
-$admin_name = htmlspecialchars($_SESSION['admin_name']);
-$name_parts = explode(' ', $admin_name);
-$initials   = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
-
-// Fetch admin email
-$admin_email = '';
-$stmt = $conn->prepare('SELECT email FROM admins WHERE id = ?');
-$stmt->bind_param('i', $_SESSION['admin_id']);
-$stmt->execute();
-$stmt->bind_result($admin_email);
-$stmt->fetch();
-$stmt->close();
-
-// Summary counts
-$total_rooms = $conn->query("SELECT COUNT(*) AS c FROM classrooms")->fetch_assoc()['c'];
-
-// Lights on = classrooms whose LATEST log entry is 'on'
-$lights_on = $conn->query("
-    SELECT COUNT(*) AS c FROM lighting_logs l
-    WHERE l.id IN (SELECT MAX(id) FROM lighting_logs GROUP BY classroom_id)
-    AND l.event_type = 'on'
-")->fetch_assoc()['c'];
-
-// Pending faculty = email verified but not yet approved by admin
-$pending = $conn->query("
-    SELECT COUNT(*) AS c FROM faculty
-    WHERE is_verified = 1 AND approved_by IS NULL
-")->fetch_assoc()['c'];
-
-// Extension requests — table may not exist yet, so we guard it
-$ext_pending = 0;
-if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
-    $ext_pending = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE status='pending'")->fetch_assoc()['c'];
-}
-
-// System status checks
-$server_ok   = true; // we're running PHP so server is up
-$db_ok       = ($conn && !$conn->connect_error);
-$lights_data = $conn->query("SELECT COUNT(*) AS c FROM lighting_logs WHERE DATE(event_time)=CURDATE()")->fetch_assoc()['c'];
-
-// Recent activity logs (includes faculty approvals)
-$logs = [];
-$r = $conn->query("
-    SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
-    FROM lighting_logs l
-    JOIN classrooms c ON c.id = l.classroom_id
-    ORDER BY l.event_time DESC
-    LIMIT 6
-");
-while ($row = $r->fetch_assoc()) $logs[] = $row;
-
-// Faculty approval events for recent activity
-$approval_logs = [];
-$r2 = $conn->query("
-    SELECT CONCAT(first_name, ' ', last_name) AS faculty_name,
-           approved_at
-    FROM faculty
-    WHERE approved_by IS NOT NULL
-    ORDER BY approved_at DESC
-    LIMIT 3
-");
-while ($row = $r2->fetch_assoc()) $approval_logs[] = $row;
-
-// Classrooms with their description and latest light status
-$classrooms = [];
-$r = $conn->query("
-    SELECT c.id, c.room_name, c.room_size, c.description,
-           COALESCE(l.event_type, 'off') AS light_status
-    FROM classrooms c
-    LEFT JOIN lighting_logs l
-           ON l.id = (SELECT MAX(id) FROM lighting_logs WHERE classroom_id = c.id)
-    ORDER BY c.room_name
-");
-while ($row = $r->fetch_assoc()) $classrooms[] = $row;
-
-$conn->close();
+/** @var int $total_rooms */
+/** @var int $lights_on */
+/** @var int $pending */
+/** @var int $ext_pending */
+/** @var bool $db_ok */
+/** @var int $lights_data */
+/** @var array $logs */
+/** @var array $approval_logs */
+/** @var array $classrooms */
 ?>
 
 
@@ -159,26 +90,9 @@ $conn->close();
 </head>
 
 <body class="contrast-bg">
+<?php include '../../php/includes/admin-topbar.php'; ?>
+
 <div class="parent-container">
-
-    <!-- TOPBAR -->
-    <div class="topbar d-flex" style="background: linear-gradient(0deg, rgba(255,255,255,0) 9%, rgba(47,0,79,0.76) 40%, rgba(47,0,79,0.95) 70%, rgba(47,0,79,1) 100%);">
-        <button type="button" id="sidebarTrigger" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
-            <i class="bi bi-list"></i>
-        </button>
-        <div class="col d-flex flex-column px-3">
-            <h1 class="bold">Welcome, <?= explode(' ', $admin_name)[0] ?>!</h1>
-            <h5 class="light">Administrator</h5>
-        </div>
-        <div class="d-flex align-items-center justify-content-center gap-3 mx-2">
-            <h4><?= explode(' ', $admin_name)[0] ?></h4>
-            <div class="avatar-icon d-flex align-items-center justify-content-center"
-                 id="sidebarTrigger2" data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas">
-                <h3 class="bold"><?= $initials ?></h3>
-            </div>
-        </div>
-    </div>
-
     <div class="child-container">
         <div class="main-container homepage gap-3">
 
@@ -245,17 +159,17 @@ $conn->close();
                             </div>
                             <p class="mb-0" style="font-size:11px; color:var(--muted);">
                                 <?= ucfirst($c['room_size']) ?> room
-                                <?php if (!empty($c['description'])): ?>
-                                    &nbsp;·&nbsp; <?= htmlspecialchars($c['description']) ?>
-                                <?php endif; ?>
                             </p>
+                            <?php if (!empty($c['description'])): ?>
+                                <p class="mb-0" style="font-size:10px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
+                                    <?= htmlspecialchars($c['description']) ?>
+                                </p>
+                            <?php endif; ?>
                         </div>
-                    <button class="light flex-shrink-0" onclick="dissolve('admin-room-manage.php')">View</button>
                 </div>
                         <?php endforeach; endif; ?>
                     </div>
                 </div>
-
             </div><!-- /LEFT COLUMN -->
 
             <!-- RIGHT COLUMN -->
@@ -343,54 +257,9 @@ $conn->close();
                 </div>
 
             </div><!-- /RIGHT COLUMN -->
-
-            <!-- SIDEBAR LEFT -->
-            <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas">
-                <div class="offcanvas-header justify-content-center">
-                    <img src="../../images/logo.png" class="logo" alt="Logo"
-                         onclick="dissolve('admin-homepage.php')">
-                </div>
-                <div class="offcanvas-body align-items-center d-flex flex-column gap-2">
-                    <button class="nav-btn" title="Home" onclick="dissolve('admin-homepage.php')">
-                        <i class="bi bi-house-door"></i>
-                    </button>
-                    <button class="nav-btn" title="Room Management" onclick="dissolve('admin-room-manage.php')">
-                        <i class="fa-solid fa-person-shelter"></i>
-                    </button>
-                    <button class="nav-btn" title="Analytics" onclick="dissolve('admin-analytics.php')">
-                        <i class="bi bi-clipboard2-data"></i>
-                    </button>
-                    <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.php')">
-                        <i class="bi bi-exclamation-triangle"></i>
-                    </button>
-                    <button class="nav-btn" title="Faculty" onclick="dissolve('admin-faculty-management.php')">
-                        <i class="bi bi-people"></i>
-                    </button>
-                    <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.php')">
-                        <i class="bi bi-gear"></i>
-                    </button>
-                </div>
-                <div class="offcanvas-footer">
-                    <img src="../../images/team-logo.png" alt="Team Logo" style="width:4rem;">
-                </div>
-            </div>
-
-            <!-- PROFILE OFFCANVAS -->
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas">
-                <div class="offcanvas-body align-items-center d-flex flex-column pt-4 gap-2">
-                    <div class="avatar-icon d-flex align-items-center justify-content-center">
-                        <h3 class="bold"><?= $initials ?></h3>
-                    </div>
-                    <h4 class="bold mt-2" style="color:var(--secondary-color-1);"><?= $admin_name ?></h4>
-                    <h6 class="light" style="word-break:break-all;text-align:center;"><?= htmlspecialchars($admin_email) ?></h6>
-                    <div class="d-flex flex-column align-items-center justify-content-center w-100 mt-2 gap-1">
-                        <button class="profile-btn" onclick="dissolve('admin-profile-settings.php')">Profile Settings</button>
-                        <button class="profile-btn">Classroom Details</button>
-                        <button class="profile-btn" onclick="dissolve('../../php/logout.php')">Logout</button>
-                    </div>
-                </div>
-            </div>
-
+            <?php include '../../php/includes/admin-sidebar.php'; ?>
+            <?php include '../../php/includes/profile-offcanvas.php'; ?>
+        
         </div>
     </div>
 </div>

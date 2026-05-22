@@ -1,21 +1,16 @@
 <?php
-$phpRoot = realpath(__DIR__ . '/../../php');
-require_once $phpRoot . '/session_guard.php';
-check_admin();
-require_once $phpRoot . '/db_connect.php';
+require_once '../../php/includes/admin-head.php';
+include '../../php/handlers/analytics-handler.php';
 
-$admin_name  = htmlspecialchars($_SESSION['admin_name']);
-$name_parts  = explode(' ', $admin_name);
-$initials    = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
-
-$admin_email = '';
-$stmt = $conn->prepare('SELECT email FROM admins WHERE id = ?');
-$stmt->bind_param('i', $_SESSION['admin_id']);
-$stmt->execute();
-$stmt->bind_result($admin_email);
-$stmt->fetch();
-$stmt->close();
-$conn->close();
+/** @var int $total_rooms */
+/** @var int $lights_on */
+/** @var int $pending */
+/** @var int $ext_pending */
+/** @var bool $db_ok */
+/** @var int $lights_data */
+/** @var array $logs */
+/** @var array $rooms */
+/** @var array $roomDataFromPHP */
 ?>
 
 <!DOCTYPE html>
@@ -24,295 +19,139 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Analytics</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-        crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap"
-        rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
     <link rel="stylesheet" href="../../css/admin-analytics.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body class="contrast-bg">
 
-       <!-- Topbar -->
-    <div class="topbar d-flex"
-        style="background: linear-gradient(0deg, rgba(255,255,255,0) 9%, rgba(47,0,79,0.76) 40%, rgba(47,0,79,0.95) 70%, rgba(47,0,79,1) 100%);">
-        <button type="button" id="sidebarTrigger" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
-            <i class="bi bi-list"></i>
-        </button>
-        <div class="col d-flex flex-column px-3">
-            <h1 class="bold">Room Management</h1>
-        </div>
-        <div class="d-flex align-items-center justify-content-center gap-3 mx-2">
-            <div class="search-container">
-                <input type="text" class="form-control search-input" placeholder="Search">
-                <i class="bi bi-search search-icon"></i>
-            </div>
-            <h4><?= $admin_name?></h4>
-            <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2"
-                data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas">
-                <h3 class="bold"><?= $initials ?></h3>
-            </div>
-        </div>
-    </div>
+    <?php include '../../php/includes/admin-topbar.php'; ?>
 
-    <!-- ROOM LABEL -->
-    <div class="room-label bold" id="roomLabel">Room 3A-B</div> <!--ALERT: PHP | DISPLAY-->
+    <div class="parent-container">
+        <?php include '../../php/includes/admin-sidebar.php'; ?>
 
-    <!-- MAIN CONTENT -->
-    <div class="content-area">
-
-        <!-- TOP ROW: Usage + Chart -->
-        <div class="top-row">
-
-            <!-- Usage Card -->
-            <div class="card-white">
-                <div class="usage-card-title bold">Usage</div>
-
-                <div class="usage-stat">
-                    <div class="usage-number up">
-                        <span class="usage-arrow">↗</span>
-                        <span>23%</span>
-                    </div>
-                    <p class="usage-desc">Higher usage this week.<br>Check schedules for optimization.</p>
-                </div>
-
-                <div class="usage-stat">
-                    <div class="usage-number down">
-                        <span class="usage-arrow">↙</span>
-                        <span>8%</span>
-                    </div>
-                    <p class="usage-desc">Daily average down 8%.<br>Great energy efficiency!</p>
-                </div>
+        <div class="child-container">
+            <div class="room-label bold" id="roomLabel">
+                <?= htmlspecialchars($rooms[0]['room_name'] ?? 'No Rooms') ?>
             </div>
 
-            <!-- Chart Card -->
-            <div class="card-white">
-                <div class="chart-card-header">
-                    <span class="chart-card-title bold">Electric Usage Report</span>
-                    <div class="chart-controls">
-                        <div class="view-select-group">
-                            <label>View</label>
-                            <select id="periodSelect" onchange="updateChart()">
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                            </select>
+            <div class="content-area">
+
+                <div class="top-row">
+
+                    <div class="card-white">
+                        <div class="usage-card-title bold">Usage</div>
+                        <div class="usage-stat">
+                            <div class="usage-number up" id="usagePrimary">
+                                <span class="usage-arrow">↗</span>
+                                <span id="usagePrimaryVal">—</span>
+                            </div>
+                            <p class="usage-desc" id="usagePrimaryDesc">Loading...</p>
                         </div>
-                        <div class="view-select-group">
-                            <label>Select Room</label>
-                            <!--ALERT: PHP | DISPLAY-->
-                            <select id="roomSelect" onchange="updateRoomLabel()">
-                                <option value="3A-B">Room 3A-B</option>
-                                <option value="SEL 08">SEL 08</option>
-                                <option value="SEL 11">SEL 11</option>
-                                <option value="SEL 05">SEL 05</option>
-                                <option value="Rich Nest">Rich Nest</option>
-                                <option value="Consultation Room">Consultation Room</option>
-                            </select>
+                        <div class="usage-stat">
+                            <div class="usage-number down" id="usageSecondary">
+                                <span class="usage-arrow">↙</span>
+                                <span id="usageSecondaryVal">—</span>
+                            </div>
+                            <p class="usage-desc" id="usageSecondaryDesc">Loading...</p>
+                        </div>
+                    </div>
+
+                    <div class="card-white">
+                        <div class="chart-card-header">
+                            <span class="chart-card-title bold">Electric Usage Report</span>
+                            <div class="chart-controls">
+                                <div class="view-select-group">
+                                    <label for="periodSelect">View</label>
+                                    <select id="periodSelect" onchange="onControlChange()">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly" selected>Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                                <div class="view-select-group">
+                                    <label for="roomSelect">Select Room</label>
+                                    <select id="roomSelect" onchange="onControlChange()">
+                                        <?php foreach ($rooms as $room): ?>
+                                            <option value="<?= htmlspecialchars($room['room_name']) ?>">
+                                                <?= htmlspecialchars($room['room_name']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="usageChart"></canvas>
                         </div>
                     </div>
                 </div>
-                <div class="chart-wrapper">
-                    <canvas id="usageChart"></canvas>
-                </div>
-            </div>
-        </div>
 
-        <!-- Usage Breakdown -->
-        <div class="card-white">
-            <div class="breakdown-card">
-                <!-- Left: table -->
-                <div>
-                    <div class="breakdown-header">
-                        <span class="breakdown-title bold">Usage Breakdown</span>
-                        <div class="view-select-group">
-                            <label>View</label>
-                            <select>
-                                <option>Weekly</option>
-                                <option>Monthly</option>
-                            </select>
+                <div class="card-white">
+                    <div class="breakdown-card">
+                        <div>
+                            <div class="breakdown-header">
+                                <span class="breakdown-title bold">Usage Breakdown</span>
+                                <div class="view-select-group">
+                                    <label for="breakdownPeriodSelect">View</label>
+                                    <select id="breakdownPeriodSelect" onchange="updateBreakdown()">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly" selected>Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <table class="breakdown-table">
+                                <thead>
+                                    <tr>
+                                        <th>Room</th>
+                                        <th>Hours of Lighting Used</th>
+                                        <th>Estimated kWh</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="breakdownBody"></tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="total-usage">
+                            <div class="total-usage-title bold">Total Usage</div>
+                            <p>Hours of Lighting Used: <span class="val" id="totalHours">—</span></p>
+                            <p>Estimated kWh: <span class="val" id="totalKwh">—</span></p>
+                            <div class="export-btns">
+                                <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
+                                <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
+                            </div>
                         </div>
                     </div>
-                    <!--ALERT: PHP | DISPLAY-->
-                    <table class="breakdown-table">
-                        <thead>
-                            <tr>
-                                <th>Room</th>
-                                <th>Hours of Lighting Used</th>
-                                <th>Estimated kWh</th>
-                            </tr>
-                        </thead>
-                        <tbody id="breakdownBody">
-                            <tr>
-                                <td>Consultation Room</td>
-                                <td>7.0 hrs</td>
-                                <td>2.10 kWh</td>
-                            </tr>
-                            <tr>
-                                <td>SEL 08</td>
-                                <td>3.8 hrs</td>
-                                <td>1.14 kWh</td>
-                            </tr>
-                            <tr>
-                                <td>SEL 11</td>
-                                <td>8.1 hrs</td>
-                                <td>2.43 kWh</td>
-                            </tr>
-                            <tr>
-                                <td>SEL 05</td>
-                                <td>4.0 hrs</td>
-                                <td>1.65 kWh</td>
-                            </tr>
-                            <tr>
-                                <td>Rich Nest</td>
-                                <td>6.5 hrs</td>
-                                <td>1.95 kWh</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                </div> </div> </div> </div> <?php include '../../php/includes/profile-offcanvas.php'; ?>
 
-                <!-- Right: Total Usage + Export -->
-                <!--ALERT: PHP | DISPLAY-->
-                <div class="total-usage">
-                    <div class="total-usage-title bold">Total Usage</div>
-                    <p>Hours of Lighting Used: <span class="val">29.5hrs</span></p>
-                    <p>Estimated kWh: <span class="val">9.27 kWh</span></p>
-                    <div class="export-btns">
-                        <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
-                        <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-
-
-
-
-
-    <!-- ═══ SIDEBAR OFFCANVAS ═══ -->
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
-        <div class="offcanvas-header justify-content-center">
-            <img src="../../images/logo.png" class="logo" alt="Logo">
-        </div>
-        <div class="offcanvas-body align-items-center d-flex flex-column gap-2">
-            <button class="nav-btn" title="Home" onclick="dissolve('admin-homepage.php')"><i
-                    class="bi bi-house-door"></i></button>
-            <button class="nav-btn" title="Room Management" onclick="dissolve('admin-room-manage.php')"><i
-                    class="fa-solid fa-person-shelter"></i></button>
-            <button class="nav-btn" title="Analytics" onclick="dissolve('admin-analytics.php')"><i
-                    class="bi bi-clipboard2-data"></i></button>
-            <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.php')"><i
-                    class="bi bi-exclamation-triangle"></i></button>
-            <button class="nav-btn" title="Faculty" onclick="dissolve('admin-faculty-management.php')"><i
-                    class="bi bi-people"></i></button>
-            <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.php')"><i
-                    class="bi bi-gear"></i></button>
-        </div>
-        <div class="offcanvas-footer">
-            <img src="../../images/team-logo.png" alt="Team Logo" style="width:4rem;">
-        </div>
-    </div>
-
-    <!-- ═══ PROFILE OFFCANVAS ═══ -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas" aria-labelledby="profileOffcanvasLabel">
-        <div class="offcanvas-body align-items-center d-flex flex-column pt-4 gap-2">
-            <div class="avatar-icon d-flex align-items-center justify-content-center">
-                <h3 class="bold">AN</h3> <!--ALERT: PHP | DISPLAY-->
-            </div>
-            <h4 class="bold mt-2" style="color:var(--secondary-color-1);">Admin Name</h4> <!--ALERT: PHP | DISPLAY-->
-            <h6 class="light" style="word-break:break-all;text-align:center;">admin@raffles.uni.edu</h6>
-            <div class="d-flex flex-column align-items-center justify-content-center w-100 mt-2 gap-1">
-                <button class="profile-btn" onclick="dissolve('admin-profile-settings.php')">Profile Settings</button>
-                <button class="profile-btn">Classroom Details</button>
-                <button class="profile-btn" onclick="window.location.href='../../index.php'">Logout</button>
-            </div>
-        </div>
-    </div>
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
     <script src="../../script/initialize-gesture.js"></script>
+
     <script>
-        const chartLabels = ['Jan 26', 'Jan 27', 'Jan 28', 'Jan 29', 'Jan 30', 'Jan 31'];
-        const usageData = {
-            labels: chartLabels,
-            datasets: [{
-                label: 'Estimated kWh',
-                data: [5.0, 6.5, 7.2, 8.0, 7.8, 6.9],
-                backgroundColor: 'rgba(116, 47, 211, 0.95)',
-                borderRadius: 14,
-                maxBarThickness: 28
-            }]
-        };
-
-        const usageChart = new Chart(document.getElementById('usageChart'), {
-            type: 'bar',
-            data: usageData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 13 } },
-                        grid: { display: false }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 13 }, precision: 0 },
-                        grid: { color: 'rgba(47,0,79,0.08)' }
-                    }
-                }
-            }
-        });
-
-        function updateChart() {
-            const period = document.getElementById('periodSelect').value;
-            if (period === 'monthly') {
-                usageChart.data.labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-                usageChart.data.datasets[0].data = [24, 28, 31, 29];
-            } else {
-                usageChart.data.labels = chartLabels;
-                usageChart.data.datasets[0].data = [5.0, 6.5, 7.2, 8.0, 7.8, 6.9];
-            }
-            usageChart.update();
-        }
-
-        function updateRoomLabel() {
-            const roomSelect = document.getElementById('roomSelect');
-            const roomLabel = document.getElementById('roomLabel');
-            if (roomSelect && roomLabel) roomLabel.textContent = roomSelect.value;
-        }
-
-        function applyRoomSearch() {
-            const searchInput = document.getElementById('roomSearch');
-            const roomLabel = document.getElementById('roomLabel');
-            if (searchInput && roomLabel) roomLabel.textContent = searchInput.value || 'Room 3A-B';
-        }
-
-        function exportPDF() {
-            alert('Export PDF is not configured yet.');
-        }
-
-        function exportCSV() {
-            alert('Export CSV is not configured yet.');
-        }
+        const roomData = <?= json_encode($roomDataFromPHP, JSON_HEX_TAG) ?>;
     </script>
-</body>
+    <script src="../../script/admin-analytics.js"></script>
 
+</body>
 </html>
+
+<?php
+// Safely close connection at the very end of processing
+if (isset($conn)) {
+    $conn->close();
+}
+?>
