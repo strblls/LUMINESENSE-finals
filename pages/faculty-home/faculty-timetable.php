@@ -140,6 +140,7 @@ $conn->close();
             <h1 class="bold">Class Schedule</h1>
             <h5 class="light">Current Schedule: <?= $current_sched ?></h5>
         </div>
+        
         <div class="d-flex align-items-center justify-content-center gap-2 mx-2">
             <h4><?= $faculty_name ?></h4>
             <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">

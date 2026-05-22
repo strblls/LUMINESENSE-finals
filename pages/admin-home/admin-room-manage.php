@@ -1,21 +1,16 @@
 <?php
-$phpRoot = realpath(__DIR__ . '/../../php');
-require_once $phpRoot . '/session_guard.php';
-check_admin();
-require_once $phpRoot . '/db_connect.php';
+require_once '../../php/includes/admin-head.php';
 
-$admin_name  = htmlspecialchars($_SESSION['admin_name']);
-$name_parts  = explode(' ', $admin_name);
-$initials    = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
-
-$admin_email = '';
-$stmt = $conn->prepare('SELECT email FROM admins WHERE id = ?');
-$stmt->bind_param('i', $_SESSION['admin_id']);
-$stmt->execute();
-$stmt->bind_result($admin_email);
-$stmt->fetch();
-$stmt->close();
-$conn->close();
+$classrooms = [];
+$r = $conn->query("
+    SELECT c.id, c.room_name, c.room_size, c.description,
+           COALESCE(l.event_type, 'off') AS light_status
+    FROM classrooms c
+    LEFT JOIN lighting_logs l
+           ON l.id = (SELECT MAX(id) FROM lighting_logs WHERE classroom_id = c.id)
+    ORDER BY c.room_name
+");
+while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -226,333 +221,524 @@ $conn->close();
 </head>
 <body class="contrast-bg">
 
-    <!-- ═══ TOPBAR ═══ -->
-    <div class="topbar">
-        <button type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas">
-            <i class="bi bi-list"></i>
-        </button>
-        <h1 class="topbar-title bold">Room Management</h1>
-        <div class="topbar-right">
-            <div class="search-container">
-                <input type="text" class="search-input" id="roomSearch"
-                       placeholder="Search rooms…" oninput="filterRooms(this.value)">
-                <i class="bi bi-search search-icon"></i>
-            </div>
-            <span class="topbar-admin"><?= $admin_name ?></span>
-            <div class="avatar-icon d-flex align-items-center justify-content-center"
-                 data-bs-toggle="offcanvas" data-bs-target="#profileOffcanvas">
-                <h3 class="bold mb-0"><?= $initials ?></h3>
-            </div>
-        </div>
-    </div>
+    <?php include '../../php/includes/admin-topbar.php'; ?>
 
     <!-- ═══ PAGE CONTENT ═══ -->
     <div class="page-content">
         <div class="section-heading">All Rooms</div>
 
-        <!-- ALERT: PHP | DISPLAY — replace static cards with a DB loop -->
         <div class="rooms-grid" id="roomsGrid">
+        <?php foreach ($classrooms as $c):
+            $on         = ($c['light_status'] === 'on');
+            $curSched   = getCurrentSchedule($conn, $c['id']);
+            $isOccupied = !empty($curSched);
+            $fName      = $isOccupied ? $curSched['faculty_name'] : '—';
 
-            <!-- ── Room 1: Grade 6 Narra (Occupied) ── -->
-            <div class="room-card" data-room="Grade 6 Narra">
-                <div class="room-card-accent accent-occupied"></div>
-                <div class="room-card-body">
-                    <div class="room-card-header">
-                        <div>
-                            <div class="room-card-name">Grade 6 Narra</div>
-                            <div class="room-card-section">Building A &middot; Floor 2</div>
+            if ($isOccupied) {
+                $accentClass = 'accent-occupied';
+                $badgeClass  = 'badge-occupied';
+                $badgeLabel  = 'Occupied';
+            } elseif (!empty(getRoomSchedules($conn, $c['id']))) {
+                $accentClass = 'accent-scheduled';
+                $badgeClass  = 'badge-scheduled';
+                $badgeLabel  = 'Scheduled';
+            } else {
+                $accentClass = 'accent-vacant';
+                $badgeClass  = 'badge-vacant';
+                $badgeLabel  = 'Vacant';
+            }
+
+            $nextSched = null;
+            if (!$isOccupied) {
+                $day  = date('l');
+                $time = date('H:i:s');
+                $st = $conn->prepare("SELECT start_time FROM schedules WHERE classroom_id=? AND day_of_week=? AND start_time>? ORDER BY start_time LIMIT 1");
+                $st->bind_param('iss', $c['id'], $day, $time);
+                $st->execute();
+                $st->bind_result($nextTime);
+                $st->fetch();
+                $st->close();
+                if ($nextTime) $nextSched = date('g:i A', strtotime($nextTime));
+            }
+        ?>
+        <div class="room-card" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>">
+            <div class="room-card-accent <?= $accentClass ?>"></div>
+            <div class="room-card-body">
+                <div class="room-card-header">
+                    <div>
+                        <div class="room-card-name"><?= htmlspecialchars($c['room_name']) ?></div>
+                        <div class="room-card-section">
+                            <?= ucfirst($c['room_size']) ?> room
+                            <?php if (!empty($c['description'])): ?>
+                                &middot; <?= htmlspecialchars($c['description']) ?>
+                            <?php endif; ?>
                         </div>
-                        <span class="room-status-badge badge-occupied">Occupied</span>
                     </div>
-                    <hr class="room-card-divider">
-                    <div class="room-info-row"><i class="bi bi-person-fill"></i><span class="room-info-label">Faculty:&nbsp;</span><span class="room-info-val">John Doe</span></div>
-                    <div class="room-info-row"><i class="bi bi-book-fill"></i><span class="room-info-label">Subject:&nbsp;</span><span class="room-info-val">Mathematics</span></div>
-                    <div class="room-info-row"><i class="bi bi-clock-fill"></i><span class="room-info-label">Time:&nbsp;</span><span class="room-info-val">4:30 PM &ndash; 5:30 PM</span></div>
-                    <div class="room-info-row"><i class="bi bi-lightbulb-fill"></i><span class="room-info-label">Lighting:&nbsp;</span><span><span class="light-dot off"></span><span class="room-info-val">OFF</span></span></div>
+                    <div class="d-flex align-items-center gap-1">
+                        <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
+                            title="Edit"
+                            onclick="openEditModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
+                            title="Delete"
+                            onclick="openDeleteModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
+                    </div>
                 </div>
-                <div class="room-card-actions">
-                    <button class="btn-room-view" data-bs-toggle="modal" data-bs-target="#roomModal" onclick="setModalRoom('Grade 6 Narra')">View</button>
-                    <button class="btn-room-timetable" onclick="dissolve('admin-timetable-manage.php?room=Grade+6+Narra')">Timetable</button>
+                <hr class="room-card-divider">
+                <div class="room-info-row">
+                    <i class="bi bi-person-fill"></i>
+                    <span class="room-info-label">Faculty:&nbsp;</span>
+                    <span class="room-info-val"><?= htmlspecialchars($fName) ?></span>
+                </div>
+                <div class="room-info-row">
+                    <i class="bi bi-clock-fill"></i>
+                    <span class="room-info-label">
+                        <?= $isOccupied ? 'Time:' : 'Next class:' ?>&nbsp;
+                    </span>
+                    <span class="room-info-val">
+                        <?php if ($isOccupied): ?>
+                            <?= date('g:i A', strtotime($curSched['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($curSched['end_time'])) ?>
+                        <?php else: ?>
+                            <?= $nextSched ?? 'None today' ?>
+                        <?php endif; ?>
+                    </span>
+                </div>
+                <div class="room-info-row">
+                    <i class="bi bi-lightbulb-fill"></i>
+                    <span class="room-info-label">Lighting:&nbsp;</span>
+                    <span>
+                        <span class="light-dot <?= $on ? 'on' : 'off' ?>"></span>
+                        <span class="room-info-val"><?= $on ? 'ON' : 'OFF' ?></span>
+                    </span>
                 </div>
             </div>
-
-            <!-- ── Room 2: SEL 08 (Vacant) ── -->
-            <div class="room-card" data-room="SEL 08">
-                <div class="room-card-accent accent-vacant"></div>
-                <div class="room-card-body">
-                    <div class="room-card-header">
-                        <div>
-                            <div class="room-card-name">SEL 08</div>
-                            <div class="room-card-section">Building B &middot; Floor 1</div>
-                        </div>
-                        <span class="room-status-badge badge-vacant">Vacant</span>
-                    </div>
-                    <hr class="room-card-divider">
-                    <div class="room-info-row"><i class="bi bi-person-fill"></i><span class="room-info-label">Faculty:&nbsp;</span><span class="room-info-val">&mdash;</span></div>
-                    <div class="room-info-row"><i class="bi bi-book-fill"></i><span class="room-info-label">Subject:&nbsp;</span><span class="room-info-val">&mdash;</span></div>
-                    <div class="room-info-row"><i class="bi bi-clock-fill"></i><span class="room-info-label">Next class:&nbsp;</span><span class="room-info-val">2:00 PM</span></div>
-                    <div class="room-info-row"><i class="bi bi-lightbulb-fill"></i><span class="room-info-label">Lighting:&nbsp;</span><span><span class="light-dot off"></span><span class="room-info-val">OFF</span></span></div>
-                </div>
-                <div class="room-card-actions">
-                    <button class="btn-room-view" data-bs-toggle="modal" data-bs-target="#roomModal" onclick="setModalRoom('SEL 08')">View</button>
-                    <button class="btn-room-timetable" onclick="dissolve('admin-timetable-manage.php?room=SEL+08')">Timetable</button>
-                </div>
+            <div class="room-card-actions">
+                <button class="btn-room-view"
+                    onclick="openRoomModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
+                    View
+                </button>
+                <button class="btn-room-timetable"
+                    onclick="dissolve('admin-timetable-manage.php?room=<?= urlencode($c['room_name']) ?>')">
+                    Timetable
+                </button>
             </div>
+        </div>
+        <?php endforeach; ?>
 
-            <!-- ── Room 3: SEL 11 (Scheduled) ── -->
-            <div class="room-card" data-room="SEL 11">
-                <div class="room-card-accent accent-scheduled"></div>
-                <div class="room-card-body">
-                    <div class="room-card-header">
-                        <div>
-                            <div class="room-card-name">SEL 11</div>
-                            <div class="room-card-section">Building B &middot; Floor 2</div>
-                        </div>
-                        <span class="room-status-badge badge-scheduled">Scheduled</span>
-                    </div>
-                    <hr class="room-card-divider">
-                    <div class="room-info-row"><i class="bi bi-person-fill"></i><span class="room-info-label">Faculty:&nbsp;</span><span class="room-info-val">Maria Santos</span></div>
-                    <div class="room-info-row"><i class="bi bi-book-fill"></i><span class="room-info-label">Subject:&nbsp;</span><span class="room-info-val">Filipino</span></div>
-                    <div class="room-info-row"><i class="bi bi-clock-fill"></i><span class="room-info-label">Time:&nbsp;</span><span class="room-info-val">3:00 PM &ndash; 4:00 PM</span></div>
-                    <div class="room-info-row"><i class="bi bi-lightbulb-fill"></i><span class="room-info-label">Lighting:&nbsp;</span><span><span class="light-dot on"></span><span class="room-info-val">ON</span></span></div>
-                </div>
-                <div class="room-card-actions">
-                    <button class="btn-room-view" data-bs-toggle="modal" data-bs-target="#roomModal" onclick="setModalRoom('SEL 11')">View</button>
-                    <button class="btn-room-timetable" onclick="dissolve('admin-timetable-manage.php?room=SEL+11')">Timetable</button>
-                </div>
-            </div>
-
-            <!-- ── Room 4: SEL 05 (Occupied) ── -->
-            <div class="room-card" data-room="SEL 05">
-                <div class="room-card-accent accent-occupied"></div>
-                <div class="room-card-body">
-                    <div class="room-card-header">
-                        <div>
-                            <div class="room-card-name">SEL 05</div>
-                            <div class="room-card-section">Building B &middot; Floor 1</div>
-                        </div>
-                        <span class="room-status-badge badge-occupied">Occupied</span>
-                    </div>
-                    <hr class="room-card-divider">
-                    <div class="room-info-row"><i class="bi bi-person-fill"></i><span class="room-info-label">Faculty:&nbsp;</span><span class="room-info-val">Carlos Reyes</span></div>
-                    <div class="room-info-row"><i class="bi bi-book-fill"></i><span class="room-info-label">Subject:&nbsp;</span><span class="room-info-val">Science</span></div>
-                    <div class="room-info-row"><i class="bi bi-clock-fill"></i><span class="room-info-label">Time:&nbsp;</span><span class="room-info-val">1:00 PM &ndash; 2:00 PM</span></div>
-                    <div class="room-info-row"><i class="bi bi-lightbulb-fill"></i><span class="room-info-label">Lighting:&nbsp;</span><span><span class="light-dot on"></span><span class="room-info-val">ON</span></span></div>
-                </div>
-                <div class="room-card-actions">
-                    <button class="btn-room-view" data-bs-toggle="modal" data-bs-target="#roomModal" onclick="setModalRoom('SEL 05')">View</button>
-                    <button class="btn-room-timetable" onclick="dissolve('admin-timetable-manage.php?room=SEL+05')">Timetable</button>
-                </div>
-            </div>
-
-            <!-- ── Room 5: Rich Nest (Vacant) ── -->
-            <div class="room-card" data-room="Rich Nest">
-                <div class="room-card-accent accent-vacant"></div>
-                <div class="room-card-body">
-                    <div class="room-card-header">
-                        <div>
-                            <div class="room-card-name">Rich Nest</div>
-                            <div class="room-card-section">Building C &middot; Floor 1</div>
-                        </div>
-                        <span class="room-status-badge badge-vacant">Vacant</span>
-                    </div>
-                    <hr class="room-card-divider">
-                    <div class="room-info-row"><i class="bi bi-person-fill"></i><span class="room-info-label">Faculty:&nbsp;</span><span class="room-info-val">&mdash;</span></div>
-                    <div class="room-info-row"><i class="bi bi-book-fill"></i><span class="room-info-label">Subject:&nbsp;</span><span class="room-info-val">&mdash;</span></div>
-                    <div class="room-info-row"><i class="bi bi-clock-fill"></i><span class="room-info-label">Next class:&nbsp;</span><span class="room-info-val">None today</span></div>
-                    <div class="room-info-row"><i class="bi bi-lightbulb-fill"></i><span class="room-info-label">Lighting:&nbsp;</span><span><span class="light-dot off"></span><span class="room-info-val">OFF</span></span></div>
-                </div>
-                <div class="room-card-actions">
-                    <button class="btn-room-view" data-bs-toggle="modal" data-bs-target="#roomModal" onclick="setModalRoom('Rich Nest')">View</button>
-                    <button class="btn-room-timetable" onclick="dissolve('admin-timetable-manage.php?room=Rich+Nest')">Timetable</button>
-                </div>
-            </div>
-
-            <!-- ── Room 6: Consultation Room (Scheduled) ── -->
-            <div class="room-card" data-room="Consultation Room">
-                <div class="room-card-accent accent-scheduled"></div>
-                <div class="room-card-body">
-                    <div class="room-card-header">
-                        <div>
-                            <div class="room-card-name">Consultation Room</div>
-                            <div class="room-card-section">Building A &middot; Floor 1</div>
-                        </div>
-                        <span class="room-status-badge badge-scheduled">Scheduled</span>
-                    </div>
-                    <hr class="room-card-divider">
-                    <div class="room-info-row"><i class="bi bi-person-fill"></i><span class="room-info-label">Faculty:&nbsp;</span><span class="room-info-val">Ana Lim</span></div>
-                    <div class="room-info-row"><i class="bi bi-book-fill"></i><span class="room-info-label">Subject:&nbsp;</span><span class="room-info-val">Consultation</span></div>
-                    <div class="room-info-row"><i class="bi bi-clock-fill"></i><span class="room-info-label">Time:&nbsp;</span><span class="room-info-val">5:00 PM &ndash; 6:00 PM</span></div>
-                    <div class="room-info-row"><i class="bi bi-lightbulb-fill"></i><span class="room-info-label">Lighting:&nbsp;</span><span><span class="light-dot off"></span><span class="room-info-val">OFF</span></span></div>
-                </div>
-                <div class="room-card-actions">
-                    <button class="btn-room-view" data-bs-toggle="modal" data-bs-target="#roomModal" onclick="setModalRoom('Consultation Room')">View</button>
-                    <button class="btn-room-timetable" onclick="dissolve('admin-timetable-manage.php?room=Consultation+Room')">Timetable</button>
-                </div>
-            </div>
+        <!-- Add Room card -->
+        <div class="room-card" style="border:2px dashed #bbb;background:#fafafa;box-shadow:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:#aaa;min-height:200px;"
+            onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()">
+            <i class="bi bi-plus-circle" style="font-size:2rem;"></i>
+            <span style="font-size:.85rem;font-weight:600;">Add Room</span>
+        </div>
 
         </div><!-- /rooms-grid -->
     </div><!-- /page-content -->
 
+    <!-- ═══ ADD ROOM MODAL ═══ -->
+    <div class="modal fade" id="addRoomModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Add New Room</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <form method="POST" action="../../php/handlers/room-handler.php">
+            <input type="hidden" name="action" value="add_room">
+            <div class="modal-body d-flex flex-column gap-3">
+              <div>
+                <label class="form-label" style="font-size:.85rem;font-weight:600;">Room Name</label>
+                <input type="text" name="room_name" class="form-control" placeholder="e.g. Grade 7 – Acacia" required>
+              </div>
+              <div>
+                <label class="form-label" style="font-size:.85rem;font-weight:600;">Room Size</label>
+                <select name="room_size" class="form-select">
+                  <option value="small">Small (7×7 m)</option>
+                  <option value="medium" selected>Medium (7×9 m)</option>
+                  <option value="large">Large (9×10 m+)</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="font-size:.85rem;font-weight:600;">Description <span class="text-muted fw-normal">(optional)</span></label>
+                <input type="text" name="description" class="form-control" placeholder="e.g. Near library, 2nd floor">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="medium">Add Room</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EDIT ROOM MODAL ═══ -->
+    <div class="modal fade" id="editRoomModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Edit Room</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <form method="POST" action="../../php/handlers/room-handler.php">
+            <input type="hidden" name="action" value="edit_room">
+            <input type="hidden" name="room_id" id="editRoomId">
+            <div class="modal-body d-flex flex-column gap-3">
+              <div>
+                <label class="form-label" style="font-size:.85rem;font-weight:600;">Room Name</label>
+                <input type="text" name="room_name" id="editRoomName" class="form-control" required>
+              </div>
+              <div>
+                <label class="form-label" style="font-size:.85rem;font-weight:600;">Room Size</label>
+                <select name="room_size" id="editRoomSize" class="form-select">
+                  <option value="small">Small (7×7 m)</option>
+                  <option value="medium">Medium (7×9 m)</option>
+                  <option value="large">Large (9×10 m+)</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="font-size:.85rem;font-weight:600;">Description</label>
+                <input type="text" name="description" id="editRoomDesc" class="form-control">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="medium">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DELETE ROOM MODAL ═══ -->
+    <div class="modal fade" id="deleteRoomModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Delete Room</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" style="min-height:420px;">
+            Are you sure you want to delete <strong id="deleteRoomName"></strong>?
+            This will also remove all schedules and logs for this room.
+          </div>
+          <form method="POST" action="../../php/handlers/room-handler.php">
+            <input type="hidden" name="action" value="delete_room">
+            <input type="hidden" name="room_id" id="deleteRoomId">
+            <div class="modal-footer">
+              <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="medium" style="background:#c0392b;">Delete</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
 
     <!-- ═══ ROOM DETAILS MODAL ═══ -->
     <div class="room-details-modal modal fade" id="roomModal" tabindex="-1" aria-labelledby="roomModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="roomModalLabel">Room Details</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="d-flex flex-row gap-3 align-items-start flex-wrap">
+    <div class="d-flex flex-row gap-3 align-items-start flex-wrap">
 
-                        <!-- Left: Schedule + lighting -->
-                        <div class="d-flex flex-column gap-3" style="flex:1;min-width:260px;">
-                            <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #eee;">
-                                <h6 class="bold mb-3">Current Schedule</h6>
-                                <div class="d-flex align-items-start gap-3">
-                                    <div class="avatar-icon d-flex align-items-center justify-content-center"
-                                         style="width:54px;height:54px;flex-shrink:0;">
-                                        <h5 class="mb-0">JD</h5>
-                                    </div>
-                                    <div style="flex:1;">
-                                        <p class="bold mb-0" style="font-size:1.05rem;">John Doe</p>
-                                        <small class="text-muted">Faculty Member</small>
-                                        <hr style="margin:8px 0;">
-                                        <p class="mb-1" style="font-size:13px;">Status: <span class="fw-bold">Occupied</span></p>
-                                        <p class="mb-0" style="font-size:13px;">Time: <span class="fw-bold">4:30 PM &ndash; 5:30 PM</span></p>
-                                    </div>
-                                    <button class="light" style="width:auto;padding:6px 14px;border-radius:8px;font-size:12px;">Details</button>
-                                </div>
-                                <hr>
-                                <div class="d-flex justify-content-between" style="font-size:13px;">
-                                    <span>Lighting: <span class="text-success fw-bold">ON</span></span>
-                                    <span>PIR Sensor: <span class="text-success fw-bold">ACTIVE</span></span>
-                                </div>
-                                <!-- Lighting grid -->
-                                <div class="d-flex align-items-center justify-content-center mt-3 gap-3">
-                                    <div class="lighting-grid">
-                                        <img src="../../images/bulb-off.png"><img src="../../images/bulb-off.png"><img src="../../images/bulb-off.png">
-                                        <hr class="w-100">
-                                        <img src="../../images/bulb-off.png"><img src="../../images/bulb-off.png"><img src="../../images/bulb-off.png">
-                                        <hr class="w-100">
-                                        <img src="../../images/bulb-off.png"><img src="../../images/bulb-off.png"><img src="../../images/bulb-off.png">
-                                    </div>
-                                    <div class="d-flex flex-column gap-2">
-                                        <?php foreach([1,2,3] as $row): ?>
-                                        <div class="d-flex flex-column align-items-center">
-                                            <label class="form-check-label" style="font-size:12px;">Row <?= $row ?></label>
-                                            <div class="form-check form-switch mb-0">
-                                                <input class="form-check-input" type="checkbox" role="switch">
-                                            </div>
-                                        </div>
-                                        <?php endforeach; ?>
-                                        <div class="d-flex flex-column align-items-center mt-1">
-                                            <h6 class="bold mb-0" style="font-size:12px;">All Lights</h6>
-                                            <h5 class="bold mb-1" style="color:red;font-size:13px;">OFF</h5>
-                                            <div class="all-lights-off d-flex align-items-center justify-content-center">
-                                                <i class="bi bi-power"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+        <!-- Left: Schedule + lighting -->
+        <div class="d-flex flex-column gap-3" style="flex:1;min-width:280px;max-width:380px;">
+            <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #eee;">
+                <h6 class="bold mb-3">Current Schedule</h6>
+                <div id="modalCurrentSched">
+                    <p class="text-muted" style="font-size:.85rem;">Loading…</p>
+                </div>
+                <hr>
+
+                <!-- Lighting grid -->
+                <div class="d-flex align-items-center justify-content-center mt-3 gap-3">
+                    <div class="lighting-grid">
+                        <?php for ($i = 0; $i < 9; $i++): ?>
+                            <img src="../../images/bulb-off.png" id="bulb<?= $i ?>"
+                                style="width:36px;height:36px;object-fit:contain;">
+                        <?php endfor; ?>
+                    </div>
+                    <div class="d-flex flex-column justify-content-between" style="gap:6px;">
+                        <?php foreach([1,2,3] as $row): ?>
+                        <div class="d-flex align-items-center gap-2">
+                            <label style="font-size:11px;font-weight:600;width:36px;color:#555;">Row <?= $row ?></label>
+                            <div class="form-check form-switch mb-0" style="transform:scale(0.8);transform-origin:left;">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                    id="row<?= $row ?>sw"
+                                    onchange="toggleRow(<?= $row ?>, this.checked)">
                             </div>
                         </div>
-
-                        <!-- Right: Timetable + Alerts -->
-                        <div class="d-flex flex-column gap-3" style="flex:1;min-width:220px;">
-                            <div style="background:#f8f9fa;border-radius:12px;padding:16px;">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <h6 class="bold mb-0">Timetable</h6>
-                                    <a href="admin-timetable-manage.php?room=Grade+6+Narra"
-                                       class="btn-timetable-full" id="modalTimetableLink">
-                                        <i class="bi bi-calendar3"></i> View Full
-                                    </a>
-                                </div>
-                                <div style="background:#fff;border-radius:8px;padding:12px;">
-                                    <p class="mb-1" style="font-size:13px;"><span class="fw-bold">08:00</span> &ndash; Mathematics &middot; John Doe</p>
-                                    <p class="mb-1" style="font-size:13px;"><span class="fw-bold">10:00</span> &ndash; Science &middot; Maria Santos</p>
-                                    <p class="mb-1" style="font-size:13px;"><span class="fw-bold">13:00</span> &ndash; Filipino &middot; Carlos Reyes</p>
-                                    <p class="mb-0" style="font-size:13px;"><span class="fw-bold">15:30</span> &ndash; English &middot; Ana Lim</p>
-                                </div>
+                        <?php endforeach; ?>
+                        <div class="d-flex align-items-center gap-2 mt-1" style="cursor:pointer;" onclick="toggleAllLights()">
+                            <span style="font-size:11px;font-weight:700;color:#555;">All</span>
+                            <div class="all-lights-off d-flex align-items-center justify-content-center">
+                                <i class="bi bi-power" id="all-lights"></i>
                             </div>
-                            <div style="background:#f8f9fa;border-radius:12px;padding:16px;">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <h6 class="bold mb-0">Room Alerts</h6>
-                                    <button class="light" style="width:auto;padding:5px 14px;border-radius:8px;font-size:12px;">Details</button>
-                                </div>
-                                <div class="activity-list px-1">
-                                    <div>
-                                        <p class="mb-0 bold" style="font-size:.88rem;">Detected Motion</p>
-                                        <small class="text-muted">10:30 AM &middot; Feb 9, 2026</small>
-                                    </div>
-                                    <hr>
-                                    <div>
-                                        <p class="mb-0 bold" style="font-size:.88rem;">Lights Left On</p>
-                                        <small class="text-muted">11:31 AM &middot; Feb 9, 2026</small>
-                                    </div>
-                                </div>
-                            </div>
+                            <span class="bold" id="allLightsLabel" style="font-size:11px;color:red;">OFF</span>
                         </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Right: Timetable + Alerts -->
+        <div class="d-flex flex-column gap-3" style="flex:1;min-width:220px;">
+            <div style="background:#f8f9fa;border-radius:12px;padding:16px;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="bold mb-0">Timetable</h6>
+                    <button class="btn-timetable-full" data-bs-toggle="collapse" data-bs-target="#timetableCollapse">
+                        <i class="bi bi-calendar3"></i> View Full
+                    </button>
+                </div>
+                <div id="modalTodaySched" style="background:#fff;border-radius:8px;padding:12px;font-size:13px;">
+                    <em class="text-muted">Loading…</em>
+                </div>
+                <div class="collapse mt-2" id="timetableCollapse">
+                    <table class="table table-sm mt-1" style="font-size:.82rem;">
+                        <thead><tr>
+                            <th style="background:var(--secondary-color-1);color:#fff;">Day</th>
+                            <th style="background:var(--secondary-color-1);color:#fff;">Time</th>
+                            <th style="background:var(--secondary-color-1);color:#fff;">Faculty</th>
+                        </tr></thead>
+                        <tbody id="modalTimetableBody">
+                            <tr><td colspan="3" class="text-muted text-center">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="background:#f8f9fa;border-radius:12px;padding:16px;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="bold mb-0">Room Alerts</h6>
+                    <button class="light" style="width:auto;padding:5px 14px;border-radius:8px;font-size:12px;"
+                        data-bs-toggle="collapse" data-bs-target="#alertsCollapse">Details</button>
+                </div>
+                <div class="activity-list px-1" id="modalAlertsPreview">
+                    <em class="text-muted" style="font-size:.82rem;">Loading…</em>
+                </div>
+                <div class="collapse mt-2" id="alertsCollapse">
+                    <div id="modalAlertsFull" style="max-height:200px;overflow-y:auto;" class="activity-list px-1"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
 
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-
-    <!-- ═══ SIDEBAR OFFCANVAS ═══ -->
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas">
-        <div class="offcanvas-header justify-content-center">
-            <img src="../../images/logo.png" class="logo" alt="Logo">
-        </div>
-        <div class="offcanvas-body align-items-center d-flex flex-column gap-2">
-            <button class="nav-btn" title="Home"            onclick="dissolve('admin-homepage.php')"><i class="bi bi-house-door"></i></button>
-            <button class="nav-btn" title="Room Management" onclick="dissolve('admin-room-manage.php')"><i class="fa-solid fa-person-shelter"></i></button>
-            <button class="nav-btn" title="Analytics"       onclick="dissolve('admin-analytics.php')"><i class="bi bi-clipboard2-data"></i></button>
-            <button class="nav-btn" title="Reports"         onclick="dissolve('admin-reports.php')"><i class="bi bi-exclamation-triangle"></i></button>
-            <button class="nav-btn" title="Faculty"         onclick="dissolve('admin-faculty-management.php')"><i class="bi bi-people"></i></button>
-            <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.php')"><i class="bi bi-gear"></i></button>
-        </div>
-        <div class="offcanvas-footer">
-            <img src="../../images/team-logo.png" alt="Team Logo" style="width:4rem;">
-        </div>
-    </div>
-
-    <!-- ═══ PROFILE OFFCANVAS ═══ -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas">
-        <div class="offcanvas-body align-items-center d-flex flex-column pt-4 gap-2">
-            <div class="avatar-icon d-flex align-items-center justify-content-center">
-                <h3 class="bold"><?= $initials ?></h3>
-            </div>
-            <h4 class="bold mt-2" style="color:var(--secondary-color-1);"><?= $admin_name ?></h4>
-            <h6 class="light" style="word-break:break-all;text-align:center;"><?= $admin_email ?></h6>
-            <div class="d-flex flex-column align-items-center justify-content-center w-100 mt-2 gap-1">
-                <button class="profile-btn" onclick="dissolve('admin-profile-settings.php')">Profile Settings</button>
-                <button class="profile-btn">Classroom Details</button>
-                <button class="profile-btn" onclick="window.location.href='../../index.php'">Logout</button>
-            </div>
-        </div>
-    </div>
+    <?php include '../../php/includes/admin-sidebar.php'; ?>
+    <?php include '../../php/includes/profile-offcanvas.php'; ?>
 
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
     <script src="../../script/initialize-gesture.js"></script>
     <script>
-        function filterRooms(query) {
-            const q = query.toLowerCase().trim();
-            document.querySelectorAll('#roomsGrid .room-card').forEach(card => {
-                const name = (card.dataset.room || '').toLowerCase();
-                card.style.display = (!q || name.includes(q)) ? '' : 'none';
-            });
-        }
+        function filterRooms(q) {
+        const query = q.toLowerCase().trim();
+        document.querySelectorAll('#roomsGrid .room-card').forEach(card => {
+            const name = (card.dataset.room || '').toLowerCase();
+            card.style.display = (!query || name.includes(query)) ? '' : 'none';
+        });
+    }
 
         function setModalRoom(roomName) {
             document.getElementById('roomModalLabel').textContent = roomName;
             const link = document.getElementById('modalTimetableLink');
             if (link) link.href = 'admin-timetable-manage.php?room=' + encodeURIComponent(roomName);
         }
-    </script>
+
+                // ── Search filter ──────────────────────────────────────────────────────────
+        const roomSearchEl = document.getElementById('roomSearch');
+        if (roomSearchEl) roomSearchEl.addEventListener('input', function () {
+            const q = this.value.toLowerCase();
+            document.querySelectorAll('.room-card').forEach(card => {
+                card.style.display = card.dataset.roomName.includes(q) ? '' : 'none';
+            });
+        });
+
+        // ── Edit modal ─────────────────────────────────────────────────────────────
+        function openEditModal(id, name, size, desc) {
+            document.getElementById('editRoomId').value   = id;
+            document.getElementById('editRoomName').value = name;
+            document.getElementById('editRoomDesc').value = desc;
+            const sel = document.getElementById('editRoomSize');
+            for (let o of sel.options) o.selected = (o.value === size);
+            new bootstrap.Modal(document.getElementById('editRoomModal')).show();
+        }
+
+        // ── Delete modal ───────────────────────────────────────────────────────────
+        function openDeleteModal(id, name) {
+            document.getElementById('deleteRoomId').value    = id;
+            document.getElementById('deleteRoomName').textContent = name;
+            new bootstrap.Modal(document.getElementById('deleteRoomModal')).show();
+        }
+
+        // ── Room details modal ─────────────────────────────────────────────────────
+        function openRoomModal(id, name, size, desc) {
+            // Set header info
+            document.getElementById('roomModalLabel').textContent = name;
+            
+            document.getElementById('modalCurrentSched').innerHTML    = '<p class="text-muted" style="font-size:.85rem;">Loading…</p>';
+            document.getElementById('modalTodaySched').innerHTML      = '<em class="text-muted">Loading…</em>';
+            document.getElementById('modalTimetableBody').innerHTML   = '<tr><td colspan="3" class="text-muted text-center">Loading…</td></tr>';
+            document.getElementById('modalAlertsPreview').innerHTML   = '<em class="text-muted">Loading…</em>';
+            document.getElementById('modalAlertsFull').innerHTML      = '<em class="text-muted">Loading…</em>';
+
+            new bootstrap.Modal(document.getElementById('roomModal')).show();
+
+            // Fetch room data from AJAX endpoint
+            fetch('ajax-room-data.php?room_id=' + id)
+                .then(r => r.json())
+                .then(data => renderRoomModal(data))
+                .catch(() => {
+                    document.getElementById('modalCurrentSched').innerHTML = '<p class="text-danger">Failed to load data.</p>';
+                });
+        }
+
+        function renderRoomModal(data) {
+            // ── Current Schedule ──
+            const schedEl = document.getElementById('modalCurrentSched');
+            if (data.current_schedule) {
+                const s = data.current_schedule;
+                schedEl.innerHTML = `
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar-icon d-flex align-items-center justify-content-center" style="width:48px;height:48px;font-size:1rem;">
+                            <span class="bold">${s.initials}</span>
+                        </div>
+                        <div>
+                            <p class="bold mb-0" style="font-size:.9rem;">${s.faculty_name}</p>
+                            <small class="text-muted">Faculty Member</small>
+                            <div style="font-size:.82rem; margin-top:.3rem;">
+                                Room: <strong>Occupied</strong> &nbsp;·&nbsp;
+                                ${s.start_time} – ${s.end_time}
+                            </div>
+                        </div>
+                    </div>`;
+            } else {
+                schedEl.innerHTML = '<p class="text-muted" style="font-size:.85rem;">No active class right now.</p>';
+            }
+
+            // ── Sensor / camera status ──
+            const setStatus = (elId, ok, onText, offText) => {
+                const el = document.getElementById(elId);
+                el.textContent = ok ? onText : offText;
+                el.className = 'status-pill ' + (ok ? 'pill-ok' : 'pill-off');
+            };
+            setStatus('modalLightStatus', data.light_on,  'ON',      'OFF');
+            setStatus('modalPirStatus',   data.pir_active, 'Active',  'Disconnected');
+            setStatus('modalCamStatus',   data.cam_active, 'Active',  'Disabled');
+
+            // ── Bulb grid ──
+            for (let i = 0; i < 9; i++) {
+                const img = document.getElementById('bulb' + i);
+                if (img) img.src = data.light_on ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
+            }
+
+            // ── Today's schedule summary ──
+            const todayEl = document.getElementById('modalTodaySched');
+            if (data.today_schedules && data.today_schedules.length > 0) {
+                todayEl.innerHTML = data.today_schedules.map(s =>
+                    `<div class="sched-block">
+                        <div style="font-weight:600;">${s.start_time} – ${s.end_time}</div>
+                        <small>${s.faculty_name}</small>
+                    </div>`
+                ).join('');
+            } else {
+                todayEl.innerHTML = '<p class="text-muted mb-0" style="font-size:.82rem;">No classes scheduled today.</p>';
+            }
+
+            // ── Full timetable ──
+            const tBody = document.getElementById('modalTimetableBody');
+            if (data.all_schedules && data.all_schedules.length > 0) {
+                tBody.innerHTML = data.all_schedules.map(s =>
+                    `<tr>
+                        <td>${s.day_of_week}</td>
+                        <td>${s.start_time} – ${s.end_time}</td>
+                        <td>${s.faculty_name}</td>
+                    </tr>`
+                ).join('');
+            } else {
+                tBody.innerHTML = '<tr><td colspan="3" class="text-muted text-center">No schedules yet.</td></tr>';
+            }
+
+            // ── Alerts / Activity ──
+            const previewEl = document.getElementById('modalAlertsPreview');
+            const fullEl    = document.getElementById('modalAlertsFull');
+
+            if (data.alerts && data.alerts.length > 0) {
+                const renderAlert = a => `
+                    <div class="alert-log-item">
+                        <span class="status-pill ${a.event_type === 'security_alert' ? 'pill-warn' : 'pill-ok'}" style="margin-right:.4rem;">
+                            ${a.event_type.replace('_',' ')}
+                        </span>
+                        ${a.triggered_by ? '<span style="color:#555;">' + a.triggered_by + '</span>' : ''}
+                        <span class="text-muted ms-1">${a.event_time}</span>
+                    </div>`;
+                previewEl.innerHTML = data.alerts.slice(0, 3).map(renderAlert).join('');
+                fullEl.innerHTML    = data.alerts.map(renderAlert).join('');
+            } else {
+                previewEl.innerHTML = '<p class="text-muted mb-0" style="font-size:.82rem;">No activity today.</p>';
+                fullEl.innerHTML    = previewEl.innerHTML;
+            }
+        }
+
+        // ── Light controls ─────────────────────────────────────────────────────────
+        let rowState = { 1: false, 2: false, 3: false };
+        const rowBulbs = { 1: [0,1,2], 2: [3,4,5], 3: [6,7,8] };
+
+        function setBulb(index, on) {
+            const img = document.getElementById('bulb' + index);
+            if (img) img.src = on ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
+        }
+
+        function toggleRow(row, on) {
+            rowState[row] = on;
+            rowBulbs[row].forEach(i => setBulb(i, on));
+            syncAllLightsLabel();
+        }
+
+        function toggleAllLights() {
+            const anyOff = Object.values(rowState).some(v => !v);
+            const newState = anyOff;
+            for (let row = 1; row <= 3; row++) {
+                rowState[row] = newState;
+                rowBulbs[row].forEach(i => setBulb(i, newState));
+                const sw = document.getElementById('row' + row + 'sw');
+                if (sw) sw.checked = newState;
+            }
+            syncAllLightsLabel();
+        }
+
+        function syncAllLightsLabel() {
+            const allOn = Object.values(rowState).every(v => v);
+            const lbl = document.getElementById('allLightsLabel');
+            if (lbl) {
+                lbl.textContent = allOn ? 'ON' : 'OFF';
+                lbl.style.color = allOn ? '#27ae60' : 'red';
+            }
+        }
+
+        // Reset row state when modal opens so it matches actual bulb state
+        document.getElementById('roomModal').addEventListener('show.bs.modal', function () {
+            rowState = { 1: false, 2: false, 3: false };
+            for (let row = 1; row <= 3; row++) {
+                const sw = document.getElementById('row' + row + 'sw');
+                if (sw) sw.checked = false;
+            }
+        });
+        </script>
 </body>
 </html>
