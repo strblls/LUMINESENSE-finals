@@ -48,7 +48,6 @@ while ($row = $result2->fetch_assoc()) {
 $stmt2->close();
 $conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -202,6 +201,7 @@ $conn->close();
                             </div>
                         </div>
                     </div>
+
 
                 </div>
 

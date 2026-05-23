@@ -80,7 +80,6 @@ $r = $conn->query("
 ");
 while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
