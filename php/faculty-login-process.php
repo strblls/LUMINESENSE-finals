@@ -55,4 +55,4 @@ $_SESSION['faculty_logged_in'] = true;
 $_SESSION['role']              = 'faculty';
 $_SESSION['faculty_attempts']  = 0;
 
-header('Location: ../pages/faculty-home/faculty-homepage.php'); exit;
+header('Location: ../pages/faculty-home/faculty-home.php'); exit;
