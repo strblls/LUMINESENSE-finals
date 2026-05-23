@@ -3,11 +3,15 @@ $phpRoot = realpath(__DIR__ . '/../../php');
 require_once $phpRoot . '/session_guard.php';
 check_admin();
 require_once $phpRoot . '/db_connect.php';
+date_default_timezone_set('Asia/Manila');
 
 header('Content-Type: application/json');
 
 $room_id = (int)($_GET['room_id'] ?? 0);
-if (!$room_id) { echo json_encode(['error' => 'Invalid room']); exit; }
+if (!$room_id) {
+    echo json_encode(['error' => 'Invalid room']);
+    exit;
+}
 
 // ── 1. Latest lighting log ─────────────────────────────────────────────────
 $row = $conn->query("
@@ -36,7 +40,7 @@ $cam_active = false;
 
 // ── 4. Current schedule (right now) ───────────────────────────────────────
 $day  = date('l');
-$time = date('H:i:s');
+$time = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc()['t'];
 $stmt = $conn->prepare("
     SELECT s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
@@ -45,8 +49,8 @@ $stmt = $conn->prepare("
     JOIN faculty f ON f.id = s.created_by
     WHERE s.classroom_id = ?
       AND s.day_of_week  = ?
-      AND s.start_time  <= ?
-      AND s.end_time    >= ?
+      AND TIME(s.start_time) <= TIME(?)
+      AND TIME(s.end_time) >= TIME(?)
     LIMIT 1
 ");
 $stmt->bind_param('isss', $room_id, $day, $time, $time);
@@ -58,25 +62,31 @@ $current_schedule = null;
 if ($curSched) {
     $current_schedule = [
         'faculty_name' => $curSched['faculty_name'],
-        'initials'     => strtoupper(substr($curSched['first_name'],0,1) . substr($curSched['last_name'],0,1)),
+        'initials'     => strtoupper(substr($curSched['first_name'], 0, 1) . substr($curSched['last_name'], 0, 1)),
         'start_time'   => date('g:i A', strtotime($curSched['start_time'])),
         'end_time'     => date('g:i A', strtotime($curSched['end_time'])),
+        'status'       => 'Occupied',
     ];
 }
 
-// ── 5. Today's schedules ───────────────────────────────────────────────────
+// ── 5. Today's schedules ───────────────────────────────────
 $stmt = $conn->prepare("
     SELECT s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name
     FROM schedules s
     JOIN faculty f ON f.id = s.created_by
-    WHERE s.classroom_id = ? AND s.day_of_week = ?
-    ORDER BY s.start_time
+    WHERE s.classroom_id = ?
+      AND s.day_of_week = ?
+    ORDER BY TIME(s.start_time) ASC
 ");
+
 $stmt->bind_param('is', $room_id, $day);
+
 $stmt->execute();
 $res = $stmt->get_result();
+
 $today_schedules = [];
+
 while ($r = $res->fetch_assoc()) {
     $today_schedules[] = [
         'start_time'   => date('g:i A', strtotime($r['start_time'])),
@@ -84,9 +94,10 @@ while ($r = $res->fetch_assoc()) {
         'faculty_name' => $r['faculty_name'],
     ];
 }
+
 $stmt->close();
 
-// ── 6. Full weekly timetable ───────────────────────────────────────────────
+// ── 6. Full weekly timetable ── (no time filter — shows everything)
 $stmt = $conn->prepare("
     SELECT s.day_of_week, s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name
@@ -126,9 +137,38 @@ $alerts = [];
 while ($r = $res->fetch_assoc()) $alerts[] = $r;
 $stmt->close();
 
+//8. ── Next schedule today ─────────────────────────────────────
+$stmt = $conn->prepare("
+    SELECT s.start_time, s.end_time,
+           CONCAT(f.first_name,' ',f.last_name) AS faculty_name
+    FROM schedules s
+    JOIN faculty f ON f.id = s.created_by
+    WHERE s.classroom_id = ?
+      AND s.day_of_week = ?
+      AND TIME(s.start_time) > TIME(?)
+    ORDER BY TIME(s.start_time) ASC
+    LIMIT 1
+");
+
+$stmt->bind_param('iss', $room_id, $day, $time);
+$stmt->execute();
+
+$next_schedule = null;
+
+if ($row = $stmt->get_result()->fetch_assoc()) {
+    $next_schedule = [
+        'start_time' => date('g:i A', strtotime($row['start_time'])),
+        'end_time' => date('g:i A', strtotime($row['end_time'])),
+        'faculty_name' => $row['faculty_name']
+    ];
+}
+
+$stmt->close();
+
 $conn->close();
 
 echo json_encode([
+    'next_schedule'   => $next_schedule,
     'light_on'         => $light_on,
     'pir_active'       => $pir_active,
     'cam_active'       => $cam_active,

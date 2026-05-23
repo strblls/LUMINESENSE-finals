@@ -35,20 +35,25 @@
     </div>
 </div>
 
-<!-- PROFILE OFFCANVAS -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas">
-    <div class="offcanvas-body align-items-center d-flex flex-column pt-4 gap-2">
-        <div class="avatar-icon d-flex align-items-center justify-content-center">
-            <h3 class="bold"><?= $initials ?></h3>
-        </div>
-        <h4 class="bold mt-2" style="color:var(--secondary-color-1);"><?= $admin_name ?></h4>
-        <h6 class="light" style="word-break:break-all;text-align:center;">
-            <?= htmlspecialchars($admin_email) ?>
-        </h6>
-        <div class="d-flex flex-column align-items-center justify-content-center w-100 mt-2 gap-1">
-            <button class="profile-btn" onclick="dissolve('admin-profile-settings.php')">Profile Settings</button>
-            <button class="profile-btn">Classroom Details</button>
-            <button class="profile-btn" onclick="dissolve('../../php/logout.php')">Logout</button>
-        </div>
-    </div>
-</div>
+<script>
+(function () {
+    const page = window.location.pathname.split('/').pop();
+    const map = {
+        'admin-homepage.php':           0,
+        'admin-room-manage.php':        1,
+        'admin-analytics.php':          2,
+        'admin-faculty-management.php': 3,
+        'admin-faculty-card.php':       3,
+        'admin-profile-settings.php':   4,
+        'admin-reports.php':            null,
+    };
+    const index = map[page];
+    if (index !== null && index !== undefined) {
+        const btns = document.querySelectorAll('#sidebarOffcanvas .nav-btn');
+        if (btns[index]) {
+            btns[index].style.backgroundColor = 'var(--secondary-color-4)';
+            btns[index].style.boxShadow = '0 0 0 3px rgba(155,0,233,0.3)';
+        }
+    }
+})();
+</script>

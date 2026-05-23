@@ -1,7 +1,7 @@
 <?php
 $page_title = 'Faculty Profile';
 require_once '../../php/includes/admin-head.php';
-
+require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
 /** @var string $initials */
 /** @var string $admin_name */
 /** @var string $admin_email */
@@ -41,10 +41,12 @@ $f_schedules = [];
 $stmt = $conn->prepare("
     SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name
     FROM schedules s JOIN classrooms c ON c.id = s.classroom_id
+    WHERE s.created_by = ?
     ORDER BY FIELD(s.day_of_week,
         'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
         s.start_time
 ");
+$stmt->bind_param('i', $faculty_id);
 $stmt->execute();
 $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $f_schedules[] = $row;
@@ -94,121 +96,21 @@ $conn->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
-
-
-    <!-- ═══ SHARED SIDEBAR & PROFILE STYLES ═══ -->
-    <style>
-        /* ── Sidebar nav buttons ── */
-        .nav-btn {
-            width: 52px;
-            height: 52px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: var(--secondary-color-1);
-            color: var(--primary-color);
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.15s;
-        }
-
-        .nav-btn i,
-        .nav-btn svg {
-            font-size: 22px;
-        }
-
-        .nav-btn:hover {
-            background-color: var(--secondary-color-4);
-            transform: scale(1.06);
-        }
-
-        /* ── Sidebar offcanvas shell ── */
-        #sidebarOffcanvas {
-            width: 100px !important;
-            background-color: var(--primary-color);
-        }
-
-        #sidebarOffcanvas .offcanvas-header {
-            justify-content: center;
-            padding: 1rem 0.5rem;
-        }
-
-        #sidebarOffcanvas .logo {
-            width: 75px;
-            height: 75px;
-            object-fit: contain;
-            cursor: pointer;
-        }
-
-        #sidebarOffcanvas .offcanvas-body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            padding-top: 0.5rem;
-        }
-
-        #sidebarOffcanvas .offcanvas-footer {
-            display: flex;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        #sidebarOffcanvas .offcanvas-footer img {
-            width: 4rem;
-        }
-
-        /* ── Profile offcanvas shell ── */
-        #profileOffcanvas {
-            width: 240px !important;
-            background-color: var(--primary-color);
-        }
-
-        #profileOffcanvas .avatar-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: #d9d6d6;
-            color: var(--secondary-color-1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ── Profile offcanvas buttons ── */
-        .profile-btn {
-            width: 100%;
-            padding: 8px;
-            margin: 3px 0;
-            border-radius: 8px;
-            background-color: var(--secondary-color-1);
-            color: var(--primary-color);
-            border: none;
-            font-size: 14px;
-            cursor: pointer;
-            font-family: var(--font-primary);
-            transition: background-color 0.2s, transform 0.15s;
-        }
-
-        .profile-btn:hover {
-            background-color: var(--secondary-color-4);
-            transform: scale(1.02);
-        }
-
-        /* Page-specific override: keep topbar inside the single scrolling container */
-        .topbar {
-            position: relative !important;
-            top: auto !important;
-        }
-    </style>
 </head>
 
 <body class="contrast-bg">
     <?php include '../../php/includes/admin-topbar.php'; ?>
+    <div class="px-4 pt-3">
+    <button class="light info-action-btn" 
+            onclick="dissolve('admin-faculty-management.php')"
+            style="padding:6px 14px; border-radius:8px; font-size:13px;">
+        <i class="bi bi-arrow-left me-1"></i> Back to Faculty Management
+        </button>
+    </div>
 
     <div class="page-shell main-container p-4 faculty-card">
 
@@ -221,17 +123,6 @@ $conn->close();
             <div>
                 <h3 class="bold mb-1 profile-name" id="profileName"><?= $f_name ?></h3>
             </div>
-        </div>
-
-        <div class="d-flex gap-2 flex-wrap mb-4">
-            <button class="light info-action-btn"
-                style="width:auto; padding: 8px 16px; font-size: 0.85rem; border-radius: 8px;">
-                <i class="bi bi-door-open me-1"></i>Manage Rooms
-            </button>
-            <button class="light info-action-btn"
-                style="width:auto; padding: 8px 16px; font-size: 0.85rem; border-radius: 8px;">
-                <i class="bi bi-activity me-1"></i>View Activity
-            </button>
         </div>
 
         <!-- Assigned Rooms + Access Control row -->
@@ -473,31 +364,27 @@ $conn->close();
         // }
     </script>
 
-    <script src="../../script/animations.js" onerror="void(0)"></script>
-    <script src="../../script/toggles.js" onerror="void(0)"></script>
-
-
-
     <?php include '../../php/includes/admin-sidebar.php'; ?>
     <?php include '../../php/includes/profile-offcanvas.php'; ?>
 
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
-    <script src="../../script/initialize-gesture.js"></script>
 
+    <script>
     function savePermission(permission, value) {
-    const form = new FormData();
-    form.append('faculty_id', <?= $faculty_id ?>);
-    form.append('permission', permission);
-    form.append('value', value ? 1 : 0);
+        const form = new FormData();
+        form.append('faculty_id', <?= $faculty_id ?>);
+        form.append('permission', permission);
+        form.append('value', value ? 1 : 0);
 
-    fetch('../../api/permissions.php', { method: 'POST', body: form })
-    .then(r => r.json())
-    .then(data => {
-    if (data.success) showToast('Permission updated!');
-    else showToast('Failed to update permission.');
-    });
+        fetch('../../api/permissions.php', { method: 'POST', body: form })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) showToast('Permission updated!');
+                else showToast('Failed to update permission.');
+            });
     }
+</script>
 </body>
 
 </html>

@@ -69,6 +69,7 @@ $r = $conn->query("
             ORDER BY requested_at DESC LIMIT 1) AS ext_status
     FROM schedules s
     JOIN classrooms c ON c.id = s.classroom_id
+    WHERE s.created_by = $faculty_id
     ORDER BY FIELD(s.day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
              s.start_time
 ");

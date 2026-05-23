@@ -8,6 +8,7 @@ require_once '../../php/includes/admin-head.php';
 
 $phpRoot = realpath(__DIR__ . '/../../php');
 require_once $phpRoot . '/handlers/faculty-approvals-handler.php';
+require_once $phpRoot . '/handlers/admin-handlers.php';
 
 /** @var string $message */
 /** @var int $total_faculty */
@@ -16,6 +17,7 @@ require_once $phpRoot . '/handlers/faculty-approvals-handler.php';
 /** @var array $faculty_list */
 /** @var array $extensions */
 
+require_once '../../php/handlers/admin-handlers.php';
 $conn->close();
 ?>
 
@@ -177,7 +179,7 @@ $conn->close();
                                     <span class="text-muted small"><?= htmlspecialchars($faculty['email']) ?></span>
                                 </div>
                                 <div>
-                                    <a href="admin-faculty-management.php?id=<?= $faculty['id'] ?>"
+                                    <a href="admin-faculty-card.php?id=<?= $faculty['id'] ?>"
                                     class="btn btn-sm btn-outline-primary">
                                         <i class="fa-solid fa-eye me-1"></i>
                                     </a>

@@ -1,77 +1,51 @@
 <?php
+$page_title = 'Faculty Dashboard';
+
 require_once '../../php/session_guard.php';
 check_faculty();
 require_once '../../php/db_connect.php';
+require_once '../../php/includes/faculty-head.php';
 
-$faculty_name = htmlspecialchars($_SESSION['faculty_name']);
-$faculty_id   = $_SESSION['faculty_id'];
-$name_parts   = explode(' ', $faculty_name);
-$first_name   = $name_parts[0];
-$initials     = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
+/** @var $faculty_name string */
+/** @var $faculty_email string */
+/** @var $initials string */
+/** @var $first_name string */
 
-// Fetch email
-$faculty_email = '';
-$stmt = $conn->prepare('SELECT email FROM faculty WHERE id = ?');
-$stmt->bind_param('i', $faculty_id);
-$stmt->execute();
-$stmt->bind_result($faculty_email);
-$stmt->fetch();
-$stmt->close();
-
-// Today's schedule
-$today = date('l');
-$schedules = [];
-$r = $conn->query("
-    SELECT s.start_time, s.end_time, c.room_name
-    FROM schedules s JOIN classrooms c ON c.id = s.classroom_id
-    WHERE s.day_of_week = '$today'
-    ORDER BY s.start_time
-");
-while ($row = $r->fetch_assoc()) $schedules[] = $row;
-
-// Current schedule label
-$current_sched = 'No class right now';
-$now = date('H:i:s');
-foreach ($schedules as $s) {
-    if ($now >= $s['start_time'] && $now <= $s['end_time']) {
-        $current_sched = $s['room_name'] . ' · '
-            . date('g:i A', strtotime($s['start_time'])) . ' - '
-            . date('g:i A', strtotime($s['end_time']));
-        break;
-    }
-}
-
-// Recent activity logs
-$logs = [];
-$r = $conn->query("
-    SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
-    FROM lighting_logs l JOIN classrooms c ON c.id = l.classroom_id
-    ORDER BY l.event_time DESC LIMIT 7
-");
-while ($row = $r->fetch_assoc()) $logs[] = $row;
-
-// Get first classroom for gesture logging
-$classroom_id = 1;
-$r = $conn->query("SELECT id FROM classrooms ORDER BY id LIMIT 1");
-if ($row = $r->fetch_assoc()) $classroom_id = $row['id'];
-
-// Gesture logs — this faculty only
+// Fetch recent gesture logs for this faculty's classroom
 $gesture_logs = [];
 $stmt = $conn->prepare("
-    SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
-    FROM lighting_logs l
-    JOIN classrooms c ON c.id = l.classroom_id
-    WHERE l.faculty_id = ?
-      AND l.triggered_by = 'gesture'
-    ORDER BY l.event_time DESC
-    LIMIT 20
+    SELECT el.event_type, el.event_time, r.room_name
+    FROM event_logs el
+    JOIN rooms r ON el.classroom_id = r.id
+    WHERE el.faculty_id = ?
+    ORDER BY el.event_time DESC
+    LIMIT 10
 ");
-$stmt->bind_param('i', $faculty_id);
+$stmt->bind_param("i", $faculty_id);
 $stmt->execute();
-$r = $stmt->get_result();
-while ($row = $r->fetch_assoc()) $gesture_logs[] = $row;
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    $gesture_logs[] = $row;
+}
 $stmt->close();
 
+// Fetch recent activity logs (all types)
+$logs = [];
+$stmt2 = $conn->prepare("
+    SELECT el.event_type, el.event_time, r.room_name
+    FROM event_logs el
+    JOIN rooms r ON el.classroom_id = r.id
+    WHERE el.faculty_id = ?
+    ORDER BY el.event_time DESC
+    LIMIT 10
+");
+$stmt2->bind_param("i", $faculty_id);
+$stmt2->execute();
+$result2 = $stmt2->get_result();
+while ($row = $result2->fetch_assoc()) {
+    $logs[] = $row;
+}
+$stmt2->close();
 $conn->close();
 ?>
 <!DOCTYPE html>
@@ -99,22 +73,7 @@ $conn->close();
 <body class="contrast-bg">
     <div class="parent-container">
 
-        <!-- TOPBAR -->
-        <div class="topbar d-flex">
-            <button type="button" id="sidebarTrigger">
-                <i class="bi bi-list"></i>
-            </button>
-            <div class="col d-flex flex-column px-3">
-                <h1 class="bold">Welcome, <?= $first_name ?>!</h1>
-                <h5 class="light">Current Schedule: <?= $current_sched ?></h5>
-            </div>
-            <div class="d-flex align-items-center justify-content-center gap-2 mx-2">
-                <h4><?= $faculty_name ?></h4>
-                <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
-                    <h3 class="bold"><?= $initials ?></h3>
-                </div>
-            </div>
-        </div>
+        <?php include '../../php/includes/faculty-topbar.php'; ?>
 
         <div class="child-container">
             <div class="main-container homepage gap-3">
@@ -243,6 +202,7 @@ $conn->close();
                         </div>
                     </div>
 
+
                 </div>
 
                 <!-- ── COLUMN 3 ── Gesture Detection + Detected Gestures log -->
@@ -304,40 +264,8 @@ $conn->close();
 
                 </div>
 
-                <!-- SIDEBAR LEFT -->
-                <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas"
-                    aria-labelledby="sidebarOffcanvasLabel">
-                    <div class="offcanvas-header justify-content-center">
-                        <img src="../../images/logo.png" class="logo" onclick="dissolve('faculty-homepage.php')">
-                    </div>
-                    <div class="offcanvas-body align-items-center d-flex flex-column">
-                        <button class="wb-2" onclick="dissolve('faculty-lighting.php')"><i class="bi bi-lightbulb"></i></button>
-                        <button class="wb-2" onclick="dissolve('faculty-readings.php')"><i class="bi bi-broadcast"></i></button>
-                        <button class="wb-2" onclick="dissolve('faculty-gesture.php')"><i class="bi bi-hand-thumbs-up"></i></button>
-                        <button class="wb-2" onclick="dissolve('faculty-timetable.php')"><i class="bi bi-calendar-event"></i></button>
-                        <button class="wb-2" onclick="dissolve('faculty-profile-settings.php')"><i class="bi bi-gear"></i></button>
-                    </div>
-                    <div class="offcanvas-footer">
-                        <img src="../../images/team-logo.png" class="logo">
-                    </div>
-                </div>
-
-                <!-- SIDEBAR RIGHT -->
-                <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas"
-                    aria-labelledby="sidebarOffcanvasLabel">
-                    <div class="offcanvas-body align-items-center d-flex flex-column">
-                        <div class="avatar-icon d-flex align-items-center justify-content-center">
-                            <h3 class="bold"><?= $initials ?></h3>
-                        </div>
-                        <h4 class="bold"><?= $faculty_name ?></h4>
-                        <h6 class="light email-limit"><?= htmlspecialchars($faculty_email) ?></h6>
-                        <div class="d-flex flex-column align-items-center justify-content-center">
-                            <button onclick="dissolve('faculty-profile-settings.php')">Profile Settings</button>
-                            <button>Classroom Details</button>
-                            <button onclick="dissolve('../../php/logout.php')">Logout</button>
-                        </div>
-                    </div>
-                </div>
+                <?php include '../../php/includes/faculty-sidebar.php'; ?>
+                <?php include '../../php/includes/f-profile-offcanvas.php'; ?>
 
             </div>
         </div>

@@ -51,28 +51,36 @@ $server_ok   = true; // we're running PHP so server is up
 $db_ok       = ($conn && !$conn->connect_error);
 $lights_data = $conn->query("SELECT COUNT(*) AS c FROM lighting_logs WHERE DATE(event_time)=CURDATE()")->fetch_assoc()['c'];
 
-// Recent activity logs (includes faculty approvals)
+// Recent activity — merge room_logs + faculty approvals into one sorted feed
 $logs = [];
+
 $r = $conn->query("
-    SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
-    FROM lighting_logs l
-    JOIN classrooms c ON c.id = l.classroom_id
-    ORDER BY l.event_time DESC
-    LIMIT 6
+    SELECT event_type, triggered_by, event_time, room_name, 'room' AS log_type
+    FROM room_logs
+    ORDER BY event_time DESC
+    LIMIT 20
 ");
 while ($row = $r->fetch_assoc()) $logs[] = $row;
 
-// Faculty approval events for recent activity
-$approval_logs = [];
 $r2 = $conn->query("
-    SELECT CONCAT(first_name, ' ', last_name) AS faculty_name,
-           approved_at
+    SELECT
+        'faculty_approved'                             AS event_type,
+        NULL                                           AS triggered_by,
+        approved_at                                    AS event_time,
+        CONCAT(first_name, ' ', last_name)             AS room_name,
+        'faculty'                                      AS log_type
     FROM faculty
     WHERE approved_by IS NOT NULL
     ORDER BY approved_at DESC
-    LIMIT 3
+    LIMIT 10
 ");
-while ($row = $r2->fetch_assoc()) $approval_logs[] = $row;
+while ($row = $r2->fetch_assoc()) $logs[] = $row;
+
+// Sort merged list newest-first
+usort($logs, fn($a, $b) => strtotime($b['event_time']) - strtotime($a['event_time']));
+$logs = array_slice($logs, 0, 8); // keep top 8
+
+$approval_logs = []; // empty so homepage foreach loop is skipped
 
 // Classrooms with their description and latest light status
 $classrooms = [];
@@ -85,45 +93,4 @@ $r = $conn->query("
     ORDER BY c.room_name
 ");
 while ($row = $r->fetch_assoc()) $classrooms[] = $row;
-
-function getRoomSchedules($conn, $room_id) {
-    $day  = date('l');
-    $stmt = $conn->prepare("
-        SELECT s.start_time, s.end_time,
-               CONCAT(f.first_name,' ',f.last_name) AS faculty_name
-        FROM schedules s
-        JOIN faculty f ON f.id = s.created_by
-        WHERE s.classroom_id = ? AND s.day_of_week = ?
-        ORDER BY s.start_time
-    ");
-    $stmt->bind_param('is', $room_id, $day);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $rows = [];
-    while ($row = $result->fetch_assoc()) $rows[] = $row;
-    $stmt->close();
-    return $rows;
-}
-
-function getCurrentSchedule($conn, $room_id) {
-    $day  = date('l');
-    $time = date('H:i:s');
-    $stmt = $conn->prepare("
-        SELECT s.start_time, s.end_time,
-               CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
-               f.first_name, f.last_name
-        FROM schedules s
-        JOIN faculty f ON f.id = s.created_by
-        WHERE s.classroom_id = ?
-          AND s.day_of_week  = ?
-          AND s.start_time  <= ?
-          AND s.end_time    >= ?
-        LIMIT 1
-    ");
-    $stmt->bind_param('isss', $room_id, $day, $time, $time);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    return $row;
-}
 ?>
