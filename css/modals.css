@@ -150,9 +150,10 @@
             .lighting-grid {
                 display: grid;
                 grid-template-columns: repeat(3, 36px);
+                grid-template-rows: repeat(3, 36px);
                 gap: 4px;
-                flex-shrink: 0;
             }
+
             .lighting-grid img {
                 width: 36px;
                 height: 36px;

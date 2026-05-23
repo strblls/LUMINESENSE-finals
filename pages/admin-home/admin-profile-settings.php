@@ -1,7 +1,12 @@
 <?php
 $page_title = 'Profile Settings';
 require_once '../../php/includes/admin-head.php';
-/** @var string $admin_name  */
+require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
+/** @var string $admin_name  
+ * @var string $admin_email
+ * @var string $initials
+*/
+
 ?>
 
 <!DOCTYPE html>
@@ -216,8 +221,11 @@ require_once '../../php/includes/admin-head.php';
             <script src="../../script/toggles.js"></script>
             <script src="../../script/initialize-gesture.js"></script>
 
-            <?php include '../../php/includes/admin-sidebar.php'; ?>
-             <?php include '../../php/includes/profile-offcanvas.php'; ?>
+            </div><!-- /child-container -->
+    </div><!-- /parent-container -->
+
+    <?php include '../../php/includes/admin-sidebar.php'; ?>
+    <?php include '../../php/includes/profile-offcanvas.php'; ?>
 
 </body>
 

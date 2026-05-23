@@ -1,4 +1,5 @@
 <?php 
+require_once __DIR__ . '/admin-handlers.php';
 // ── Summary counts ─────────────────────────────────────────────────────────
 $total_rooms = $conn->query("SELECT COUNT(*) AS c FROM classrooms")->fetch_assoc()['c'];
 

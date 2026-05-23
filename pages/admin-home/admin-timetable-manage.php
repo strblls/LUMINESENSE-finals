@@ -1,6 +1,7 @@
 <?php
 $page_title = 'Schedule Management';
 require_once '../../php/includes/admin-head.php';
+require_once '../../php/handlers/admin-handlers.php';
 
 /** @var string $initials */
 /** @var string $admin_name */
@@ -93,44 +94,6 @@ $conn->close();
     <style>
         body.contrast-bg { background:#2f004f; min-height:100vh; }
         .page-content { padding:0 24px 40px; }
-
-        /* ── Topbar ── */
-        .topbar {
-            background:linear-gradient(0deg,rgba(255,255,255,0) 9%,rgba(47,0,79,.76) 40%,rgba(47,0,79,.95) 70%,rgba(47,0,79,1) 100%);
-            position:sticky; top:0; z-index:100;
-            display:flex; align-items:center;
-            padding:16px 24px; gap:12px;
-        }
-        .topbar-menu-btn {
-            background-color:var(--primary-color); color:var(--secondary-color-1);
-            border:none; border-radius:10px; height:50px; width:50px;
-            display:flex; align-items:center; justify-content:center;
-            flex-shrink:0; cursor:pointer; transition:background-color .2s;
-        }
-        .topbar-menu-btn i { font-size:24px; }
-        .topbar-title  { flex:1; color:var(--primary-color); font-size:28px; font-weight:700; margin:0; }
-        .topbar-right  { display:flex; align-items:center; gap:14px; }
-        .topbar-admin  { color:var(--primary-color); font-size:16px; white-space:nowrap; }
-        .search-container { position:relative; }
-        .search-input {
-            height:50px; border-radius:30px; padding-left:40px; border:none;
-            font-family:var(--font-primary); font-size:15px; width:240px;
-            background:#fff; color:var(--black); outline:none;
-            box-shadow:0 0 10px rgba(0,0,0,.1);
-        }
-        .search-icon { position:absolute; top:50%; left:15px; transform:translateY(-50%); color:#888; font-size:16px; }
-        .avatar-icon {
-            width:50px; height:50px; border-radius:50%;
-            background-color:#8e8b8b; color:#3f3f3f;
-            display:flex; align-items:center; justify-content:center;
-            cursor:pointer; flex-shrink:0;
-        }
-
-        .section-heading {
-            color:var(--primary-color); font-size:13px; font-weight:600;
-            letter-spacing:.10em; text-transform:uppercase;
-            margin:24px 0 14px; opacity:.75;
-        }
 
         /* ── Schedule card ── */
         .schedule-card {
@@ -269,42 +232,12 @@ $conn->close();
             transition:background-color .2s; width:auto;
         }
         .btn-modal-cancel:hover { background:#f0eaf8; }
-
-        /* Sidebar/profile */
-        .nav-btn {
-            width:52px; height:52px; border-radius:12px;
-            display:flex; align-items:center; justify-content:center;
-            background-color:var(--secondary-color-1); color:var(--primary-color);
-            border:none; cursor:pointer; transition:background-color .2s, transform .15s;
-        }
-        .nav-btn i, .nav-btn svg { font-size:22px; }
-        .nav-btn:hover { background-color:var(--secondary-color-4); transform:scale(1.06); }
-        #sidebarOffcanvas { width:100px !important; background-color:var(--primary-color); }
-        #sidebarOffcanvas .offcanvas-header { justify-content:center; padding:1rem .5rem; }
-        #sidebarOffcanvas .logo { width:75px; height:75px; object-fit:contain; cursor:pointer; }
-        #sidebarOffcanvas .offcanvas-body { display:flex; flex-direction:column; align-items:center; gap:8px; padding-top:.5rem; }
-        #sidebarOffcanvas .offcanvas-footer { display:flex; justify-content:center; padding:1rem; }
-        #sidebarOffcanvas .offcanvas-footer img { width:4rem; }
-        #profileOffcanvas { width:240px !important; background-color:var(--primary-color); }
-        #profileOffcanvas .avatar-icon { width:80px; height:80px; border-radius:50%; background:#d9d6d6; color:var(--secondary-color-1); }
-        .profile-btn {
-            width:100%; padding:8px; margin:3px 0; border-radius:8px;
-            background-color:var(--secondary-color-1); color:var(--primary-color);
-            border:none; font-size:14px; cursor:pointer;
-            font-family:var(--font-primary); transition:background-color .2s, transform .15s;
-        }
-        .profile-btn:hover { background-color:var(--secondary-color-4); transform:scale(1.02); }
-
-        @media(max-width:600px){
-            .search-input{width:140px;}
-            .topbar-admin{display:none;}
-            .schedule-card-header,.room-selector-row,.schedule-table-wrap{padding-left:16px;padding-right:16px;}
-        }
-    </style>
+    </style>                            
 </head>
-<body class="contrast-bg">
 
+<body class="contrast-bg">
     <?php include '../../php/includes/admin-topbar.php'; ?>
+
     <div class="px-4 pt-3">
         <button class="light info-action-btn" 
                 onclick="dissolve('admin-room-manage.php')"
