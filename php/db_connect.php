@@ -102,3 +102,14 @@ $conn->query("
 ");
 
 $conn->set_charset('utf8mb4');
+
+// ── Runtime column migrations (safe – only adds if missing) ──────────────────
+// light_status on classrooms (used by dashboard poll + Arduino PIR webhook)
+$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS light_status ENUM('on','off') DEFAULT 'off'");
+// pir_occupied flag – set by PIR webhook, cleared when occupancy ends
+$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pir_occupied TINYINT(1) DEFAULT 0");
+// pir_occupied_since – when occupancy started (drives System Uptime)
+$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pir_since TIMESTAMP NULL DEFAULT NULL");
+// extended_until on schedules (used by active-schedule query in faculty-home.php)
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS extended_until TIME DEFAULT NULL");
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL");
