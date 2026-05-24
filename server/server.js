@@ -5,6 +5,12 @@ const app = express();
 app.use(express.json());
 
 //CORS — allow local development origins used by the page
+// app.use(cors({
+//     origin: 'http://127.0.0.1:5500',
+//     methods: ['GET', 'POST', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type']
+// }));
+
 app.use(cors({
     origin(origin, callback) {
         if (!origin) {

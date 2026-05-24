@@ -148,7 +148,17 @@
             }
 
             .lighting-grid {
-                margin-top: 20px;
+                display: grid;
+                grid-template-columns: repeat(3, 36px);
+                grid-template-rows: repeat(3, 36px);
+                gap: 4px;
+            }
+
+            .lighting-grid img {
+                width: 36px;
+                height: 36px;
+                object-fit: contain;
+                display: block;
             }
         }
 

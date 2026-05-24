@@ -1,0 +1,281 @@
+/* ═══════════════════════════════════════
+   admin-reports.css
+   Page-specific styles for Reports Management.
+   Global styles (topbar, sidebar, avatar, search,
+   offcanvas, buttons) come from global.css &
+   containers.css — only table/card rules live here.
+═══════════════════════════════════════ */
+
+/* ── Sidebar nav buttons (shared pattern) ── */
+.nav-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--secondary-color-1);
+    color: var(--primary-color);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.15s;
+}
+
+.nav-btn i,
+.nav-btn svg {
+    font-size: 22px;
+}
+
+.nav-btn:hover {
+    background-color: var(--secondary-color-4);
+    transform: scale(1.06);
+}
+
+/* ── Sidebar offcanvas shell ── */
+#sidebarOffcanvas {
+    width: 100px !important;
+    background-color: var(--primary-color);
+}
+
+#sidebarOffcanvas .offcanvas-header {
+    justify-content: center;
+    padding: 1rem 0.5rem;
+}
+
+#sidebarOffcanvas .logo {
+    width: 75px;
+    height: 75px;
+    object-fit: contain;
+    cursor: pointer;
+}
+
+#sidebarOffcanvas .offcanvas-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding-top: 0.5rem;
+}
+
+#sidebarOffcanvas .offcanvas-footer {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+}
+
+#sidebarOffcanvas .offcanvas-footer img {
+    width: 4rem;
+}
+
+/* ── Profile offcanvas shell ── */
+#profileOffcanvas {
+    width: 240px !important;
+    background-color: var(--primary-color);
+}
+
+#profileOffcanvas .avatar-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #d9d6d6;
+    color: var(--secondary-color-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Profile buttons ── */
+.profile-btn {
+    width: 100%;
+    padding: 8px;
+    margin: 3px 0;
+    border-radius: 8px;
+    background-color: var(--secondary-color-1);
+    color: var(--primary-color);
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: var(--font-primary);
+    transition: background-color 0.2s, transform 0.15s;
+}
+
+.profile-btn:hover {
+    background-color: var(--secondary-color-4);
+    transform: scale(1.02);
+}
+
+/* ── Reports card wrapper ── */
+.reports-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(47, 0, 79, 0.13);
+    overflow: hidden;
+}
+
+/* ── Reports table ── */
+.reports-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.reports-table thead tr {
+    border-bottom: 2px solid rgba(47, 0, 79, 0.10);
+}
+
+.reports-table thead th {
+    padding: 14px 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--secondary-color-2);
+    background: transparent;
+}
+
+.reports-table tbody tr {
+    border-bottom: 1px solid rgba(47, 0, 79, 0.07);
+    transition: background 0.15s;
+}
+
+.reports-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.reports-table tbody tr:hover {
+    background: rgba(47, 0, 79, 0.03);
+}
+
+.reports-table tbody td {
+    padding: 16px 20px;
+    vertical-align: middle;
+}
+
+/* ── Room cell ── */
+.room-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--secondary-color-1);
+}
+
+.room-section {
+    font-size: 12px;
+    color: #888;
+    margin-top: 2px;
+}
+
+/* ── Status badges ── */
+.badge-status {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.badge-occupied {
+    background: #ffe4ec;
+    color: #c0004e;
+}
+
+.badge-scheduled {
+    background: #fff5d6;
+    color: #a06800;
+}
+
+.badge-vacant {
+    background: #d6fbe9;
+    color: #0a7a45;
+}
+
+/* ── Current class cell ── */
+.class-subject {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--secondary-color-1);
+}
+
+.class-faculty {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--secondary-color-3);
+    margin-top: 2px;
+}
+
+.class-time {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+}
+
+/* ── Lighting ── */
+.lighting-on {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    background: #d6fbe9;
+    color: #0a8c50;
+}
+
+.lighting-off {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    background: #f0ebf7;
+    color: #888;
+}
+
+/* ── Issues cell ── */
+.issues-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.issue-badge {
+    background-color: var(--secondary-color-3);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.issue-more-btn {
+    background: var(--primary-color);
+    border: none;
+    color: var(--secondary-color-1);
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-size: 16px;
+    transition: background-color 0.2s, transform 0.15s;
+}
+
+.issue-more-btn:hover {
+    background-color: var(--secondary-color-1);
+    color: var(--primary-color);
+    transform: scale(1.06);
+}
+
+.no-issues {
+    font-size: 13px;
+    color: #aaa;
+    font-style: italic;
+}

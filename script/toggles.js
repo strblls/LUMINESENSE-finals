@@ -9,9 +9,9 @@ const row3Bulbs = document.querySelectorAll('.lighting-grid img:nth-of-type(n+7)
 const bulbOff = '../../images/bulb-off.png';
 const bulbOn  = '../../images/bulb-on.png';
 
-function setRow(bulbs, state) {
-    bulbs.forEach(img => img.src = state ? bulbOn : bulbOff);
-}
+    function setRow(bulbs, state) {
+        bulbs.forEach(img => img.src = state ? bulbOn : bulbOff);
+    }
 
 async function toggleLight(row, state) {
     try {

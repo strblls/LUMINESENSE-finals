@@ -42,8 +42,13 @@ if (isset($_GET['resend']) && $_GET['resend'] === '1') {
     $stmt->close();
 
     sendVerificationEmail($email, $new_otp, $name);
-    $resent = true;
+    
+    // ✅ Redirect to clean URL so ?resend=1 is gone
+    header('Location: verify-email.php?resent=done');
+    exit;
 }
+
+$resent = isset($_GET['resent']) && $_GET['resent'] === 'done';
 
 // ── Handle POST (OTP submission) ──────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -62,9 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $found = $stmt->fetch();
         $stmt->close();
 
+        // TEMP DEBUG - pakshet
+        error_log("TYPE entered: " . gettype($entered_otp) . " value: [{$entered_otp}]");
+        error_log("TYPE db_otp: " . gettype($db_otp) . " value: [{$db_otp}]");
+        error_log("EQUAL: " . var_export($entered_otp === $db_otp, true));
+
+
         if (!$found || $db_otp === null) {
             $errors[] = 'We could not find your account. Please sign up again.';
-        } elseif ($entered_otp !== $db_otp) {
+        } elseif ($entered_otp !== str_pad((string)$db_otp, 6, '0', STR_PAD_LEFT)) {
             $errors[] = 'Incorrect code. Please check your email and try again.';
         } elseif ($db_expires === null || strtotime($db_expires) < time()) {
             $errors[] = 'This code has expired. Click "Resend Code" to get a new one.';
@@ -199,7 +210,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <?php if ($resent): ?>
-            <div class="alert alert-success">A new code has been sent to your email.</div>
+            <div class="alert alert-success">
+                ✅ A new code has been sent! <strong>Please check your email for the latest code and discard any previous ones.</strong>
+            </div>
         <?php endif; ?>
 
         <?php foreach ($errors as $err): ?>

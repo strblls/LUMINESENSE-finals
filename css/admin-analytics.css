@@ -1,0 +1,442 @@
+
+.content-area {
+    padding: 0 24px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ── Room label below topbar ── */
+.room-label {
+    color: var(--primary-color);
+    font-size: 22px;
+    font-weight: 700;
+    padding: 10px 24px 16px 24px;
+}
+
+/* ── Topbar overrides (analytics uses a solid bg variant) ── */
+.topbar {
+    background: var(--secondary-color-1);
+    padding: 16px 24px;
+    gap: 12px;
+    z-index: 100;
+}
+
+.topbar-menu-btn {
+    background-color: var(--primary-color);
+    color: var(--secondary-color-1);
+    border: none;
+    border-radius: 10px;
+    height: 50px;
+    width: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.topbar-menu-btn:hover {
+    background-color: var(--secondary-color-4);
+    color: var(--primary-color);
+}
+
+.topbar-menu-btn i { font-size: 24px; }
+
+.topbar-title {
+    flex: 1;
+    color: var(--primary-color);
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.topbar-admin {
+    color: var(--primary-color);
+    font-size: 16px;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+/* ── Search bar ── */
+.search-container { position: relative; }
+
+.search-input {
+    height: 50px;
+    border-radius: 30px;
+    padding-left: 35px;
+    border: none;
+    font-family: var(--font-primary);
+    font-size: 15px;
+    width: 240px;
+    background: #fff;
+    color: var(--black);
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    top: 50%;
+    left: 15px;
+    transform: translateY(-50%);
+    color: #888;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* ── White card base ── */
+.card-white {
+    background: #fff;
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 4px 18px rgba(47, 0, 79, 0.13);
+}
+
+/* ── Top row: Usage + Chart ── */
+.top-row {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 16px;
+}
+
+/* ── Usage card ── */
+.usage-card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    margin-bottom: 20px;
+}
+
+.usage-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 16px;
+}
+
+.usage-stat:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.usage-number {
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.usage-number.up   { color: #e03333; }
+.usage-number.down { color: #27ae60; }
+
+.usage-arrow { font-size: 36px; font-weight: 900; }
+
+.usage-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.5;
+}
+
+/* ── Chart card ── */
+.chart-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.chart-card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    margin: 0;
+}
+
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.view-select-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.view-select-group label {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: var(--font-primary);
+}
+
+.view-select-group select {
+    font-family: var(--font-primary);
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: var(--secondary-color-1);
+    outline: none;
+    cursor: pointer;
+    background-color: #fff;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 210px;
+}
+
+/* ── Breakdown card ── */
+.breakdown-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: start;
+}
+
+.breakdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.breakdown-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+}
+
+.breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-primary);
+}
+
+.breakdown-table th {
+    text-align: center;
+    color: var(--muted);
+    font-weight: 500;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.breakdown-table th:first-child {
+    text-align: left;
+    padding-left: 0;
+}
+
+.breakdown-table td {
+    text-align: center;
+    padding: 12px 10px;
+    border-top: 1px solid #eee;
+    font-size: 13px;
+    color: var(--secondary-color-1);
+}
+
+.breakdown-table td:first-child {
+    text-align: left;
+    padding-left: 0;
+}
+
+/* ── Total Usage panel ── */
+.total-usage {
+    min-width: 210px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 44px;
+}
+
+.total-usage-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    margin-bottom: 6px;
+}
+
+.total-usage p {
+    font-size: 13px;
+    color: var(--secondary-color-1);
+    margin: 0;
+}
+
+.total-usage .val { font-weight: 700; }
+
+/* ── Export buttons ── */
+.export-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-export-pdf,
+.btn-export-csv {
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-family: var(--font-primary);
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-export-pdf {
+    background-color: var(--secondary-color-1);
+    color: var(--primary-color);
+    border: none;
+}
+
+.btn-export-pdf:hover {
+    background-color: var(--secondary-color-4);
+    transform: scale(1.02);
+}
+
+.btn-export-csv {
+    background-color: #fff;
+    color: var(--secondary-color-1);
+    border: 1px solid var(--secondary-color-2);
+}
+
+.btn-export-csv:hover {
+    background-color: var(--secondary-color-1);
+    color: var(--primary-color);
+    transform: scale(1.02);
+}
+
+/* ── Sidebar offcanvas ── */
+.offcanvas {
+    width: 100px !important;
+    background-color: var(--primary-color);
+}
+
+.offcanvas .logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    cursor: pointer;
+}
+
+.offcanvas-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+}
+
+.offcanvas-footer img { width: 4rem; }
+
+/* ── Sidebar nav buttons ── */
+.nav-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--secondary-color-1);
+    color: var(--primary-color);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.nav-btn i { font-size: 22px; }
+
+.nav-btn:hover {
+    background-color: var(--secondary-color-4);
+    transform: scale(1.05);
+}
+
+/* ── Profile offcanvas ── */
+.offcanvas.offcanvas-end { width: 28vh !important; }
+
+.offcanvas.offcanvas-end .avatar-icon {
+    width: 80px;
+    height: 80px;
+    font-size: 28px;
+}
+
+.avatar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #8e8b8b;
+    color: #3f3f3f;
+    flex-shrink: 0;
+}
+
+.email-limit {
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    color: var(--muted);
+}
+
+/* ── Profile offcanvas buttons ── */
+.profile-btn {
+    width: 100%;
+    padding: 8px;
+    margin: 3px 0;
+    border-radius: 8px;
+    background-color: var(--secondary-color-1);
+    color: var(--primary-color);
+    border: none;
+    font-family: var(--font-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+}
+
+.profile-btn:hover { background-color: var(--secondary-color-4); }
+
+/* Ensure no underlines appear inside the profile offcanvas */
+.offcanvas, .offcanvas * {
+    text-decoration: none !important;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .top-row {
+        grid-template-columns: 1fr;
+    }
+
+    .breakdown-card {
+        grid-template-columns: 1fr;
+    }
+
+    .total-usage {
+        min-width: unset;
+        padding-top: 0;
+    }
+
+    .search-input { width: 140px; }
+}

@@ -1,3 +1,15 @@
+🟩May 18 - Admin Back-End p1.
+Changes:
+- Admin Pages -> PHP 
+    - Naming palang na PHP
+- Added password-change.php for Faculty
+
+Needs:
+- Sala ata ang Admin Reports Page (!)
+- Front End ka Modal if mag edit info sa Profile Settings 
+- Data for Back-end to display (!)
+- Get the date when na create ang account
+
 🟩May 11 - Admin Front-end Progress part 1.
 Changes:
 - Static data on room management (dapat masearch danay si admin)

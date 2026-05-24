@@ -53,10 +53,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'approve') {
+        // Fetch faculty email and name first
+        $stmt = $conn->prepare('SELECT email, first_name FROM faculty WHERE id = ?');
+        $stmt->bind_param('i', $faculty_id);
+        $stmt->execute();
+        $stmt->bind_result($faculty_email, $faculty_first_name);
+        $found = $stmt->fetch();
+        $stmt->close();
+
+        if (!$found || empty($faculty_email) || empty($faculty_first_name)) {
+            echo json_encode(['success' => false, 'message' => 'Faculty record not found or incomplete.']); exit;
+        }
+
+        // Update the DB
         $stmt = $conn->prepare('UPDATE faculty SET is_verified=1, approved_by=?, approved_at=NOW() WHERE id=?');
         $stmt->bind_param('ii', $admin_id, $faculty_id);
         $stmt->execute();
         $stmt->close();
+
+        // Send approval email
+        require_once '../php/mailer.php';
+        sendApprovalEmail($faculty_email, $faculty_first_name);
+
         echo json_encode(['success' => true, 'message' => 'Faculty account approved.']); exit;
     }
 
