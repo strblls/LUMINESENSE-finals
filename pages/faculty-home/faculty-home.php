@@ -123,6 +123,51 @@ $conn->close();
                 grid-template-columns: 1fr !important;
             }
         }
+
+        /* Gesture row selector pills */
+        .gesture-row-pills { display: flex; gap: 6px; }
+        .gesture-row-pill {
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: #e9ecef;
+            color: #6c757d;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            cursor: default;
+            user-select: none;
+        }
+        .gesture-row-pill.active {
+            background: #0d6efd;
+            color: #fff;
+            border-color: #0a58ca;
+            box-shadow: 0 0 8px rgba(13,110,253,0.45);
+        }
+        .gesture-row-pill.pending {
+            background: #ffc107;
+            color: #212529;
+            border-color: #ff9800;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
+            animation: pillPulse 1s infinite alternate ease-in-out;
+        }
+        .gesture-row-pill.confirmed {
+            background: #198754;
+            color: #fff;
+            border-color: #146c43;
+            animation: pillPop 0.35s ease;
+        }
+        @keyframes pillPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
+        }
+        @keyframes pillPop {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.18); }
+            100% { transform: scale(1); }
+        }
+        .gesture-hint { font-size: 0.7rem; color: #6c757d; line-height: 1.4; }
+        #simulatePirBtn { font-size: 0.78rem; }
     </style>
 </head>
 
@@ -151,17 +196,42 @@ $conn->close();
                         </div>
 
                         <!-- Camera feed -->
-                        <div class="gesture-camera d-flex flex-row align-items-center justify-content-center">
-                            <button id="enableCameraBtn" class="btn btn-primary btn-sm">
+                        <div class="gesture-camera d-flex flex-row align-items-center justify-content-center" style="position: relative;">
+                            <button id="enableCameraBtn" class="btn btn-primary btn-sm" style="z-index: 10;">
                                 <i class="bi bi-camera-video me-1"></i>Enable Camera
                             </button>
-                            <img src="" id="gestureStream" class="object-fit-cover" style="display:none;">
+                            <button id="disableCameraBtn" class="btn btn-secondary btn-sm" style="display:none; position: absolute; bottom: 8px; right: 8px; z-index: 10;">
+                                <i class="bi bi-camera-video-off me-1"></i>Disable Camera
+                            </button>
+                            <video id="webcamVideo" autoplay playsinline style="display:none; width:100%; height:100%; object-fit:cover; border-radius:8px; transform: scaleX(-1);"></video>
+                            <canvas id="webcamCanvas" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:8px; pointer-events:none; transform: scaleX(-1);"></canvas>
                         </div>
 
-                        <!-- Result + accuracy -->
-                        <div class="gesture-response d-flex px-2 flex-column align-items-start justify-content-start">
-                            Result: <span class="bold mx-2" id="gestureResult">—</span>
-                            <span>Accuracy:</span>
+                        <!-- Row selector pills + result + accuracy -->
+                        <div class="gesture-response d-flex px-2 flex-column align-items-start justify-content-start gap-2">
+
+                            <!-- Row indicator pills -->
+                            <div class="gesture-row-pills w-100 d-flex justify-content-center gap-2 mt-1">
+                                <span class="gesture-row-pill" id="rowPill1" data-row="1">Row 1</span>
+                                <span class="gesture-row-pill" id="rowPill2" data-row="2">Row 2</span>
+                                <span class="gesture-row-pill" id="rowPill3" data-row="3">Row 3</span>
+                            </div>
+
+                            <!-- Gesture hint -->
+                            <p class="gesture-hint mb-0 w-100 text-center">
+                                ☝️&nbsp;<strong>1 finger</strong> → Row 1 &nbsp;✌️&nbsp;<strong>2 fingers</strong> → Row 2
+                                &nbsp;🤟&nbsp;<strong>ILY</strong> → Row 3<br>
+                                👍&nbsp;<strong>Thumb up</strong> → toggle row &nbsp;✋&nbsp;<strong>Palm</strong> → all ON &nbsp;✊&nbsp;<strong>Fist</strong> → all OFF
+                            </p>
+
+                            <!-- Result label -->
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="text-muted" style="font-size:0.85rem;">Detected:</span>
+                                <span class="bold mx-1" id="gestureResult">—</span>
+                            </div>
+
+                            <!-- Accuracy bar -->
+                            <span class="text-muted" style="font-size:0.85rem;">Accuracy:</span>
                             <div class="progress w-100" style="height: 20px;">
                                 <div class="progress-bar bg-success d-flex align-items-center justify-content-center"
                                     role="progressbar"
@@ -186,12 +256,10 @@ $conn->close();
                                 <?php if (empty($gesture_logs)): ?>
                                     <p class="text-muted">No gesture events yet.</p>
                                     <?php else: foreach ($gesture_logs as $log): ?>
-                                        <div>
-                                            <h5><?= ucfirst($log['event_type']) ?> – <?= htmlspecialchars($log['room_name']) ?></h5>
-                                            <p class="light mb-0">
-                                                <?= date('g:i A', strtotime($log['event_time'])) ?>
-                                                · <?= date('M j', strtotime($log['event_time'])) ?>
-                                            </p>
+                                        <div style="font-size:0.78rem; padding: 4px 0;">
+                                            <span class="bold"><?= ucfirst(str_replace('_', ' ', $log['event_type'])) ?></span>
+                                            <span class="text-muted"> · <?= htmlspecialchars($log['room_name']) ?></span>
+                                            <div class="text-muted" style="font-size:0.72rem;"><?= date('g:i A · M j', strtotime($log['event_time'])) ?></div>
                                         </div>
                                         <hr>
                                 <?php endforeach;
@@ -257,17 +325,17 @@ $conn->close();
                         ?>
                         <div class="d-flex flex-row align-items-center justify-content-center">
                             <div class="lighting-grid">
-                                <img src="<?= $bulb_img ?>">
-                                <img src="<?= $bulb_img ?>">
-                                <img src="<?= $bulb_img ?>">
+                                <img src="<?= $bulb_img ?>" class="bulb-img" data-row="1">
+                                <img src="<?= $bulb_img ?>" class="bulb-img" data-row="1">
+                                <img src="<?= $bulb_img ?>" class="bulb-img" data-row="1">
                                 <hr class="w-100">
-                                <img src="<?= $bulb_img ?>">
-                                <img src="<?= $bulb_img ?>">
-                                <img src="<?= $bulb_img ?>">
+                                <img src="<?= $bulb_img ?>" class="bulb-img" data-row="2">
+                                <img src="<?= $bulb_img ?>" class="bulb-img" data-row="2">
+                                <img src="<?= $bulb_img ?>" class="bulb-img" data-row="2">
                                 <hr class="w-100">
-                                <img src="<?= $bulb_img ?>">
-                                <img src="<?= $bulb_img ?>">
-                                <img src="<?= $bulb_img ?>">
+                                <img src="<?= $bulb_img ?>" class="bulb-img" data-row="3">
+                                <img src="<?= $bulb_img ?>" class="bulb-img" data-row="3">
+                                <img src="<?= $bulb_img ?>" class="bulb-img" data-row="3">
                                 <hr class="w-100">
                             </div>
                             <div class="p-5">
@@ -292,10 +360,10 @@ $conn->close();
                                 <br>
                                 <div class="d-flex flex-column align-items-center gap-1">
                                     <h5 class="bold">All Lights</h5>
-                                    <h4 class="bold <?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?>">
+                                    <h4 id="allLightsStatus" class="bold <?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?>">
                                         <?= ($light_status === 'on' && $active_schedule) ? 'ON' : 'OFF' ?>
                                     </h4>
-                                    <div class="all-lights-<?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?> ...">
+                                    <div id="allLightsContainer" class="all-lights-<?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?> ...">
                                         <i class="bi bi-power" id="all-lights"></i>
                                     </div>
                                 </div>
@@ -347,16 +415,20 @@ $conn->close();
                         <div class="gap-2">
                             <div class="activity-list px-2 gap-2 align-items-center max-width">
                                 <h5>Lighting:
-                                    <?php if ($light_status === 'on'): ?>
-                                        <span class="text-success">ON</span>
-                                    <?php else: ?>
-                                        <span class="text-danger">OFF</span>
-                                    <?php endif; ?>
+                                    <span id="statusLighting" class="<?= $light_status === 'on' ? 'text-success' : 'text-danger' ?>">
+                                        <?= strtoupper($light_status) ?>
+                                    </span>
                                 </h5>
                                 <h5>Server: <span class="text-success">Connected</span></h5>
-                                <h5>Webcam: <span class="text-muted">Disabled</span></h5>
-                                <h5>Sensor Reading: <span class="text-danger">Disconnected</span></h5>
-                                <h5>System Uptime: 00:00:00</h5>
+                                <h5>Webcam: <span id="statusWebcam" class="text-muted">Disabled</span></h5>
+                                <h5>System Uptime: <span id="statusUptime">00:00:00</span></h5>
+                                <h5>PIR Sensor:
+                                    <span id="statusPir" class="text-muted">Unknown</span>
+                                </h5>
+                                <!-- PIR simulate button (testing without Arduino) -->
+                                <button id="simulatePirBtn" class="btn btn-sm btn-success mt-1 w-100">
+                                    🟢 Simulate Occupancy
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -532,36 +604,141 @@ $conn->close();
             bar.setAttribute('aria-valuenow', pct);
         }
 
-        // ── Countdown timer ───────────────────────────────────────────────────
-        (function() {
+        // ── Countdown timer (refreshed by pollDashboard) ─────────────────────
+        let _scheduleEnd = null;
+        (function () {
             const display = document.getElementById('timerDisplay');
-            const endAttr = display ? display.dataset.end : null;
-            if (!endAttr) return; // no active schedule
+            const phpEnd  = display ? display.dataset.end : null;
+            if (phpEnd) _scheduleEnd = phpEnd;
 
-            function tick() {
+            function pad(n) { return String(n).padStart(2, '0'); }
+
+            window._tickTimer = function () {
+                if (!display) return;
+                if (!_scheduleEnd) {
+                    display.textContent = '00:00:00';
+                    display.classList.remove('text-danger');
+                    return;
+                }
                 const now = new Date();
-                const [h, m, s] = endAttr.split(':').map(Number);
+                const [h, m, s] = _scheduleEnd.split(':').map(Number);
                 const end = new Date(now);
                 end.setHours(h, m, s, 0);
-
-                let diff = Math.floor((end - now) / 1000);
-                if (diff < 0) diff = 0;
-
-                const hh = String(Math.floor(diff / 3600)).padStart(2, '0');
-                const mm = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-                const ss = String(diff % 60).padStart(2, '0');
-                display.textContent = `${hh}:${mm}:${ss}`;
-
+                let diff = Math.max(0, Math.floor((end - now) / 1000));
+                display.textContent = `${pad(Math.floor(diff / 3600))}:${pad(Math.floor((diff % 3600) / 60))}:${pad(diff % 60)}`;
                 if (diff === 0) display.classList.add('text-danger');
-            }
-
-            tick();
-            setInterval(tick, 1000);
+                else display.classList.remove('text-danger');
+            };
+            window._tickTimer();
+            setInterval(window._tickTimer, 1000);
         })();
+
+        // ── System Uptime (PIR occupancy start) ───────────────────────────────
+        let _uptimeStart = null;
+        (function () {
+            const el = document.getElementById('statusUptime');
+            function pad(n) { return String(n).padStart(2, '0'); }
+            window._tickUptime = function () {
+                if (!el) return;
+                if (!_uptimeStart) { el.textContent = '00:00:00'; return; }
+                let diff = Math.max(0, Math.floor((Date.now() - _uptimeStart) / 1000));
+                el.textContent = `${pad(Math.floor(diff / 3600))}:${pad(Math.floor((diff % 3600) / 60))}:${pad(diff % 60)}`;
+            };
+            window._tickUptime();
+            setInterval(window._tickUptime, 1000);
+        })();
+
+        // ── Live dashboard poll (every 3 s) ───────────────────────────────────
+        const BULB_ON  = '../../images/bulb-on.png';
+        const BULB_OFF = '../../images/bulb-off.png';
+        let _lastLightStatus = '<?= $light_status ?>';
+
+        async function pollDashboard() {
+            try {
+                const res  = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!data.success) return;
+
+                // ── Lights ────────────────────────────────────────────────────
+                const lights   = data.light_status;    // 'on' | 'off'
+                const hasSched = data.schedule_active;
+                const isOn     = lights === 'on';
+
+                if (lights !== _lastLightStatus) {
+                    _lastLightStatus = lights;
+
+                    // Bulb images (grouped by row)
+                    document.querySelectorAll('.bulb-img').forEach(img => {
+                        img.src = isOn ? BULB_ON : BULB_OFF;
+                    });
+
+                    // Row switches
+                    ['row-1-switch', 'row-2-switch', 'row-3-switch'].forEach(id => {
+                        const sw = document.getElementById(id);
+                        if (sw) sw.checked = isOn;
+                    });
+
+                    // All-lights badge
+                    const badge   = document.getElementById('allLightsStatus');
+                    const btnCont = document.getElementById('allLightsContainer');
+                    if (badge) {
+                        badge.textContent = isOn ? 'ON' : 'OFF';
+                        badge.className   = `bold ${isOn ? 'on' : 'off'}`;
+                    }
+                    if (btnCont) {
+                        btnCont.className = btnCont.className
+                            .replace(/all-lights-(on|off)/, `all-lights-${isOn ? 'on' : 'off'}`);
+                    }
+
+                    // System Status lighting
+                    const sLight = document.getElementById('statusLighting');
+                    if (sLight) {
+                        sLight.textContent = isOn ? 'ON' : 'OFF';
+                        sLight.className   = isOn ? 'text-success' : 'text-danger';
+                    }
+                }
+
+                // ── Schedule / countdown ──────────────────────────────────────
+                _scheduleEnd = data.schedule_end || null;
+
+                // ── PIR uptime ────────────────────────────────────────────────
+                const pirEl = document.getElementById('statusPir');
+                if (data.pir_occupied && data.pir_since) {
+                    _uptimeStart = new Date(data.pir_since.replace(' ', 'T')).getTime();
+                    if (pirEl) { pirEl.textContent = 'Occupied'; pirEl.className = 'text-success'; }
+                } else {
+                    _uptimeStart = null;
+                    if (pirEl) { pirEl.textContent = 'Empty'; pirEl.className = 'text-muted'; }
+                }
+
+            } catch (e) {
+                console.warn('pollDashboard error:', e);
+            }
+        }
+
+        pollDashboard();
+        setInterval(pollDashboard, 3000);
+
+        // ── PIR Simulate button (test without Arduino) ────────────────────────
+        const simBtn = document.getElementById('simulatePirBtn');
+        if (simBtn) {
+            let _pirState = false; // false = empty, true = occupied
+            simBtn.addEventListener('click', async () => {
+                _pirState = !_pirState;
+                simBtn.textContent = _pirState ? '🔴 Simulate Empty Room' : '🟢 Simulate Occupancy';
+                simBtn.className   = `btn btn-sm mt-1 w-100 ${_pirState ? 'btn-danger' : 'btn-success'}`;
+                const form = new FormData();
+                form.append('classroom_id', CLASSROOM_ID);
+                form.append('occupied',     _pirState ? '1' : '0');
+                await fetch('../../api/pir.php', { method: 'POST', body: form });
+                await pollDashboard(); // immediate refresh after simulating
+            });
+        }
     </script>
 
     <!-- Gesture detection script -->
-    <script src="../../script/initialize-gesture.js"></script>
+    <script type="module" src="../../script/initialize-gesture.js?v=<?= time() ?>"></script>
 
 </body>
 

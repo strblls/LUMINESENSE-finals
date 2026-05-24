@@ -32,7 +32,7 @@ function proxyFlaskJson(pathname) {
 // Helper function to check if Flask is ready
 function isFlaskReady() {
     return new Promise((resolve) => {
-        const req = http.get('http://127.0.0.1:5000/video_feed', (res) => {
+        const req = http.get('http://127.0.0.1:5000/status', (res) => {
             req.destroy();
             resolve(res.statusCode === 200);
         });
