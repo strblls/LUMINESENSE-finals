@@ -1,0 +1,97 @@
+// Arduino Mega 2560 — LED Strip Row Control Test
+// Test via Serial Monitor: type ROW1:ON, ROW2:OFF, ALL:ON, etc.
+
+#define ROW1_PIN 22
+#define ROW2_PIN 24
+#define ROW3_PIN 26
+
+void setup() {
+    Serial.begin(9600);
+
+    pinMode(ROW1_PIN, OUTPUT);
+    pinMode(ROW2_PIN, OUTPUT);
+    pinMode(ROW3_PIN, OUTPUT);
+
+    // Default all off
+    digitalWrite(ROW1_PIN, LOW);
+    digitalWrite(ROW2_PIN, LOW);
+    digitalWrite(ROW3_PIN, LOW);
+
+    Serial.println("=== LED Strip Row Control ===");
+    Serial.println("Commands:");
+    Serial.println("  ROW1:ON  / ROW1:OFF");
+    Serial.println("  ROW2:ON  / ROW2:OFF");
+    Serial.println("  ROW3:ON  / ROW3:OFF");
+    Serial.println("  ALL:ON   / ALL:OFF");
+    Serial.println("  STATUS");
+    Serial.println("=============================");
+}
+
+bool row1State = false;
+bool row2State = false;
+bool row3State = false;
+
+void setRow(int pin, bool &state, bool on) {
+    digitalWrite(pin, on ? HIGH : LOW);
+    state = on;
+}
+
+void printStatus() {
+    Serial.println("--- Current Status ---");
+    Serial.print("Row 1: "); Serial.println(row1State ? "ON" : "OFF");
+    Serial.print("Row 2: "); Serial.println(row2State ? "ON" : "OFF");
+    Serial.print("Row 3: "); Serial.println(row3State ? "ON" : "OFF");
+    Serial.println("----------------------");
+}
+
+void loop() {
+    if (Serial.available()) {
+        String cmd = Serial.readStringUntil('\n');
+        cmd.trim();
+        cmd.toUpperCase();
+
+        if (cmd == "ROW1:ON") {
+            setRow(ROW1_PIN, row1State, true);
+            Serial.println("ACK: Row 1 ON");
+
+        } else if (cmd == "ROW1:OFF") {
+            setRow(ROW1_PIN, row1State, false);
+            Serial.println("ACK: Row 1 OFF");
+
+        } else if (cmd == "ROW2:ON") {
+            setRow(ROW2_PIN, row2State, true);
+            Serial.println("ACK: Row 2 ON");
+
+        } else if (cmd == "ROW2:OFF") {
+            setRow(ROW2_PIN, row2State, false);
+            Serial.println("ACK: Row 2 OFF");
+
+        } else if (cmd == "ROW3:ON") {
+            setRow(ROW3_PIN, row3State, true);
+            Serial.println("ACK: Row 3 ON");
+
+        } else if (cmd == "ROW3:OFF") {
+            setRow(ROW3_PIN, row3State, false);
+            Serial.println("ACK: Row 3 OFF");
+
+        } else if (cmd == "ALL:ON") {
+            setRow(ROW1_PIN, row1State, true);
+            setRow(ROW2_PIN, row2State, true);
+            setRow(ROW3_PIN, row3State, true);
+            Serial.println("ACK: All Rows ON");
+
+        } else if (cmd == "ALL:OFF") {
+            setRow(ROW1_PIN, row1State, false);
+            setRow(ROW2_PIN, row2State, false);
+            setRow(ROW3_PIN, row3State, false);
+            Serial.println("ACK: All Rows OFF");
+
+        } else if (cmd == "STATUS") {
+            printStatus();
+
+        } else {
+            Serial.print("Unknown command: ");
+            Serial.println(cmd);
+        }
+    }
+}

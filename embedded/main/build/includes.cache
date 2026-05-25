@@ -1,0 +1,1496 @@
+[
+  {
+    "added_include_path": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino"
+  },
+  {
+    "added_include_path": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": "PZEM004Tv30.h"
+  },
+  {
+    "added_include_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": "SoftwareSerial.h"
+  },
+  {
+    "added_include_path": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": "RTClib.h"
+  },
+  {
+    "added_include_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": "Adafruit_I2CDevice.h"
+  },
+  {
+    "added_include_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": "Wire.h"
+  },
+  {
+    "added_include_path": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": "SD.h"
+  },
+  {
+    "added_include_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": "SPI.h"
+  },
+  {
+    "added_include_path": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": "ArduinoJson.h"
+  },
+  {
+    "added_include_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src"
+  },
+  {
+    "compile": {
+      "source_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\sketch\\main.ino.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src\\PZEM004Tv30.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\PZEM004Tv30\\PZEM004Tv30.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\PZEM004Tv30\\PZEM004Tv30.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src\\PZEM004Tv30.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src\\SoftwareSerial.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SoftwareSerial\\SoftwareSerial.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SoftwareSerial\\SoftwareSerial.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src\\SoftwareSerial.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_DS1307.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_DS1307.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_DS1307.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_DS1307.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_DS3231.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_DS3231.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_DS3231.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_DS3231.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_Micros.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_Micros.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_Micros.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_Micros.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_Millis.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_Millis.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_Millis.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_Millis.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_PCF8523.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_PCF8523.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_PCF8523.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_PCF8523.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_PCF8563.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_PCF8563.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTC_PCF8563.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTC_PCF8563.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTClib.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTClib.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\RTClib\\RTClib.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src\\RTClib.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO\\Adafruit_BusIO_Register.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Adafruit_BusIO\\Adafruit_BusIO_Register.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Adafruit_BusIO\\Adafruit_BusIO_Register.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO\\Adafruit_BusIO_Register.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO\\Adafruit_GenericDevice.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Adafruit_BusIO\\Adafruit_GenericDevice.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Adafruit_BusIO\\Adafruit_GenericDevice.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO\\Adafruit_GenericDevice.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO\\Adafruit_I2CDevice.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Adafruit_BusIO\\Adafruit_I2CDevice.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Adafruit_BusIO\\Adafruit_I2CDevice.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO\\Adafruit_I2CDevice.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO\\Adafruit_SPIDevice.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Adafruit_BusIO\\Adafruit_SPIDevice.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Adafruit_BusIO\\Adafruit_SPIDevice.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO\\Adafruit_SPIDevice.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src\\Wire.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Wire\\Wire.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Wire\\Wire.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src\\Wire.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src\\utility\\twi.c",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Wire\\utility\\twi.c.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\Wire\\utility\\twi.c.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src\\utility\\twi.c",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\File.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\File.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\File.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\File.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\SD.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\SD.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\SD.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\SD.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\utility\\Sd2Card.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\utility\\Sd2Card.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\utility\\Sd2Card.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\utility\\Sd2Card.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\utility\\SdFile.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\utility\\SdFile.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\utility\\SdFile.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\utility\\SdFile.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\utility\\SdVolume.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\utility\\SdVolume.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SD\\utility\\SdVolume.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src\\utility\\SdVolume.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  },
+  {
+    "compile": {
+      "source_path": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src\\SPI.cpp",
+      "object_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SPI\\SPI.cpp.o",
+      "depfile_path": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\build\\libraries\\SPI\\SPI.cpp.d"
+    },
+    "compile_task": {
+      "args": [
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7/bin/avr-g++",
+        "-c",
+        "-g",
+        "-Os",
+        "-w",
+        "-std=gnu++11",
+        "-fpermissive",
+        "-fno-exceptions",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fno-threadsafe-statics",
+        "-Wno-error=narrowing",
+        "-flto",
+        "-w",
+        "-x",
+        "c++",
+        "-E",
+        "-CC",
+        "-mmcu=atmega2560",
+        "-DF_CPU=16000000L",
+        "-DARDUINO=10607",
+        "-DARDUINO_AVR_MEGA2560",
+        "-DARDUINO_ARCH_AVR",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\cores\\arduino",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\variants\\mega",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\PZEM004Tv30\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SoftwareSerial\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\RTClib\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\Adafruit_BusIO",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\Wire\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\SD\\src",
+        "-IC:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src",
+        "-Ic:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries\\ArduinoJson\\src",
+        "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8\\libraries\\SPI\\src\\SPI.cpp",
+        "-o",
+        "nul"
+      ]
+    }
+  },
+  {
+    "missing_include_h": ""
+  }
+]
