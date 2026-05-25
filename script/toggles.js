@@ -53,37 +53,42 @@ if (allLightsBtn) {
     });
 
     // ── All-lights power button ───────────────────────────────────────────────
-    let isOn = false;
     allLightsBtn.addEventListener('click', () => {
-        isOn = !isOn;
+        // Dynamically check if any row is currently checked
+        const sw1 = document.getElementById('row-1-switch');
+        const sw2 = document.getElementById('row-2-switch');
+        const sw3 = document.getElementById('row-3-switch');
+        
+        const anyOn = (sw1 && sw1.checked) || (sw2 && sw2.checked) || (sw3 && sw3.checked);
+        const targetState = !anyOn; // If any row is ON, click turns them all OFF. If all are OFF, turns them all ON.
 
-        setRow(row1Bulbs, isOn);
-        setRow(row2Bulbs, isOn);
-        setRow(row3Bulbs, isOn);
+        setRow(row1Bulbs, targetState);
+        setRow(row2Bulbs, targetState);
+        setRow(row3Bulbs, targetState);
 
         rowConfig.forEach(({ switchId }) => {
             const sw = document.getElementById(switchId);
-            if (sw) sw.checked = isOn;
+            if (sw) sw.checked = targetState;
         });
 
         if (btnContainer) {
             btnContainer.classList.replace(
-                isOn ? 'all-lights-off' : 'all-lights-on',
-                isOn ? 'all-lights-on'  : 'all-lights-off'
+                targetState ? 'all-lights-off' : 'all-lights-on',
+                targetState ? 'all-lights-on'  : 'all-lights-off'
             );
         }
         if (statusText) {
-            statusText.textContent = isOn ? 'ON' : 'OFF';
-            statusText.classList.replace(isOn ? 'off' : 'on', isOn ? 'on' : 'off');
+            statusText.textContent = targetState ? 'ON' : 'OFF';
+            statusText.classList.replace(targetState ? 'off' : 'on', targetState ? 'on' : 'off');
         }
 
         // Sync the System Status panel badge
         const sLight = document.getElementById('statusLighting');
         if (sLight) {
-            sLight.textContent = isOn ? 'ON' : 'OFF';
-            sLight.className   = isOn ? 'text-success' : 'text-danger';
+            sLight.textContent = targetState ? 'ON' : 'OFF';
+            sLight.className   = targetState ? 'text-success' : 'text-danger';
         }
 
-        persistLight('all', isOn);
+        persistLight('all', targetState);
     });
 }

@@ -32,15 +32,31 @@ if (!$cid || !in_array($state, ['on', 'off'])) {
 // (we track this via a separate row_states column if needed – for now we simply
 // set light_status to match the state of the 'all' action, or to 'on' for any row-on).
 if ($row === 'all') {
-    $stmt = $conn->prepare("UPDATE classrooms SET light_status = ? WHERE id = ?");
-    $stmt->bind_param('si', $state, $cid);
+    $stmt = $conn->prepare("UPDATE classrooms SET light_status = ?, row1_status = ?, row2_status = ?, row3_status = ? WHERE id = ?");
+    $stmt->bind_param('ssssi', $state, $state, $state, $state, $cid);
     $stmt->execute();
     $stmt->close();
 } else {
-    // For individual rows: if turning on → classroom is 'on'; if turning off → leave as-is
-    if ($state === 'on') {
-        $conn->query("UPDATE classrooms SET light_status = 'on' WHERE id = $cid");
-    }
+    // Dynamically update the specific row status column
+    $col = "row" . $row . "_status";
+    $stmt = $conn->prepare("UPDATE classrooms SET $col = ? WHERE id = ?");
+    $stmt->bind_param('si', $state, $cid);
+    $stmt->execute();
+    $stmt->close();
+
+    // Re-evaluate global light_status: 'on' if any row is ON, otherwise 'off'
+    $stmt = $conn->prepare("SELECT row1_status, row2_status, row3_status FROM classrooms WHERE id = ? LIMIT 1");
+    $stmt->bind_param('i', $cid);
+    $stmt->execute();
+    $stmt->bind_result($r1, $r2, $r3);
+    $stmt->fetch();
+    $stmt->close();
+
+    $new_global = ($r1 === 'on' || $r2 === 'on' || $r3 === 'on') ? 'on' : 'off';
+    $stmt = $conn->prepare("UPDATE classrooms SET light_status = ? WHERE id = ?");
+    $stmt->bind_param('si', $new_global, $cid);
+    $stmt->execute();
+    $stmt->close();
 }
 
 // Log the event

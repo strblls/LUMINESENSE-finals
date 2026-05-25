@@ -168,6 +168,13 @@
     }
 }
 
+/* Equal-width columns for the 3-column readings page */
+.main-container.homepage.readings .group-container:first-child,
+.main-container.homepage.readings .group-container:last-child,
+.main-container.homepage.readings .group-container {
+    flex: 1 !important;
+}
+
 .main-container.gesture-controls {
     display: flex;
     flex-direction: row;

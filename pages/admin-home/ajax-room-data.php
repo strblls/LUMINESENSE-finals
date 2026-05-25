@@ -15,11 +15,13 @@ if (!$room_id) {
 
 // ── 1. Latest lighting log ─────────────────────────────────────────────────
 $row = $conn->query("
-    SELECT event_type FROM lighting_logs
-    WHERE classroom_id = $room_id
-    ORDER BY id DESC LIMIT 1
+    SELECT light_status, row1_status, row2_status, row3_status
+    FROM classrooms WHERE id = $room_id LIMIT 1
 ")->fetch_assoc();
-$light_on = ($row && $row['event_type'] === 'on');
+$light_on    = ($row && $row['light_status'] === 'on');
+$row1_status = $row['row1_status'] ?? 'off';
+$row2_status = $row['row2_status'] ?? 'off';
+$row3_status = $row['row3_status'] ?? 'off';
 
 // ── 2. PIR sensor status ───────────────────────────────────────────────────
 // We consider PIR "active" if there was any sensor-triggered log in the last 60 seconds.
@@ -170,6 +172,9 @@ $conn->close();
 echo json_encode([
     'next_schedule'   => $next_schedule,
     'light_on'         => $light_on,
+    'row1_status'      => $row1_status, 
+    'row2_status'      => $row2_status,
+    'row3_status'      => $row3_status,
     'pir_active'       => $pir_active,
     'cam_active'       => $cam_active,
     'current_schedule' => $current_schedule,

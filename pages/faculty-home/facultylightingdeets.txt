@@ -1,0 +1,24 @@
+<!-- RIGHT: Lighting Status gauges (unchanged) -->
+            <div class="group-container gap-3">
+                <div style="background-color:#f8f9fa;" class="section-container recents">
+                    <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                        <div class="d-flex mx-2 align-items-start">
+                            <h2 class="bold">Lighting Status</h2>
+                        </div>
+                    </div>
+                    <div class="gauge-container d-flex pt-1 flex-column align-items-center justify-content-center gap-3">
+                        <div class="gauge">
+                            <canvas id="energyGauge"></canvas>
+                            <div class="gauge-value"><span id="tempNumber">36</span><span class="gauge-unit"> kWh</span></div>
+                            <div class="gauge-label bold">Overall Lighting Consumption</div>
+                        </div>
+                        <h6 class="text-center">Status: Normal<br>Max Room Consumption: 4 kWh</h6>
+                        <div class="gauge">
+                            <canvas id="luxGauge"></canvas>
+                            <div class="gauge-value"><span id="humidNumber">58</span><span class="gauge-unit"> lux</span></div>
+                            <div class="gauge-label bold">Overall Room Illuminance (lux)</div>
+                        </div>
+                        <h6 class="text-center">Max Room Illuminance: 300 lux</h6>
+                    </div>
+                </div>
+            </div>

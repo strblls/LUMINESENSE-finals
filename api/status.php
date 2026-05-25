@@ -16,12 +16,9 @@ $now_day  = date('l'); // e.g. "Monday"
 $rows = [];
 $r = $conn->query("
     SELECT c.id, c.room_name, c.room_size, c.description,
-           COALESCE(l.event_type, 'off') AS light_status,
-           l.event_time AS last_event_time
+           c.light_status, c.row1_status, c.row2_status, c.row3_status,
+           c.pir_occupied, c.pir_since
     FROM classrooms c
-    LEFT JOIN lighting_logs l ON l.id = (
-        SELECT MAX(id) FROM lighting_logs WHERE classroom_id = c.id
-    )
     ORDER BY c.room_name
 ");
 
@@ -39,9 +36,9 @@ while ($room = $r->fetch_assoc()) {
     $sched = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    $room['schedule_active'] = $sched ? true : false;
-    $room['schedule_start']  = $sched ? $sched['start_time'] : null;
-    $room['schedule_end']    = $sched ? $sched['end_time']   : null;
+    $room['row1_status'] = $room['row1_status'];
+    ['row2_status'] = $room['row2_status'];
+    $room['row3_status'] = $room['row3_status'];
     $rows[] = $room;
 }
 

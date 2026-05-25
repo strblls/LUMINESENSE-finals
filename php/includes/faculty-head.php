@@ -3,6 +3,7 @@ $phpRoot = realpath(__DIR__ . '/../');
 require_once $phpRoot . '/session_guard.php';
 check_faculty();
 require_once $phpRoot . '/db_connect.php';
+date_default_timezone_set('Asia/Manila');
 
 $faculty_name = htmlspecialchars($_SESSION['faculty_name']);
 $faculty_id   = $_SESSION['faculty_id'];
@@ -51,10 +52,28 @@ $r = $conn->query("
 ");
 while ($row = $r->fetch_assoc()) $logs[] = $row;
 
-// Get first classroom for gesture logging
-$classroom_id = 1;
-$r = $conn->query("SELECT id FROM classrooms ORDER BY id LIMIT 1");
-if ($row = $r->fetch_assoc()) $classroom_id = $row['id'];
+// Get the classroom assigned to this faculty (from their schedule)
+// Get the classroom assigned to this faculty (from their schedule TODAY)
+$classroom_id = 0;
+$today_lookup = date('l');
+$stmt = $conn->prepare("
+    SELECT DISTINCT s.classroom_id
+    FROM schedules s
+    WHERE s.created_by = ?
+      AND s.day_of_week = ?
+    ORDER BY s.start_time
+    LIMIT 1
+");
+$stmt->bind_param('is', $faculty_id, $today_lookup);
+$stmt->execute();
+$stmt->bind_result($classroom_id);
+$stmt->fetch();
+$stmt->close();
+// Fallback: use first classroom in DB
+if (!$classroom_id) {
+    $r = $conn->query('SELECT id FROM classrooms ORDER BY id LIMIT 1');
+    if ($row = $r->fetch_assoc()) $classroom_id = $row['id'];
+}
 
 // Gesture logs — this faculty only
 $gesture_logs = [];

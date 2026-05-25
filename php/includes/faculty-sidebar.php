@@ -7,7 +7,7 @@
         <img src="../../images/logo.png" class="logo" onclick="dissolve('faculty-homepage.php')">
     </div>
     <div class="offcanvas-body align-items-center d-flex flex-column">
-        <button class="wb-2" onclick="dissolve('faculty-lighting.php')"><i class="bi bi-lightbulb"></i></button>
+        <button class="wb-2" onclick="dissolve('faculty-home.php')"><i class="bi bi-house-door-fill"></i></button>
         <button class="wb-2" onclick="dissolve('faculty-readings.php')"><i class="bi bi-broadcast"></i></button>
         <button class="wb-2" onclick="dissolve('faculty-timetable.php')"><i class="bi bi-calendar-event"></i></button>
         <button class="wb-2" onclick="dissolve('faculty-profile-settings.php')"><i class="bi bi-gear"></i></button>
@@ -21,9 +21,9 @@
 (function () {
     const page = window.location.pathname.split('/').pop();
     const map = {
-        'faculty-lighting.php':           0,
-        'faculty-readings.php':          2,
-        'faculty-timetable.php':        1,
+        'faculty-home.php':           0,
+        'faculty-readings.php':          1,
+        'faculty-timetable.php':        2,
         'faculty-profile-settings.php':   3,
     };
     const index = map[page];

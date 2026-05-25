@@ -8,6 +8,8 @@
 // When occupied=0                           → set light_status='off', clear pir flag, log event
 
 require_once '../php/db_connect.php';
+session_start();
+date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 
 // Allow Arduino (no session) OR logged-in faculty/admin

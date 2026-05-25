@@ -4,6 +4,7 @@
 // Called every 3 s by the JavaScript poll loop.
 
 require_once '../php/db_connect.php';
+date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
 
@@ -22,10 +23,10 @@ $now_time = date('H:i:s');
 $now_day  = date('l');
 
 // ── Classroom row ─────────────────────────────────────────────────────────────
-$stmt = $conn->prepare("SELECT light_status, pir_occupied, pir_since FROM classrooms WHERE id=? LIMIT 1");
+$stmt = $conn->prepare("SELECT light_status, row1_status, row2_status, row3_status, pir_occupied, pir_since FROM classrooms WHERE id=? LIMIT 1");
 $stmt->bind_param('i', $cid);
 $stmt->execute();
-$stmt->bind_result($light_status, $pir_occupied, $pir_since);
+$stmt->bind_result($light_status, $row1_status, $row2_status, $row3_status, $pir_occupied, $pir_since);
 $stmt->fetch();
 $stmt->close();
 
@@ -86,6 +87,9 @@ echo json_encode([
     'success'         => true,
     'server_time'     => $now_time,
     'light_status'    => $light_status ?? 'off',
+    'row1_status'     => $row1_status ?? 'off',
+    'row2_status'     => $row2_status ?? 'off',
+    'row3_status'     => $row3_status ?? 'off',
     'pir_occupied'    => (bool)$pir_occupied,
     'pir_since'       => $pir_since,
     'schedule_active' => $active_schedule !== null,

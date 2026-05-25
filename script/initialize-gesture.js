@@ -59,15 +59,18 @@ function setProgressStyle(gesture, confidence) {
 
 // ── Gesture → Row State Machine with 900ms Debounce and 👍 Confirmation ──
 const DEBOUNCE_MS = 900;
-const CONFIRM_TIMEOUT_MS = 5000;
-const GESTURE_ACCURACY_THRESHOLD = 80;
+const CONFIRM_TIMEOUT_MS = 15000;
+const GESTURE_ACCURACY_THRESHOLD = 80; // The threshold set by you
+const GESTURE_DECAY_THRESHOLD = 70;    // Schmitt trigger lower limit once a gesture starts
+const DROPOUT_TOLERANCE_MS = 350;       // Allow 350ms of flicker/dropout before resetting timer
 
 const ROW_GESTURE = { Pointing_Up: 1, Victory: 2, ILoveYou: 3 };
 
-let _lastGesture = null;
+let _lastGesture = 'No Gesture';
 let _heldSince = null;
 let _actioned = false;
 let _selectedRow = null;
+let _dropoutStart = null;   // Tracks when a gesture dropout began
 
 let pendingAction = null; // null or { gesture: 'Open_Palm', action: 'all_on', label: 'All Lights ON', row: null }
 let pendingTimeout = null;
@@ -168,6 +171,14 @@ async function executePendingAction() {
         document.querySelectorAll(`.bulb-img[data-row="${row}"]`).forEach(img => {
             img.src = newState ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
         });
+        
+        // Dynamically recalculate and update the overall badge immediately on gesture toggle
+        const sw1 = document.getElementById('row-1-switch');
+        const sw2 = document.getElementById('row-2-switch');
+        const sw3 = document.getElementById('row-3-switch');
+        const overallOn = (sw1 && sw1.checked) || (sw2 && sw2.checked) || (sw3 && sw3.checked);
+        _updateAllLightsBadge(overallOn);
+
         flashPill(row);
         form.append('row', String(row));
         form.append('state', newState ? 'on' : 'off');
@@ -211,49 +222,77 @@ function _updateAllLightsBadge(isOn) {
 }
 
 function processGesture(gesture, confidence) {
-    // If confidence is lower than 90%, we treat it as a weak gesture (None / No Gesture)
     let activeGesture = gesture;
-    if (confidence < GESTURE_ACCURACY_THRESHOLD) {
+
+    // Apply Schmitt trigger (hysteresis) to prevent flickering near 80%
+    const threshold = (_lastGesture && _lastGesture !== 'No Gesture' && _lastGesture === gesture)
+        ? GESTURE_DECAY_THRESHOLD
+        : GESTURE_ACCURACY_THRESHOLD;
+
+    if (confidence < threshold) {
         activeGesture = 'No Gesture';
     }
 
-    // Keep track of how long the gesture is held
-    if (activeGesture !== _lastGesture) {
-        _lastGesture = activeGesture;
-        _heldSince = Date.now();
-        _actioned = false;
-        return;
+    // Real-time console debugging to trace recognition and timer state
+    if (gesture !== 'No Gesture') {
+        const heldTime = _heldSince ? (Date.now() - _heldSince) : 0;
+        console.log(`[MediaPipe Debug] Raw: "${gesture}" (${confidence.toFixed(1)}%), Active: "${activeGesture}", Last: "${_lastGesture}", Held: ${heldTime}ms`);
     }
 
-    // Once held for DEBOUNCE_MS
-    if (!_actioned && (Date.now() - _heldSince) >= DEBOUNCE_MS) {
+    // Handle gesture transitions with a dropout grace period
+    if (activeGesture !== _lastGesture) {
+        if (activeGesture === 'No Gesture') {
+            // Start grace period for temporary dropouts
+            if (!_dropoutStart) {
+                _dropoutStart = Date.now();
+            }
+            // Only reset state if the dropout lasts longer than the tolerance window
+            if (Date.now() - _dropoutStart >= DROPOUT_TOLERANCE_MS) {
+                _lastGesture = 'No Gesture';
+                _heldSince = Date.now();
+                _actioned = false;
+                _dropoutStart = null;
+            }
+        } else {
+            // Transitioned to a new valid gesture: reset hold state immediately
+            _lastGesture = activeGesture;
+            _heldSince = Date.now();
+            _actioned = false;
+            _dropoutStart = null;
+            return;
+        }
+    } else {
+        // Active gesture matches the last gesture: clear any active dropout timer
+        _dropoutStart = null;
+    }
+
+    // Once held for DEBOUNCE_MS and it's a valid action gesture
+    if (!_actioned && _lastGesture && _lastGesture !== 'No Gesture' && (Date.now() - _heldSince) >= DEBOUNCE_MS) {
         _actioned = true;
 
-        if (activeGesture === 'Thumb_Up') {
-            // Confirm the staged action
+        if (_lastGesture === 'Thumb_Up') {
             if (pendingAction) {
                 executePendingAction();
             } else {
-                // Thumbs up without pending action could show some default hint
                 if (gestureResult) {
                     gestureResult.innerHTML = `<span class="text-info bold">No action pending to confirm!</span>`;
                 }
             }
-        } else if (activeGesture === 'Open_Palm') {
+        } else if (_lastGesture === 'Open_Palm') {
             pendingAction = { gesture: 'Open_Palm', action: 'all_on', label: 'All Lights ON', row: null };
             updatePillsState();
             startPendingTimeout();
-        } else if (activeGesture === 'Closed_Fist') {
+        } else if (_lastGesture === 'Closed_Fist') {
             pendingAction = { gesture: 'Closed_Fist', action: 'all_off', label: 'All Lights OFF', row: null };
             updatePillsState();
             startPendingTimeout();
-        } else if (ROW_GESTURE[activeGesture] !== undefined) {
-            const rowNum = ROW_GESTURE[activeGesture];
+        } else if (ROW_GESTURE[_lastGesture] !== undefined) {
+            const rowNum = ROW_GESTURE[_lastGesture];
             const sw = document.getElementById(`row-${rowNum}-switch`);
             const currentState = sw && sw.checked;
             const targetStateLabel = currentState ? 'OFF' : 'ON';
             pendingAction = {
-                gesture: activeGesture,
+                gesture: _lastGesture,
                 action: 'toggle_row',
                 row: rowNum,
                 label: `Turn Row ${rowNum} ${targetStateLabel}`
@@ -263,15 +302,13 @@ function processGesture(gesture, confidence) {
         }
     }
 
-    // If there is a pending action and they go to "No Gesture", we keep showing the confirmation prompt but countdown
+    // Stage updates for UI when an action is pending
     if (pendingAction) {
         if (activeGesture === 'No Gesture') {
-            // Keep showing confirmation message in UI
             if (gestureResult) {
                 gestureResult.innerHTML = `<span class="text-warning bold">👍 Confirm ${pendingAction.label}?</span> <span style="font-size:0.75rem; color:#6c757d;">(Hold 👍 to confirm)</span>`;
             }
         } else if (activeGesture !== 'Thumb_Up') {
-            // If they make another action gesture, the timeout resets
             if (gestureResult) {
                 gestureResult.innerHTML = `<span class="text-warning bold">👍 Confirm ${pendingAction.label}?</span>`;
             }
@@ -279,22 +316,17 @@ function processGesture(gesture, confidence) {
     }
 }
 
+
 function updateGestureView(gesture, confidence) {
     const cleanGesture = (gesture && gesture !== 'None') ? gesture : 'No Gesture';
 
-    // Reset or smooth confidence to prevent quick dropouts
-    if (cleanGesture !== _lastGestureRaw) {
-        _lastGestureRaw = cleanGesture;
-        _smoothedConfidence = confidence;
-    } else {
-        // Apply low-pass filter (Exponential Moving Average) to stabilize raw frame fluctuations
-        _smoothedConfidence = _smoothedConfidence * 0.65 + confidence * 0.35;
-    }
+    // Apply low-pass filter (Exponential Moving Average) continuously to stabilize fluctuations
+    _smoothedConfidence = _smoothedConfidence * 0.65 + confidence * 0.35;
+    _lastGestureRaw = cleanGesture;
 
     setProgressStyle(cleanGesture, _smoothedConfidence);
     processGesture(cleanGesture, _smoothedConfidence);
 
-    // Only update gestureResult with basic name if we don't have a pending action displaying prompts
     if (!pendingAction) {
         if (gestureResult) {
             if (cleanGesture === 'No Gesture' || _smoothedConfidence < 30) {
@@ -375,7 +407,7 @@ async function predictLoop() {
                         const top = hand_gestures[0];
                         const score = Math.round(top.score * 100);
                         if (score > bestConfidence) {
-                            bestGesture = top.category_name;
+                            bestGesture = top.categoryName || top.category_name;
                             bestConfidence = score;
                         }
                     }

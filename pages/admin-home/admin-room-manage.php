@@ -71,12 +71,10 @@ function getCurrentSchedule($conn, $room_id)
 
 $classrooms = [];
 $r = $conn->query("
-    SELECT c.id, c.room_name, c.room_size, c.description,
-           COALESCE(l.event_type, 'off') AS light_status
-    FROM classrooms c
-    LEFT JOIN lighting_logs l
-           ON l.id = (SELECT MAX(id) FROM lighting_logs WHERE classroom_id = c.id)
-    ORDER BY c.room_name
+    SELECT id, room_name, room_size, description,
+           light_status, row1_status, row2_status, row3_status
+    FROM classrooms
+    ORDER BY room_name
 ");
 while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 ?>
@@ -958,14 +956,12 @@ function renderRoomModal(data) {
     }
 
     // ── Bulb grid — only update if admin hasn't just toggled (avoid fighting the UI) ──
-    for (let i = 0; i < 9; i++) {
-        const img = document.getElementById('bulb' + i);
-        if (img) img.src = data.light_on ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
-    }
+    const rowStatuses = { 1: data.row1_status === 'on', 2: data.row2_status === 'on', 3: data.row3_status === 'on' };
     for (let row = 1; row <= 3; row++) {
-        rowState[row] = data.light_on;
+        rowState[row] = rowStatuses[row];
+        rowBulbs[row].forEach(i => setBulb(i, rowStatuses[row]));
         const sw = document.getElementById('row' + row + 'sw');
-        if (sw) sw.checked = data.light_on;
+        if (sw) sw.checked = rowStatuses[row];
     }
     syncAllLightsLabel();
 
@@ -1027,7 +1023,7 @@ function toggleRow(row, on) {
     rowState[row] = on;
     rowBulbs[row].forEach(i => setBulb(i, on));
     syncAllLightsLabel();
-    sendLightingUpdate();
+    sendLightingUpdate(row);
 }
 
 function toggleAllLights() {
@@ -1040,23 +1036,24 @@ function toggleAllLights() {
         if (sw) sw.checked = newState;
     }
     syncAllLightsLabel();
-    sendLightingUpdate();
+    sendLightingUpdate('all');
 }
 
-function sendLightingUpdate() {
+function sendLightingUpdate(changedRow = 'all') {
     const anyOn = Object.values(rowState).some(v => v);
-    const eventType = anyOn ? 'on' : 'off';
+    const rowToSend   = changedRow === 'all' ? 'all' : String(changedRow);
+    const stateToSend = changedRow === 'all' ? (anyOn ? 'on' : 'off') : (rowState[changedRow] ? 'on' : 'off');
 
-    fetch('../../php/handlers/lighting-handler.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classroom_id: currentRoomId, event_type: eventType })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) updateCardLighting(currentRoomId, anyOn);
-    })
-    .catch(err => console.error('Lighting AJAX error:', err));
+    const form = new FormData();
+    form.append('classroom_id', currentRoomId);
+    form.append('row',          rowToSend);
+    form.append('state',        stateToSend);
+    form.append('triggered_by', 'manual');
+
+    fetch('../../api/lights.php', { method: 'POST', body: form })
+        .then(r => r.json())
+        .then(d => { if (d.success) updateCardLighting(currentRoomId, anyOn); })
+        .catch(err => console.error('Lighting error:', err));
 }
 
 function syncAllLightsLabel() {

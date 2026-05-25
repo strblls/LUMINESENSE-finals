@@ -200,12 +200,6 @@ require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
                                         style="background: #f0f0f0; padding: 10px 12px; border-radius: 6px; color: #333;">
                                         May 8, 2026</div>
                                 </div>
-                                <div class="mb-3">
-                                    <label style="color: #888; font-size: 0.85rem; font-weight: 500;">Department</label>
-                                    <div
-                                        style="background: #f0f0f0; padding: 10px 12px; border-radius: 6px; color: #333;">
-                                        N/A</div>
-                                </div>
                                 <div>
                                     <label style="color: #888; font-size: 0.85rem; font-weight: 500;">Address</label>
                                     <div
