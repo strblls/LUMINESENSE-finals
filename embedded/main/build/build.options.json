@@ -1,0 +1,9 @@
+{
+  "additionalFiles": "..\\..\\..",
+  "compiler.optimization_flags": "",
+  "customBuildProperties": "",
+  "fqbn": "arduino:avr:mega:cpu=atmega2560",
+  "hardwareFolders": "C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8,C:\\Users\\john gemar\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.8",
+  "otherLibrariesFolders": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\libraries",
+  "sketchLocation": "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main"
+}

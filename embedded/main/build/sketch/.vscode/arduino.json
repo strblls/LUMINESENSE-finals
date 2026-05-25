@@ -1,0 +1,23 @@
+#line 1 "C:\\xampp\\htdocs\\LUMINESENSE-finals\\embedded\\main\\.vscode\\arduino.json"
+{
+  "port": "COM13",
+  "configuration": "cpu=atmega2560",
+  "output": "build",
+  "board": "arduino:avr:mega",
+  "programmer": "arduinoasisp",
+  "useProgrammer": false,
+  "optimize_for_debug": false,
+  "configurationRequired": true,
+  "compile_profile": "",
+  "monitorPortSettings": {
+    "settings": {
+      "port": "COM13",
+      "baudRate": 115200,
+      "lineEnding": "\r\n",
+      "dataBits": 8,
+      "parity": "none",
+      "stopBits": "one"
+    },
+    "profile_name": ""
+  }
+}

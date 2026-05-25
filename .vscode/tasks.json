@@ -6,14 +6,17 @@
             "type": "shell",
             "command": "node server/server.js",
             "isBackground": true,
-            "runOptions": {
-                "runOn": "folderOpen"
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "showReuseMessage": false
-            },
+            "runOptions": { "runOn": "folderOpen" },
+            "presentation": { "reveal": "always", "panel": "dedicated" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Start Lighting Flask",
+            "type": "shell",
+            "command": "python lighting.py",
+            "isBackground": true,
+            "runOptions": { "runOn": "folderOpen" },
+            "presentation": { "reveal": "always", "panel": "dedicated" },
             "problemMatcher": []
         }
     ]

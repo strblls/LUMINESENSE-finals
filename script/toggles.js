@@ -15,8 +15,8 @@ if (allLightsBtn) {
     const row2Bulbs = document.querySelectorAll('.bulb-img[data-row="2"]');
     const row3Bulbs = document.querySelectorAll('.bulb-img[data-row="3"]');
 
-    const bulbOff = '../../images/bulb-off.png';
-    const bulbOn  = '../../images/bulb-on.png';
+const bulbOff = '../../images/bulb-off.png';
+const bulbOn  = '../../images/bulb-on.png';
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     function setRow(bulbs, state) {
