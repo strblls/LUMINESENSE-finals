@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
 /** @var string $admin_name  
  * @var string $admin_email
  * @var string $initials
-*/
+ */
 
 ?>
 
@@ -155,6 +155,7 @@ require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
             <div class="col d-flex flex-column px-3">
                 <h1 class="bold">Profile Settings</h1>
             </div>
+            <button class="light info-action-btn logout-btn" onclick="dissolve('../../php/logout.php')">Logout</button>
         </div>
 
         <div class="child-container">
@@ -191,7 +192,8 @@ require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
                                     <label style="color: #888; font-size: 0.85rem; font-weight: 500;">Email</label>
                                     <div
                                         style="background: #f0f0f0; padding: 10px 12px; border-radius: 6px; color: #333;">
-                                        <?= $admin_email ?></div>
+                                        <?= $admin_email ?>
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <label style="color: #888; font-size: 0.85rem; font-weight: 500;">Account
@@ -215,7 +217,7 @@ require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
             <script src="../../script/toggles.js"></script>
             <script src="../../script/initialize-gesture.js"></script>
 
-            </div><!-- /child-container -->
+        </div><!-- /child-container -->
     </div><!-- /parent-container -->
 
     <?php include '../../php/includes/admin-sidebar.php'; ?>
