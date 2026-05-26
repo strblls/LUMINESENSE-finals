@@ -52,7 +52,7 @@
             ?>
 
             <div class="form-container">
-                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST">
+                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST" onsubmit="showSignupModal(); return false;">
 
                     <div class="form-group mb-3">
                         <div class="child-1">
@@ -136,7 +136,7 @@
 
                     <div class="d-flex flex-column align-items-center justify-content-center">
                         <div class="submit-container">
-                            <button class="medium" type="submit">SIGN UP</button>
+                            <button class="medium" type="button" onclick="showSignupModal()">SIGN UP</button>
                             or<br>
                             <a class="medium" onclick="dissolve('faculty-login.php')">LOG IN</a>
                         </div>

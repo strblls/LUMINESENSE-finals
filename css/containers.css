@@ -7,11 +7,21 @@
     /* REMOVE justify-content: center — this was pushing content up */
 }
 
+.parent-container-index {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
 .child-container {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: flex-start; /* was: center */
+    justify-content: flex-start;
+    /* was: center */
     height: auto;
     width: 100%;
 }
@@ -58,7 +68,12 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-width: 50vh;
+    width: min(420px, 90vw);
+    max-width: 420px;
+    padding: 2rem 1.5rem;
+    margin: 6rem auto 2rem; /* push lower so circular image isn't clipped */
+    box-sizing: border-box;
+    overflow: visible; /* ensure circular image can overflow if needed */
 
     h4 {
         color: var(--secondary-color-1);
@@ -67,6 +82,27 @@
     input::placeholder {
         font-style: italic;
     }
+}
+
+.form-group {
+    min-width: 10px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    box-sizing: border-box;
+    gap: 0.75rem;
+}
+
+.form-group > div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.form-group > .child-3 {
+    flex: 0 0 90px;
+    max-width: 90px;
 }
 
 .form-container {
@@ -369,7 +405,8 @@
 
 .section-container {
     border-radius: 10px;
-    height: auto;      /* was 100% — this caused overflow growth */
+    height: auto;
+    /* was 100% — this caused overflow growth */
     width: 100%;
 }
 

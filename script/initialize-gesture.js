@@ -60,10 +60,9 @@ function setProgressStyle(gesture, confidence) {
 // ── Gesture → Row State Machine with 900ms Debounce and 👍 Confirmation ──
 const DEBOUNCE_MS = 900;
 const CONFIRM_TIMEOUT_MS = 15000;
-const GESTURE_ACCURACY_THRESHOLD = 80; // The threshold set by you
-const GESTURE_DECAY_THRESHOLD = 70;    // Schmitt trigger lower limit once a gesture starts
+const GESTURE_ACCURACY_THRESHOLD = 70; // was 80
+const GESTURE_DECAY_THRESHOLD = 60;    // was 70
 const DROPOUT_TOLERANCE_MS = 350;       // Allow 350ms of flicker/dropout before resetting timer
-
 const ROW_GESTURE = { Pointing_Up: 1, Victory: 2, ILoveYou: 3 };
 
 let _lastGesture = 'No Gesture';
@@ -171,7 +170,7 @@ async function executePendingAction() {
         document.querySelectorAll(`.bulb-img[data-row="${row}"]`).forEach(img => {
             img.src = newState ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
         });
-        
+
         // Dynamically recalculate and update the overall badge immediately on gesture toggle
         const sw1 = document.getElementById('row-1-switch');
         const sw2 = document.getElementById('row-2-switch');
@@ -407,7 +406,7 @@ async function predictLoop() {
                         const top = hand_gestures[0];
                         const score = Math.round(top.score * 100);
                         if (score > bestConfidence) {
-                            bestGesture = top.categoryName || top.category_name;
+                            bestGesture = (top.categoryName || top.category_name || '').replace(/\s+/g, '');
                             bestConfidence = score;
                         }
                     }

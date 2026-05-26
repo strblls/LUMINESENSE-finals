@@ -5,7 +5,7 @@ require_once '../../php/session_guard.php';
 check_faculty();
 require_once '../../php/db_connect.php';
 date_default_timezone_set('Asia/Manila');
-require_once '../../php/includes/faculty-head.php';
+include '../../php/includes/faculty-head.php';
 
 /** @var $faculty_name string */
 /** @var $faculty_email string */

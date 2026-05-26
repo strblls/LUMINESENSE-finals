@@ -22,7 +22,7 @@
 </head>
 
 <body>
-    <div class="parent-container">
+    <div class="parent-container-index">
         <div id="landing" class="landing-container zoom-animation">
             <img src="images/logo.png" alt="LumineSense Logo">
 
