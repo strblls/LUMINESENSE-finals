@@ -4,7 +4,7 @@
 <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas"
     aria-labelledby="sidebarOffcanvasLabel">
     <div class="offcanvas-header justify-content-center">
-        <img src="../../images/logo.png" class="logo" onclick="dissolve('faculty-homepage.php')">
+        <img src="../../images/logo.png" class="logo">
     </div>
     <div class="offcanvas-body align-items-center d-flex flex-column">
         <button class="wb-2" onclick="dissolve('faculty-home.php')"><i class="bi bi-house-door-fill"></i></button>
