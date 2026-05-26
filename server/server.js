@@ -1,6 +1,6 @@
 const express = require('express');
-const cors    = require('cors');
-const app     = express();
+const cors = require('cors');
+const app = express();
 
 app.use(express.json());
 
@@ -17,7 +17,29 @@ app.use(cors({
             return callback(null, true);
         }
 
-        if (/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(origin)) {
+        let parsedOrigin;
+
+        try {
+            parsedOrigin = new URL(origin);
+        } catch (error) {
+            return callback(null, false);
+        }
+
+        const hostname = parsedOrigin.hostname;
+
+        const isLocalHost =
+            hostname === 'localhost' ||
+            hostname === '127.0.0.1' ||
+            hostname === '::1';
+
+        const isPrivateNetwork =
+            /^10\./.test(hostname) ||
+            /^192\.168\./.test(hostname) ||
+            /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
+
+        const isLocalDevHostname = /\.local$/i.test(hostname);
+
+        if (isLocalHost || isPrivateNetwork || isLocalDevHostname) {
             return callback(null, true);
         }
 
@@ -28,6 +50,7 @@ app.use(cors({
 }));
 
 app.use('/gesture', require('./routes/gesture'));
+app.use('/lighting', require('./routes/lighting')); 
 
 //Catch-all — prevent Node from serving HTML files
 app.use((req, res) => {

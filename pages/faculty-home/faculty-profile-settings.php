@@ -52,14 +52,14 @@ $conn->close();
 <div class="parent-container">
 
     <!-- TOPBAR -->
-    <div class="topbar">
+    <div class="topbar d-flex align-items-center justify-content-between">
         <div class="page-title">
             <button type="button" id="sidebarTrigger">
                 <i class="bi bi-list"></i>
             </button>
             <h1 class="bold">Profile Settings</h1>
         </div>
-        <button class="light info-action-btn logout-btn"
+        <button class="light info-action-btn logout-btn ms-auto"
                 onclick="dissolve('../../php/logout.php')">Logout</button>
     </div>
 
@@ -172,23 +172,7 @@ $conn->close();
             </div>
         </div>
 
-        <!-- SIDEBAR LEFT -->
-        <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas">
-            <div class="offcanvas-header justify-content-center">
-                <img src="../../images/logo.png" class="logo"
-                     onclick="dissolve('faculty-homepage.php')">
-            </div>
-            <div class="offcanvas-body align-items-center d-flex flex-column">
-                <button class="wb-2" onclick="dissolve('faculty-lighting.php')"><i class="bi bi-lightbulb"></i></button>
-                <button class="wb-2" onclick="dissolve('faculty-readings.php')"><i class="bi bi-broadcast"></i></button>
-                <button class="wb-2" onclick="dissolve('faculty-gesture.php')"><i class="bi bi-hand-thumbs-up"></i></button>
-                <button class="wb-2" onclick="dissolve('faculty-timetable.php')"><i class="bi bi-calendar-event"></i></button>
-                <button class="wb-2" onclick="dissolve('faculty-profile-settings.php')"><i class="bi bi-gear"></i></button>
-            </div>
-            <div class="offcanvas-footer">
-                <img src="../../images/team-logo.png" class="logo">
-            </div>
-        </div>
+        <?php include '../../php/includes/faculty-sidebar.php'; ?>
 
     </div>
 

@@ -7,8 +7,7 @@
 <!-- SIDEBAR LEFT -->
 <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas">
     <div class="offcanvas-header justify-content-center">
-        <img src="../../images/logo.png" class="logo" alt="Logo"
-             onclick="dissolve('admin-homepage.php')">
+        <img src="../../images/logo.png" class="logo" alt="Logo">
     </div>
     <div class="offcanvas-body align-items-center d-flex flex-column gap-2">
         <button class="nav-btn" title="Home" onclick="dissolve('admin-homepage.php')">

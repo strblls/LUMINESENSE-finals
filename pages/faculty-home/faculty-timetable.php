@@ -134,21 +134,7 @@ $conn->close();
 <body class="contrast-bg">
 <div class="parent-container">
 
-    <!-- TOPBAR -->
-    <div class="topbar d-flex">
-        <button type="button" id="sidebarTrigger"><i class="bi bi-list"></i></button>
-        <div class="col d-flex flex-column px-3">
-            <h1 class="bold">Class Schedule</h1>
-            <h5 class="light">Current Schedule: <?= $current_sched ?></h5>
-        </div>
-        
-        <div class="d-flex align-items-center justify-content-center gap-2 mx-2">
-            <h4><?= $faculty_name ?></h4>
-            <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
-                <h3 class="bold"><?= $initials ?></h3>
-            </div>
-        </div>
-    </div>
+    <?php include '../../php/includes/faculty-topbar.php'; ?>
 
     <div class="child-container">
         <div class="main-container homepage gap-3" style="flex-direction:column;">
@@ -253,50 +239,16 @@ $conn->close();
         <input type="hidden" name="extend_mins" id="extend-mins-val">
     </form>
 
-    <!-- SIDEBAR LEFT -->
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas">
-        <div class="offcanvas-header justify-content-center">
-            <img src="../../images/logo.png" class="logo" onclick="dissolve('faculty-homepage.php')">
-        </div>
-        <div class="offcanvas-body align-items-center d-flex flex-column">
-            <button class="wb-2" onclick="dissolve('faculty-lighting.php')"><i class="bi bi-lightbulb"></i></button>
-            <button class="wb-2" onclick="dissolve('faculty-readings.php')"><i class="bi bi-broadcast"></i></button>
-            <button class="wb-2" onclick="dissolve('faculty-gesture.php')"><i class="bi bi-hand-thumbs-up"></i></button>
-            <button class="wb-2" onclick="dissolve('faculty-timetable.php')"><i class="bi bi-calendar-event"></i></button>
-            <button class="wb-2" onclick="dissolve('faculty-profile-settings.php')"><i class="bi bi-gear"></i></button>
-        </div>
-        <div class="offcanvas-footer">
-            <img src="../../images/team-logo.png" class="logo">
-        </div>
-    </div>
+    <?php include '../../php/includes/faculty-sidebar.php'; ?>
 
-    <!-- SIDEBAR RIGHT -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="profileOffcanvas">
-        <div class="offcanvas-body align-items-center d-flex flex-column">
-            <div class="avatar-icon d-flex align-items-center justify-content-center">
-                <h3 class="bold"><?= $initials ?></h3>
-            </div>
-            <h4 class="bold"><?= $faculty_name ?></h4>
-            <h6 class="light email-limit"><?= htmlspecialchars($faculty_email) ?></h6>
-            <div class="d-flex flex-column align-items-center justify-content-center">
-                <button onclick="dissolve('faculty-profile-settings.php')">Profile Settings</button>
-                <button>Classroom Details</button>
-                <button onclick="dissolve('../../php/logout.php')">Logout</button>
-            </div>
-        </div>
-    </div>
 
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
 </div>
 
 <script>
-    // Sidebar triggers
     document.getElementById('sidebarTrigger').addEventListener('click', function () {
         bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('sidebarOffcanvas')).toggle();
-    });
-    document.getElementById('sidebarTrigger2').addEventListener('click', function () {
-        bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('profileOffcanvas')).toggle();
     });
 
     let currentScheduleId = null;

@@ -26,7 +26,8 @@ require_once '../../php/includes/admin-head.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
 
@@ -233,28 +234,32 @@ require_once '../../php/includes/admin-head.php';
                     <div style="background-color:#f8f9fa;" class="section-container">
                         <div class="stat-row">
                             <div class="stat-card">
-                                <span class="stat-icon"><img src="../../images/room.png" alt="Rooms" style="width:2rem;"></span>
+                                <span class="stat-icon"><i class="bi bi-door-open"
+                                        style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                                 <div>
                                     <div class="stat-value"><?= $total_rooms ?></div>
                                     <p class="stat-label">Total<br>Rooms</p>
                                 </div>
                             </div>
                             <div class="stat-card">
-                                <span class="stat-icon"><img src="../../images/bulb.png" alt="Lights" style="width:2rem;"></span>
+                                <span class="stat-icon"><i class="bi bi-lightbulb-fill"
+                                        style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                                 <div>
                                     <div class="stat-value"><?= $lights_on ?></div>
                                     <p class="stat-label">Rooms Currently<br>Running</p>
                                 </div>
                             </div>
                             <div class="stat-card">
-                                <span class="stat-icon"><img src="../../images/alert.png" alt="Pending" style="width:2rem;"></span>
+                                <span class="stat-icon"><i class="bi bi-person-check"
+                                        style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                                 <div>
                                     <div class="stat-value"><?= $pending ?></div>
                                     <p class="stat-label">Faculty Pending<br>Approval</p>
                                 </div>
                             </div>
                             <div class="stat-card">
-                                <span class="stat-icon"><i class="bi bi-clock-history" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                                <span class="stat-icon"><i class="bi bi-clock-history"
+                                        style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                                 <div>
                                     <div class="stat-value"><?= $ext_pending ?></div>
                                     <p class="stat-label">Extension<br>Requests</p>
@@ -270,13 +275,15 @@ require_once '../../php/includes/admin-head.php';
                                 <h2 class="bold">Rooms</h2>
                             </div>
                             <div class="d-flex mx-2 align-items-end">
-                                <button class="light mx-2" onclick="dissolve('admin-room-manage.php')">All Rooms</button>
+                                <button class="light mx-2" onclick="dissolve('admin-room-manage.php')">All
+                                    Rooms</button>
                             </div>
                         </div>
                         <div class="room-list px-1 mt-1">
                             <?php if (empty($classrooms)): ?>
                                 <p class="text-muted text-center mt-2">No classrooms yet.</p>
-                                <?php else: foreach ($classrooms as $c):
+                            <?php else:
+                                foreach ($classrooms as $c):
                                     $on = ($c['light_status'] === 'on'); ?>
                                     <div class="room-item">
                                         <i class="bi bi-building room-icon"></i>
@@ -293,13 +300,14 @@ require_once '../../php/includes/admin-head.php';
                                                 <?= ucfirst($c['room_size']) ?> room
                                             </p>
                                             <?php if (!empty($c['description'])): ?>
-                                                <p class="mb-0" style="font-size:10px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
+                                                <p class="mb-0"
+                                                    style="font-size:10px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">
                                                     <?= htmlspecialchars($c['description']) ?>
                                                 </p>
                                             <?php endif; ?>
                                         </div>
                                     </div>
-                            <?php endforeach;
+                                <?php endforeach;
                             endif; ?>
                         </div>
                     </div>
@@ -315,7 +323,8 @@ require_once '../../php/includes/admin-head.php';
                                 <h2 class="bold">Recent Activity</h2>
                             </div>
                             <div class="d-flex mx-2 align-items-end">
-                                <button class="light mx-2" onclick="dissolve('admin-reports.php?tab=activity')">Details</button>
+                                <button class="light mx-2"
+                                    onclick="dissolve('admin-reports.php?tab=activity')">Details</button>
                             </div>
                         </div>
                         <div class="gap-2">
@@ -336,7 +345,8 @@ require_once '../../php/includes/admin-head.php';
                                                     <?php endif; ?>
                                                 </h5>
                                                 <p class="mb-0" style="font-size:11px; color:var(--muted);">
-                                                    <?= date('g:i A', strtotime($log['event_time'])) ?> · <?= date('M j', strtotime($log['event_time'])) ?>
+                                                    <?= date('g:i A', strtotime($log['event_time'])) ?> ·
+                                                    <?= date('M j', strtotime($log['event_time'])) ?>
                                                     <?php if (!empty($log['triggered_by'])): ?>
                                                         · <?= htmlspecialchars($log['triggered_by']) ?>
                                                     <?php endif; ?>
@@ -360,15 +370,16 @@ require_once '../../php/includes/admin-head.php';
                         <div class="activity-list px-2 gap-2 max-width">
                             <?php
                             $statuses = [
-                                ['label' => 'Server',         'ok' => $db_ok,       'ok_text' => 'Connected',    'fail_text' => 'Disconnected'],
-                                ['label' => 'Database',        'ok' => $db_ok,       'ok_text' => 'Connected',    'fail_text' => 'Error'],
+                                ['label' => 'Server', 'ok' => $db_ok, 'ok_text' => 'Connected', 'fail_text' => 'Disconnected'],
+                                ['label' => 'Database', 'ok' => $db_ok, 'ok_text' => 'Connected', 'fail_text' => 'Error'],
                                 ['label' => 'Lighting System', 'ok' => ($lights_on > 0), 'ok_text' => $lights_on . ' room(s) active', 'fail_text' => 'No active lights'],
-                                ['label' => 'Sensor Reading',  'ok' => ($lights_data > 0), 'ok_text' => 'Receiving data', 'fail_text' => 'No data today'],
-                                ['label' => 'Webcam',          'ok' => false,        'ok_text' => 'Active',       'fail_text' => 'Disabled'],
+                                ['label' => 'Sensor Reading', 'ok' => ($lights_data > 0), 'ok_text' => 'Receiving data', 'fail_text' => 'No data today'],
+                                ['label' => 'Webcam', 'ok' => false, 'ok_text' => 'Active', 'fail_text' => 'Disabled'],
                             ];
                             foreach ($statuses as $s):
-                            ?>
-                                <div class="d-flex justify-content-between align-items-center py-1" style="border-bottom:1px solid #eee;">
+                                ?>
+                                <div class="d-flex justify-content-between align-items-center py-1"
+                                    style="border-bottom:1px solid #eee;">
                                     <h5 class="mb-0" style="font-size:13px;"><?= $s['label'] ?></h5>
                                     <span style="font-size:11px; padding:2px 10px; border-radius:20px; font-weight:600;
                                 background:<?= $s['ok'] ? '#d1e7dd' : '#f8d7da' ?>;
@@ -379,7 +390,8 @@ require_once '../../php/includes/admin-head.php';
                             <?php endforeach; ?>
                             <div class="d-flex justify-content-between align-items-center py-1">
                                 <h5 class="mb-0" style="font-size:13px;">System Uptime</h5>
-                                <span style="font-size:11px; color:var(--muted);" id="uptime-display">Calculating...</span>
+                                <span style="font-size:11px; color:var(--muted);"
+                                    id="uptime-display">Calculating...</span>
                             </div>
                         </div>
                     </div>
