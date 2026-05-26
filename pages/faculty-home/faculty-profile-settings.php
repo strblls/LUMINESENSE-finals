@@ -52,14 +52,14 @@ $conn->close();
 <div class="parent-container">
 
     <!-- TOPBAR -->
-    <div class="topbar">
+    <div class="topbar d-flex align-items-center justify-content-between">
         <div class="page-title">
             <button type="button" id="sidebarTrigger">
                 <i class="bi bi-list"></i>
             </button>
             <h1 class="bold">Profile Settings</h1>
         </div>
-        <button class="light info-action-btn logout-btn"
+        <button class="light info-action-btn logout-btn ms-auto"
                 onclick="dissolve('../../php/logout.php')">Logout</button>
     </div>
 

@@ -153,8 +153,6 @@ $conn->close();
             </div>
 
             <?php include '../../php/includes/faculty-sidebar.php'; ?>
-            <?php include '../../php/includes/f-profile-offcanvas.php'; ?>
-
         </div>
     </div>
 

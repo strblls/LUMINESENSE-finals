@@ -442,7 +442,6 @@ $conn->close();
                 </div><!-- /col 3 -->
 
                 <?php include '../../php/includes/faculty-sidebar.php'; ?>
-                <?php include '../../php/includes/f-profile-offcanvas.php'; ?>
 
                 <!-- Profile Modal -->
                 <div class="profile-details-modal modal fade" id="profileModal" tabindex="-1"

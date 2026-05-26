@@ -19,5 +19,7 @@
                 <div class="avatar-icon d-flex align-items-center justify-content-center" id="sidebarTrigger2">
                     <h3 class="bold"><?= $initials ?></h3>
                 </div>
+                <button class="light info-action-btn logout-btn"
+                    onclick="dissolve('../../php/logout.php')">Logout</button>
             </div>
         </div>
