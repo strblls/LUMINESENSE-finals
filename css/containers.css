@@ -3,15 +3,15 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
+    /* REMOVE justify-content: center — this was pushing content up */
 }
 
 .child-container {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: center;
+    justify-content: flex-start; /* was: center */
     height: auto;
     width: 100%;
 }
@@ -369,7 +369,7 @@
 
 .section-container {
     border-radius: 10px;
-    height: 100%;
+    height: auto;      /* was 100% — this caused overflow growth */
     width: 100%;
 }
 

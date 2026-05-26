@@ -84,15 +84,12 @@ $conn->close();
     <title>Home – LumineSense</title>
 
     <style>
-        /* Override homepage grid to 3 columns: gesture | center | activities */
+        /* Replace the two existing .main-container.homepage rules with this */
         .main-container.homepage {
+            display: grid !important;                          /* ADD */
             grid-template-columns: 1fr 1.2fr 1fr !important;
-        }
-
-        /* Fix: prevent camera column from stretching sibling columns */
-        .main-container.homepage {
             align-items: start !important;
-        }
+}
 
         /* Gesture camera area */
         .gesture-camera {
