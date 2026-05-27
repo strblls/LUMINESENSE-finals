@@ -35,7 +35,8 @@ $stmt = $conn->prepare("
 $stmt->bind_param('issss', $classroom_id, $today, $now, $now, $now);
 $stmt->execute();
 $r = $stmt->get_result();
-if ($row = $r->fetch_assoc()) $active_schedule = $row;
+if ($row = $r->fetch_assoc())
+    $active_schedule = $row;
 $stmt->close();
 
 // ── Classroom light_status ────────────────────────────────────────────────────
@@ -84,14 +85,12 @@ $conn->close();
     <title>Home – LumineSense</title>
 
     <style>
-        /* Replace the two existing .main-container.homepage rules with this */
         .main-container.homepage {
-            display: grid !important;                          /* ADD */
+            display: grid !important;
             grid-template-columns: 1fr 1.2fr 1fr !important;
             align-items: start !important;
-}
+        }
 
-        /* Gesture camera area */
         .gesture-camera {
             background: #212529;
             border-radius: 8px;
@@ -131,7 +130,11 @@ $conn->close();
         }
 
         /* Gesture row selector pills */
-        .gesture-row-pills { display: flex; gap: 6px; }
+        .gesture-row-pills {
+            display: flex;
+            gap: 6px;
+        }
+
         .gesture-row-pill {
             padding: 3px 12px;
             border-radius: 20px;
@@ -144,12 +147,14 @@ $conn->close();
             cursor: default;
             user-select: none;
         }
+
         .gesture-row-pill.active {
             background: #0d6efd;
             color: #fff;
             border-color: #0a58ca;
-            box-shadow: 0 0 8px rgba(13,110,253,0.45);
+            box-shadow: 0 0 8px rgba(13, 110, 253, 0.45);
         }
+
         .gesture-row-pill.pending {
             background: #ffc107;
             color: #212529;
@@ -157,23 +162,71 @@ $conn->close();
             box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
             animation: pillPulse 1s infinite alternate ease-in-out;
         }
+
         .gesture-row-pill.confirmed {
             background: #198754;
             color: #fff;
             border-color: #146c43;
             animation: pillPop 0.35s ease;
         }
+
         @keyframes pillPulse {
             0% { transform: scale(1); }
             100% { transform: scale(1.08); }
         }
+
         @keyframes pillPop {
-            0%   { transform: scale(1); }
-            50%  { transform: scale(1.18); }
+            0% { transform: scale(1); }
+            50% { transform: scale(1.18); }
             100% { transform: scale(1); }
         }
-        .gesture-hint { font-size: 0.7rem; color: #6c757d; line-height: 1.4; }
-        #simulatePirBtn { font-size: 0.78rem; }
+
+        #simulatePirBtn {
+            font-size: 0.78rem;
+        }
+
+        /* Gesture guide rows */
+        .gesture-guide-row {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .gesture-guide-row:last-child {
+            border-bottom: none;
+        }
+
+        .gesture-guide-img {
+            flex-shrink: 0;
+            width: 90px;
+            height: 80px;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gesture-guide-img img {
+            max-height: 64px;
+            max-width: 70px;
+            object-fit: contain;
+        }
+
+        .gesture-guide-text {
+            padding: 0 14px;
+        }
+
+        .gesture-guide-text strong {
+            font-size: 0.9rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .gesture-guide-text span {
+            font-size: 0.8rem;
+            color: #6c757d;
+            line-height: 1.4;
+        }
     </style>
 </head>
 
@@ -202,15 +255,19 @@ $conn->close();
                         </div>
 
                         <!-- Camera feed -->
-                        <div class="gesture-camera d-flex flex-row align-items-center justify-content-center" style="position: relative;">
-                            <button id="enableCameraBtn" class="btn btn-primary btn-sm" style="z-index: 10;">
+                        <div class="gesture-camera d-flex flex-row align-items-center justify-content-center"
+                            style="position: relative;">
+                            <button id="enableCameraBtn" class="btn btn-primary btn-sm" style="z-index: 10;" <?= !$active_schedule ? 'disabled title="No active schedule"' : '' ?>>
                                 <i class="bi bi-camera-video me-1"></i>Enable Camera
                             </button>
-                            <button id="disableCameraBtn" class="btn btn-secondary btn-sm" style="display:none; position: absolute; bottom: 8px; right: 8px; z-index: 10;">
+                            <button id="disableCameraBtn" class="btn btn-secondary btn-sm"
+                                style="display:none; position: absolute; bottom: 8px; right: 8px; z-index: 10;">
                                 <i class="bi bi-camera-video-off me-1"></i>Disable Camera
                             </button>
-                            <video id="webcamVideo" autoplay playsinline style="display:none; width:100%; height:100%; object-fit:cover; border-radius:8px; transform: scaleX(-1);"></video>
-                            <canvas id="webcamCanvas" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:8px; pointer-events:none; transform: scaleX(-1);"></canvas>
+                            <video id="webcamVideo" autoplay playsinline
+                                style="display:none; width:100%; height:100%; object-fit:cover; border-radius:8px; transform: scaleX(-1);"></video>
+                            <canvas id="webcamCanvas"
+                                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:8px; pointer-events:none; transform: scaleX(-1);"></canvas>
                         </div>
 
                         <!-- Row selector pills + result + accuracy -->
@@ -223,29 +280,17 @@ $conn->close();
                                 <span class="gesture-row-pill" id="rowPill3" data-row="3">Row 3</span>
                             </div>
 
-                            <!-- Gesture hint -->
-                            <p class="gesture-hint mb-0 w-100 text-center">
-                                ☝️&nbsp;<strong>1 finger</strong> → Row 1 &nbsp;✌️&nbsp;<strong>2 fingers</strong> → Row 2
-                                &nbsp;🤟&nbsp;<strong>ILY</strong> → Row 3<br>
-                                👍&nbsp;<strong>Thumb up</strong> → toggle row &nbsp;✋&nbsp;<strong>Palm</strong> → all ON &nbsp;✊&nbsp;<strong>Fist</strong> → all OFF
-                            </p>
-
                             <!-- Result label -->
                             <div class="d-flex align-items-center gap-1">
                                 <span class="text-muted" style="font-size:0.85rem;">Detected:</span>
                                 <span class="bold mx-1" id="gestureResult">—</span>
                             </div>
 
-                            <!-- Accuracy bar -->
-                            <span class="text-muted" style="font-size:0.85rem;">Accuracy:</span>
-                            <div class="progress w-100" style="height: 20px;">
-                                <div class="progress-bar bg-success d-flex align-items-center justify-content-center"
-                                    role="progressbar"
-                                    id="accuracyBar"
-                                    style="width: 0%;"
-                                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                                    0%
-                                </div>
+                            <!-- View Gestures button – matches .light style -->
+                            <div class="w-100 d-flex justify-content-center">
+                                <button class="light" data-bs-toggle="modal" data-bs-target="#gestureHelpModal">
+                                    <i class="bi bi-question-circle me-1"></i> View Gestures
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -260,7 +305,8 @@ $conn->close();
                         <div class="gap-2">
                             <div class="activity-list px-2 gap-2 align-items-center max-width">
                                 <h5>Lighting:
-                                    <span id="statusLighting" class="<?= $light_status === 'on' ? 'text-success' : 'text-danger' ?>">
+                                    <span id="statusLighting"
+                                        class="<?= $light_status === 'on' ? 'text-success' : 'text-danger' ?>">
                                         <?= strtoupper($light_status) ?>
                                     </span>
                                 </h5>
@@ -280,6 +326,7 @@ $conn->close();
                 </div><!-- /col 1 -->
 
 
+
                 <!-- ══════════════════════════════
                      COLUMN 2 – TIMER + LIGHTING
                 ══════════════════════════════ -->
@@ -295,11 +342,9 @@ $conn->close();
                             <div class="d-flex flex-column mx-1 align-items-center justify-content-center">
                                 <?php if ($active_schedule): ?>
                                     <?php
-                                    // Use extended_until if set, otherwise end_time
                                     $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
                                     ?>
-                                    <h1 class="bold display-1" id="timerDisplay"
-                                        data-end="<?= htmlspecialchars($end) ?>">
+                                    <h1 class="bold display-1" id="timerDisplay" data-end="<?= htmlspecialchars($end) ?>">
                                         --:--:--
                                     </h1>
                                 <?php else: ?>
@@ -307,7 +352,7 @@ $conn->close();
                                 <?php endif; ?>
                             </div>
                             <div class="d-flex flex-column mx-2 align-items-end justify-content-center">
-                                <button class="light" onclick="dissolve('faculty-timetable.php')">View Schedule</button>
+                                <button class="light" data-bs-toggle="modal" data-bs-target="#viewScheduleModal">View Schedule</button>
                                 <?php if ($active_schedule): ?>
                                     <button class="light mt-2" data-bs-toggle="modal" data-bs-target="#extendModal">
                                         <i class="bi bi-clock-history me-1"></i> Extend
@@ -328,6 +373,13 @@ $conn->close();
                                 <h2 class="bold">Lighting Grid</h2>
                             </div>
                         </div>
+                        <!-- Schedule ended notice -->
+                        <div id="scheduleEndNotice" class="alert alert-warning d-flex align-items-center gap-2 mx-2 mb-2 py-2"
+                            style="font-size:0.82rem; <?= !$active_schedule ? '' : 'display:none;' ?>">
+                            <i class="bi bi-lock-fill"></i>
+                            Controls are locked — no active class schedule.
+                        </div>
+
                         <?php
                         $b1 = ($row1_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
                         $b2 = ($row2_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
@@ -352,29 +404,38 @@ $conn->close();
                                 <div class="d-flex flex-column align-items-center gap-1">
                                     <label class="form-check-label" for="row-1-switch">Row 1</label>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="row-1-switch" <?= ($row1_status === 'on' && $active_schedule) ? 'checked' : '' ?>>
+                                        <input class="form-check-input" type="checkbox" role="switch" id="row-1-switch"
+                                            <?= ($row1_status === 'on' && $active_schedule) ? 'checked' : '' ?>
+                                            <?= !$active_schedule ? 'disabled' : '' ?>>
                                     </div>
                                 </div>
                                 <div class="d-flex flex-column align-items-center gap-1">
                                     <label class="form-check-label" for="row-2-switch">Row 2</label>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="row-2-switch" <?= ($row2_status === 'on' && $active_schedule) ? 'checked' : '' ?>>
+                                        <input class="form-check-input" type="checkbox" role="switch" id="row-2-switch"
+                                            <?= ($row2_status === 'on' && $active_schedule) ? 'checked' : '' ?>
+                                            <?= !$active_schedule ? 'disabled' : '' ?>>
                                     </div>
                                 </div>
                                 <div class="d-flex flex-column align-items-center gap-1">
                                     <label class="form-check-label" for="row-3-switch">Row 3</label>
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch" id="row-3-switch" <?= ($row3_status === 'on' && $active_schedule) ? 'checked' : '' ?>>
+                                        <input class="form-check-input" type="checkbox" role="switch" id="row-3-switch"
+                                            <?= ($row3_status === 'on' && $active_schedule) ? 'checked' : '' ?>
+                                            <?= !$active_schedule ? 'disabled' : '' ?>>
                                     </div>
                                 </div>
                                 <br>
                                 <div class="d-flex flex-column align-items-center gap-1">
                                     <h5 class="bold">All Lights</h5>
-                                    <h4 id="allLightsStatus" class="bold <?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?>">
+                                    <h4 id="allLightsStatus"
+                                        class="bold <?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?>">
                                         <?= ($light_status === 'on' && $active_schedule) ? 'ON' : 'OFF' ?>
                                     </h4>
-                                    <div id="allLightsContainer" class="all-lights-<?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?> ...">
-                                        <i class="bi bi-power" id="all-lights"></i>
+                                    <div id="allLightsContainer"
+                                        class="all-lights-<?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?> ..."
+                                        style="display:flex; align-items:center; justify-content:center; <?= !$active_schedule ? 'pointer-events:none; opacity:0.4;' : '' ?>">
+                                        <i class="bi bi-power" id="all-lights" style="line-height:1; display:flex; align-items:center; justify-content:center;"></i>
                                     </div>
                                 </div>
                             </div>
@@ -385,65 +446,48 @@ $conn->close();
 
 
                 <!-- ══════════════════════════════
-                     COLUMN 3 – RECENT ACTIVITIES + SYSTEM STATUS
+                     COLUMN 3 – RECENT ACTIVITIES
                 ══════════════════════════════ -->
                 <div class="group-container gap-3">
+
                     <!-- Recent Activities -->
-                    <div style="background-color: #f8f9fa;" class="section-container recents">
+                    <div style="background-color: #f8f9fa;" class="section-container recents" style="min-height: 420px;">
                         <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">Recent Activities</h2>
                             </div>
                             <div class="d-flex mx-2 align-items-end">
-                                <button class="light mx-2">Details</button>
+                                <button class="light mx-2" data-bs-toggle="modal"
+                                    data-bs-target="#activityDetailsModal">Details</button>
                             </div>
                         </div>
                         <div class="gap-2">
                             <div class="activity-list px-2 gap-2 align-items-center max-width">
                                 <?php if (empty($logs)): ?>
                                     <p class="text-muted">No recent activity yet.</p>
-                                    <?php else: foreach ($logs as $log): ?>
+                                <?php else:
+                                    foreach ($logs as $log): ?>
                                         <div style="font-size:0.78rem; padding: 4px 0;">
                                             <span class="bold"><?= ucfirst(str_replace('_', ' ', $log['event_type'])) ?></span>
                                             <span class="text-muted"> · <?= htmlspecialchars($log['room_name']) ?></span>
-                                            <div class="text-muted" style="font-size:0.72rem;"><?= date('g:i A · M j', strtotime($log['event_time'])) ?></div>
+                                            <div class="text-muted" style="font-size:0.72rem;">
+                                                <?= date('g:i A · M j', strtotime($log['event_time'])) ?>
+                                            </div>
                                         </div>
                                         <hr>
-                                <?php endforeach;
+                                    <?php endforeach;
                                 endif; ?>
                             </div>
                         </div>
                     </div>
 
-                    <!-- RIGHT: Lighting Status gauges (unchanged) -->
-            <div class="group-container gap-3">
-                <div style="background-color:#f8f9fa;" class="section-container recents">
-                    <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
-                        <div class="d-flex mx-2 align-items-start">
-                            <h2 class="bold">Lighting Status</h2>
-                        </div>
-                    </div>
-                    <div class="gauge-container d-flex pt-1 flex-column align-items-center justify-content-center gap-3">
-                        <div class="gauge">
-                            <canvas id="energyGauge"></canvas>
-                            <div class="gauge-value"><span id="tempNumber">36</span><span class="gauge-unit"> kWh</span></div>
-                            <div class="gauge-label bold">Overall Lighting Consumption</div>
-                        </div>
-                        <h6 class="text-center">Status: Normal<br>Max Room Consumption: 4 kWh</h6>
-                        <div class="gauge">
-                            <canvas id="luxGauge"></canvas>
-                            <div class="gauge-value"><span id="humidNumber">58</span><span class="gauge-unit"> lux</span></div>
-                            <div class="gauge-label bold">Overall Room Illuminance (lux)</div>
-                        </div>
-                        <h6 class="text-center">Max Room Illuminance: 300 lux</h6>
-                    </div>
-                </div>
-            </div>
                 </div><!-- /col 3 -->
 
                 <?php include '../../php/includes/faculty-sidebar.php'; ?>
 
-                <!-- Profile Modal -->
+                <!-- ══════════════════════════════
+                     PROFILE MODAL
+                ══════════════════════════════ -->
                 <div class="profile-details-modal modal fade" id="profileModal" tabindex="-1"
                     aria-labelledby="profileModalLabel" aria-hidden="true">
                     <div class="d-flex justify-content-center modal-dialog modal-lg">
@@ -459,14 +503,14 @@ $conn->close();
                                 <div class="card border-0 shadow-sm rounded-4">
                                     <div class="card-body p-4">
                                         <div class="d-flex flex-between align-items-center gap-3 mb-4">
-                                            <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0">
+                                            <div
+                                                class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0">
                                                 <h3 class="bold mb-0"><?= $initials ?></h3>
                                             </div>
                                             <div>
                                                 <h4 class="bold mb-1"><?= $faculty_name ?></h4>
                                                 <p class="mb-0">Faculty Member</p>
                                             </div>
-                                            <!-- Edit profile: opens this same modal, already here -->
                                             <button type="button"
                                                 class="edit-button btn btn-sm btn-light border rounded-circle ms-auto"
                                                 data-bs-toggle="modal" data-bs-target="#profileModal"
@@ -478,8 +522,8 @@ $conn->close();
                                             <div class="col-12">
                                                 <div class="p-3 bg-light rounded-3">
                                                     <small class="text-muted d-block">Email</small>
-                                                    <!-- Masked for privacy, e.g. ca***@gmail.com -->
-                                                    <p class="mb-0"><?= htmlspecialchars(mask_email($faculty_email)) ?></p>
+                                                    <p class="mb-0"><?= htmlspecialchars(mask_email($faculty_email)) ?>
+                                                    </p>
                                                 </div>
                                             </div>
                                             <div class="col-12">
@@ -496,7 +540,9 @@ $conn->close();
                     </div>
                 </div>
 
-                <!-- Classroom Details Modal -->
+                <!-- ══════════════════════════════
+                     CLASSROOM DETAILS MODAL
+                ══════════════════════════════ -->
                 <div class="profile-details-modal modal fade" id="classroomModal" tabindex="-1"
                     aria-labelledby="classroomModalLabel" aria-hidden="true">
                     <div class="d-flex justify-content-center modal-dialog modal-lg">
@@ -572,18 +618,15 @@ $conn->close();
 
     <!-- PHP values for gesture JS -->
     <script>
-        const CLASSROOM_ID = <?= (int)$classroom_id ?>;
-        const FACULTY_ID = <?= (int)$faculty_id ?>;
+        const CLASSROOM_ID = <?= (int) $classroom_id ?>;
+        const FACULTY_ID = <?= (int) $faculty_id ?>;
 
-        // Sidebar triggers
-        document.getElementById('sidebarTrigger').addEventListener('click', function() {
+        // Sidebar trigger
+        document.getElementById('sidebarTrigger').addEventListener('click', function () {
             bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('sidebarOffcanvas')).toggle();
         });
-        document.getElementById('sidebarTrigger2').addEventListener('click', function() {
-            bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('profileOffcanvas')).toggle();
-        });
 
-        // Refresh reloads the page to update gesture log
+        // Refresh
         document.getElementById('refreshBtn').addEventListener('click', () => location.reload());
 
         // Log a gesture event to the DB
@@ -593,27 +636,50 @@ $conn->close();
             form.append('faculty_id', FACULTY_ID);
             form.append('event_type', eventType);
             form.append('triggered_by', 'gesture');
-            await fetch('../../api/logs.php', {
-                method: 'POST',
-                body: form
-            });
+            await fetch('../../api/logs.php', { method: 'POST', body: form });
         }
 
         // Update gesture result display (called from initialize-gesture.js)
         function updateGestureResult(label, accuracy) {
             document.getElementById('gestureResult').textContent = label;
-            const pct = Math.round(accuracy * 100);
-            const bar = document.getElementById('accuracyBar');
-            bar.style.width = pct + '%';
-            bar.textContent = pct + '%';
-            bar.setAttribute('aria-valuenow', pct);
         }
 
-        // ── Countdown timer (refreshed by pollDashboard) ─────────────────────
+        // ── Lock / Unlock controls ────────────────────────────────────────────
+        function lockControls() {
+            ['row-1-switch','row-2-switch','row-3-switch'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.disabled = true; el.closest('.form-check')?.classList.add('opacity-50'); }
+            });
+            const pwr = document.getElementById('allLightsContainer');
+            if (pwr) { pwr.style.pointerEvents = 'none'; pwr.style.opacity = '0.4'; }
+            const camBtn = document.getElementById('enableCameraBtn');
+            if (camBtn) { camBtn.disabled = true; camBtn.title = 'No active schedule'; }
+            const disBtn = document.getElementById('disableCameraBtn');
+            if (disBtn) { disBtn.disabled = true; }
+            const notice = document.getElementById('scheduleEndNotice');
+            if (notice) notice.style.display = 'block';
+        }
+
+        function unlockControls() {
+            ['row-1-switch','row-2-switch','row-3-switch'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.disabled = false; el.closest('.form-check')?.classList.remove('opacity-50'); }
+            });
+            const pwr = document.getElementById('allLightsContainer');
+            if (pwr) { pwr.style.pointerEvents = ''; pwr.style.opacity = ''; }
+            const camBtn = document.getElementById('enableCameraBtn');
+            if (camBtn) { camBtn.disabled = false; camBtn.title = ''; }
+            const disBtn = document.getElementById('disableCameraBtn');
+            if (disBtn) { disBtn.disabled = false; }
+            const notice = document.getElementById('scheduleEndNotice');
+            if (notice) notice.style.display = 'none';
+        }
+
+        // ── Countdown timer ───────────────────────────────────────────────────
         let _scheduleEnd = null;
         (function () {
             const display = document.getElementById('timerDisplay');
-            const phpEnd  = display ? display.dataset.end : null;
+            const phpEnd = display ? display.dataset.end : null;
             if (phpEnd) _scheduleEnd = phpEnd;
 
             function pad(n) { return String(n).padStart(2, '0'); }
@@ -623,6 +689,7 @@ $conn->close();
                 if (!_scheduleEnd) {
                     display.textContent = '00:00:00';
                     display.classList.remove('text-danger');
+                    lockControls();
                     return;
                 }
                 const now = new Date();
@@ -631,14 +698,19 @@ $conn->close();
                 end.setHours(h, m, s, 0);
                 let diff = Math.max(0, Math.floor((end - now) / 1000));
                 display.textContent = `${pad(Math.floor(diff / 3600))}:${pad(Math.floor((diff % 3600) / 60))}:${pad(diff % 60)}`;
-                if (diff === 0) display.classList.add('text-danger');
-                else display.classList.remove('text-danger');
+                if (diff === 0) {
+                    display.classList.add('text-danger');
+                    lockControls();
+                } else {
+                    display.classList.remove('text-danger');
+                    unlockControls();
+                }
             };
             window._tickTimer();
             setInterval(window._tickTimer, 1000);
         })();
 
-        // ── System Uptime (PIR occupancy start) ───────────────────────────────
+        // ── System Uptime ─────────────────────────────────────────────────────
         let _uptimeStart = null;
         (function () {
             const el = document.getElementById('statusUptime');
@@ -654,25 +726,21 @@ $conn->close();
         })();
 
         // ── Live dashboard poll (every 3 s) ───────────────────────────────────
-        const BULB_ON  = '../../images/bulb-on.png';
+        const BULB_ON = '../../images/bulb-on.png';
         const BULB_OFF = '../../images/bulb-off.png';
         let _lastLightStatus = '<?= $light_status ?>';
 
         async function pollDashboard() {
             try {
-                const res  = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
+                const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
                 if (!res.ok) return;
                 const data = await res.json();
                 if (!data.success) return;
 
-                // ── Lights ────────────────────────────────────────────────────
-                const lights   = data.light_status;    // 'on' | 'off'
-                const r1       = data.row1_status || 'off';
-                const r2       = data.row2_status || 'off';
-                const r3       = data.row3_status || 'off';
-                const hasSched = data.schedule_active;
+                const r1 = data.row1_status || 'off';
+                const r2 = data.row2_status || 'off';
+                const r3 = data.row3_status || 'off';
 
-                // Dynamically sync individual rows
                 document.querySelectorAll('.bulb-img[data-row="1"]').forEach(img => img.src = r1 === 'on' ? BULB_ON : BULB_OFF);
                 document.querySelectorAll('.bulb-img[data-row="2"]').forEach(img => img.src = r2 === 'on' ? BULB_ON : BULB_OFF);
                 document.querySelectorAll('.bulb-img[data-row="3"]').forEach(img => img.src = r3 === 'on' ? BULB_ON : BULB_OFF);
@@ -681,36 +749,32 @@ $conn->close();
                 const sw2 = document.getElementById('row-2-switch'); if (sw2) sw2.checked = (r2 === 'on');
                 const sw3 = document.getElementById('row-3-switch'); if (sw3) sw3.checked = (r3 === 'on');
 
-                // Recalculate whether any light is ON to drive the overall badge
                 const overallBadgeOn = (r1 === 'on' || r2 === 'on' || r3 === 'on');
 
                 if (overallBadgeOn !== _lastLightStatus) {
                     _lastLightStatus = overallBadgeOn;
 
-                    // All-lights badge
-                    const badge   = document.getElementById('allLightsStatus');
+                    const badge = document.getElementById('allLightsStatus');
                     const btnCont = document.getElementById('allLightsContainer');
                     if (badge) {
                         badge.textContent = overallBadgeOn ? 'ON' : 'OFF';
-                        badge.className   = `bold ${overallBadgeOn ? 'on' : 'off'}`;
+                        badge.className = `bold ${overallBadgeOn ? 'on' : 'off'}`;
                     }
                     if (btnCont) {
                         btnCont.className = btnCont.className
                             .replace(/all-lights-(on|off)/, `all-lights-${overallBadgeOn ? 'on' : 'off'}`);
                     }
 
-                    // System Status lighting
                     const sLight = document.getElementById('statusLighting');
                     if (sLight) {
                         sLight.textContent = overallBadgeOn ? 'ON' : 'OFF';
-                        sLight.className   = overallBadgeOn ? 'text-success' : 'text-danger';
+                        sLight.className = overallBadgeOn ? 'text-success' : 'text-danger';
                     }
                 }
 
-                // ── Schedule / countdown ──────────────────────────────────────
                 _scheduleEnd = data.schedule_end || null;
+                if (!_scheduleEnd) lockControls(); else unlockControls();
 
-                // ── PIR uptime ────────────────────────────────────────────────
                 const pirEl = document.getElementById('statusPir');
                 if (data.pir_occupied && data.pir_since) {
                     _uptimeStart = new Date(data.pir_since.replace(' ', 'T')).getTime();
@@ -728,108 +792,377 @@ $conn->close();
         pollDashboard();
         setInterval(pollDashboard, 3000);
 
-        // ── PIR Simulate button (test without Arduino) ────────────────────────
+        // ── PIR Simulate button ───────────────────────────────────────────────
         const simBtn = document.getElementById('simulatePirBtn');
         if (simBtn) {
-            let _pirState = false; // false = empty, true = occupied
+            let _pirState = false;
             simBtn.addEventListener('click', async () => {
                 _pirState = !_pirState;
                 simBtn.textContent = _pirState ? '🔴 Simulate Empty Room' : '🟢 Simulate Occupancy';
-                simBtn.className   = `btn btn-sm mt-1 w-100 ${_pirState ? 'btn-danger' : 'btn-success'}`;
+                simBtn.className = `btn btn-sm mt-1 w-100 ${_pirState ? 'btn-danger' : 'btn-success'}`;
                 const form = new FormData();
                 form.append('classroom_id', CLASSROOM_ID);
-                form.append('occupied',     _pirState ? '1' : '0');
+                form.append('occupied', _pirState ? '1' : '0');
                 await fetch('../../api/pir.php', { method: 'POST', body: form });
-                await pollDashboard(); // immediate refresh after simulating
+                await pollDashboard();
             });
         }
     </script>
 
     <!-- Gesture detection script -->
     <script type="module" src="../../script/initialize-gesture.js?v=<?= time() ?>"></script>
-<!-- Extend Schedule Modal -->
-<?php if ($active_schedule): ?>
-<div class="modal fade" id="extendModal" tabindex="-1" aria-labelledby="extendModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title bold" id="extendModalLabel">
-                    <i class="bi bi-clock-history me-2"></i>Request Time Extension
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted small mb-3">
-                    Current class ends at 
-                    <strong><?= date('g:i A', strtotime($active_schedule['extended_until'] ?? $active_schedule['end_time'])) ?></strong>.
-                    How many extra minutes do you need?
-                </p>
-                <div class="d-flex gap-2 justify-content-center flex-wrap" id="extendPills">
-                    <?php foreach ([15, 30, 45, 60] as $mins): ?>
-                        <button class="btn btn-outline-primary extend-pill" data-mins="<?= $mins ?>">
-                            +<?= $mins ?> min
-                        </button>
-                    <?php endforeach; ?>
+
+    <!-- ══════════════════════════════
+         GESTURE HELP MODAL – 2-column grid, modal-xl, centered
+    ══════════════════════════════ -->
+    <div class="profile-details-modal modal fade" id="gestureHelpModal" tabindex="-1" aria-labelledby="gestureHelpLabel" aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold" id="gestureHelpLabel">
+                        <i class="bi bi-hand-index-thumb me-2"></i>Gesture Guide
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <p class="text-center text-muted small mt-3 mb-0" id="extendFeedback"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submitExtendBtn" disabled>
-                    Send Request
-                </button>
+                <div class="modal-body p-3">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
+
+                        <!-- 1 Finger – Row 1 -->
+                        <div class="gesture-guide-row" style="border-right: 1px solid #dee2e6;">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/pointing-up.png" alt="Pointing up – 1 finger">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>1 Finger Up</strong>
+                                <span>Point only your index finger upward, all other fingers curled down. Selects <strong>Row 1</strong>.</span>
+                            </div>
+                        </div>
+
+                        <!-- Victory – Row 2 -->
+                        <div class="gesture-guide-row">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/victory.png" alt="Victory – 2 fingers">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>Victory / 2 Fingers</strong>
+                                <span>Raise index and middle fingers in a V shape, remaining fingers curled. Selects <strong>Row 2</strong>.</span>
+                            </div>
+                        </div>
+
+                        <!-- ILY – Row 3 -->
+                        <div class="gesture-guide-row" style="border-right: 1px solid #dee2e6;">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/ily.png" alt="ILY sign">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>ILY Sign</strong>
+                                <span>Raise thumb, index, and pinky fingers. Middle and ring fingers must be curled down. Selects <strong>Row 3</strong>.</span>
+                            </div>
+                        </div>
+
+                        <!-- Thumbs Up – Toggle -->
+                        <div class="gesture-guide-row">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/thumbs-up.png" alt="Thumbs up">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>Thumbs Up</strong>
+                                <span>Close all fingers into a fist with only the thumb pointing upward. <strong>Toggles</strong> the currently selected row on or off.</span>
+                            </div>
+                        </div>
+
+                        <!-- Open Palm – All ON -->
+                        <div class="gesture-guide-row" style="border-bottom: none; border-right: 1px solid #dee2e6;">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/open-palm.png" alt="Open palm">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>Open Palm</strong>
+                                <span>Extend all five fingers wide and spread them open, facing the camera. Turns <strong>all lights ON</strong>.</span>
+                            </div>
+                        </div>
+
+                        <!-- Closed Fist – All OFF -->
+                        <div class="gesture-guide-row" style="border-bottom: none;">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/closed-fist.png" alt="Closed fist">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>Closed Fist</strong>
+                                <span>Curl all fingers tightly into a fist with no fingers extended. Turns <strong>all lights OFF</strong>.</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-(function () {
-    const SCHEDULE_ID = <?= (int)$active_schedule['id'] ?>;
-    let selectedMins = 0;
+    <!-- ══════════════════════════════
+         ACTIVITY DETAILS MODAL
+         CHANGE 2: Added modal-dialog-centered
+    ══════════════════════════════ -->
+    <div class="profile-details-modal modal fade" id="activityDetailsModal" tabindex="-1" aria-labelledby="activityDetailsLabel"
+        aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold" id="activityDetailsLabel">
+                        <i class="bi bi-clock-history me-2"></i>Recent Activity Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <?php if (empty($logs)): ?>
+                        <p class="text-muted text-center py-4">No recent activity yet.</p>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle" style="font-size:0.85rem;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Event</th>
+                                        <th>Room</th>
+                                        <th>Row Affected</th>
+                                        <th>Triggered By</th>
+                                        <th class="pe-3">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($logs as $log): ?>
+                                        <tr>
+                                            <!-- Event type badge -->
+                                            <td class="ps-3">
+                                                <?php
+                                                $type = $log['event_type'] ?? '';
+                                                $badgeClass = match (true) {
+                                                    str_contains($type, 'on')      => 'bg-success',
+                                                    str_contains($type, 'off')     => 'bg-danger',
+                                                    str_contains($type, 'gesture') => 'bg-primary',
+                                                    default                        => 'bg-secondary'
+                                                };
+                                                ?>
+                                                <span class="badge <?= $badgeClass ?> rounded-pill">
+                                                    <?= ucfirst(str_replace('_', ' ', $type)) ?>
+                                                </span>
+                                            </td>
 
-    document.querySelectorAll('.extend-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.extend-pill').forEach(b => b.classList.remove('active', 'btn-primary'));
-            btn.classList.add('active', 'btn-primary');
-            btn.classList.remove('btn-outline-primary');
-            selectedMins = parseInt(btn.dataset.mins);
-            document.getElementById('submitExtendBtn').disabled = false;
-            document.getElementById('extendFeedback').textContent = '';
-        });
-    });
+                                            <!-- Room -->
+                                            <td><?= htmlspecialchars($log['room_name'] ?? '—') ?></td>
 
-    document.getElementById('submitExtendBtn').addEventListener('click', async () => {
-        const btn      = document.getElementById('submitExtendBtn');
-        const feedback = document.getElementById('extendFeedback');
-        btn.disabled   = true;
-        btn.textContent = 'Sending…';
+                                            <!-- Row affected -->
+                                            <td>
+                                                <?php $rowAffected = $log['row_affected'] ?? null; ?>
+                                                <?php if ($rowAffected): ?>
+                                                    <span class="badge bg-info text-dark rounded-pill">Row
+                                                        <?= htmlspecialchars($rowAffected) ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">All rows</span>
+                                                <?php endif; ?>
+                                            </td>
 
-        const form = new FormData();
-        form.append('schedule_id',  SCHEDULE_ID);
-        form.append('extend_mins',  selectedMins);
+                                            <!-- Triggered by -->
+                                            <td>
+                                                <?php
+                                                $by = strtolower(trim($log['triggered_by'] ?? 'manual'));
+                                                $byBadge = match($by) {
+                                                    'gesture', 'pir' => ['bg-primary', 'bi-hand-index-thumb', 'Gesture'],
+                                                    'manual'         => ['bg-secondary', 'bi-toggle-on',      'Manual'],
+                                                    default          => ['bg-secondary', 'bi-toggle-on',      ucfirst($by)],
+                                                };
+                                                ?>
+                                                <span class="badge <?= $byBadge[0] ?> rounded-pill">
+                                                    <i class="bi <?= $byBadge[1] ?> me-1"></i>
+                                                    <?= $byBadge[2] ?>
+                                                </span>
+                                            </td>
 
-        try {
-            const res  = await fetch('../../api/request-extension.php', { method: 'POST', body: form });
-            const data = await res.json();
-            feedback.textContent  = data.message;
-            feedback.style.color  = data.success ? 'green' : 'red';
-            if (data.success) {
-                btn.textContent = 'Sent ✓';
-            } else {
-                btn.disabled    = false;
-                btn.textContent = 'Send Request';
-            }
-        } catch {
-            feedback.textContent = 'Network error. Please try again.';
-            feedback.style.color = 'red';
-            btn.disabled         = false;
-            btn.textContent      = 'Send Request';
-        }
-    });
-})();
-</script>
-<?php endif; ?>
+                                            <!-- Time -->
+                                            <td class="pe-3 text-muted" style="white-space:nowrap;">
+                                                <?= date('g:i A', strtotime($log['event_time'])) ?>
+                                                <div style="font-size:0.72rem;">
+                                                    <?= date('M j, Y', strtotime($log['event_time'])) ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         EXTEND SCHEDULE MODAL
+    ══════════════════════════════ -->
+    <?php if ($active_schedule): ?>
+        <div class="modal fade" id="extendModal" tabindex="-1" aria-labelledby="extendModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title bold" id="extendModalLabel">
+                            <i class="bi bi-clock-history me-2"></i>Request Time Extension
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-3">
+                            Current class ends at
+                            <strong><?= date('g:i A', strtotime($active_schedule['extended_until'] ?? $active_schedule['end_time'])) ?></strong>.
+                            How many extra minutes do you need?
+                        </p>
+                        <div class="d-flex gap-2 justify-content-center flex-wrap" id="extendPills">
+                            <?php foreach ([15, 30, 45, 60] as $mins): ?>
+                                <button class="btn btn-outline-primary extend-pill" data-mins="<?= $mins ?>">
+                                    +<?= $mins ?> min
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                        <p class="text-center text-muted small mt-3 mb-0" id="extendFeedback"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="submitExtendBtn" disabled>
+                            Send Request
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                const SCHEDULE_ID = <?= (int) $active_schedule['id'] ?>;
+                let selectedMins = 0;
+
+                document.querySelectorAll('.extend-pill').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.extend-pill').forEach(b => b.classList.remove('active', 'btn-primary'));
+                        btn.classList.add('active', 'btn-primary');
+                        btn.classList.remove('btn-outline-primary');
+                        selectedMins = parseInt(btn.dataset.mins);
+                        document.getElementById('submitExtendBtn').disabled = false;
+                        document.getElementById('extendFeedback').textContent = '';
+                    });
+                });
+
+                document.getElementById('submitExtendBtn').addEventListener('click', async () => {
+                    const btn = document.getElementById('submitExtendBtn');
+                    const feedback = document.getElementById('extendFeedback');
+                    btn.disabled = true;
+                    btn.textContent = 'Sending…';
+
+                    const form = new FormData();
+                    form.append('schedule_id', SCHEDULE_ID);
+                    form.append('extend_mins', selectedMins);
+
+                    try {
+                        const res = await fetch('../../api/request-extension.php', { method: 'POST', body: form });
+                        const data = await res.json();
+                        feedback.textContent = data.message;
+                        feedback.style.color = data.success ? 'green' : 'red';
+                        if (data.success) {
+                            btn.textContent = 'Sent ✓';
+                        } else {
+                            btn.disabled = false;
+                            btn.textContent = 'Send Request';
+                        }
+                    } catch {
+                        feedback.textContent = 'Network error. Please try again.';
+                        feedback.style.color = 'red';
+                        btn.disabled = false;
+                        btn.textContent = 'Send Request';
+                    }
+                });
+            })();
+        </script>
+    <?php endif; ?>
+
+    <!-- ══════════════════════════════
+         VIEW SCHEDULE MODAL
+    ══════════════════════════════ -->
+    <div class="modal fade" id="viewScheduleModal" tabindex="-1"
+        aria-labelledby="viewScheduleLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold" id="viewScheduleLabel">
+                        <i class="bi bi-calendar-week me-2"></i>Class Schedule
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex flex-column gap-3">
+                        <?php if (!empty($schedules)): ?>
+                            <?php
+                            $dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+                            usort($schedules, function($a, $b) use ($dayOrder) {
+                                $da = array_search($a['day_of_week'], $dayOrder);
+                                $db = array_search($b['day_of_week'], $dayOrder);
+                                return $da !== $db ? $da - $db : strcmp($a['start_time'], $b['start_time']);
+                            });
+                            $dayIcons = [
+                                'Monday'    => 'bi-1-square-fill',
+                                'Tuesday'   => 'bi-2-square-fill',
+                                'Wednesday' => 'bi-3-square-fill',
+                                'Thursday'  => 'bi-4-square-fill',
+                                'Friday'    => 'bi-5-square-fill',
+                                'Saturday'  => 'bi-6-square-fill',
+                                'Sunday'    => 'bi-7-square-fill',
+                            ];
+                            $today = date('l');
+                            foreach ($schedules as $sched):
+                                $isToday  = ($sched['day_of_week'] === $today);
+                                $icon     = $dayIcons[$sched['day_of_week']] ?? 'bi-calendar';
+                                $start    = date('g:i A', strtotime($sched['start_time']));
+                                $end      = date('g:i A', strtotime($sched['end_time']));
+                            ?>
+                            <div class="d-flex align-items-center gap-3 p-2 rounded-3
+                                <?= $isToday ? 'bg-primary bg-opacity-10 border border-primary border-opacity-25' : 'bg-light' ?>">
+                                <i class="bi <?= $icon ?> <?= $isToday ? 'text-primary' : 'text-secondary' ?>"
+                                    style="font-size:1.6rem; flex-shrink:0;"></i>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong><?= htmlspecialchars($sched['day_of_week']) ?></strong>
+                                        <?php if ($isToday): ?>
+                                            <span class="badge bg-primary rounded-pill" style="font-size:0.7rem;">Today</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock me-1"></i><?= $start ?> — <?= $end ?>
+                                    </small>
+                                    <?php if (!empty($sched['subject_name'])): ?>
+                                        <div style="font-size:0.8rem;" class="text-secondary">
+                                            <i class="bi bi-book me-1"></i><?= htmlspecialchars($sched['subject_name']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3 text-muted">
+                                <i class="bi bi-calendar-x" style="font-size:1.6rem;"></i>
+                                <div>No schedules found for this classroom.</div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </body>
+
 </html>
