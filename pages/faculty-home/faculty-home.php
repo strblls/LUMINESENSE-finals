@@ -7,15 +7,17 @@ require_once '../../php/db_connect.php';
 date_default_timezone_set('Asia/Manila');
 include '../../php/includes/faculty-head.php';
 
-/** @var $faculty_name string */
-/** @var $faculty_email string */
-/** @var $initials string */
-/** @var $first_name string */
-/** @var $faculty_id int */
-/** @var $classroom_id int */
-/** @var $logs array */
-/** @var $gesture_logs array */
-/** @var $schedules array */
+/** @var mysqli $conn */
+/** @var string $faculty_name */
+/** @var string $faculty_email */
+/** @var string $initials */
+/** @var string $first_name */
+/** @var int $faculty_id */
+/** @var int $classroom_id */
+/** @var array $logs */
+/** @var array $gesture_logs */
+/** @var array $schedules */
+/** @var array|null $active_schedule */
 
 // ── Active schedule for timer ─────────────────────────────────────────────────
 $active_schedule = null;

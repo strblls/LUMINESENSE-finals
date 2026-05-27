@@ -116,3 +116,8 @@ $conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pir_since TIMESTAM
 // extended_until on schedules (used by active-schedule query in faculty-home.php)
 $conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS extended_until TIME DEFAULT NULL");
 $conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL");
+//pzem live readings on classrooms (updated by api/post_pzem.php)
+$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_voltage float DEFAULT NULL");
+$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_current float DEFAULT NULL");
+$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_power   float DEFAULT NULL");
+$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_energy  float DEFAULT NULL");

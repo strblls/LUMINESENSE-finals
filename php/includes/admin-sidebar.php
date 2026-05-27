@@ -25,9 +25,9 @@
         <button class="nav-btn" title="Faculty" onclick="dissolve('admin-faculty-management.php')">
             <i class="bi bi-people"></i>
         </button>
-        <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.php')">
+        <!-- <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.php')">
             <i class="bi bi-gear"></i>
-        </button>
+        </button> -->
     </div>
     <div class="offcanvas-footer">
         <img src="../../images/team-logo.png" alt="Team Logo" style="width:4rem;">

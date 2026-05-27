@@ -503,6 +503,186 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 display: none;
             }
         }
+
+        /* ══════════════════════════════════════
+           ADMIN LIGHT OVERRIDE PANEL
+        ══════════════════════════════════════ */
+        .admin-override-panel {
+            background: #0f0f1a;
+            border-radius: 14px;
+            padding: 16px;
+            border: 1px solid rgba(116,47,211,0.35);
+            box-shadow: 0 0 0 1px rgba(116,47,211,0.12), 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .override-panel-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .10em;
+            text-transform: uppercase;
+            color: #a78bfa;
+        }
+
+        .override-live-badge {
+            margin-left: auto;
+            background: #16a34a;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 20px;
+            letter-spacing: .08em;
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.5); }
+            50%       { box-shadow: 0 0 0 5px rgba(22,163,74,0); }
+        }
+
+        .override-master-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .bulb-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 28px);
+            gap: 4px;
+        }
+
+        .bulb-img {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            transition: filter .2s;
+        }
+
+        .override-master-right {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .override-master-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 2px solid;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            cursor: pointer;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            transition: transform .15s, box-shadow .15s;
+        }
+
+        .override-master-btn i { font-size: 18px; }
+
+        .override-master-btn.off {
+            background: rgba(255,255,255,0.05);
+            border-color: #555;
+            color: #777;
+        }
+
+        .override-master-btn.on {
+            background: rgba(250,204,21,0.12);
+            border-color: #facc15;
+            color: #facc15;
+            box-shadow: 0 0 14px rgba(250,204,21,0.3);
+        }
+
+        .override-master-btn:hover { transform: scale(1.08); }
+        .override-hint { font-size: 10px; color: #555; }
+
+        /* Per-row toggles */
+        .override-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 0;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            margin-bottom: 10px;
+        }
+
+        .override-row-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .override-row-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            width: 36px;
+        }
+
+        /* Custom toggle switch */
+        .override-switch { display: none; }
+
+        .override-switch-label {
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+            background: #333;
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: background .2s;
+        }
+
+        .override-switch-label::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #666;
+            transition: transform .2s, background .2s;
+        }
+
+        .override-switch:checked + .override-switch-label {
+            background: rgba(116,47,211,0.5);
+        }
+
+        .override-switch:checked + .override-switch-label::after {
+            background: #a78bfa;
+            transform: translateX(16px);
+        }
+
+        .override-row-status {
+            font-size: 10px;
+            font-weight: 700;
+            color: #555;
+            width: 28px;
+            transition: color .2s;
+        }
+
+        .override-row-status.is-on { color: #a78bfa; }
+
+        .override-footer-note {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            color: #444;
+        }
     </style>
 </head>
 
@@ -770,32 +950,52 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                     </table>
                                 </div>
 
-                                <!-- Lighting grid -->
-                                <div class="d-flex align-items-center justify-content-center mt-3 gap-3">
-                                    <div class="lighting-grid">
-                                        <?php for ($i = 0; $i < 9; $i++): ?>
-                                            <img src="../../images/bulb-off.png" id="bulb<?= $i ?>"
-                                                style="width:36px; height:36px;">
-                                        <?php endfor; ?>
+                                <!-- ── Admin Light Override Panel ── -->
+                                <div class="admin-override-panel mt-3">
+                                    <div class="override-panel-header">
+                                        <i class="bi bi-shield-lock-fill"></i>
+                                        <span>Admin Override</span>
+                                        <span class="override-live-badge" id="overrideLiveBadge">LIVE</span>
                                     </div>
-                                    <div class="d-flex flex-column justify-content-between" style="gap:6px;">
+
+                                    <!-- Master toggle -->
+                                    <div class="override-master-row">
+                                        <div class="override-master-left">
+                                            <div class="bulb-preview-grid">
+                                                <?php for ($i = 0; $i < 9; $i++): ?>
+                                                    <img src="../../images/bulb-off.png" id="bulb<?= $i ?>"
+                                                        class="bulb-img">
+                                                <?php endfor; ?>
+                                            </div>
+                                        </div>
+                                        <div class="override-master-right">
+                                            <button class="override-master-btn off" id="allLightsBtn" onclick="toggleAllLights()">
+                                                <i class="bi bi-power"></i>
+                                                <span id="allLightsLabel">OFF</span>
+                                            </button>
+                                            <div class="override-hint">All rows</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Per-row toggles -->
+                                    <div class="override-rows">
                                         <?php foreach ([1, 2, 3] as $row): ?>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <label style="font-size:11px;font-weight:600;width:36px;color:#555;">Row <?= $row ?></label>
-                                                <div class="form-check form-switch mb-0" style="transform:scale(0.8);transform-origin:left;">
-                                                    <input class="form-check-input" type="checkbox" role="switch"
+                                            <div class="override-row-item">
+                                                <span class="override-row-label">Row <?= $row ?></span>
+                                                <div class="override-row-toggle">
+                                                    <input class="override-switch" type="checkbox" role="switch"
                                                         id="row<?= $row ?>sw"
                                                         onchange="toggleRow(<?= $row ?>, this.checked)">
+                                                    <label class="override-switch-label" for="row<?= $row ?>sw"></label>
                                                 </div>
+                                                <span class="override-row-status" id="row<?= $row ?>status">OFF</span>
                                             </div>
                                         <?php endforeach; ?>
-                                        <div class="d-flex align-items-center gap-2 mt-1" style="cursor:pointer;" onclick="toggleAllLights()">
-                                            <span style="font-size:11px;font-weight:700;color:#555;">All</span>
-                                            <div class="all-lights-off d-flex align-items-center justify-content-center">
-                                                <i class="bi bi-power" id="all-lights"></i>
-                                            </div>
-                                            <span class="bold" id="allLightsLabel" style="font-size:11px;color:red;">OFF</span>
-                                        </div>
+                                    </div>
+
+                                    <div class="override-footer-note">
+                                        <i class="bi bi-info-circle"></i>
+                                        Changes apply immediately and are logged.
                                     </div>
                                 </div>
 
@@ -1048,7 +1248,7 @@ function sendLightingUpdate(changedRow = 'all') {
     form.append('classroom_id', currentRoomId);
     form.append('row',          rowToSend);
     form.append('state',        stateToSend);
-    form.append('triggered_by', 'manual');
+    form.append('triggered_by', 'admin_override');
 
     fetch('../../api/lights.php', { method: 'POST', body: form })
         .then(r => r.json())
@@ -1059,12 +1259,18 @@ function sendLightingUpdate(changedRow = 'all') {
 function syncAllLightsLabel() {
     const anyOn = Object.values(rowState).some(v => v);
     const label = document.getElementById('allLightsLabel');
-    const btn = document.getElementById('allLightsBtn');
-    if (label) {
-        label.textContent = anyOn ? 'ON' : 'OFF';
-        label.style.color = anyOn ? 'green' : 'red';
+    const btn   = document.getElementById('allLightsBtn');
+    if (label) label.textContent = anyOn ? 'ON' : 'OFF';
+    if (btn)   btn.className = 'override-master-btn ' + (anyOn ? 'on' : 'off');
+
+    // Sync per-row status labels
+    for (let row = 1; row <= 3; row++) {
+        const statusEl = document.getElementById('row' + row + 'status');
+        if (statusEl) {
+            statusEl.textContent = rowState[row] ? 'ON' : 'OFF';
+            statusEl.className = 'override-row-status' + (rowState[row] ? ' is-on' : '');
+        }
     }
-    if (btn) btn.className = anyOn ? 'all-lights-on' : 'all-lights-off';
 }
 
 document.addEventListener('DOMContentLoaded', function () {
