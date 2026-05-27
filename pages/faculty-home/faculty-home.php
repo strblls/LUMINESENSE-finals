@@ -171,31 +171,61 @@ $conn->close();
         }
 
         @keyframes pillPulse {
-            0% {
-                transform: scale(1);
-            }
-
-            100% {
-                transform: scale(1.08);
-            }
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
         }
 
         @keyframes pillPop {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.18);
-            }
-
-            100% {
-                transform: scale(1);
-            }
+            0% { transform: scale(1); }
+            50% { transform: scale(1.18); }
+            100% { transform: scale(1); }
         }
 
         #simulatePirBtn {
             font-size: 0.78rem;
+        }
+
+        /* Gesture guide rows */
+        .gesture-guide-row {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .gesture-guide-row:last-child {
+            border-bottom: none;
+        }
+
+        .gesture-guide-img {
+            flex-shrink: 0;
+            width: 90px;
+            height: 80px;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gesture-guide-img img {
+            max-height: 64px;
+            max-width: 70px;
+            object-fit: contain;
+        }
+
+        .gesture-guide-text {
+            padding: 0 14px;
+        }
+
+        .gesture-guide-text strong {
+            font-size: 0.9rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .gesture-guide-text span {
+            font-size: 0.8rem;
+            color: #6c757d;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -241,8 +271,7 @@ $conn->close();
                         </div>
 
                         <!-- Row selector pills + result + accuracy -->
-                        <div
-                            class="gesture-response d-flex px-2 flex-column align-items-start justify-content-start gap-2">
+                        <div class="gesture-response d-flex px-2 flex-column align-items-start justify-content-start gap-2">
 
                             <!-- Row indicator pills -->
                             <div class="gesture-row-pills w-100 d-flex justify-content-center gap-2 mt-1">
@@ -257,11 +286,10 @@ $conn->close();
                                 <span class="bold mx-1" id="gestureResult">—</span>
                             </div>
 
-                            <div>
-                                <button class="btn btn-sm btn-outline-secondary ms-auto" data-bs-toggle="modal"
-                                    data-bs-target="#gestureHelpModal"
-                                    style="font-size:0.75rem; padding: 2px 8px; border-radius: 20px;">
-                                    <i class="bi bi-question-circle"></i> View Gestures
+                            <!-- View Gestures button – matches .light style -->
+                            <div class="w-100 d-flex justify-content-center">
+                                <button class="light" data-bs-toggle="modal" data-bs-target="#gestureHelpModal">
+                                    <i class="bi bi-question-circle me-1"></i> View Gestures
                                 </button>
                             </div>
                         </div>
@@ -785,10 +813,10 @@ $conn->close();
     <script type="module" src="../../script/initialize-gesture.js?v=<?= time() ?>"></script>
 
     <!-- ══════════════════════════════
-         GESTURE HELP MODAL
+         GESTURE HELP MODAL – 2-column grid, modal-xl, centered
     ══════════════════════════════ -->
-    <div class="modal fade" id="gestureHelpModal" tabindex="-1" aria-labelledby="gestureHelpLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="profile-details-modal modal fade" id="gestureHelpModal" tabindex="-1" aria-labelledby="gestureHelpLabel" aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title bold" id="gestureHelpLabel">
@@ -796,32 +824,75 @@ $conn->close();
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="d-flex flex-column gap-3">
-                        <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3">
-                            <span style="font-size:1.6rem;">☝️</span>
-                            <div><strong>1 finger</strong> — Select Row 1</div>
+                <div class="modal-body p-3">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
+
+                        <!-- 1 Finger – Row 1 -->
+                        <div class="gesture-guide-row" style="border-right: 1px solid #dee2e6;">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/pointing-up.png" alt="Pointing up – 1 finger">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>1 Finger Up</strong>
+                                <span>Point only your index finger upward, all other fingers curled down. Selects <strong>Row 1</strong>.</span>
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3">
-                            <span style="font-size:1.6rem;">✌️</span>
-                            <div><strong>2 fingers</strong> — Select Row 2</div>
+
+                        <!-- Victory – Row 2 -->
+                        <div class="gesture-guide-row">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/victory.png" alt="Victory – 2 fingers">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>Victory / 2 Fingers</strong>
+                                <span>Raise index and middle fingers in a V shape, remaining fingers curled. Selects <strong>Row 2</strong>.</span>
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3">
-                            <span style="font-size:1.6rem;">🤟</span>
-                            <div><strong>ILY sign</strong> — Select Row 3</div>
+
+                        <!-- ILY – Row 3 -->
+                        <div class="gesture-guide-row" style="border-right: 1px solid #dee2e6;">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/ily.png" alt="ILY sign">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>ILY Sign</strong>
+                                <span>Raise thumb, index, and pinky fingers. Middle and ring fingers must be curled down. Selects <strong>Row 3</strong>.</span>
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3">
-                            <span style="font-size:1.6rem;">👍</span>
-                            <div><strong>Thumbs up</strong> — Toggle selected row</div>
+
+                        <!-- Thumbs Up – Toggle -->
+                        <div class="gesture-guide-row">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/thumbs-up.png" alt="Thumbs up">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>Thumbs Up</strong>
+                                <span>Close all fingers into a fist with only the thumb pointing upward. <strong>Toggles</strong> the currently selected row on or off.</span>
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3">
-                            <span style="font-size:1.6rem;">✋</span>
-                            <div><strong>Open palm</strong> — Turn all lights ON</div>
+
+                        <!-- Open Palm – All ON -->
+                        <div class="gesture-guide-row" style="border-bottom: none; border-right: 1px solid #dee2e6;">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/open-palm.png" alt="Open palm">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>Open Palm</strong>
+                                <span>Extend all five fingers wide and spread them open, facing the camera. Turns <strong>all lights ON</strong>.</span>
+                            </div>
                         </div>
-                        <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3">
-                            <span style="font-size:1.6rem;">✊</span>
-                            <div><strong>Fist</strong> — Turn all lights OFF</div>
+
+                        <!-- Closed Fist – All OFF -->
+                        <div class="gesture-guide-row" style="border-bottom: none;">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/closed-fist.png" alt="Closed fist">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <strong>Closed Fist</strong>
+                                <span>Curl all fingers tightly into a fist with no fingers extended. Turns <strong>all lights OFF</strong>.</span>
+                            </div>
                         </div>
+
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -833,10 +904,11 @@ $conn->close();
 
     <!-- ══════════════════════════════
          ACTIVITY DETAILS MODAL
+         CHANGE 2: Added modal-dialog-centered
     ══════════════════════════════ -->
-    <div class="modal fade" id="activityDetailsModal" tabindex="-1" aria-labelledby="activityDetailsLabel"
+    <div class="profile-details-modal modal fade" id="activityDetailsModal" tabindex="-1" aria-labelledby="activityDetailsLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title bold" id="activityDetailsLabel">
@@ -894,12 +966,17 @@ $conn->close();
 
                                             <!-- Triggered by -->
                                             <td>
-                                                <?php $by = $log['triggered_by'] ?? 'manual'; ?>
-                                                <span
-                                                    class="badge <?= $by === 'gesture' ? 'bg-primary' : 'bg-secondary' ?> rounded-pill">
-                                                    <i
-                                                        class="bi <?= $by === 'gesture' ? 'bi-hand-index-thumb' : 'bi-toggle-on' ?> me-1"></i>
-                                                    <?= ucfirst(htmlspecialchars($by)) ?>
+                                                <?php
+                                                $by = strtolower(trim($log['triggered_by'] ?? 'manual'));
+                                                $byBadge = match($by) {
+                                                    'gesture', 'pir' => ['bg-primary', 'bi-hand-index-thumb', 'Gesture'],
+                                                    'manual'         => ['bg-secondary', 'bi-toggle-on',      'Manual'],
+                                                    default          => ['bg-secondary', 'bi-toggle-on',      ucfirst($by)],
+                                                };
+                                                ?>
+                                                <span class="badge <?= $byBadge[0] ?> rounded-pill">
+                                                    <i class="bi <?= $byBadge[1] ?> me-1"></i>
+                                                    <?= $byBadge[2] ?>
                                                 </span>
                                             </td>
 
