@@ -8,6 +8,7 @@ include '../../php/handlers/analytics-handler.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -76,10 +77,10 @@ include '../../php/handlers/analytics-handler.php';
                         </div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-icon"><i class="bi bi-cash-coin"></i></div>
+                        <div class="summary-icon"><i class="bi bi-activity"></i></div>
                         <div class="summary-info">
-                            <div class="summary-val" id="sumCost">—</div>
-                            <div class="summary-label">Est. Cost (₱)</div>
+                            <div class="summary-val" id="sumPeakKw">—</div>
+                            <div class="summary-label">Peak Power (kW)</div>
                         </div>
                     </div>
                     <div class="summary-card">
@@ -151,10 +152,14 @@ include '../../php/handlers/analytics-handler.php';
                                         <th>Sessions</th>
                                         <th>Occupied Time</th>
                                         <th>Energy (Wh)</th>
+                                        <th>Energy (kWh)</th>
+                                        <th>Avg Voltage</th>
                                     </tr>
                                 </thead>
                                 <tbody id="breakdownBody">
-                                    <tr><td colspan="4" class="text-center text-muted">Loading...</td></tr>
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">Loading...</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -170,6 +175,14 @@ include '../../php/handlers/analytics-handler.php';
                                 <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
                                 <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
                             </div>
+                        </div>
+
+                        <div class="card-white">
+                            <div class="chart-card-header">
+                                <span class="chart-card-title bold">Session Detail</span>
+                                <span class="summary-label">Per-session breakdown — Volts, kW, kWh, Cost</span>
+                            </div>
+                            <div id="sessionsTableContainer">Loading...</div>
                         </div>
                     </div>
                 </div>
@@ -189,5 +202,6 @@ include '../../php/handlers/analytics-handler.php';
     <script src="../../script/admin-analytics.js"></script>
 
 </body>
+
 </html>
 <?php if (isset($conn)) $conn->close(); ?>

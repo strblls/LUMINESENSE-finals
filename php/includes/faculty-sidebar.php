@@ -8,7 +8,7 @@
     </div>
     <div class="offcanvas-body align-items-center d-flex flex-column">
         <button class="wb-2" onclick="dissolve('faculty-home.php')"><i class="bi bi-house-door-fill"></i></button>
-        <button class="wb-2" onclick="dissolve('faculty-readings.php')"><i class="bi bi-broadcast"></i></button>
+        <!-- <button class="wb-2" onclick="dissolve('faculty-readings.php')"><i class="bi bi-broadcast"></i></button> -->
         <button class="wb-2" onclick="dissolve('faculty-timetable.php')"><i class="bi bi-calendar-event"></i></button>
         <button class="wb-2" onclick="dissolve('faculty-profile-settings.php')"><i class="bi bi-gear"></i></button>
     </div>

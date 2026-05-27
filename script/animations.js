@@ -20,7 +20,8 @@ trigger.addEventListener('mouseenter', () => sidebar.show());
 sidebarEl.addEventListener('mouseleave', () => sidebar.hide());
 
 // For sidebar (right) in homepages
-const trigger2 = document.getElementById('sidebarTrigger2');
+const trigger2 = document.getElementById('something');
+if (trigger2) trigger2.addEventListener('mouseenter', () => sidebar2.show());
 const sidebarEl2 = document.getElementById('profileOffcanvas');
 const sidebar2 = bootstrap.Offcanvas.getOrCreateInstance(sidebarEl2);
 
