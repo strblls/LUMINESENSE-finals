@@ -6,7 +6,7 @@ require_once $phpRoot . '/db_connect.php';
 date_default_timezone_set('Asia/Manila');
 
 $faculty_name = htmlspecialchars($_SESSION['faculty_name']);
-$faculty_id   = $_SESSION['faculty_id'];
+$faculty_id   = (int)$_SESSION['faculty_id'];
 $name_parts   = explode(' ', $faculty_name);
 $first_name   = $name_parts[0];
 $initials     = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
@@ -20,22 +20,52 @@ $stmt->bind_result($faculty_email);
 $stmt->fetch();
 $stmt->close();
 
-// Today's schedule
 $today = date('l');
-$schedules = [];
-$r = $conn->query("
-    SELECT s.start_time, s.end_time, c.room_name
-    FROM schedules s JOIN classrooms c ON c.id = s.classroom_id
-    WHERE s.day_of_week = '$today'
+$now   = date('H:i:s');
+
+// ── Classroom assigned to this faculty today ──────────────────
+// FIX: was using created_by (admin ID), now uses faculty_id
+$classroom_id = 0;
+$stmt = $conn->prepare("
+    SELECT DISTINCT s.classroom_id
+    FROM schedules s
+    WHERE s.faculty_id = ?
+      AND s.day_of_week = ?
     ORDER BY s.start_time
+    LIMIT 1
+");
+$stmt->bind_param('is', $faculty_id, $today);
+$stmt->execute();
+$stmt->bind_result($classroom_id);
+$stmt->fetch();
+$stmt->close();
+
+// Fallback: first classroom in DB
+if (!$classroom_id) {
+    $r = $conn->query('SELECT id FROM classrooms ORDER BY id LIMIT 1');
+    if ($row = $r->fetch_assoc()) $classroom_id = (int)$row['id'];
+}
+
+// ── Today's schedules for THIS faculty (all days for modal) ───
+// FIX 1: added day_of_week to SELECT
+// FIX 2: removed day filter so modal shows full week
+// FIX 3: added faculty_id filter
+$schedules = [];
+$fid = (int)$faculty_id;
+$r = $conn->query("
+    SELECT s.start_time, s.end_time, s.day_of_week, c.room_name
+    FROM schedules s
+    JOIN classrooms c ON c.id = s.classroom_id
+    WHERE s.faculty_id = $fid
+    ORDER BY FIELD(s.day_of_week,'Monday','Tuesday','Wednesday',
+                   'Thursday','Friday','Saturday','Sunday'), s.start_time
 ");
 while ($row = $r->fetch_assoc()) $schedules[] = $row;
 
-// Current schedule label
+// Current schedule label for topbar
 $current_sched = 'No class right now';
-$now = date('H:i:s');
 foreach ($schedules as $s) {
-    if ($now >= $s['start_time'] && $now <= $s['end_time']) {
+    if ($s['day_of_week'] === $today && $now >= $s['start_time'] && $now <= $s['end_time']) {
         $current_sched = $s['room_name'] . ' · '
             . date('g:i A', strtotime($s['start_time'])) . ' - '
             . date('g:i A', strtotime($s['end_time']));
@@ -43,39 +73,20 @@ foreach ($schedules as $s) {
     }
 }
 
-// Recent activity logs
+// ── Recent logs for this faculty's classroom only ─────────────
+// FIX: was showing all rooms, now filters by classroom_id
 $logs = [];
 $r = $conn->query("
     SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
-    FROM lighting_logs l JOIN classrooms c ON c.id = l.classroom_id
-    ORDER BY l.event_time DESC LIMIT 7
+    FROM lighting_logs l
+    JOIN classrooms c ON c.id = l.classroom_id
+    WHERE l.classroom_id = $classroom_id
+    ORDER BY l.event_time DESC
+    LIMIT 7
 ");
 while ($row = $r->fetch_assoc()) $logs[] = $row;
 
-// Get the classroom assigned to this faculty (from their schedule)
-// Get the classroom assigned to this faculty (from their schedule TODAY)
-$classroom_id = 0;
-$today_lookup = date('l');
-$stmt = $conn->prepare("
-    SELECT DISTINCT s.classroom_id
-    FROM schedules s
-    WHERE s.created_by = ?
-      AND s.day_of_week = ?
-    ORDER BY s.start_time
-    LIMIT 1
-");
-$stmt->bind_param('is', $faculty_id, $today_lookup);
-$stmt->execute();
-$stmt->bind_result($classroom_id);
-$stmt->fetch();
-$stmt->close();
-// Fallback: use first classroom in DB
-if (!$classroom_id) {
-    $r = $conn->query('SELECT id FROM classrooms ORDER BY id LIMIT 1');
-    if ($row = $r->fetch_assoc()) $classroom_id = $row['id'];
-}
-
-// Gesture logs — this faculty only
+// ── Gesture logs for this faculty only ───────────────────────
 $gesture_logs = [];
 $stmt = $conn->prepare("
     SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
