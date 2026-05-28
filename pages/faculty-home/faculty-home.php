@@ -19,25 +19,31 @@ require_once '../../php/includes/faculty-head.php';
 
 // ── Active schedule for timer ─────────────────────────────────────────────────
 $active_schedule = null;
-$now = date('H:i:s');
+$now   = date('H:i:s');
 $today = date('l');
-$stmt = $conn->prepare("
+
+$fid      = (int)$faculty_id;
+$today_e  = $conn->real_escape_string($today);
+$now_e    = $conn->real_escape_string($now);
+
+$r = $conn->query("
     SELECT s.id, s.start_time, s.end_time, s.extended_until, c.room_name
     FROM schedules s
     JOIN classrooms c ON c.id = s.classroom_id
-    WHERE s.classroom_id = ?
-      AND s.day_of_week = ?
-      AND s.start_time <= ?
-      AND (s.extended_until >= ? OR (s.extended_until IS NULL AND s.end_time >= ?))
+    WHERE s.faculty_id = $fid
+      AND s.day_of_week = '$today_e'
+      AND s.start_time <= '$now_e'
+      AND (s.extended_until >= '$now_e' OR (s.extended_until IS NULL AND s.end_time >= '$now_e'))
     ORDER BY s.start_time
     LIMIT 1
 ");
-$stmt->bind_param('issss', $classroom_id, $today, $now, $now, $now);
-$stmt->execute();
-$r = $stmt->get_result();
-if ($row = $r->fetch_assoc())
-    $active_schedule = $row;
-$stmt->close();
+$active_schedule = ($r && $r->num_rows > 0) ? $r->fetch_assoc() : null;
+
+// $stmt->execute();
+// $r = $stmt->get_result();
+// if ($row = $r->fetch_assoc())
+//     $active_schedule = $row;
+// $stmt->close();
 
 // ── Classroom light_status ────────────────────────────────────────────────────
 $light_status = 'off';
@@ -180,10 +186,7 @@ $conn->close();
             50% { transform: scale(1.18); }
             100% { transform: scale(1); }
         }
-
-        #simulatePirBtn {
-            font-size: 0.78rem;
-        }
+        
 
         /* Gesture guide rows */
         .gesture-guide-row {
@@ -241,7 +244,7 @@ $conn->close();
                 <!-- ══════════════════════════════
                      COLUMN 1 – GESTURE DETECTION
                 ══════════════════════════════ -->
-                <div class="group-container gap-3">
+                <div class="group-container gap-3 group-stretch">
 
                     <!-- Gesture Detection -->
                     <div style="background-color: #f8f9fa;" class="section-container">
@@ -315,10 +318,7 @@ $conn->close();
                                 <h5>PIR Sensor:
                                     <span id="statusPir" class="text-muted">Unknown</span>
                                 </h5>
-                                <!-- PIR simulate button (testing without Arduino) -->
-                                <button id="simulatePirBtn" class="btn btn-sm btn-success mt-1 w-100">
-                                    🟢 Simulate Occupancy
-                                </button>
+                                <!-- PIR simulate button removed to avoid overriding live sensors -->
                             </div>
                         </div>
                     </div>
@@ -331,40 +331,6 @@ $conn->close();
                      COLUMN 2 – TIMER + LIGHTING
                 ══════════════════════════════ -->
                 <div class="group-container gap-3">
-
-                    <!-- Time Left -->
-                    <div style="background-color: #f8f9fa;" class="section-container">
-                        <div class="d-flex gap-1 justify-content-center align-items-center">
-                            <div class="d-flex flex-column mx-2 align-items-start justify-content-center">
-                                <h2 class="bold">Time Left</h2><br>
-                                <h2 class="medium fs-6">until end of class</h2>
-                            </div>
-                            <div class="d-flex flex-column mx-1 align-items-center justify-content-center">
-                                <?php if ($active_schedule): ?>
-                                    <?php
-                                    $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
-                                    ?>
-                                    <h1 class="bold display-1" id="timerDisplay" data-end="<?= htmlspecialchars($end) ?>">
-                                        --:--:--
-                                    </h1>
-                                <?php else: ?>
-                                    <h1 class="bold display-1 text-muted" id="timerDisplay">00:00:00</h1>
-                                <?php endif; ?>
-                            </div>
-                            <div class="d-flex flex-column mx-2 align-items-end justify-content-center">
-                                <button class="light" data-bs-toggle="modal" data-bs-target="#viewScheduleModal">View Schedule</button>
-                                <?php if ($active_schedule): ?>
-                                    <button class="light mt-2" data-bs-toggle="modal" data-bs-target="#extendModal">
-                                        <i class="bi bi-clock-history me-1"></i> Extend
-                                    </button>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
-                        <?php if (!$active_schedule): ?>
-                            <p class="text-muted text-center mt-2 mb-1">No active class schedule right now.</p>
-                        <?php endif; ?>
-                    </div>
 
                     <!-- Lighting Grid -->
                     <div style="background-color: #f8f9fa;" class="fit-width section-container">
@@ -449,6 +415,40 @@ $conn->close();
                      COLUMN 3 – RECENT ACTIVITIES
                 ══════════════════════════════ -->
                 <div class="group-container gap-3">
+
+                    <!-- Time Left (moved from Column 2) -->
+                    <div style="background-color: #f8f9fa;" class="section-container mb-3">
+                        <div class="d-flex gap-1 justify-content-center align-items-center">
+                            <div class="d-flex flex-column mx-2 align-items-start justify-content-center">
+                                <h2 class="bold">Time Left</h2><br>
+                                <h2 class="medium fs-6">until end of class</h2>
+                            </div>
+                            <div class="d-flex flex-column mx-1 align-items-center justify-content-center">
+                                <?php if ($active_schedule): ?>
+                                    <?php
+                                    $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
+                                    ?>
+                                    <h1 class="bold display-1" id="timerDisplay" data-end="<?= htmlspecialchars($end) ?>">
+                                        --:--:--
+                                    </h1>
+                                <?php else: ?>
+                                    <h1 class="bold display-1 text-muted" id="timerDisplay">00:00:00</h1>
+                                <?php endif; ?>
+                            </div>
+                            <div class="d-flex flex-column mx-2 align-items-end justify-content-center">
+                                <button class="light" data-bs-toggle="modal" data-bs-target="#viewScheduleModal">View Schedule</button>
+                                <?php if ($active_schedule): ?>
+                                    <button class="light mt-2" data-bs-toggle="modal" data-bs-target="#extendModal">
+                                        <i class="bi bi-clock-history me-1"></i> Extend
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <?php if (!$active_schedule): ?>
+                            <p class="text-muted text-center mt-2 mb-1">No active class schedule right now.</p>
+                        <?php endif; ?>
+                    </div>
 
                     <!-- Recent Activities -->
                     <div style="background-color: #f8f9fa;" class="section-container recents" style="min-height: 420px;">
@@ -791,22 +791,6 @@ $conn->close();
 
         pollDashboard();
         setInterval(pollDashboard, 3000);
-
-        // ── PIR Simulate button ───────────────────────────────────────────────
-        const simBtn = document.getElementById('simulatePirBtn');
-        if (simBtn) {
-            let _pirState = false;
-            simBtn.addEventListener('click', async () => {
-                _pirState = !_pirState;
-                simBtn.textContent = _pirState ? '🔴 Simulate Empty Room' : '🟢 Simulate Occupancy';
-                simBtn.className = `btn btn-sm mt-1 w-100 ${_pirState ? 'btn-danger' : 'btn-success'}`;
-                const form = new FormData();
-                form.append('classroom_id', CLASSROOM_ID);
-                form.append('occupied', _pirState ? '1' : '0');
-                await fetch('../../api/pir.php', { method: 'POST', body: form });
-                await pollDashboard();
-            });
-        }
     </script>
 
     <!-- Gesture detection script -->
@@ -1090,9 +1074,8 @@ $conn->close();
     <!-- ══════════════════════════════
          VIEW SCHEDULE MODAL
     ══════════════════════════════ -->
-    <div class="modal fade" id="viewScheduleModal" tabindex="-1"
-        aria-labelledby="viewScheduleLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="viewScheduleModal" tabindex="-1" aria-labelledby="viewScheduleLabel" aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title bold" id="viewScheduleLabel">

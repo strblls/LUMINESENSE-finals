@@ -53,11 +53,11 @@ unsigned long cooldownStart = 0;
 #define COOLDOWN_MS 30000   // 30 seconds
 
 // ── PZEM Metrics ───────────────────────────────────────────
-float    sumVoltage         = 0;
-float    sumCurrent         = 0;
-float    sumPower           = 0;
-float    totalEnergy        = 0;
-float    sessionStartEnergy = 0;
+double    sumVoltage         = 0;
+double    sumCurrent         = 0;
+double    sumPower           = 0;
+double    totalEnergy        = 0;
+double    sessionStartEnergy = 0;
 int      pzemReadCount      = 0;
 
 // ── Session State ──────────────────────────────────────────
@@ -335,12 +335,12 @@ void parseSchedulePayload(String payload) {
 // PZEM
 // ============================================================
 void readPZEM() {
-    float voltage = pzem.voltage();
-    float current = pzem.current();
-    float power   = pzem.power();
-    float energy  = pzem.energy();
-    float freq    = pzem.frequency();
-    float pf      = pzem.pf();
+    double voltage = pzem.voltage();
+    double current = pzem.current();
+    double power   = pzem.power();
+    double energy  = pzem.energy();
+    double freq    = pzem.frequency();
+    double pf      = pzem.pf();
 
     if (isnan(voltage) || isnan(current) || isnan(power) || voltage == 0.0) {
         Serial.println(F("[PZEM] Read error"));
@@ -365,10 +365,10 @@ void readPZEM() {
 }
 
 void streamPzemJson() {
-    float voltage = pzem.voltage();
-    float current = pzem.current();
-    float power   = pzem.power();
-    float energy  = pzem.energy();
+    double voltage = pzem.voltage();
+    double current = pzem.current();
+    double power   = pzem.power();
+    double energy  = pzem.energy();
 
     if (isnan(voltage) || voltage == 0.0) return;
 
@@ -441,8 +441,8 @@ void startSession(DateTime startTime) {
 void endSession(DateTime endTime) {
     if (!sessionActive || pzemReadCount == 0) { sessionActive = false; return; }
 
-    float avgVoltage  = sumVoltage / pzemReadCount;
-    float avgCurrent  = sumCurrent / pzemReadCount;
+    double avgVoltage  = sumVoltage / pzemReadCount;
+    double avgCurrent  = sumCurrent / pzemReadCount;
     TimeSpan duration = endTime - sessionStartTime;
     int durationMins  = duration.totalseconds() / 60;
 

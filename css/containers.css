@@ -403,11 +403,41 @@
     flex: 1;
 }
 
+/* Utility: ensure child .section-container elements stretch to column width */
+.group-container.group-stretch {
+    align-items: stretch;
+}
+
 .section-container {
     border-radius: 10px;
     height: auto;
     /* was 100% — this caused overflow growth */
     width: 100%;
+}
+
+/* Make section content respect padding and scale responsively */
+.section-container {
+    box-sizing: border-box;
+    padding: 1rem;
+}
+
+/* Responsive timer font so large clocks don't overflow their container */
+.section-container .display-1 {
+    font-size: clamp(2.5rem, 6vw, 5.5rem);
+    line-height: 1;
+    margin: 0;
+}
+
+@media (max-width: 992px) {
+    /* on narrower screens, scale the timer down more and stack content */
+    .main-container.homepage {
+        flex-direction: column;
+        padding: 1rem;
+        gap: 1rem;
+    }
+    .section-container .display-1 {
+        font-size: clamp(1.6rem, 8vw, 3.5rem);
+    }
 }
 
 .section-container.recents {
