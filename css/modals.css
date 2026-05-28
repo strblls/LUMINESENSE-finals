@@ -225,5 +225,8 @@
 }
 
 .modal-content {
-    width: fit-content;
+    max-width: auto;
+    margin: auto;
+    justify-content: center;
 }
+
