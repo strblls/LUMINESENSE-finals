@@ -13,26 +13,27 @@ body {
 }
 
 .image-background {
-    background-color: rgba(255, 255, 255, 0.18);
+    background-color: #f9edfa;
+    padding: 1.25rem;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 220px;
-    height: 220px;
+    width: 300px;
+    height: 300px;
     border-radius: 50%;
     overflow: hidden;
     margin-bottom: 1.25rem;
+
+    img {
+        width: auto;
+        max-width: 85%;
+        max-height: 85%;
+        object-fit: contain;
+    }
 }
 
 .image-background.faculty {
-    background-color: rgba(255, 255, 255, 0.25);
-}
-
-.image-background img {
-    width: auto;
-    max-width: 85%;
-    max-height: 85%;
-    object-fit: contain;
+    background-color: #f9edfa;
 }
 
 
