@@ -26,7 +26,7 @@
 
 <body>
     <div class="return-container">
-        <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('../index.html')">
+        <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('../index.php')">
             <i class="bi bi-house"></i>
         </a>
     </div>

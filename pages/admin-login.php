@@ -114,8 +114,8 @@ unset($_SESSION['signup_success_modal']);
                         </div>
                     </div>
 
-                    <div class="submit-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; width:100%;">
-                        <button type="submit" class="medium" style="width: auto; padding: 6px 40px;">LOGIN</button>
+                    <div class="submit-container admin-login">
+                        <button type="submit" class="medium">LOGIN</button>
                         or<br>
                         <a type="button" class="medium" onclick="dissolve('admin-signup.php')">SIGN-UP</a>
                     </div>
