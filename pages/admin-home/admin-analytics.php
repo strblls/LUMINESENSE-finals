@@ -4,11 +4,9 @@ include '../../php/handlers/analytics-handler.php';
 /** @var mysqli $conn */
 /** @var array $rooms */
 /** @var array $roomDataFromPHP */
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -37,7 +35,7 @@ include '../../php/handlers/analytics-handler.php';
 
         <div class="child-container">
 
-            <!-- Page header row -->
+            <!-- Page header -->
             <div class="analytics-header">
                 <div class="room-label bold" id="roomLabel">
                     <?= htmlspecialchars($rooms[0]['room_name'] ?? 'No Rooms') ?>
@@ -51,6 +49,7 @@ include '../../php/handlers/analytics-handler.php';
                             <option value="30" selected>Last 30 days</option>
                         </select>
                     </div>
+                    <?php if (count($rooms) > 1): ?>
                     <div class="view-select-group">
                         <label for="roomSelect">Room</label>
                         <select id="roomSelect" onchange="onControlChange()">
@@ -62,10 +61,53 @@ include '../../php/handlers/analytics-handler.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <?php else: ?>
+                        <!-- Single room — no dropdown needed, pass ID silently -->
+                        <input type="hidden" id="roomSelect" value="<?= $rooms[0]['id'] ?? 0 ?>">
+                    <?php endif; ?>
                 </div>
             </div>
 
             <div class="content-area">
+
+                <!-- ── Live readings ── -->
+                <div class="card-white live-card">
+                    <div class="live-card-header">
+                        <span class="chart-card-title bold">Live Readings</span>
+                        <span class="live-badge" id="liveBadge">
+                            <span class="live-dot"></span> Live
+                        </span>
+                    </div>
+                    <div class="live-readings-row">
+                        <div class="live-reading-item">
+                            <div class="live-reading-val" id="liveVoltage">— V</div>
+                            <div class="live-reading-label">Voltage</div>
+                        </div>
+                        <div class="live-divider"></div>
+                        <div class="live-reading-item">
+                            <div class="live-reading-val" id="liveCurrent">— A</div>
+                            <div class="live-reading-label">Current</div>
+                        </div>
+                        <div class="live-divider"></div>
+                        <div class="live-reading-item">
+                            <div class="live-reading-val" id="livePower">— W</div>
+                            <div class="live-reading-label">Power</div>
+                        </div>
+                        <div class="live-divider"></div>
+                        <div class="live-reading-item">
+                            <div class="live-reading-val" id="liveEnergy">— Wh</div>
+                            <div class="live-reading-label">Energy (session)</div>
+                        </div>
+                        <div class="live-divider"></div>
+                        <div class="live-reading-item">
+                            <div class="live-status-row">
+                                <span class="live-status-dot" id="liveStatusDot"></span>
+                                <span class="live-reading-val" id="liveStatus">—</span>
+                            </div>
+                            <div class="live-reading-label">Light Status</div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- ── Summary cards ── -->
                 <div class="summary-cards-row">
@@ -77,10 +119,10 @@ include '../../php/handlers/analytics-handler.php';
                         </div>
                     </div>
                     <div class="summary-card">
-                        <div class="summary-icon"><i class="bi bi-activity"></i></div>
+                        <div class="summary-icon"><i class="bi bi-cash-coin"></i></div>
                         <div class="summary-info">
-                            <div class="summary-val" id="sumPeakKw">—</div>
-                            <div class="summary-label">Peak Power (kW)</div>
+                            <div class="summary-val" id="sumCost">—</div>
+                            <div class="summary-label">Est. Cost (₱)</div>
                         </div>
                     </div>
                     <div class="summary-card">
@@ -106,85 +148,42 @@ include '../../php/handlers/analytics-handler.php';
                     </div>
                 </div>
 
-                <!-- ── Energy chart + Trigger breakdown ── -->
-                <div class="top-row">
-                    <div class="card-white">
-                        <div class="chart-card-header">
-                            <span class="chart-card-title bold">Daily Energy Consumption</span>
-                            <span class="chart-unit-label" id="chartUnitLabel">Wh per day</span>
-                        </div>
-                        <div class="chart-wrapper">
-                            <canvas id="usageChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="card-white trigger-card">
-                        <div class="chart-card-title bold" style="margin-bottom:16px;">Session Triggers</div>
-                        <div class="chart-wrapper-sm">
-                            <canvas id="triggerChart"></canvas>
-                        </div>
-                        <div id="triggerLegend" class="trigger-legend"></div>
-                    </div>
-                </div>
-
-                <!-- ── Heatmap ── -->
+                <!-- ── Daily energy chart ── -->
                 <div class="card-white">
                     <div class="chart-card-header">
-                        <span class="chart-card-title bold">Occupancy Heatmap</span>
-                        <span class="summary-label">Lighting ON events by hour &amp; day of week</span>
+                        <span class="chart-card-title bold">Daily Energy Consumption</span>
+                        <span class="summary-label">Wh per day</span>
                     </div>
-                    <div class="heatmap-scroll">
-                        <div id="heatmapGrid" class="heatmap-grid"></div>
+                    <div class="chart-wrapper">
+                        <canvas id="usageChart"></canvas>
                     </div>
                 </div>
 
-                <!-- ── Breakdown table ── -->
+                <!-- ── Daily history table ── -->
                 <div class="card-white">
-                    <div class="breakdown-card">
-                        <div>
-                            <div class="breakdown-header">
-                                <span class="breakdown-title bold">Usage Breakdown by Room</span>
-                            </div>
-                            <table class="breakdown-table">
-                                <thead>
-                                    <tr>
-                                        <th>Room</th>
-                                        <th>Sessions</th>
-                                        <th>Occupied Time</th>
-                                        <th>Energy (Wh)</th>
-                                        <th>Energy (kWh)</th>
-                                        <th>Avg Voltage</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="breakdownBody">
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted">Loading...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="total-usage">
-                            <div class="total-usage-title bold">Period Total</div>
-                            <p>Occupied: <span class="val" id="totalHours">—</span></p>
-                            <p>Energy: <span class="val" id="totalKwh">—</span></p>
-                            <p>Est. Cost: <span class="val" id="totalCost">—</span></p>
-                            <div class="export-btns">
-                                <!-- FIX: classes were swapped — btn-export-csv now calls exportCSV(),
-                                     btn-export-pdf now calls exportPDF() -->
-                                <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
-                                <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
-                            </div>
-                        </div>
-
-                        <div class="card-white">
-                            <div class="chart-card-header">
-                                <span class="chart-card-title bold">Session Detail</span>
-                                <span class="summary-label">Per-session breakdown — Volts, kW, kWh, Cost</span>
-                            </div>
-                            <div id="sessionsTableContainer">Loading...</div>
+                    <div class="breakdown-header" style="margin-bottom:14px;">
+                        <span class="breakdown-title bold">Daily History</span>
+                        <div class="export-btns">
+                            <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
+                            <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
                         </div>
                     </div>
+                    <table class="breakdown-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;">Date</th>
+                                <th>Sessions</th>
+                                <th>Occupied Time</th>
+                                <th>Energy (Wh)</th>
+                                <th>Energy (kWh)</th>
+                                <th>Est. Cost (₱)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody">
+                            <tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>
+                        </tbody>
+                        <tfoot id="historyFoot"></tfoot>
+                    </table>
                 </div>
 
             </div><!-- /content-area -->
@@ -197,11 +196,11 @@ include '../../php/handlers/analytics-handler.php';
     <script src="../../script/toggles.js"></script>
 
     <script>
-        const roomData = <?= json_encode($roomDataFromPHP, JSON_HEX_TAG) ?>;
+        const roomData   = <?= json_encode($roomDataFromPHP, JSON_HEX_TAG) ?>;
+        const defaultCid = <?= (int)($rooms[0]['id'] ?? 3) ?>;
     </script>
     <script src="../../script/admin-analytics.js"></script>
 
 </body>
-
 </html>
 <?php if (isset($conn)) $conn->close(); ?>

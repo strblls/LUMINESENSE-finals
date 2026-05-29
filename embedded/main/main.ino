@@ -1,3 +1,6 @@
+// !! MUST be first — before all includes !!
+#define SERIAL_RX_BUFFER_SIZE 256
+
 /*
   ============================================================
   LUMINESENSE — Arduino Mega 2560 Master Controller
@@ -24,7 +27,7 @@
 #include <ArduinoJson.h>
 
 // ── Pin Definitions ────────────────────────────────────────
-#define SD_CS_PIN   53
+#define SD_CS_PIN 53
 
 // ── Object Initialization ──────────────────────────────────
 PZEM004Tv30 pzem(Serial1);
@@ -32,10 +35,10 @@ RTC_DS3231  rtc;
 
 // ── System State Machine ───────────────────────────────────
 enum SystemState {
-    STATE_OUTSIDE,    // outside schedule
-    STATE_SCHEDULED,  // within schedule
-    STATE_COOLDOWN,   // after schedule ends — 30s countdown
-    STATE_LOCKED      // lights off, locked until next schedule
+    STATE_OUTSIDE,
+    STATE_SCHEDULED,
+    STATE_COOLDOWN,
+    STATE_LOCKED
 };
 SystemState sysState = STATE_OUTSIDE;
 
@@ -45,34 +48,34 @@ bool row2State = false;
 bool row3State = false;
 
 // ── PIR State ──────────────────────────────────────────────
-bool pirState      = false;
-bool pirResetUsed  = false;   // cooldown PIR reset used?
+bool pirState     = false;
+bool pirResetUsed = false;
 
 // ── Cooldown Timer ─────────────────────────────────────────
 unsigned long cooldownStart = 0;
-#define COOLDOWN_MS 30000   // 30 seconds
+#define COOLDOWN_MS 30000
 
 // ── PZEM Metrics ───────────────────────────────────────────
-double    sumVoltage         = 0;
-double    sumCurrent         = 0;
-double    sumPower           = 0;
-double    totalEnergy        = 0;
-double    sessionStartEnergy = 0;
-int      pzemReadCount      = 0;
+double sumVoltage         = 0;
+double sumCurrent         = 0;
+double sumPower           = 0;
+double totalEnergy        = 0;
+double sessionStartEnergy = 0;
+int    pzemReadCount      = 0;
 
 // ── Session State ──────────────────────────────────────────
-bool     sessionActive    = false;
+bool     sessionActive   = false;
 DateTime sessionStartTime;
-String   sessionDate      = "";
-String   sessionStartStr  = "";
+String   sessionDate     = "";
+String   sessionStartStr = "";
 
 // ── Timing ─────────────────────────────────────────────────
 unsigned long lastPzemRead      = 0;
 unsigned long lastScheduleCheck = 0;
 unsigned long lastJsonStream    = 0;
-#define PZEM_INTERVAL_MS     2000
-#define SCHEDULE_CHECK_MS    5000
-#define JSON_STREAM_MS       3000
+#define PZEM_INTERVAL_MS  6000
+#define SCHEDULE_CHECK_MS 30000
+#define JSON_STREAM_MS    8000
 
 // ── SD Card ────────────────────────────────────────────────
 bool sdAvailable = false;
@@ -84,8 +87,9 @@ struct TimeSlot {
 };
 #define MAX_SLOTS 10
 TimeSlot schedule[MAX_SLOTS];
-int  scheduleCount  = 0;
-bool scheduleLoaded = false;
+int    scheduleCount  = 0;
+bool   scheduleLoaded = false;
+String serial2Buffer  = "";
 
 // ============================================================
 // SETUP
@@ -99,13 +103,11 @@ void setup() {
 
     if (!rtc.begin()) {
         Serial.println(F("[RTC] FAILED"));
-            } else {
-                Serial.println(F("[RTC] OK"));
-                Serial.println(F("[RTC] Time set"));
-            }
+    } else {
+        Serial.println(F("[RTC] OK"));
+    }
 
     if (rtc.lostPower()) {
-        // If the RTC battery died or it's new, sync it to the computer's clock
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
         Serial.println(F("[RTC] Time synced from compile time"));
     }
@@ -125,6 +127,7 @@ void setup() {
         }
     }
 
+    // Ask ESP32 for schedule on boot
     requestScheduleFromServer();
     Serial.println(F("=== LUMINESENSE Mega Ready ==="));
 }
@@ -139,20 +142,24 @@ void loop() {
 
     if (now - lastPzemRead >= PZEM_INTERVAL_MS) {
         lastPzemRead = now;
+        handleEsp32Messages();
         readPZEM();
+        handleEsp32Messages();
     }
 
     if (now - lastJsonStream >= JSON_STREAM_MS) {
         lastJsonStream = now;
+        handleEsp32Messages();
         streamPzemJson();
+        handleEsp32Messages();
     }
 
     if (now - lastScheduleCheck >= SCHEDULE_CHECK_MS) {
         lastScheduleCheck = now;
+        handleEsp32Messages();
         checkSchedule();
     }
 
-    // Cooldown countdown
     if (sysState == STATE_COOLDOWN) {
         if (millis() - cooldownStart >= COOLDOWN_MS) {
             Serial.println(F("[STATE] Cooldown expired — LOCKED"));
@@ -167,59 +174,79 @@ void loop() {
 // HANDLE MESSAGES FROM ESP32
 // ============================================================
 void handleEsp32Messages() {
-    if (Serial2.available()) {
-        String msg = Serial2.readStringUntil('\n');
-        msg.trim();
-        msg.toUpperCase();
+    while (Serial2.available()) {
+        char c = Serial2.read();
 
-        Serial.print(F("[ESP32] ")); Serial.println(msg);
+        if (c == '\r') continue;  // ignore CR from println
 
-        // ── PIR Events ──
-        if (msg == "PIR:ON") {
-            pirState = true;
+        if (c == '\n') {
+            serial2Buffer.trim();
 
-            if (sysState == STATE_SCHEDULED) {
-                Serial.println(F("[PIR] Motion in schedule — lights ON"));
-                sendRowCommand("ALL", true);
-                if (!sessionActive) startSession(rtc.now());
-                syncStateToFrontend();
+            if (serial2Buffer.length() == 0) {
+                serial2Buffer = "";
+                continue;  // empty line — stay in loop
             }
-            else if (sysState == STATE_COOLDOWN && !pirResetUsed) {
-                Serial.println(F("[PIR] Motion in cooldown — reset countdown (once)"));
-                pirResetUsed  = true;
-                cooldownStart = millis();   // reset the 30s timer
-            }
-            else {
-                Serial.println(F("[PIR] Motion ignored"));
-            }
-        }
-        else if (msg == "PIR:OFF") {
-            pirState = false;
-            Serial.println(F("[PIR] Motion stopped"));
-        }
 
-        // ── Manual Toggles (only in SCHEDULED or OUTSIDE) ──
-        else if (msg == "ROW1:ON"  || msg == "ROW1:OFF" ||
-                 msg == "ROW2:ON"  || msg == "ROW2:OFF" ||
-                 msg == "ROW3:ON"  || msg == "ROW3:OFF" ||
-                 msg == "ALL:ON"   || msg == "ALL:OFF") {
+            String msg = serial2Buffer;
+            serial2Buffer = "";
 
-            if (sysState == STATE_SCHEDULED) {
-                // Parse and apply
-                int colonPos = msg.indexOf(':');
-                String row   = msg.substring(0, colonPos);
-                bool   state = msg.endsWith("ON");
-                sendRowCommand(row, state);
-            } else {
-                Serial.println(F("[GATE] Toggle blocked — cooldown/locked"));
+            Serial.print(F("[RAW] ")); Serial.println(msg);
+
+            // Handle SCHEDULE before toUpperCase — payload has colons/numbers
+            if (msg.startsWith("SCHEDULE:") || msg.startsWith("schedule:")) {
+                parseSchedulePayload(msg.substring(9));
+                continue;
             }
-        }
+            if (msg.startsWith("SCHED:") || msg.startsWith("sched:")) {
+                parseSchedulePayload(msg.substring(6));
+                continue;
+            }
 
-        else if (msg == "STATUS") { sendStatusJson(); }
-        else if (msg.startsWith("SCHEDULE:")) {
-            parseSchedulePayload(msg.substring(9));
-        } else if (msg.startsWith("SCHED:")) {
-            parseSchedulePayload(msg.substring(6));
+            msg.toUpperCase();
+            Serial.print(F("[ESP32] ")); Serial.println(msg);
+
+            if (msg == "PIR:ON") {
+                pirState = true;
+                if (sysState == STATE_SCHEDULED) {
+                    Serial.println(F("[PIR] Motion — lights ON"));
+                    sendRowCommand("ALL", true);
+                    if (!sessionActive) startSession(rtc.now());
+                    syncStateToFrontend();
+                }
+                else if (sysState == STATE_COOLDOWN && !pirResetUsed) {
+                    Serial.println(F("[PIR] Cooldown reset"));
+                    pirResetUsed  = true;
+                    cooldownStart = millis();
+                }
+                else {
+                    Serial.println(F("[PIR] Ignored"));
+                }
+            }
+            else if (msg == "PIR:OFF") {
+                pirState = false;
+                Serial.println(F("[PIR] Stopped"));
+            }
+            else if (msg == "ROW1:ON"  || msg == "ROW1:OFF" ||
+                     msg == "ROW2:ON"  || msg == "ROW2:OFF" ||
+                     msg == "ROW3:ON"  || msg == "ROW3:OFF" ||
+                     msg == "ALL:ON"   || msg == "ALL:OFF") {
+
+                if (sysState == STATE_SCHEDULED || sysState == STATE_OUTSIDE) {
+                    int    colonPos = msg.indexOf(':');
+                    String row      = msg.substring(0, colonPos);
+                    bool   state    = msg.endsWith("ON");
+                    sendRowCommand(row, state);
+                } else {
+                    Serial.println(F("[GATE] Toggle blocked"));
+                }
+            }
+            else if (msg == "STATUS") {
+                sendStatusJson();
+            }
+            // while loop continues naturally to next byte
+
+        } else {
+            serial2Buffer += c;
         }
     }
 }
@@ -232,12 +259,10 @@ void sendRowCommand(String row, bool state) {
     Serial2.println(cmd);
     Serial.print(F("[CMD] ")); Serial.println(cmd);
 
-    if (row == "ROW1") row1State = state;
+    if      (row == "ROW1") row1State = state;
     else if (row == "ROW2") row2State = state;
     else if (row == "ROW3") row3State = state;
-    else if (row == "ALL") {
-        row1State = row2State = row3State = state;
-    }
+    else if (row == "ALL")  row1State = row2State = row3State = state;
 }
 
 // ============================================================
@@ -259,14 +284,14 @@ void checkSchedule() {
     bool     inSchedule = isWithinSchedule(now);
 
     Serial.print(F("[RTC NOW] "));
-    Serial.print(now.year()); Serial.print("-");
+    Serial.print(now.year());  Serial.print("-");
     Serial.print(now.month()); Serial.print("-");
-    Serial.print(now.day()); Serial.print(" ");
-    Serial.print(now.hour()); Serial.print(":");
+    Serial.print(now.day());   Serial.print(" ");
+    Serial.print(now.hour());  Serial.print(":");
     Serial.println(now.minute());
 
-    Serial.print(F("[STATE] ")); 
-    switch(sysState) {
+    Serial.print(F("[STATE] "));
+    switch (sysState) {
         case STATE_OUTSIDE:   Serial.println(F("OUTSIDE"));   break;
         case STATE_SCHEDULED: Serial.println(F("SCHEDULED")); break;
         case STATE_COOLDOWN:  Serial.println(F("COOLDOWN"));  break;
@@ -274,26 +299,23 @@ void checkSchedule() {
     }
 
     if (inSchedule && (sysState == STATE_OUTSIDE || sysState == STATE_LOCKED)) {
-        // New schedule started — unlock!
         Serial.println(F("[SCHED] Schedule started — SCHEDULED"));
         sysState     = STATE_SCHEDULED;
         pirResetUsed = false;
         if (!sessionActive) startSession(now);
     }
     else if (inSchedule && sysState == STATE_COOLDOWN) {
-        // Schedule still active during cooldown — back to scheduled
         sysState = STATE_SCHEDULED;
     }
     else if (!inSchedule && sysState == STATE_SCHEDULED) {
-        // Schedule just ended — start cooldown
         Serial.println(F("[SCHED] Schedule ended — COOLDOWN started"));
         sysState      = STATE_COOLDOWN;
         cooldownStart = millis();
         pirResetUsed  = false;
         if (sessionActive) endSession(now);
     }
-    // STATE_LOCKED and STATE_COOLDOWN — do nothing, stay locked
 
+    // Ask ESP32 to re-fetch schedule
     requestScheduleFromServer();
 }
 
@@ -306,9 +328,9 @@ void parseSchedulePayload(String payload) {
     int idx = 0;
 
     while (payload.length() > 0 && idx < MAX_SLOTS) {
-        int commaPos = payload.indexOf(',');
-        String slot  = (commaPos == -1) ? payload : payload.substring(0, commaPos);
-        payload      = (commaPos == -1) ? "" : payload.substring(commaPos + 1);
+        int    commaPos = payload.indexOf(',');
+        String slot     = (commaPos == -1) ? payload : payload.substring(0, commaPos);
+        payload         = (commaPos == -1) ? "" : payload.substring(commaPos + 1);
 
         int dashPos = slot.indexOf('-', 3);
         if (dashPos == -1) continue;
@@ -328,7 +350,9 @@ void parseSchedulePayload(String payload) {
     }
 
     scheduleLoaded = (scheduleCount > 0);
-    Serial.print(F("[SCHED] Loaded ")); Serial.print(scheduleCount); Serial.println(F(" slot(s)"));
+    Serial.print(F("[SCHED] Loaded "));
+    Serial.print(scheduleCount);
+    Serial.println(F(" slot(s)"));
 }
 
 // ============================================================
@@ -434,17 +458,22 @@ void startSession(DateTime startTime) {
     sessionDate     = String(dateBuf);
     sessionStartStr = String(timeBuf);
 
-    Serial.print(F("[SESSION] Started: ")); Serial.print(sessionDate);
-    Serial.print(F(" ")); Serial.println(sessionStartStr);
+    Serial.print(F("[SESSION] Started: "));
+    Serial.print(sessionDate);
+    Serial.print(F(" "));
+    Serial.println(sessionStartStr);
 }
 
 void endSession(DateTime endTime) {
-    if (!sessionActive || pzemReadCount == 0) { sessionActive = false; return; }
+    if (!sessionActive || pzemReadCount == 0) {
+        sessionActive = false;
+        return;
+    }
 
-    double avgVoltage  = sumVoltage / pzemReadCount;
-    double avgCurrent  = sumCurrent / pzemReadCount;
-    TimeSpan duration = endTime - sessionStartTime;
-    int durationMins  = duration.totalseconds() / 60;
+    double   avgVoltage   = sumVoltage / pzemReadCount;
+    double   avgCurrent   = sumCurrent / pzemReadCount;
+    TimeSpan duration     = endTime - sessionStartTime;
+    int      durationMins = duration.totalseconds() / 60;
 
     Serial.println(F("[SESSION] Ended"));
     Serial.print(F("  Duration: ")); Serial.print(durationMins); Serial.println(F(" min"));
@@ -463,8 +492,9 @@ void endSession(DateTime endTime) {
         }
     }
 
-    sessionActive = false;
-    sessionStartEnergy = sumVoltage = sumCurrent = 0;
+    sessionActive      = false;
+    sessionStartEnergy = 0;
+    sumVoltage = sumCurrent = sumPower = 0;
     pzemReadCount = 0;
     totalEnergy   = 0;
 }
