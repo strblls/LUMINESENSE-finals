@@ -114,7 +114,7 @@ $conn->close();
 
                 <div class="col-lg-6">
                     <div class="card border-0 shadow-sm p-4 bg-white h-100">
-                        <h5 class="bold mb-3 text-info"><i class="fa-solid fa-clock-history me-2"></i> Limit Extensions Pending</h5>
+                        <h5 class="bold mb-3 text-info"><i class="bi bi-clock-history me-2"></i> Schedule Extensions Pending</h5>
                         <div class="style-scrollbar" style="max-height: 300px; overflow-y: auto;">
                             <?php 
                             $has_ext = false;

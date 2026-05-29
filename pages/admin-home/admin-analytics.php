@@ -1,4 +1,5 @@
 <?php
+$page_title = 'Analytics';
 require_once '../../php/includes/admin-head.php';
 include '../../php/handlers/analytics-handler.php';
 /** @var mysqli $conn */
