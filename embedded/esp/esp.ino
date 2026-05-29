@@ -21,7 +21,7 @@ const char* WIFI_PASSWORD = "QbcHSRKQ";
 // ── XAMPP Server ───────────────────────────────────────────
 const char* TOGGLE_URL      = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 const char* SCHEDULE_URL    = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* PZEM_POST_URL   = "http://192.168.1.5/LUMINESENSE-finals/api/post_pzem.php";
+const char* PZEM_POST_URL = "http://192.168.1.5/LUMINESENSE-finals/api/pzem_push.php";
 const char* UPDATE_ROWS_URL = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-update-rows.php";
 
 // ── Pin Definitions ────────────────────────────────────────
@@ -308,21 +308,41 @@ void forwardPzemToDb(String jsonStr) {
     if (httpBusy) return;
     httpBusy = true;
 
+    // Parse what Mega sent so we can add classroom_id
+    StaticJsonDocument<256> doc;
+    DeserializationError err = deserializeJson(doc, jsonStr);
+    if (err) {
+        Serial.println(F("[PZEM] JSON parse error — dropping"));
+        httpBusy = false;
+        return;
+    }
+
+    // Add classroom_id if Mega didn't include it
+    if (!doc.containsKey("classroom_id")) {
+        doc["classroom_id"] = 3;
+    }
+
+    String outJson;
+    serializeJson(doc, outJson);
+
     HTTPClient http;
     http.begin(PZEM_POST_URL);
     http.setTimeout(3000);
     http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-Token", "luminesense-secret-token");
 
-    int httpCode = http.POST(jsonStr);
+    int httpCode = http.POST(outJson);
     if (httpCode == 200) {
-        Serial.println(F("[PZEM] Posted to DB"));
+        Serial.println(F("[PZEM] Posted to DB OK"));
     } else {
-        Serial.print(F("[PZEM] Post failed, code: ")); Serial.println(httpCode);
+        Serial.print(F("[PZEM] Post failed, code: "));
+        Serial.println(httpCode);
     }
 
     http.end();
     httpBusy = false;
 }
+
 
 // ============================================================
 // UPDATE ROW STATES IN DATABASE
