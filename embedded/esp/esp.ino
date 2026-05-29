@@ -4,9 +4,9 @@
   ============================================================
   Responsibilities:
     - WiFi + database polling (XAMPP)
-    - PIR sensor reading (P13 = GPIO13)
-    - MOSFET gate control (P26, P27, P25)
-    - Serial2 bridge to/from Mega (P16=RX, P17=TX)
+    - PIR sensor reading (GPIO13)
+    - MOSFET gate control (GPIO26, GPIO27, GPIO25)
+    - Serial2 bridge to/from Mega (GPIO16=RX, GPIO17=TX)
   ============================================================
 */
 
@@ -19,21 +19,29 @@ const char* WIFI_SSID     = "Converge_2.4GHz_SX3635";
 const char* WIFI_PASSWORD = "QbcHSRKQ";
 
 // ── XAMPP Server ───────────────────────────────────────────
-const char* SERVER_IP       = "192.168.1.5";
 const char* TOGGLE_URL      = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 const char* SCHEDULE_URL    = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 const char* PZEM_POST_URL   = "http://192.168.1.5/LUMINESENSE-finals/api/post_pzem.php";
 const char* UPDATE_ROWS_URL = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-update-rows.php";
 
 // ── Pin Definitions ────────────────────────────────────────
-#define ROW1_PIN   26
-#define ROW2_PIN   27
-#define ROW3_PIN   25
-#define PIR_PIN    13
+#define ROW1_PIN 26
+#define ROW2_PIN 27
+#define ROW3_PIN 25
+#define PIR_PIN  13
 
 // ── Serial2 to Mega ────────────────────────────────────────
 #define MEGA_RX 16
 #define MEGA_TX 17
+
+// ── HTTP busy flag ─────────────────────────────────────────
+bool httpBusy = false;
+
+// ── Pending work flags ─────────────────────────────────────
+// Instead of calling HTTP directly from handleMegaMessages,
+// set a flag and let the loop handle it when HTTP is free
+String pendingPzem          = "";
+bool   pendingScheduleFetch = false;
 
 // ── Row State ──────────────────────────────────────────────
 bool row1State = false;
@@ -41,18 +49,15 @@ bool row2State = false;
 bool row3State = false;
 
 // ── PIR State ──────────────────────────────────────────────
-bool          pirState         = false;
-bool          lastPirState     = false;
-bool          pirActive        = false;
-bool          pirOverrideActive = false;
-unsigned long pirTriggeredAt   = 0;
-#define PIR_HOLD_MS 30000
+bool pirState          = false;
+bool lastPirState      = false;
+bool pirOverrideActive = false;
 
 // ── Timing ─────────────────────────────────────────────────
 unsigned long lastDbPoll        = 0;
 unsigned long lastScheduleFetch = 0;
-#define DB_POLL_MS        2000
-#define SCHEDULE_FETCH_MS 15000
+#define DB_POLL_MS        5000
+#define SCHEDULE_FETCH_MS 30000
 
 // ============================================================
 // SETUP
@@ -95,6 +100,10 @@ void setup() {
         Serial.println();
         Serial.print(F("[WiFi] Connected! IP: "));
         Serial.println(WiFi.localIP());
+
+        // Fetch schedule immediately on boot so Mega gets it right away
+        delay(500);
+        fetchAndForwardSchedule();
     } else {
         Serial.println(F("[WiFi] Failed — running offline"));
     }
@@ -111,14 +120,21 @@ void loop() {
     handlePIR(now);
     handleMegaMessages();
 
-    if (now - lastDbPoll >= DB_POLL_MS) {
-        lastDbPoll = now;
-        pollDatabase();
-    }
-
-    if (now - lastScheduleFetch >= SCHEDULE_FETCH_MS) {
-        lastScheduleFetch = now;
-        fetchAndForwardSchedule();
+    // Only one HTTP task runs per loop iteration — they take turns
+    if (!httpBusy) {
+        if (now - lastDbPoll >= DB_POLL_MS) {
+            lastDbPoll = now;
+            pollDatabase();
+        }
+        else if (now - lastScheduleFetch >= SCHEDULE_FETCH_MS || pendingScheduleFetch) {
+            lastScheduleFetch    = now;
+            pendingScheduleFetch = false;
+            fetchAndForwardSchedule();
+        }
+        else if (pendingPzem != "") {
+            forwardPzemToDb(pendingPzem);
+            pendingPzem = "";
+        }
     }
 }
 
@@ -130,7 +146,6 @@ void handlePIR(unsigned long now) {
 
     if (pirState == HIGH && !pirOverrideActive) {
         Serial.println(F("[PIR] Motion detected!"));
-        pirTriggeredAt  = now;
         pirOverrideActive = true;
         Serial2.println("PIR:ON");
     }
@@ -148,44 +163,36 @@ void handlePIR(unsigned long now) {
 // HANDLE MESSAGES FROM MEGA
 // ============================================================
 void handleMegaMessages() {
-    if (Serial2.available()) {
-        String msg = Serial2.readStringUntil('\n');
-        msg.trim();
+    if (!Serial2.available()) return;
 
-        // Don't toUpperCase JSON — it breaks true/false
-        if (msg.startsWith("{")) {
-            forwardPzemToDb(msg);
-            return;
-        }
+    String msg = Serial2.readStringUntil('\n');
+    msg.trim();
 
-    msg.toUpperCase(); // only uppercase non-JSON messages
+    Serial.print(F("[RAW MSG] ")); Serial.println(msg);
 
-        Serial.print(F("[MEGA] ")); Serial.println(msg);
-
-        if (msg == "FETCH:SCHEDULE") {
-            fetchAndForwardSchedule();
-            return;
-        }
-
-        if (msg.startsWith("{")) {
-            forwardPzemToDb(msg);
-            return;
-        }
-
-        if (msg == "PIR:RELEASE") {
-            pirActive = false;
-            Serial.println(F("[PIR] Released — manual mode restored"));
-        }
-
-        if      (msg == "ACK:ROW1:ON")  { setRow(1, true);  }
-        else if (msg == "ACK:ROW1:OFF") { setRow(1, false); }
-        else if (msg == "ACK:ROW2:ON")  { setRow(2, true);  }
-        else if (msg == "ACK:ROW2:OFF") { setRow(2, false); }
-        else if (msg == "ACK:ROW3:ON")  { setRow(3, true);  }
-        else if (msg == "ACK:ROW3:OFF") { setRow(3, false); }
-        else if (msg == "ACK:ALL:ON")   { setAllRows(true);  }
-        else if (msg == "ACK:ALL:OFF")  { setAllRows(false); }
+    // JSON from Mega — queue for DB posting
+    if (msg.startsWith("{")) {
+        pendingPzem = msg;
+        return;
     }
+
+    msg.toUpperCase();
+    Serial.print(F("[MEGA] ")); Serial.println(msg);
+
+    if (msg == "FETCH:SCHEDULE") {
+        // Queue the fetch — don't call directly, let loop handle when free
+        pendingScheduleFetch = true;
+        return;
+    }
+
+    if      (msg == "ACK:ROW1:ON")  { setRow(1, true);  }
+    else if (msg == "ACK:ROW1:OFF") { setRow(1, false); }
+    else if (msg == "ACK:ROW2:ON")  { setRow(2, true);  }
+    else if (msg == "ACK:ROW2:OFF") { setRow(2, false); }
+    else if (msg == "ACK:ROW3:ON")  { setRow(3, true);  }
+    else if (msg == "ACK:ROW3:OFF") { setRow(3, false); }
+    else if (msg == "ACK:ALL:ON")   { setAllRows(true); }
+    else if (msg == "ACK:ALL:OFF")  { setAllRows(false);}
 }
 
 // ============================================================
@@ -219,13 +226,16 @@ void setAllRows(bool state) {
 }
 
 // ============================================================
-// POLL DATABASE
+// POLL DATABASE FOR WEB TOGGLES
 // ============================================================
 void pollDatabase() {
     if (WiFi.status() != WL_CONNECTED) return;
+    if (httpBusy) return;
+    httpBusy = true;
 
     HTTPClient http;
     http.begin(TOGGLE_URL);
+    http.setTimeout(3000);
     int httpCode = http.GET();
 
     if (httpCode == 200) {
@@ -237,6 +247,7 @@ void pollDatabase() {
         if (err) {
             Serial.println(F("[DB] JSON parse error"));
             http.end();
+            httpBusy = false;
             return;
         }
 
@@ -252,58 +263,78 @@ void pollDatabase() {
     }
 
     http.end();
+    httpBusy = false;
 }
 
 // ============================================================
-// FETCH SCHEDULE
+// FETCH SCHEDULE AND FORWARD TO MEGA
 // ============================================================
 void fetchAndForwardSchedule() {
     if (WiFi.status() != WL_CONNECTED) return;
+    if (httpBusy) return;
+    httpBusy = true;
 
     HTTPClient http;
     http.begin(SCHEDULE_URL);
+    http.setTimeout(3000);
     int httpCode = http.GET();
 
     if (httpCode == 200) {
         String payload = http.getString();
         payload.trim();
-        Serial2.println("SCHEDULE:" + payload);
-        Serial.print(F("[SCHED] Forwarded to Mega: ")); Serial.println(payload);
+
+        Serial.print(F("[SCHED] Payload: ")); Serial.println(payload);
+        Serial.print(F("[SCHED] Length: "));  Serial.println(payload.length());
+
+        if (payload.length() > 0) {
+            Serial2.println("SCHEDULE:" + payload);
+            Serial.println(F("[SCHED] Forwarded to Mega"));
+        } else {
+            Serial.println(F("[SCHED] Empty payload — no schedule today"));
+        }
     } else {
         Serial.print(F("[SCHED] Fetch failed, code: ")); Serial.println(httpCode);
     }
 
     http.end();
+    httpBusy = false;
 }
 
 // ============================================================
-// FORWARD PZEM TO DB
+// FORWARD PZEM JSON TO DATABASE
 // ============================================================
 void forwardPzemToDb(String jsonStr) {
     if (WiFi.status() != WL_CONNECTED) return;
+    if (httpBusy) return;
+    httpBusy = true;
 
     HTTPClient http;
     http.begin(PZEM_POST_URL);
+    http.setTimeout(3000);
     http.addHeader("Content-Type", "application/json");
 
     int httpCode = http.POST(jsonStr);
     if (httpCode == 200) {
-        Serial.println(F("[PZEM] Data posted to DB"));
+        Serial.println(F("[PZEM] Posted to DB"));
     } else {
         Serial.print(F("[PZEM] Post failed, code: ")); Serial.println(httpCode);
     }
 
     http.end();
+    httpBusy = false;
 }
 
 // ============================================================
-// UPDATE ROWS IN DB
+// UPDATE ROW STATES IN DATABASE
 // ============================================================
 void updateRowsInDb(bool r1, bool r2, bool r3) {
     if (WiFi.status() != WL_CONNECTED) return;
+    if (httpBusy) return;
+    httpBusy = true;
 
     HTTPClient http;
     http.begin(UPDATE_ROWS_URL);
+    http.setTimeout(3000);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
     String body = "token=LS_ESP32_TOKEN_2025&classroom_id=3";
@@ -313,4 +344,5 @@ void updateRowsInDb(bool r1, bool r2, bool r3) {
 
     http.POST(body);
     http.end();
+    httpBusy = false;
 }
