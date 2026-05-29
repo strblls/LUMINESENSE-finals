@@ -512,6 +512,7 @@ $conn->close();
     <script>
         const CLASSROOM_ID = <?= (int) $classroom_id ?>;
         const FACULTY_ID = <?= (int) $faculty_id ?>;
+        const HAS_ACTIVE_SCHEDULE = <?= $active_schedule ? 'true' : 'false' ?>;
 
         // Sidebar trigger
         document.getElementById('sidebarTrigger').addEventListener('click', function() {
@@ -608,7 +609,9 @@ $conn->close();
                 if (!_scheduleEnd) {
                     display.textContent = '00:00:00';
                     display.classList.remove('text-danger');
-                    lockControls();
+                    if (!HAS_ACTIVE_SCHEDULE) {
+                        lockControls();
+                    }
                     return;
                 }
                 const now = new Date();
@@ -701,8 +704,11 @@ $conn->close();
                 }
 
                 _scheduleEnd = data.schedule_end || null;
-                if (!_scheduleEnd) lockControls();
-                else unlockControls();
+                if (data.schedule_active || HAS_ACTIVE_SCHEDULE) {
+                    unlockControls();
+                } else {
+                    lockControls();
+                }
 
                 const pirEl = document.getElementById('statusPir');
                 if (data.pir_occupied && data.pir_since) {

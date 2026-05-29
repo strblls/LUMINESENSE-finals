@@ -30,196 +30,7 @@ require_once '../../php/includes/admin-head.php';
         rel="stylesheet">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
-    
-
-
-    <style>
-        :root {
-            --primary-color: #f9edfa;
-            --secondary-color-1: #2f004f;
-            --secondary-color-2: #58078f;
-            --secondary-color-3: #790faf;
-            --secondary-color-4: #9b00e9;
-            --muted: #9f9f9f;
-            --font-primary: 'Poppins', sans-serif;
-        }
-
-        .stat-row {
-            display: flex;
-            flex-direction: row;
-            gap: 0.75rem;
-            width: 100%;
-        }
-
-        .stat-card {
-            flex: 1 1 0;
-            display: flex;
-            align-items: center;
-            gap: 0.9rem;
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 1rem;
-        }
-
-        .stat-card .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            line-height: 1;
-            color: var(--secondary-color-1);
-        }
-
-        .stat-card .stat-label {
-            font-size: 0.72rem;
-            color: var(--muted);
-            margin: 0;
-            line-height: 1.3;
-        }
-
-        .room-list {
-            max-height: 38vh;
-            overflow-y: auto;
-            padding-right: 0.25rem;
-        }
-
-        .room-item {
-            display: flex;
-            align-items: center;
-            gap: 0.7rem;
-            padding: 0.5rem 0.25rem;
-            border-bottom: 1px solid #eee;
-        }
-
-        .room-item:last-child {
-            border-bottom: none;
-        }
-
-        .room-icon {
-            font-size: 1.8rem;
-            color: var(--secondary-color-2);
-            flex-shrink: 0;
-        }
-
-        .room-info {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .room-info h5 {
-            margin: 0;
-            font-size: 15px;
-            font-weight: 600;
-        }
-
-        .room-info p {
-            margin: 0;
-            font-size: 11px;
-            color: var(--muted);
-        }
-
-        /* nav-btn sidebar style from HTML version */
-        .nav-btn {
-            width: 52px;
-            height: 52px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: var(--secondary-color-1);
-            color: var(--primary-color);
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.15s;
-        }
-
-        .nav-btn i,
-        .nav-btn svg {
-            font-size: 22px;
-        }
-
-        .nav-btn:hover {
-            background-color: var(--secondary-color-4);
-            transform: scale(1.06);
-        }
-
-        #sidebarOffcanvas {
-            width: 100px !important;
-            background-color: var(--primary-color);
-        }
-
-        #sidebarOffcanvas .offcanvas-header {
-            justify-content: center;
-            padding: 1rem 0.5rem;
-        }
-
-        #sidebarOffcanvas .logo {
-            width: 75px;
-            height: 75px;
-            object-fit: contain;
-            cursor: pointer;
-        }
-
-        #sidebarOffcanvas .offcanvas-body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            padding-top: 0.5rem;
-        }
-
-        #sidebarOffcanvas .offcanvas-footer {
-            display: flex;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        #profileOffcanvas {
-            width: 240px !important;
-            background-color: var(--primary-color);
-        }
-
-        .profile-btn {
-            width: 100%;
-            padding: 8px;
-            margin: 3px 0;
-            border-radius: 8px;
-            background-color: var(--secondary-color-1);
-            color: var(--primary-color);
-            border: none;
-            font-size: 14px;
-            cursor: pointer;
-            font-family: var(--font-primary);
-            transition: background-color 0.2s, transform 0.15s;
-        }
-
-        .profile-btn:hover {
-            background-color: var(--secondary-color-4);
-            transform: scale(1.02);
-        }
-
-        .badge-pending {
-            background: #fff3cd;
-            color: #856404;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-        }
-
-        .badge-verified {
-            background: #d1e7dd;
-            color: #0f5132;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-        }
-
-        .ext-badge {
-            background: #cfe2ff;
-            color: #084298;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-        }
-    </style>
+    <link rel="stylesheet" href="../../css/admin-home.css">
 </head>
 
 <body class="contrast-bg">
@@ -227,7 +38,7 @@ require_once '../../php/includes/admin-head.php';
 
     <div class="parent-container">
         <div class="child-container">
-            <div class="main-container homepage gap-3">
+            <div class="main-container admin gap-3">
 
                 <!-- LEFT COLUMN -->
                 <div class="group-container gap-3">
@@ -284,7 +95,7 @@ require_once '../../php/includes/admin-head.php';
                         <div class="room-list px-1 mt-1">
                             <?php if (empty($classrooms)): ?>
                                 <p class="text-muted text-center mt-2">No classrooms yet.</p>
-                            <?php else:
+                                <?php else:
                                 foreach ($classrooms as $c):
                                     $on = ($c['light_status'] === 'on'); ?>
                                     <div class="room-item">
@@ -309,11 +120,11 @@ require_once '../../php/includes/admin-head.php';
                                             <?php endif; ?>
                                         </div>
                                     </div>
-                                <?php endforeach;
+                            <?php endforeach;
                             endif; ?>
                         </div>
                     </div>
-                </div><!-- /LEFT COLUMN -->
+                </div>
 
                 <!-- RIGHT COLUMN -->
                 <div class="group-container gap-3">
@@ -330,7 +141,7 @@ require_once '../../php/includes/admin-head.php';
                             </div>
                         </div>
                         <div class="gap-2">
-                            <div class="activity-list px-2 gap-2 align-items-center max-width">
+                            <div class="activity-list admin px-2 gap-2 align-items-center max-width">
                                 <?php if (empty($logs)): ?>
                                     <p class="text-muted">No recent activity.</p>
                                 <?php else: ?>
@@ -362,6 +173,11 @@ require_once '../../php/includes/admin-head.php';
                         </div>
                     </div>
 
+
+                </div>
+                <?php include '../../php/includes/admin-sidebar.php'; ?>
+                <?php include '../../php/includes/profile-offcanvas.php'; ?>
+                <div class="group-container gap-3">
                     <!-- System Status -->
                     <div style="background-color:#f8f9fa;" class="section-container">
                         <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
@@ -379,7 +195,7 @@ require_once '../../php/includes/admin-head.php';
                                 ['label' => 'Webcam', 'ok' => false, 'ok_text' => 'Active', 'fail_text' => 'Disabled'],
                             ];
                             foreach ($statuses as $s):
-                                ?>
+                            ?>
                                 <div class="d-flex justify-content-between align-items-center py-1"
                                     style="border-bottom:1px solid #eee;">
                                     <h5 class="mb-0" style="font-size:13px;"><?= $s['label'] ?></h5>
@@ -398,31 +214,29 @@ require_once '../../php/includes/admin-head.php';
                         </div>
                     </div>
 
-                </div><!-- /RIGHT COLUMN -->
-                <?php include '../../php/includes/admin-sidebar.php'; ?>
-                <?php include '../../php/includes/profile-offcanvas.php'; ?>
+                    <div></div>
+                </div>
 
             </div>
         </div>
-    </div>
 
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/toggles.js"></script>
-    <script>
-        // Live uptime counter (counts from page load — resets on refresh)
-        const start = Date.now();
+        <script src="../../script/animations.js"></script>
+        <script src="../../script/toggles.js"></script>
+        <script>
+            // Live uptime counter (counts from page load — resets on refresh)
+            const start = Date.now();
 
-        function updateUptime() {
-            const s = Math.floor((Date.now() - start) / 1000);
-            const h = String(Math.floor(s / 3600)).padStart(2, '0');
-            const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
-            const sec = String(s % 60).padStart(2, '0');
-            const el = document.getElementById('uptime-display');
-            if (el) el.textContent = `${h}:${m}:${sec}`;
-        }
-        setInterval(updateUptime, 1000);
-        updateUptime();
-    </script>
+            function updateUptime() {
+                const s = Math.floor((Date.now() - start) / 1000);
+                const h = String(Math.floor(s / 3600)).padStart(2, '0');
+                const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+                const sec = String(s % 60).padStart(2, '0');
+                const el = document.getElementById('uptime-display');
+                if (el) el.textContent = `${h}:${m}:${sec}`;
+            }
+            setInterval(updateUptime, 1000);
+            updateUptime();
+        </script>
 </body>
 
 </html>

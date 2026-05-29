@@ -547,6 +547,10 @@ h4.bold.off {
     }
 }
 
+.activity-list.admin {
+    max-height: 100vh;
+}
+
 .activity-list.sensor-readings {
     max-height: 60vh;
 }
