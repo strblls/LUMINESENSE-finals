@@ -1,0 +1,114 @@
+.main-container.homepage {
+    display: grid !important;
+    grid-template-columns: 26rem minmax(0, 40%) minmax(0, 1fr) !important;
+    align-items: start !important;
+}
+
+.main-container.homepage > .group-container {
+    min-width: 0;
+}
+
+.gesture-camera {
+    background: #212529;
+    border-radius: 8px;
+    min-height: 190px;
+    margin: 0 10px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.gesture-camera img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.gesture-response {
+    padding: 4px 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.88rem;
+}
+
+@media (max-width: 992px) {
+    .main-container.homepage {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .main-container.homepage {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
+/* Gesture row selector pills */
+.gesture-row-pills {
+    display: flex;
+    gap: 6px;
+}
+
+.gesture-row-pill {
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: #e9ecef;
+    color: #6c757d;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    cursor: default;
+    user-select: none;
+}
+
+.gesture-row-pill.active {
+    background: #0d6efd;
+    color: #fff;
+    border-color: #0a58ca;
+    box-shadow: 0 0 8px rgba(13, 110, 253, 0.45);
+}
+
+.gesture-row-pill.pending {
+    background: #ffc107;
+    color: #212529;
+    border-color: #ff9800;
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
+    animation: pillPulse 1s infinite alternate ease-in-out;
+}
+
+.gesture-row-pill.confirmed {
+    background: #198754;
+    color: #fff;
+    border-color: #146c43;
+    animation: pillPop 0.35s ease;
+}
+
+@keyframes pillPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(1.08);
+    }
+}
+
+@keyframes pillPop {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.18);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+

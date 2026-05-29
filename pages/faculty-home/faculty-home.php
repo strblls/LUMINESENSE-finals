@@ -87,150 +87,10 @@ $conn->close();
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/faculty-home.css">
 
     <title>Home – LumineSense</title>
 
-    <style>
-        .main-container.homepage {
-            display: grid !important;
-            grid-template-columns: 1fr 1.2fr 1fr !important;
-            align-items: start !important;
-        }
-
-        .gesture-camera {
-            background: #212529;
-            border-radius: 8px;
-            min-height: 190px;
-            margin: 0 10px 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .gesture-camera img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-
-        .gesture-response {
-            padding: 4px 10px 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            font-size: 0.88rem;
-        }
-
-        @media (max-width: 992px) {
-            .main-container.homepage {
-                grid-template-columns: 1fr 1fr !important;
-            }
-        }
-
-        @media (max-width: 640px) {
-            .main-container.homepage {
-                grid-template-columns: 1fr !important;
-            }
-        }
-
-        /* Gesture row selector pills */
-        .gesture-row-pills {
-            display: flex;
-            gap: 6px;
-        }
-
-        .gesture-row-pill {
-            padding: 3px 12px;
-            border-radius: 20px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            background: #e9ecef;
-            color: #6c757d;
-            border: 2px solid transparent;
-            transition: all 0.2s ease;
-            cursor: default;
-            user-select: none;
-        }
-
-        .gesture-row-pill.active {
-            background: #0d6efd;
-            color: #fff;
-            border-color: #0a58ca;
-            box-shadow: 0 0 8px rgba(13, 110, 253, 0.45);
-        }
-
-        .gesture-row-pill.pending {
-            background: #ffc107;
-            color: #212529;
-            border-color: #ff9800;
-            box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
-            animation: pillPulse 1s infinite alternate ease-in-out;
-        }
-
-        .gesture-row-pill.confirmed {
-            background: #198754;
-            color: #fff;
-            border-color: #146c43;
-            animation: pillPop 0.35s ease;
-        }
-
-        @keyframes pillPulse {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.08); }
-        }
-
-        @keyframes pillPop {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.18); }
-            100% { transform: scale(1); }
-        }
-        
-
-        /* Gesture guide rows */
-        .gesture-guide-row {
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .gesture-guide-row:last-child {
-            border-bottom: none;
-        }
-
-        .gesture-guide-img {
-            flex-shrink: 0;
-            width: 90px;
-            height: 80px;
-            background: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .gesture-guide-img img {
-            max-height: 64px;
-            max-width: 70px;
-            object-fit: contain;
-        }
-
-        .gesture-guide-text {
-            padding: 0 14px;
-        }
-
-        .gesture-guide-text strong {
-            font-size: 0.9rem;
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .gesture-guide-text span {
-            font-size: 0.8rem;
-            color: #6c757d;
-            line-height: 1.4;
-        }
-    </style>
 </head>
 
 <body class="contrast-bg">
@@ -244,7 +104,7 @@ $conn->close();
                 <!-- ══════════════════════════════
                      COLUMN 1 – GESTURE DETECTION
                 ══════════════════════════════ -->
-                <div class="group-container gap-3 group-stretch">
+                <div class="group-container gap-3">
 
                     <!-- Gesture Detection -->
                     <div style="background-color: #f8f9fa;" class="section-container">
@@ -414,14 +274,19 @@ $conn->close();
                 <!-- ══════════════════════════════
                      COLUMN 3 – RECENT ACTIVITIES
                 ══════════════════════════════ -->
-                <div class="group-container gap-3">
+                <div class="group-container recent-activities gap-3">
 
                     <!-- Time Left (moved from Column 2) -->
                     <div style="background-color: #f8f9fa;" class="section-container mb-3">
-                        <div class="d-flex gap-1 justify-content-center align-items-center">
-                            <div class="d-flex flex-column mx-2 align-items-start justify-content-center">
-                                <h2 class="bold">Time Left</h2><br>
-                                <h2 class="medium fs-6">until end of class</h2>
+                        <div class="gap-1 align-items-center">
+                            <div class="section-topbar d-flex flex-columnmx-2 justify-content-between">
+                                <div>
+                                    <h2 class="bold">Time Left</h2>
+                                    <h2 class="medium fs-6">until end of class</h2>
+                                </div>
+                                <div class="d-flex mx-2 align-items-center justify-content-end">
+                                    <button class="light h-50 w-auto" data-bs-toggle="modal" data-bs-target="#viewScheduleModal">View Schedule</button>
+                                </div>
                             </div>
                             <div class="d-flex flex-column mx-1 align-items-center justify-content-center">
                                 <?php if ($active_schedule): ?>
@@ -436,7 +301,6 @@ $conn->close();
                                 <?php endif; ?>
                             </div>
                             <div class="d-flex flex-column mx-2 align-items-end justify-content-center">
-                                <button class="light" data-bs-toggle="modal" data-bs-target="#viewScheduleModal">View Schedule</button>
                                 <?php if ($active_schedule): ?>
                                     <button class="light mt-2" data-bs-toggle="modal" data-bs-target="#extendModal">
                                         <i class="bi bi-clock-history me-1"></i> Extend
@@ -467,15 +331,43 @@ $conn->close();
                                     <p class="text-muted">No recent activity yet.</p>
                                 <?php else:
                                     foreach ($logs as $log): ?>
-                                        <div style="font-size:0.78rem; padding: 4px 0;">
-                                            <span class="bold"><?= ucfirst(str_replace('_', ' ', $log['event_type'])) ?></span>
-                                            <span class="text-muted"> · <?= htmlspecialchars($log['room_name']) ?></span>
-                                            <div class="text-muted" style="font-size:0.72rem;">
-                                                <?= date('g:i A · M j', strtotime($log['event_time'])) ?>
+                                        <div class="d-flex align-items-start gap-2" style="font-size:0.78rem; padding: 6px 0;">
+                                            <div class="flex-shrink-0">
+                                                <?php
+                                                $type = $log['event_type'] ?? '';
+                                                $badgeClass = match (true) {
+                                                    str_contains($type, 'on')      => 'bg-success',
+                                                    str_contains($type, 'off')     => 'bg-danger',
+                                                    str_contains($type, 'gesture') => 'bg-primary',
+                                                    default                        => 'bg-secondary'
+                                                };
+                                                ?>
+                                                <span class="badge <?= $badgeClass ?> rounded-pill"><?= ucfirst(str_replace('_', ' ', $type)) ?></span>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div>
+                                                    <strong><?= htmlspecialchars($log['room_name'] ?? '—') ?></strong>
+                                                    <?php $rowAffected = $log['row_affected'] ?? null; ?>
+                                                    <?php if ($rowAffected): ?>
+                                                        <span class="badge bg-info text-dark rounded-pill ms-2">Row <?= htmlspecialchars($rowAffected) ?></span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="text-muted" style="font-size:0.72rem; margin-top:4px;">
+                                                    <?php
+                                                    $by = strtolower(trim($log['triggered_by'] ?? 'manual'));
+                                                    $byBadge = match ($by) {
+                                                        'gesture', 'pir' => ['bg-primary', 'bi-hand-index-thumb', 'Gesture'],
+                                                        'manual'         => ['bg-secondary', 'bi-toggle-on',      'Manual'],
+                                                        default          => ['bg-secondary', 'bi-toggle-on',      ucfirst($by)],
+                                                    };
+                                                    ?>
+                                                    <span class="badge <?= $byBadge[0] ?> rounded-pill"><i class="bi <?= $byBadge[1] ?> me-1"></i><?= $byBadge[2] ?></span>
+                                                    <span class="ms-2"><?= date('g:i A · M j', strtotime($log['event_time'])) ?></span>
+                                                </div>
                                             </div>
                                         </div>
                                         <hr>
-                                    <?php endforeach;
+                                <?php endforeach;
                                 endif; ?>
                             </div>
                         </div>
@@ -622,7 +514,7 @@ $conn->close();
         const FACULTY_ID = <?= (int) $faculty_id ?>;
 
         // Sidebar trigger
-        document.getElementById('sidebarTrigger').addEventListener('click', function () {
+        document.getElementById('sidebarTrigger').addEventListener('click', function() {
             bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('sidebarOffcanvas')).toggle();
         });
 
@@ -636,7 +528,10 @@ $conn->close();
             form.append('faculty_id', FACULTY_ID);
             form.append('event_type', eventType);
             form.append('triggered_by', 'gesture');
-            await fetch('../../api/logs.php', { method: 'POST', body: form });
+            await fetch('../../api/logs.php', {
+                method: 'POST',
+                body: form
+            });
         }
 
         // Update gesture result display (called from initialize-gesture.js)
@@ -646,45 +541,69 @@ $conn->close();
 
         // ── Lock / Unlock controls ────────────────────────────────────────────
         function lockControls() {
-            ['row-1-switch','row-2-switch','row-3-switch'].forEach(id => {
+            ['row-1-switch', 'row-2-switch', 'row-3-switch'].forEach(id => {
                 const el = document.getElementById(id);
-                if (el) { el.disabled = true; el.closest('.form-check')?.classList.add('opacity-50'); }
+                if (el) {
+                    el.disabled = true;
+                    el.closest('.form-check')?.classList.add('opacity-50');
+                }
             });
             const pwr = document.getElementById('allLightsContainer');
-            if (pwr) { pwr.style.pointerEvents = 'none'; pwr.style.opacity = '0.4'; }
+            if (pwr) {
+                pwr.style.pointerEvents = 'none';
+                pwr.style.opacity = '0.4';
+            }
             const camBtn = document.getElementById('enableCameraBtn');
-            if (camBtn) { camBtn.disabled = true; camBtn.title = 'No active schedule'; }
+            if (camBtn) {
+                camBtn.disabled = true;
+                camBtn.title = 'No active schedule';
+            }
             const disBtn = document.getElementById('disableCameraBtn');
-            if (disBtn) { disBtn.disabled = true; }
+            if (disBtn) {
+                disBtn.disabled = true;
+            }
             const notice = document.getElementById('scheduleEndNotice');
             if (notice) notice.style.display = 'block';
         }
 
         function unlockControls() {
-            ['row-1-switch','row-2-switch','row-3-switch'].forEach(id => {
+            ['row-1-switch', 'row-2-switch', 'row-3-switch'].forEach(id => {
                 const el = document.getElementById(id);
-                if (el) { el.disabled = false; el.closest('.form-check')?.classList.remove('opacity-50'); }
+                if (el) {
+                    el.disabled = false;
+                    el.closest('.form-check')?.classList.remove('opacity-50');
+                }
             });
             const pwr = document.getElementById('allLightsContainer');
-            if (pwr) { pwr.style.pointerEvents = ''; pwr.style.opacity = ''; }
+            if (pwr) {
+                pwr.style.pointerEvents = '';
+                pwr.style.opacity = '';
+            }
             const camBtn = document.getElementById('enableCameraBtn');
-            if (camBtn) { camBtn.disabled = false; camBtn.title = ''; }
+            if (camBtn) {
+                camBtn.disabled = false;
+                camBtn.title = '';
+            }
             const disBtn = document.getElementById('disableCameraBtn');
-            if (disBtn) { disBtn.disabled = false; }
+            if (disBtn) {
+                disBtn.disabled = false;
+            }
             const notice = document.getElementById('scheduleEndNotice');
             if (notice) notice.style.display = 'none';
         }
 
         // ── Countdown timer ───────────────────────────────────────────────────
         let _scheduleEnd = null;
-        (function () {
+        (function() {
             const display = document.getElementById('timerDisplay');
             const phpEnd = display ? display.dataset.end : null;
             if (phpEnd) _scheduleEnd = phpEnd;
 
-            function pad(n) { return String(n).padStart(2, '0'); }
+            function pad(n) {
+                return String(n).padStart(2, '0');
+            }
 
-            window._tickTimer = function () {
+            window._tickTimer = function() {
                 if (!display) return;
                 if (!_scheduleEnd) {
                     display.textContent = '00:00:00';
@@ -712,12 +631,18 @@ $conn->close();
 
         // ── System Uptime ─────────────────────────────────────────────────────
         let _uptimeStart = null;
-        (function () {
+        (function() {
             const el = document.getElementById('statusUptime');
-            function pad(n) { return String(n).padStart(2, '0'); }
-            window._tickUptime = function () {
+
+            function pad(n) {
+                return String(n).padStart(2, '0');
+            }
+            window._tickUptime = function() {
                 if (!el) return;
-                if (!_uptimeStart) { el.textContent = '00:00:00'; return; }
+                if (!_uptimeStart) {
+                    el.textContent = '00:00:00';
+                    return;
+                }
                 let diff = Math.max(0, Math.floor((Date.now() - _uptimeStart) / 1000));
                 el.textContent = `${pad(Math.floor(diff / 3600))}:${pad(Math.floor((diff % 3600) / 60))}:${pad(diff % 60)}`;
             };
@@ -745,9 +670,12 @@ $conn->close();
                 document.querySelectorAll('.bulb-img[data-row="2"]').forEach(img => img.src = r2 === 'on' ? BULB_ON : BULB_OFF);
                 document.querySelectorAll('.bulb-img[data-row="3"]').forEach(img => img.src = r3 === 'on' ? BULB_ON : BULB_OFF);
 
-                const sw1 = document.getElementById('row-1-switch'); if (sw1) sw1.checked = (r1 === 'on');
-                const sw2 = document.getElementById('row-2-switch'); if (sw2) sw2.checked = (r2 === 'on');
-                const sw3 = document.getElementById('row-3-switch'); if (sw3) sw3.checked = (r3 === 'on');
+                const sw1 = document.getElementById('row-1-switch');
+                if (sw1) sw1.checked = (r1 === 'on');
+                const sw2 = document.getElementById('row-2-switch');
+                if (sw2) sw2.checked = (r2 === 'on');
+                const sw3 = document.getElementById('row-3-switch');
+                if (sw3) sw3.checked = (r3 === 'on');
 
                 const overallBadgeOn = (r1 === 'on' || r2 === 'on' || r3 === 'on');
 
@@ -773,15 +701,22 @@ $conn->close();
                 }
 
                 _scheduleEnd = data.schedule_end || null;
-                if (!_scheduleEnd) lockControls(); else unlockControls();
+                if (!_scheduleEnd) lockControls();
+                else unlockControls();
 
                 const pirEl = document.getElementById('statusPir');
                 if (data.pir_occupied && data.pir_since) {
                     _uptimeStart = new Date(data.pir_since.replace(' ', 'T')).getTime();
-                    if (pirEl) { pirEl.textContent = 'Occupied'; pirEl.className = 'text-success'; }
+                    if (pirEl) {
+                        pirEl.textContent = 'Occupied';
+                        pirEl.className = 'text-success';
+                    }
                 } else {
                     _uptimeStart = null;
-                    if (pirEl) { pirEl.textContent = 'Empty'; pirEl.className = 'text-muted'; }
+                    if (pirEl) {
+                        pirEl.textContent = 'Empty';
+                        pirEl.className = 'text-muted';
+                    }
                 }
 
             } catch (e) {
@@ -799,7 +734,7 @@ $conn->close();
     <!-- ══════════════════════════════
          GESTURE HELP MODAL – 2-column grid, modal-xl, centered
     ══════════════════════════════ -->
-    <div class="profile-details-modal modal fade" id="gestureHelpModal" tabindex="-1" aria-labelledby="gestureHelpLabel" aria-hidden="true">
+    <div class="profile-details-modal gesture-help modal fade" id="gestureHelpModal" tabindex="-1" aria-labelledby="gestureHelpLabel" aria-hidden="true">
         <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -817,41 +752,16 @@ $conn->close();
                                 <img src="../../images/pointing-up.png" alt="Pointing up – 1 finger">
                             </div>
                             <div class="gesture-guide-text">
-                                <strong>1 Finger Up</strong>
-                                <span>Point only your index finger upward, all other fingers curled down. Selects <strong>Row 1</strong>.</span>
-                            </div>
-                        </div>
-
-                        <!-- Victory – Row 2 -->
-                        <div class="gesture-guide-row">
-                            <div class="gesture-guide-img">
-                                <img src="../../images/victory.png" alt="Victory – 2 fingers">
-                            </div>
-                            <div class="gesture-guide-text">
-                                <strong>Victory / 2 Fingers</strong>
-                                <span>Raise index and middle fingers in a V shape, remaining fingers curled. Selects <strong>Row 2</strong>.</span>
-                            </div>
-                        </div>
-
-                        <!-- ILY – Row 3 -->
-                        <div class="gesture-guide-row" style="border-right: 1px solid #dee2e6;">
-                            <div class="gesture-guide-img">
-                                <img src="../../images/ily.png" alt="ILY sign">
-                            </div>
-                            <div class="gesture-guide-text">
-                                <strong>ILY Sign</strong>
-                                <span>Raise thumb, index, and pinky fingers. Middle and ring fingers must be curled down. Selects <strong>Row 3</strong>.</span>
-                            </div>
-                        </div>
-
-                        <!-- Thumbs Up – Toggle -->
-                        <div class="gesture-guide-row">
-                            <div class="gesture-guide-img">
-                                <img src="../../images/thumbs-up.png" alt="Thumbs up">
-                            </div>
-                            <div class="gesture-guide-text">
-                                <strong>Thumbs Up</strong>
-                                <span>Close all fingers into a fist with only the thumb pointing upward. <strong>Toggles</strong> the currently selected row on or off.</span>
+                                <h4 class="bold">Turn 1st row of lights ON/OFF</h4>
+                                <strong>Pointing Up / 1 Finger</strong>
+                                <span>To perform:
+                                    <ul>
+                                        <li>Point only your index finger upward.</li>
+                                        <li>All other fingers curled down.</li>
+                                        <li>Perform the confirmation gesture to formally execute gesture.</li>
+                                        <li>Perform this gesture to turn the 1st row of lights ON or OFF.</li>
+                                    </ul>
+                                </span>
                             </div>
                         </div>
 
@@ -861,8 +771,32 @@ $conn->close();
                                 <img src="../../images/open-palm.png" alt="Open palm">
                             </div>
                             <div class="gesture-guide-text">
+                                <h4 class="bold">Turn all rows of lights ON</h4>
                                 <strong>Open Palm</strong>
-                                <span>Extend all five fingers wide and spread them open, facing the camera. Turns <strong>all lights ON</strong>.</span>
+                                <span>To perform:
+                                    <ul>
+                                        <li>Extend all five fingers wide and spread them open, facing the camera.</li>
+                                        <li>Perform the confirmation gesture to formally execute gesture.</li>
+                                    </ul>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Victory – Row 2 -->
+                        <div class="gesture-guide-row">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/victory.png" alt="Victory – 2 fingers">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <h4 class="bold">Turn 2nd row of lights ON/OFF</h4>
+                                <strong>Victory / 2 Fingers</strong>
+                                <span>To perform:
+                                    <ul>
+                                        <li>Raise index and middle fingers in a V shape, remaining fingers curled.</li>
+                                        <li>Perform the confirmation gesture to formally execute gesture.</li>
+                                        <li>Perform this gesture to turn the 2nd row of lights ON or OFF.</li>
+                                    </ul>
+                                </span>
                             </div>
                         </div>
 
@@ -872,11 +806,53 @@ $conn->close();
                                 <img src="../../images/closed-fist.png" alt="Closed fist">
                             </div>
                             <div class="gesture-guide-text">
+                                <h4 class="bold">Turn all rows of lights OFF</h4>
                                 <strong>Closed Fist</strong>
-                                <span>Curl all fingers tightly into a fist with no fingers extended. Turns <strong>all lights OFF</strong>.</span>
+                                <span>To perform:
+                                    <ul>
+                                        <li>Curl all fingers tightly into a fist with no fingers extended.</li>
+                                        <li>Perform the confirmation gesture to formally execute gesture.</li>
+                                    </ul>
+                                </span>
                             </div>
                         </div>
 
+                        <!-- ILY – Row 3 -->
+                        <div class="gesture-guide-row" style="border-right: 1px solid #dee2e6;">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/ily.png" alt="ILY sign">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <h4 class="bold">Turn 3rd row of lights ON/OFF</h4>
+                                <strong>"I Love You" Sign</strong>
+                                <span>To perform:
+                                    <ul>
+                                        <li>Extend thumb, index, and pinky fingers. </li>
+                                        <li>Middle and ring fingers must be curled down.</li>
+                                        <li>Perform the confirmation gesture to formally execute gesture.</li>
+                                        <li>Perform this gesture to turn the 3rd row of lights ON or OFF.</li>
+                                    </ul>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Thumbs Up – Toggle -->
+                        <div class="gesture-guide-row">
+                            <div class="gesture-guide-img">
+                                <img src="../../images/thumbs-up.png" alt="Thumbs up">
+                            </div>
+                            <div class="gesture-guide-text">
+                                <h4 class="bold">Confirmation Gesture</h4>
+                                <strong>Thumbs Up</strong>
+                                <span>To perform:
+                                    <ul>
+                                        <li>Close all fingers into a fist with only the thumb pointing upward.</li>
+                                        <li>Use this gesture to confirm and execute the currently detected gesture command.</li>
+                                        <li>For example, if the system detects a "pointing up" gesture, it will wait for you to perform the "thumbs up" gesture to confirm that you want to turn the 1st row of lights ON or OFF.</li>
+                                    </ul>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -952,7 +928,7 @@ $conn->close();
                                             <td>
                                                 <?php
                                                 $by = strtolower(trim($log['triggered_by'] ?? 'manual'));
-                                                $byBadge = match($by) {
+                                                $byBadge = match ($by) {
                                                     'gesture', 'pir' => ['bg-primary', 'bi-hand-index-thumb', 'Gesture'],
                                                     'manual'         => ['bg-secondary', 'bi-toggle-on',      'Manual'],
                                                     default          => ['bg-secondary', 'bi-toggle-on',      ucfirst($by)],
@@ -1024,7 +1000,7 @@ $conn->close();
         </div>
 
         <script>
-            (function () {
+            (function() {
                 const SCHEDULE_ID = <?= (int) $active_schedule['id'] ?>;
                 let selectedMins = 0;
 
@@ -1050,7 +1026,10 @@ $conn->close();
                     form.append('extend_mins', selectedMins);
 
                     try {
-                        const res = await fetch('../../api/request-extension.php', { method: 'POST', body: form });
+                        const res = await fetch('../../api/request-extension.php', {
+                            method: 'POST',
+                            body: form
+                        });
                         const data = await res.json();
                         feedback.textContent = data.message;
                         feedback.style.color = data.success ? 'green' : 'red';
@@ -1087,8 +1066,8 @@ $conn->close();
                     <div class="d-flex flex-column gap-3">
                         <?php if (!empty($schedules)): ?>
                             <?php
-                            $dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-                            usort($schedules, function($a, $b) use ($dayOrder) {
+                            $dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                            usort($schedules, function ($a, $b) use ($dayOrder) {
                                 $da = array_search($a['day_of_week'], $dayOrder);
                                 $db = array_search($b['day_of_week'], $dayOrder);
                                 return $da !== $db ? $da - $db : strcmp($a['start_time'], $b['start_time']);
@@ -1109,27 +1088,27 @@ $conn->close();
                                 $start    = date('g:i A', strtotime($sched['start_time']));
                                 $end      = date('g:i A', strtotime($sched['end_time']));
                             ?>
-                            <div class="d-flex align-items-center gap-3 p-2 rounded-3
+                                <div class="d-flex align-items-center gap-3 p-2 rounded-3
                                 <?= $isToday ? 'bg-primary bg-opacity-10 border border-primary border-opacity-25' : 'bg-light' ?>">
-                                <i class="bi <?= $icon ?> <?= $isToday ? 'text-primary' : 'text-secondary' ?>"
-                                    style="font-size:1.6rem; flex-shrink:0;"></i>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <strong><?= htmlspecialchars($sched['day_of_week']) ?></strong>
-                                        <?php if ($isToday): ?>
-                                            <span class="badge bg-primary rounded-pill" style="font-size:0.7rem;">Today</span>
+                                    <i class="bi <?= $icon ?> <?= $isToday ? 'text-primary' : 'text-secondary' ?>"
+                                        style="font-size:1.6rem; flex-shrink:0;"></i>
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong><?= htmlspecialchars($sched['day_of_week']) ?></strong>
+                                            <?php if ($isToday): ?>
+                                                <span class="badge bg-primary rounded-pill" style="font-size:0.7rem;">Today</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock me-1"></i><?= $start ?> — <?= $end ?>
+                                        </small>
+                                        <?php if (!empty($sched['subject_name'])): ?>
+                                            <div style="font-size:0.8rem;" class="text-secondary">
+                                                <i class="bi bi-book me-1"></i><?= htmlspecialchars($sched['subject_name']) ?>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
-                                    <small class="text-muted">
-                                        <i class="bi bi-clock me-1"></i><?= $start ?> — <?= $end ?>
-                                    </small>
-                                    <?php if (!empty($sched['subject_name'])): ?>
-                                        <div style="font-size:0.8rem;" class="text-secondary">
-                                            <i class="bi bi-book me-1"></i><?= htmlspecialchars($sched['subject_name']) ?>
-                                        </div>
-                                    <?php endif; ?>
                                 </div>
-                            </div>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3 text-muted">

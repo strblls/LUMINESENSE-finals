@@ -230,3 +230,59 @@
     justify-content: center;
 }
 
+.profile-details-modal.gesture-help {
+    .gesture-guide-row {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .gesture-guide-row:last-child {
+        border-bottom: none;
+    }
+
+    .gesture-guide-img {
+        flex-shrink: 0;
+        width: 144px;
+        height: 144px;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .gesture-guide-img img {
+        max-height: 144px;
+        max-width: 144px;
+        object-fit: contain;
+    }
+
+    .gesture-guide-text {
+        color: var(--secondary-color-2);
+        padding: 0 14px;
+        h4 {
+            color: var(--secondary-color-3);
+        }
+    }
+
+    .gesture-guide-text strong {
+        font-size: 0.9rem;
+        display: block;
+        margin-bottom: 2px;
+    }
+
+    .gesture-guide-text span {
+        font-size: 0.8rem;
+        color: #6c757d;
+        line-height: 1.4;
+    }
+
+    .modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        button {
+            width: auto;
+        }
+    }
+}

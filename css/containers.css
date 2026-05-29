@@ -412,10 +412,18 @@
     flex: 1;
 }
 
-/* Utility: ensure child .section-container elements stretch to column width */
-.group-container.group-stretch {
-    align-items: stretch;
+.group-container.recent-activities{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    width: 90%;
+
+    .section-container {
+        padding: 1rem;
+    }
 }
+
 
 .section-container {
     border-radius: 10px;
@@ -424,11 +432,6 @@
     width: 100%;
 }
 
-/* Make section content respect padding and scale responsively */
-.section-container {
-    box-sizing: border-box;
-    padding: 1rem;
-}
 
 /* Responsive timer font so large clocks don't overflow their container */
 .section-container .display-1 {
@@ -437,7 +440,7 @@
     margin: 0;
 }
 
-@media (max-width: 992px) {
+/* @media (max-width: 992px) {
     /* on narrower screens, scale the timer down more and stack content */
     .main-container.homepage {
         flex-direction: column;
@@ -447,7 +450,7 @@
     .section-container .display-1 {
         font-size: clamp(1.6rem, 8vw, 3.5rem);
     }
-}
+
 
 .section-container.recents {
     border-radius: 10px;
