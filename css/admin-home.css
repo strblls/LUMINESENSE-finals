@@ -86,6 +86,13 @@
     color: var(--muted);
 }
 
+.activity-list.admin {
+    flex: 1;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    padding-bottom: 1rem;
+}
+
 /* nav-btn sidebar style from HTML version */
 .nav-btn {
     width: 52px;

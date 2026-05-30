@@ -63,4 +63,10 @@ $_SESSION['admin_logged_in'] = true;
 $_SESSION['role']            = 'admin';
 $_SESSION['admin_attempts']  = 0;
 
+// Log admin login
+$stmt = $conn->prepare('INSERT INTO admin_login_logs (admin_id) VALUES (?)');
+$stmt->bind_param('i', $_SESSION['admin_id']);
+$stmt->execute();
+$stmt->close();
+
 header('Location: ../pages/admin-home/admin-homepage.php');

@@ -140,7 +140,7 @@ require_once '../../php/includes/admin-head.php';
                                     onclick="dissolve('admin-reports.php?tab=activity')">Details</button>
                             </div>
                         </div>
-                        <div class="gap-2">
+                        <div style="overflow:hidden; flex:1;">
                             <div class="activity-list admin px-2 gap-2 align-items-center max-width">
                                 <?php if (empty($logs)): ?>
                                     <p class="text-muted">No recent activity.</p>
@@ -149,10 +149,33 @@ require_once '../../php/includes/admin-head.php';
                                         <div class="d-flex justify-content-between align-items-start py-1">
                                             <div>
                                                 <h5 class="mb-0" style="font-size:13px;">
-                                                    <?php if ($log['log_type'] === 'faculty'): ?>
-                                                        <i class="bi bi-person-check text-success me-1"></i>
-                                                        Faculty Approved – <?= htmlspecialchars($log['room_name']) ?>
+                                                    <?php if ($log['log_type'] === 'admin'): ?>
+                                                        <?php $icon = match($log['event_type']) {
+                                                            'faculty_approved'   => '<i class="bi bi-person-check text-success me-1"></i>',
+                                                            'faculty_rejected'   => '<i class="bi bi-person-x text-danger me-1"></i>',
+                                                            'extension_approved' => '<i class="bi bi-clock-history text-primary me-1"></i>',
+                                                            'extension_rejected' => '<i class="bi bi-clock text-danger me-1"></i>',
+                                                            default              => '<i class="bi bi-shield text-secondary me-1"></i>'
+                                                        }; echo $icon; ?>
+                                                        <?= ucfirst(str_replace('_', ' ', $log['event_type'])) ?>
+                                                        – <?= htmlspecialchars($log['room_name']) ?>
+                                                        <?php if (!empty($log['admin_name'])): ?>
+                                                            <span class="text-muted" style="font-size:11px;">by <?= htmlspecialchars($log['admin_name']) ?></span>
+                                                        <?php endif; ?>
+
+                                                    <?php elseif ($log['log_type'] === 'admin_login'): ?>
+                                                        <i class="bi bi-box-arrow-in-right text-info me-1"></i>
+                                                        Admin Login – <?= htmlspecialchars($log['admin_name']) ?>
+
                                                     <?php else: ?>
+                                                        <?php $icon = match($log['event_type']) {
+                                                            'on'             => '<i class="bi bi-lightbulb-fill text-warning me-1"></i>',
+                                                            'off'            => '<i class="bi bi-lightbulb text-secondary me-1"></i>',
+                                                            'gesture'        => '<i class="bi bi-hand-index text-primary me-1"></i>',
+                                                            'schedule'       => '<i class="bi bi-calendar-check text-success me-1"></i>',
+                                                            'security_alert' => '<i class="bi bi-exclamation-triangle text-danger me-1"></i>',
+                                                            default          => '<i class="bi bi-activity me-1"></i>'
+                                                        }; echo $icon; ?>
                                                         <?= ucfirst(str_replace('_', ' ', $log['event_type'])) ?>
                                                         – <?= htmlspecialchars($log['room_name']) ?>
                                                     <?php endif; ?>

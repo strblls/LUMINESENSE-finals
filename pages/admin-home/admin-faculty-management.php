@@ -95,11 +95,10 @@ $conn->close();
                                         <h6 class="bold mb-0"><?= htmlspecialchars($faculty['first_name'] . ' ' . $faculty['last_name']) ?></h6>
                                         <span class="text-muted small"><?= htmlspecialchars($faculty['email']) ?></span>
                                     </div>
-                                    <form method="POST" class="mb-0">
-                                        <input type="hidden" name="faculty_id" value="<?= $faculty['id'] ?>">
-                                        <input type="hidden" name="action" value="approve">
-                                        <button type="submit" class="btn btn-sm btn-success px-3"><i class="fa-solid fa-check me-1"></i> Approve</button>
-                                    </form>
+                                    <<a href="admin-faculty-review.php?id=<?= $faculty['id'] ?>"
+                                        class="btn btn-sm btn-primary px-3">
+                                            <i class="fa-solid fa-eye me-1"></i> Review
+                                        </a>
                                 </div>
                             <?php 
                                 endif; 

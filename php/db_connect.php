@@ -121,3 +121,36 @@ $conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_voltage float
 $conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_current float DEFAULT NULL");
 $conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_power   float DEFAULT NULL");
 $conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_energy  float DEFAULT NULL");
+
+
+//Early adds
+// ── Faculty ID image and AI verification columns ──────────────────────────
+$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS id_image VARCHAR(255) DEFAULT NULL");
+$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS faculty_id VARCHAR(20) DEFAULT NULL");
+$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL");
+$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_extracted_name VARCHAR(100) DEFAULT NULL");
+$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_confidence_note TEXT DEFAULT NULL");
+
+
+// ── Admin logs table ──────────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS admin_logs (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        admin_id    INT NOT NULL,
+        action      VARCHAR(100) NOT NULL,
+        target_name VARCHAR(100) DEFAULT '',
+        notes       TEXT DEFAULT '',
+        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+    )
+");
+
+// ── Admin login logs ──────────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS admin_login_logs (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        admin_id   INT NOT NULL,
+        login_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
+    )
+");

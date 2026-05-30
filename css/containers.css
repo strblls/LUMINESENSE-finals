@@ -71,9 +71,11 @@
     width: min(420px, 90vw);
     max-width: 420px;
     padding: 2rem 1.5rem;
-    margin: 6rem auto 2rem; /* push lower so circular image isn't clipped */
+    margin: 6rem auto 2rem;
+    /* push lower so circular image isn't clipped */
     box-sizing: border-box;
-    overflow: visible; /* ensure circular image can overflow if needed */
+    overflow: visible;
+    /* ensure circular image can overflow if needed */
 
     h4 {
         color: var(--secondary-color-1);
@@ -93,14 +95,14 @@
     gap: 0.75rem;
 }
 
-.form-group > div {
+.form-group>div {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-width: 0;
 }
 
-.form-group > .child-3 {
+.form-group>.child-3 {
     flex: 0 0 90px;
     max-width: 90px;
 }
@@ -412,7 +414,7 @@
     flex: 1;
 }
 
-.group-container.recent-activities{
+.group-container.recent-activities {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -442,19 +444,23 @@
 
 /* @media (max-width: 992px) {
     /* on narrower screens, scale the timer down more and stack content */
-    .main-container.homepage {
-        flex-direction: column;
-        padding: 1rem;
-        gap: 1rem;
-    }
-    .section-container .display-1 {
-        font-size: clamp(1.6rem, 8vw, 3.5rem);
-    }
+.main-container.homepage {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+}
+
+.section-container .display-1 {
+    font-size: clamp(1.6rem, 8vw, 3.5rem);
+}
 
 
 .section-container.recents {
     border-radius: 10px;
-    max-height: 75vh;
+    max-height: calc(100vh - 180px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     width: 100%;
 }
 

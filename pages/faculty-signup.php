@@ -35,7 +35,7 @@
         </a>
     </div>
 
-    <div class="parent-container">
+    <div class="parent-container-index">
         <div class="registration-container">
             <div class="image-background faculty">
                 <img src="../images/logo.png" alt="LumineSense Logo">
@@ -52,8 +52,7 @@
             ?>
 
             <div class="form-container">
-                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST" onsubmit="showSignupModal(); return false;">
-
+                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST" enctype="multipart/form-data" onsubmit="showSignupModal(); return false;">
                     <div class="form-group mb-3">
                         <div class="child-1">
                             <label for="fname">Last Name</label>
@@ -134,15 +133,30 @@
                         </div>
                     </div>
 
+                    <!-- ID Image Upload -->
+                    <div class="mb-3 mt-3">
+                        <label for="id_image">Upload School/Government ID</label>
+                        <small class="text-muted d-block mb-1">
+                            Make sure your name is clearly visible on the ID.
+                        </small>
+                        <input
+                            type="file"
+                            class="form-control"
+                            id="id_image"
+                            name="id_image"
+                            accept="image/jpeg, image/png, image/webp"
+                            required>
+                    </div>
+
                     <div class="d-flex flex-column align-items-center justify-content-center">
                         <div class="submit-container">
-                            <button class="medium" type="button" onclick="showSignupModal()">SIGN UP</button>
+                            <button class="medium" type="submit">SIGN UP</button>
                             or<br>
                             <a class="medium" onclick="dissolve('faculty-login.php')">LOG IN</a>
                         </div>
                     </div>
 
-                    <!-- Confirmation Modal -->
+                    <!-- Confirmation Modal
                     <div class="notify-modal" id="notify-modal" style="display:none;">
                         <div class="modal-box">
                             <div id="modal-header">
@@ -157,7 +171,7 @@
                                 <button class="medium" type="button" onclick="hideSignupModal()">CANCEL</button>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                 </form>
             </div>
@@ -167,6 +181,27 @@
     <script src="../script/modals.js"></script>
     <script src="../script/animations.js"></script>
     <script src="../script/password.js"></script>
+    <script>
+        function showSignupModal() {
+            const pass    = document.getElementById('password').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if (pass !== confirm) {
+                alert('Passwords do not match! Please check again.');
+                return;
+            }
+            if (pass.length < 8) {
+                alert('Password must be at least 8 characters long.');
+                return;
+            }
+
+            document.getElementById('notify-modal').style.display = 'flex';
+        }
+
+        function hideSignupModal() {
+            document.getElementById('notify-modal').style.display = 'none';
+        }
+    </script>
 </body>
 
 </html>
