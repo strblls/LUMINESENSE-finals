@@ -40,10 +40,9 @@ $stmt->bind_result($classroom_id);
 $stmt->fetch();
 $stmt->close();
 
-// Fallback: first classroom in DB
+// No schedule today = no classroom access
 if (!$classroom_id) {
-    $r = $conn->query('SELECT id FROM classrooms ORDER BY id LIMIT 1');
-    if ($row = $r->fetch_assoc()) $classroom_id = (int)$row['id'];
+    $classroom_id = 0;
 }
 
 // ── Today's schedules for THIS faculty (all days for modal) ───

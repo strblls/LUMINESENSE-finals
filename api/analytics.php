@@ -27,20 +27,35 @@ $cid_filter2 = $cid ? "AND ll.classroom_id = $cid" : "";
 $cid_filter3 = $cid ? "AND pr.classroom_id = $cid" : "";
 
 // ── 1. Summary cards — from power_sessions ────────────────────────────────
-$stmt = $conn->prepare("
-    SELECT
-        COUNT(*)                            AS total_sessions,
-        SUM(duration_mins)                  AS total_minutes,
-        ROUND(SUM(total_energy_wh), 2)      AS total_energy_wh,
-        ROUND(AVG(avg_voltage), 1)          AS avg_voltage,
-        ROUND(AVG(avg_current), 3)          AS avg_current,
-        ROUND(MAX(peak_power), 2)           AS peak_power_w
-    FROM power_sessions ps
-    WHERE ps.session_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-      AND ps.end_time IS NOT NULL
-    $cid_filter
-");
-$stmt->bind_param('i', $days);
+if ($cid) {
+    $stmt = $conn->prepare("
+        SELECT
+            COUNT(*)                            AS total_sessions,
+            SUM(duration_mins)                  AS total_minutes,
+            ROUND(SUM(total_energy_wh), 2)      AS total_energy_wh,
+            ROUND(AVG(avg_voltage), 1)          AS avg_voltage,
+            ROUND(AVG(avg_current), 3)          AS avg_current,
+            ROUND(MAX(peak_power), 2)           AS peak_power_w
+        FROM power_sessions ps
+        WHERE ps.session_date = CURDATE()
+          AND ps.end_time IS NOT NULL
+          AND ps.classroom_id = ?
+    ");
+    $stmt->bind_param('i', $cid);
+} else {
+    $stmt = $conn->prepare("
+        SELECT
+            COUNT(*)                            AS total_sessions,
+            SUM(duration_mins)                  AS total_minutes,
+            ROUND(SUM(total_energy_wh), 2)      AS total_energy_wh,
+            ROUND(AVG(avg_voltage), 1)          AS avg_voltage,
+            ROUND(AVG(avg_current), 3)          AS avg_current,
+            ROUND(MAX(peak_power), 2)           AS peak_power_w
+        FROM power_sessions ps
+        WHERE ps.session_date = CURDATE()
+          AND ps.end_time IS NOT NULL
+    ");
+}
 $stmt->execute();
 $summary = $stmt->get_result()->fetch_assoc();
 $stmt->close();

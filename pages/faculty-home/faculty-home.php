@@ -728,6 +728,47 @@ $conn->close();
             } catch (e) {
                 console.warn('pollDashboard error:', e);
             }
+
+            // ── Update Recent Activities ──────────────────────────────
+if (data.logs && data.logs.length > 0) {
+    const activityList = document.querySelector('.activity-list.px-2');
+    if (activityList) {
+        activityList.innerHTML = data.logs.map(log => {
+            const type = log.event_type || '';
+            const badgeClass = type.includes('on') ? 'bg-success' :
+                               type.includes('off') ? 'bg-danger' :
+                               type.includes('gesture') ? 'bg-primary' : 'bg-secondary';
+            const by = (log.triggered_by || 'manual').toLowerCase().trim();
+            const byBadge = (by === 'gesture' || by === 'pir')
+                ? ['bg-primary', 'bi-hand-index-thumb', 'Gesture']
+                : ['bg-secondary', 'bi-toggle-on', by.charAt(0).toUpperCase() + by.slice(1)];
+            const time = new Date(log.event_time.replace(' ', 'T'));
+            const timeStr = time.toLocaleString('en-US', {
+                hour: 'numeric', minute: '2-digit', hour12: true,
+                month: 'short', day: 'numeric'
+            });
+            return `
+                <div class="d-flex align-items-start gap-2" style="font-size:0.78rem; padding: 6px 0;">
+                    <div class="flex-shrink-0">
+                        <span class="badge ${badgeClass} rounded-pill">
+                            ${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')}
+                        </span>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div><strong>${log.room_name || '—'}</strong></div>
+                        <div class="text-muted" style="font-size:0.72rem; margin-top:4px;">
+                            <span class="badge ${byBadge[0]} rounded-pill">
+                                <i class="bi ${byBadge[1]} me-1"></i>${byBadge[2]}
+                            </span>
+                            <span class="ms-2">${timeStr}</span>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+            `;
+        }).join('');
+    }
+}
         }
 
         pollDashboard();

@@ -45,9 +45,9 @@ include '../../php/handlers/analytics-handler.php';
                     <div class="view-select-group">
                         <label for="periodSelect">Period</label>
                         <select id="periodSelect" onchange="onControlChange()">
-                            <option value="7">Last 7 days</option>
+                            <option value="7" selected>Last 7 days</option>
                             <option value="14">Last 14 days</option>
-                            <option value="30" selected>Last 30 days</option>
+                            <option value="30">Last 30 days</option>
                         </select>
                     </div>
                     <?php if (count($rooms) > 1): ?>
@@ -111,40 +111,41 @@ include '../../php/handlers/analytics-handler.php';
                 </div>
 
                 <!-- ── Summary cards ── -->
-                <div class="summary-cards-row">
-                    <div class="summary-card">
-                        <div class="summary-icon"><i class="bi bi-lightning-charge-fill"></i></div>
-                        <div class="summary-info">
-                            <div class="summary-val" id="sumEnergy">—</div>
-                            <div class="summary-label">Total Energy (kWh)</div>
-                        </div>
+
+                <!-- ── Summary cards ── -->
+                <div class="card-white">
+                    <div class="live-card-header mb-3">
+                        <span class="chart-card-title bold">Today's Summary</span>
+                        <span class="summary-label"><?= date('F j, Y') ?></span>
                     </div>
-                    <div class="summary-card">
-                        <div class="summary-icon"><i class="bi bi-cash-coin"></i></div>
-                        <div class="summary-info">
-                            <div class="summary-val" id="sumCost">—</div>
-                            <div class="summary-label">Est. Cost (₱)</div>
+                    <div class="summary-cards-row">
+                        <div class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+                            <div class="summary-info">
+                                <div class="summary-val" id="sumEnergy">—</div>
+                                <div class="summary-label">Total Energy (kWh)</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-icon"><i class="bi bi-clock-history"></i></div>
-                        <div class="summary-info">
-                            <div class="summary-val" id="sumMinutes">—</div>
-                            <div class="summary-label">Total Occupied (hrs)</div>
+                        <div class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-clock-history"></i></div>
+                            <div class="summary-info">
+                                <div class="summary-val" id="sumMinutes">—</div>
+                                <div class="summary-label">Total Occupied (hrs)</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-icon"><i class="bi bi-calendar-check"></i></div>
-                        <div class="summary-info">
-                            <div class="summary-val" id="sumSessions">—</div>
-                            <div class="summary-label">Total Sessions</div>
+                        <div class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-calendar-check"></i></div>
+                            <div class="summary-info">
+                                <div class="summary-val" id="sumSessions">—</div>
+                                <div class="summary-label">Total Sessions</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-icon"><i class="bi bi-plug-fill"></i></div>
-                        <div class="summary-info">
-                            <div class="summary-val" id="sumVoltage">—</div>
-                            <div class="summary-label">Avg Voltage (V)</div>
+                        <div class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-plug-fill"></i></div>
+                            <div class="summary-info">
+                                <div class="summary-val" id="sumVoltage">—</div>
+                                <div class="summary-label">Avg Voltage (V)</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -168,23 +169,23 @@ include '../../php/handlers/analytics-handler.php';
                             <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
                             <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
                         </div>
+                    <div class="history-table-wrapper">
+                        <table class="breakdown-table">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left;">Date</th>
+                                    <th>Sessions</th>
+                                    <th>Occupied Time</th>
+                                    <th>Energy (Wh)</th>
+                                    <th>Energy (kWh)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyBody">
+                                <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
+                            </tbody>
+                            <tfoot id="historyFoot"></tfoot>
+                        </table>
                     </div>
-                    <table class="breakdown-table">
-                        <thead>
-                            <tr>
-                                <th style="text-align:left;">Date</th>
-                                <th>Sessions</th>
-                                <th>Occupied Time</th>
-                                <th>Energy (Wh)</th>
-                                <th>Energy (kWh)</th>
-                                <th>Est. Cost (₱)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="historyBody">
-                            <tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>
-                        </tbody>
-                        <tfoot id="historyFoot"></tfoot>
-                    </table>
                 </div>
 
             </div><!-- /content-area -->
@@ -200,7 +201,7 @@ include '../../php/handlers/analytics-handler.php';
         const roomData   = <?= json_encode($roomDataFromPHP, JSON_HEX_TAG) ?>;
         const defaultCid = <?= (int)($rooms[0]['id'] ?? 3) ?>;
     </script>
-    <script src="../../script/admin-analytics.js"></script>
+    <script src="../../script/admin-analytics.js?v=<?= time() ?>"></script>
 
 </body>
 </html>

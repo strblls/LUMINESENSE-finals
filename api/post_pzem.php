@@ -7,7 +7,6 @@ require_once '../php/db_connect.php';
 header('Content-Type: application/json');
 
 $raw  = file_get_contents('php://input');
-error_log("RAW: " . $raw);
 $data = json_decode($raw, true);
 
 if (!$data) {

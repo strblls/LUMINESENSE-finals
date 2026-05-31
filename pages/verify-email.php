@@ -67,12 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $found = $stmt->fetch();
         $stmt->close();
 
-        // TEMP DEBUG - pakshet
-        error_log("TYPE entered: " . gettype($entered_otp) . " value: [{$entered_otp}]");
-        error_log("TYPE db_otp: " . gettype($db_otp) . " value: [{$db_otp}]");
-        error_log("EQUAL: " . var_export($entered_otp === $db_otp, true));
-
-
         if (!$found || $db_otp === null) {
             $errors[] = 'We could not find your account. Please sign up again.';
         } elseif ($entered_otp !== str_pad((string)$db_otp, 6, '0', STR_PAD_LEFT)) {

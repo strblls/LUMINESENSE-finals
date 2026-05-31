@@ -33,8 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
 
         if ($action === 'approve') {
-            $stmt = $conn->prepare('UPDATE faculty SET approved_by = ?, approved_at = NOW() WHERE id = ?');
-            $stmt->bind_param('ii', $admin_id, $faculty_id);
+            // Generate Faculty ID based on table id e.g. F-001-2025
+            $generated_faculty_id = 'F-' . str_pad($faculty_id, 3, '0', STR_PAD_LEFT) . '-' . date('Y');
+
+            $stmt = $conn->prepare('UPDATE faculty SET approved_by = ?, approved_at = NOW(), faculty_id = ? WHERE id = ?');
+            $stmt->bind_param('isi', $admin_id, $generated_faculty_id, $faculty_id);
             $stmt->execute();
             $stmt->close();
 
@@ -45,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             $message = 'Faculty member approved successfully.';
-            log_admin_action($conn, $_SESSION['admin_id'], 'faculty_approved', $f_name);
+            log_admin_action($conn, $_SESSION['admin_id'], 'faculty_approved', $f_name, 'Faculty ID: ' . $generated_faculty_id);
 
         } elseif ($action === 'reject' || $action === 'revoke') {
             $stmt = $conn->prepare('UPDATE faculty SET approved_by = NULL, approved_at = NULL WHERE id = ?');
@@ -114,6 +117,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->bind_param('si', $new_end, $sched_id);
                 $stmt->execute();
                 $stmt->close();
+
+                // Notify ESP32 that schedule changed
+                $conn->query("
+                    UPDATE classrooms c
+                    JOIN schedules s ON s.classroom_id = c.id
+                    SET c.schedule_dirty = 1
+                    WHERE s.id = $sched_id
+                ");
             }
 
             $message = 'Extension request approved.';
@@ -154,7 +165,8 @@ if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
 
 $faculty_list = [];
 $res = $conn->query("
-    SELECT id, first_name, last_name, email, is_verified, approved_by, approved_at
+    SELECT id, first_name, last_name, email, is_verified, approved_by, approved_at,
+           faculty_id, id_image, ai_match_status, ai_extracted_name, ai_confidence_note
     FROM faculty
     ORDER BY last_name ASC
 ");

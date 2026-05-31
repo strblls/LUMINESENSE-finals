@@ -51,36 +51,69 @@ $server_ok   = true; // we're running PHP so server is up
 $db_ok       = ($conn && !$conn->connect_error);
 $lights_data = $conn->query("SELECT COUNT(*) AS c FROM lighting_logs WHERE DATE(event_time)=CURDATE()")->fetch_assoc()['c'];
 
-// Recent activity — merge room_logs + faculty approvals into one sorted feed
+// Recent activity — merge lighting_logs + admin_logs into one sorted feed
 $logs = [];
 
+// ── 1. Lighting events ────────────────────────────────────────────────────
 $r = $conn->query("
-    SELECT event_type, triggered_by, event_time, room_name, 'room' AS log_type
-    FROM room_logs
-    ORDER BY event_time DESC
+    SELECT 
+        ll.event_type,
+        ll.triggered_by,
+        ll.event_time,
+        c.room_name,
+        'room' AS log_type,
+        NULL AS admin_name
+    FROM lighting_logs ll
+    JOIN classrooms c ON c.id = ll.classroom_id
+    ORDER BY ll.event_time DESC
     LIMIT 20
 ");
-while ($row = $r->fetch_assoc()) $logs[] = $row;
+if ($r) while ($row = $r->fetch_assoc()) $logs[] = $row;
 
+// ── 2. Admin actions (approve, reject, extension, etc.) ───────────────────
 $r2 = $conn->query("
     SELECT
-        'faculty_approved'                             AS event_type,
-        NULL                                           AS triggered_by,
-        approved_at                                    AS event_time,
-        CONCAT(first_name, ' ', last_name)             AS room_name,
-        'faculty'                                      AS log_type
-    FROM faculty
-    WHERE approved_by IS NOT NULL
-    ORDER BY approved_at DESC
-    LIMIT 10
+        al.action        AS event_type,
+        al.notes         AS triggered_by,
+        al.created_at    AS event_time,
+        al.target_name   AS room_name,
+        'admin'          AS log_type,
+        CONCAT(a.first_name, ' ', a.last_name) AS admin_name
+    FROM admin_logs al
+    JOIN admins a ON a.id = al.admin_id
+    ORDER BY al.created_at DESC
+    LIMIT 20
 ");
-while ($row = $r2->fetch_assoc()) $logs[] = $row;
+if ($r2) while ($row = $r2->fetch_assoc()) $logs[] = $row;
+
+// ── 3. Admin logins — only show if a DIFFERENT admin logged in ────────────
+$r3 = $conn->prepare("
+    SELECT
+        'admin_login'    AS event_type,
+        'Logged in'      AS triggered_by,
+        login_at         AS event_time,
+        'System'         AS room_name,
+        'admin_login'    AS log_type,
+        CONCAT(a.first_name, ' ', a.last_name) AS admin_name
+    FROM admin_login_logs all2
+    JOIN admins a ON a.id = all2.admin_id
+    WHERE all2.admin_id != ?
+    ORDER BY login_at DESC
+    LIMIT 5
+");
+if ($r3) {
+    $r3->bind_param('i', $admin_id);
+    $r3->execute();
+    $res3 = $r3->get_result();
+    while ($row = $res3->fetch_assoc()) $logs[] = $row;
+    $r3->close();
+}
 
 // Sort merged list newest-first
 usort($logs, fn($a, $b) => strtotime($b['event_time']) - strtotime($a['event_time']));
-$logs = array_slice($logs, 0, 8); // keep top 8
+$logs = array_slice($logs, 0, 10); // keep top 10
 
-$approval_logs = []; // empty so homepage foreach loop is skipped
+$approval_logs = [];
 
 // Classrooms with their description and latest light status
 $classrooms = [];
@@ -93,4 +126,21 @@ $r = $conn->query("
     ORDER BY c.room_name
 ");
 while ($row = $r->fetch_assoc()) $classrooms[] = $row;
+
+// Mini calendar — schedules by day of week
+$schedules_by_day = [];
+$r = $conn->query("
+    SELECT s.day_of_week, s.start_time, s.end_time, s.extended_until,
+           c.room_name, f.first_name, f.last_name
+    FROM schedules s
+    JOIN classrooms c ON s.classroom_id = c.id
+    LEFT JOIN faculty f ON s.faculty_id = f.id
+    ORDER BY s.day_of_week, s.start_time
+");
+if ($r) {
+    while ($row = $r->fetch_assoc()) {
+        $schedules_by_day[$row['day_of_week']][] = $row;
+    }
+}
+$schedules_json = json_encode($schedules_by_day);
 ?>

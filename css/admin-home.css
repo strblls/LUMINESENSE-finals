@@ -8,27 +8,39 @@
     --font-primary: 'Poppins', sans-serif;
 }
 
+/* ── Grid layout ─────────────────────────────────────────────── */
 .main-container.admin {
     display: grid !important;
-    grid-template-columns: 26rem minmax(0, 40%) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr) !important;
     align-items: start !important;
 }
 
+.main-container.admin .group-container {
+    align-items: stretch !important;
+    width: 100% !important;
+    min-width: 0;
+}
+
+/* ── Stat cards ──────────────────────────────────────────────── */
 .stat-row {
-    display: flex;
-    flex-direction: row;
-    gap: 0.75rem;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.6rem !important;
     width: 100%;
 }
 
 .stat-card {
-    flex: 1 1 0;
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 1rem;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.9rem !important;
+    background: #ffffff !important;
+    border-left: 4px solid var(--secondary-color-2) !important;
+    border-radius: 10px !important;
+    padding: 1rem !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .stat-card .stat-value {
@@ -45,22 +57,34 @@
     line-height: 1.3;
 }
 
+/* ── Room list ───────────────────────────────────────────────── */
 .room-list {
-    max-height: 38vh;
+    flex: 1;
+    max-height: 35vh;
     overflow-y: auto;
     padding-right: 0.25rem;
 }
 
 .room-item {
-    display: flex;
-    align-items: center;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
     gap: 0.7rem;
-    padding: 0.5rem 0.25rem;
-    border-bottom: 1px solid #eee;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    background: #faf8fc;
+    border: 1px solid #ede8f3;
+    transition: background 0.15s;
+    cursor: pointer;
+}
+
+.room-item:hover {
+    background: #f0e8fb;
 }
 
 .room-item:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
 }
 
 .room-icon {
@@ -86,7 +110,224 @@
     color: var(--muted);
 }
 
-/* nav-btn sidebar style from HTML version */
+/* ── Recent activity ─────────────────────────────────────────── */
+.activity-list.admin {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 45vh;
+    scroll-behavior: smooth;
+    padding-bottom: 1rem;
+}
+
+.section-container.recents {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* ── System status ───────────────────────────────────────────── */
+.section-container.system-status {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Mini calendar ───────────────────────────────────────────── */
+.mini-calendar {
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 0 0.25rem;
+}
+
+.cal-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    margin-bottom: 8px !important;
+    box-sizing: border-box;
+}
+
+.cal-nav-btn {
+    background: none !important;
+    border: none !important;
+    font-size: 1.3rem !important;
+    color: var(--secondary-color-2) !important;
+    cursor: pointer !important;
+    padding: 0 8px !important;
+    border-radius: 6px !important;
+    line-height: 1 !important;
+    flex-shrink: 0 !important;
+    width: auto !important;
+    margin: 0 !important;
+}
+
+.cal-nav-btn:hover {
+    background: #ede8f3 !important;
+}
+
+.cal-month-label {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--secondary-color-1) !important;
+    text-align: center !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+}
+
+.cal-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    text-align: center;
+    margin-bottom: 4px;
+    box-sizing: border-box;
+}
+
+.cal-dow {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 2px 0;
+    min-width: 0;
+}
+
+.cal-days {
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 2px;
+    width: 100% !important;
+    box-sizing: border-box;
+}
+
+.cal-day {
+    aspect-ratio: 1;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.15s;
+    color: #333;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+    flex-direction: row !important;
+}
+
+.cal-day:hover:not(.empty) {
+    background: #ede8f3;
+}
+
+.cal-day.empty {
+    cursor: default;
+}
+
+.cal-day.today {
+    background: var(--secondary-color-1);
+    color: white;
+    font-weight: 700;
+}
+
+.cal-day.has-schedule {
+    position: relative;
+}
+
+.cal-day.has-schedule::after {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--secondary-color-4);
+    position: absolute;
+    bottom: 2px;
+}
+
+.cal-day.selected {
+    background: var(--secondary-color-2);
+    color: white;
+}
+
+/* ── Schedule popover ────────────────────────────────────────── */
+.cal-popover {
+    display: none !important;
+    margin-top: 10px;
+    background: white !important;
+    border-radius: 10px;
+    border: 1px solid #ede8f3;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cal-popover.open {
+    display: block !important;
+}
+
+.cal-popover-header {
+    background: var(--secondary-color-1) !important;
+    color: white !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 7px 12px !important;
+    display: block !important;
+}
+
+.cal-popover-body {
+    padding: 8px 12px !important;
+    max-height: 160px !important;
+    overflow-y: auto !important;
+    display: block !important;
+}
+
+.cal-no-sched {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 4px 0;
+    text-align: center;
+}
+
+.cal-sched-item {
+    padding: 6px 0 !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    display: block !important;
+}
+
+.cal-sched-item:last-child {
+    border-bottom: none !important;
+}
+
+.cal-sched-room {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: var(--secondary-color-1) !important;
+    display: block !important;
+}
+
+.cal-sched-time {
+    font-size: 11px !important;
+    color: #333 !important;
+    margin: 1px 0 !important;
+    display: block !important;
+}
+
+.cal-sched-faculty {
+    font-size: 10px !important;
+    color: var(--muted) !important;
+    display: block !important;
+}
+
+/* ── Sidebar & offcanvas ─────────────────────────────────────── */
 .nav-btn {
     width: 52px;
     height: 52px;
@@ -166,6 +407,7 @@
     transform: scale(1.02);
 }
 
+/* ── Badges ──────────────────────────────────────────────────── */
 .badge-pending {
     background: #fff3cd;
     color: #856404;

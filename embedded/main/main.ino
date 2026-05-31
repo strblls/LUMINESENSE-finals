@@ -195,6 +195,7 @@ void handleEsp32Messages() {
             // Handle SCHEDULE before toUpperCase — payload has colons/numbers
             if (msg.startsWith("SCHEDULE:") || msg.startsWith("schedule:")) {
                 parseSchedulePayload(msg.substring(9));
+                checkSchedule();
                 continue;
             }
             if (msg.startsWith("SCHED:") || msg.startsWith("sched:")) {
@@ -206,43 +207,27 @@ void handleEsp32Messages() {
             Serial.print(F("[ESP32] ")); Serial.println(msg);
 
             if (msg == "PIR:ON") {
-                pirState = true;
-                if (sysState == STATE_SCHEDULED) {
-                    Serial.println(F("[PIR] Motion — lights ON"));
-                    sendRowCommand("ALL", true);
-                    if (!sessionActive) startSession(rtc.now());
-                    syncStateToFrontend();
-                }
-                else if (sysState == STATE_COOLDOWN && !pirResetUsed) {
-                    Serial.println(F("[PIR] Cooldown reset"));
-                    pirResetUsed  = true;
-                    cooldownStart = millis();
-                }
-                else {
-                    Serial.println(F("[PIR] Ignored"));
-                }
-            }
-            else if (msg == "PIR:OFF") {
-                pirState = false;
-                Serial.println(F("[PIR] Stopped"));
-            }
-            else if (msg == "ROW1:ON"  || msg == "ROW1:OFF" ||
-                     msg == "ROW2:ON"  || msg == "ROW2:OFF" ||
-                     msg == "ROW3:ON"  || msg == "ROW3:OFF" ||
-                     msg == "ALL:ON"   || msg == "ALL:OFF") {
-
-                if (sysState == STATE_SCHEDULED || sysState == STATE_OUTSIDE) {
-                    int    colonPos = msg.indexOf(':');
-                    String row      = msg.substring(0, colonPos);
-                    bool   state    = msg.endsWith("ON");
-                    sendRowCommand(row, state);
-                } else {
-                    Serial.println(F("[GATE] Toggle blocked"));
-                }
-            }
-            else if (msg == "STATUS") {
-                sendStatusJson();
-            }
+    pirState = true;
+    if (sysState == STATE_SCHEDULED) {
+        // Only trigger if ALL lights are currently off
+        if (!row1State && !row2State && !row3State) {
+            Serial.println(F("[PIR] Motion — lights ON"));
+            sendRowCommand("ALL", true);
+            if (!sessionActive) startSession(rtc.now());
+            syncStateToFrontend();
+        } else {
+            Serial.println(F("[PIR] Motion ignored — lights already managed"));
+        }
+    }
+    else if (sysState == STATE_COOLDOWN && !pirResetUsed) {
+        Serial.println(F("[PIR] Cooldown reset"));
+        pirResetUsed  = true;
+        cooldownStart = millis();
+    }
+    else {
+        Serial.println(F("[PIR] Ignored"));
+    }
+}
             // while loop continues naturally to next byte
 
         } else {
@@ -302,18 +287,36 @@ void checkSchedule() {
         Serial.println(F("[SCHED] Schedule started — SCHEDULED"));
         sysState     = STATE_SCHEDULED;
         pirResetUsed = false;
-        if (!sessionActive) startSession(now);
+         // Session only starts when PIR detects motion, not on schedule start
     }
     else if (inSchedule && sysState == STATE_COOLDOWN) {
         sysState = STATE_SCHEDULED;
     }
     else if (!inSchedule && sysState == STATE_SCHEDULED) {
+    // Check if next schedule slot starts within 5 minutes
+    bool hasNextSlot = false;
+    int nowMins = now.hour() * 60 + now.minute();
+    for (int i = 0; i < scheduleCount; i++) {
+        int nextStartMins = schedule[i].startH * 60 + schedule[i].startM;
+        if (nextStartMins > nowMins && nextStartMins - nowMins <= 5) {
+            hasNextSlot = true;
+            break;
+        }
+    }
+
+    if (hasNextSlot) {
+        // Next class starts soon — stay scheduled, keep session running
+        Serial.println(F("[SCHED] Next slot in ≤5 min — staying SCHEDULED"));
+        sysState = STATE_SCHEDULED;
+    } else {
+        // No immediate next class — enter cooldown grace period
         Serial.println(F("[SCHED] Schedule ended — COOLDOWN started"));
         sysState      = STATE_COOLDOWN;
         cooldownStart = millis();
         pirResetUsed  = false;
         if (sessionActive) endSession(now);
     }
+}
 
     // Ask ESP32 to re-fetch schedule
     requestScheduleFromServer();
@@ -446,6 +449,7 @@ void sendStatusJson() {
 // SESSION LOGGING
 // ============================================================
 void startSession(DateTime startTime) {
+    pzem.resetEnergy();
     sessionActive      = true;
     sessionStartTime   = startTime;
     sessionStartEnergy = 0;
