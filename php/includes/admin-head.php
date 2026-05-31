@@ -126,4 +126,21 @@ $r = $conn->query("
     ORDER BY c.room_name
 ");
 while ($row = $r->fetch_assoc()) $classrooms[] = $row;
+
+// Mini calendar — schedules by day of week
+$schedules_by_day = [];
+$r = $conn->query("
+    SELECT s.day_of_week, s.start_time, s.end_time, s.extended_until,
+           c.room_name, f.first_name, f.last_name
+    FROM schedules s
+    JOIN classrooms c ON s.classroom_id = c.id
+    LEFT JOIN faculty f ON s.faculty_id = f.id
+    ORDER BY s.day_of_week, s.start_time
+");
+if ($r) {
+    while ($row = $r->fetch_assoc()) {
+        $schedules_by_day[$row['day_of_week']][] = $row;
+    }
+}
+$schedules_json = json_encode($schedules_by_day);
 ?>

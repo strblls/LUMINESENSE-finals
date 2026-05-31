@@ -74,16 +74,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $new_id = $conn->insert_id;
         $stmt->close();
+        $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = $cid");
         echo json_encode(['success'=>true,'message'=>'Schedule added.','id'=>$new_id]); exit;
     }
 
     if ($action === 'delete') {
         $id = (int)($_POST['schedule_id'] ?? 0);
         if (!$id) { echo json_encode(['success'=>false,'message'=>'schedule_id required.']); exit; }
+        // Get classroom_id before deleting
+        $r = $conn->query("SELECT classroom_id FROM schedules WHERE id = $id");
+        $schedRow = $r->fetch_assoc();
         $stmt = $conn->prepare('DELETE FROM schedules WHERE id=?');
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $stmt->close();
+        if ($schedRow) {
+            $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = {$schedRow['classroom_id']}");
+        }
         echo json_encode(['success'=>true,'message'=>'Schedule removed.']); exit;
     }
 

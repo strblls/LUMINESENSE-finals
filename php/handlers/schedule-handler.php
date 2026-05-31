@@ -50,11 +50,12 @@ if ($action === 'create') {
     }
     $chk->close();
 
+    // AFTER:
     $stmt = $conn->prepare("
-        INSERT INTO schedules (classroom_id, day_of_week, start_time, end_time, created_by)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO schedules (classroom_id, faculty_id, day_of_week, start_time, end_time, created_by)
+        VALUES (?, ?, ?, ?, ?, ?)
     ");
-    $stmt->bind_param('isssi', $room_id, $day, $start, $end, $faculty_id);
+    $stmt->bind_param('iisssi', $room_id, $faculty_id, $day, $start, $end, $_SESSION['admin_id']);
     if ($stmt->execute()) {
         $new_id = $conn->insert_id;
         $stmt->close();
@@ -104,12 +105,13 @@ if ($action === 'update') {
     }
     $chk->close();
 
+    // AFTER:
     $stmt = $conn->prepare("
         UPDATE schedules
-        SET day_of_week = ?, start_time = ?, end_time = ?, created_by = ?
+        SET faculty_id = ?, day_of_week = ?, start_time = ?, end_time = ?
         WHERE id = ?
     ");
-    $stmt->bind_param('sssii', $day, $start, $end, $faculty_id, $slot_id);
+    $stmt->bind_param('isssi', $faculty_id, $day, $start, $end, $slot_id);
     if ($stmt->execute()) {
         $stmt->close();
 

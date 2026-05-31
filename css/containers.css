@@ -457,7 +457,7 @@
 
 .section-container.recents {
     border-radius: 10px;
-    max-height: calc(100vh - 180px);
+    flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -476,6 +476,9 @@
 
 .fit-width.section-container {
     min-width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .lighting-grid {
@@ -554,7 +557,8 @@ h4.bold.off {
 }
 
 .activity-list.admin {
-    max-height: 100vh;
+    flex: 1;
+    max-height: 35vh;
 }
 
 .activity-list.sensor-readings {

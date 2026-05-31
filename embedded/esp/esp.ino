@@ -13,16 +13,14 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
-
-// ── WiFi Credentials ───────────────────────────────────────
-const char* WIFI_SSID     = "Converge_2.4GHz_SX3635";
-const char* WIFI_PASSWORD = "QbcHSRKQ";
+#include <WiFiManager.h>
 
 // ── XAMPP Server ───────────────────────────────────────────
 const char* TOGGLE_URL      = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 const char* SCHEDULE_URL    = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 const char* PZEM_POST_URL = "http://192.168.1.5/LUMINESENSE-finals/api/pzem_push.php";
 const char* UPDATE_ROWS_URL = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-update-rows.php";
+const char* SCHEDULE_FLAG_URL = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 
 // ── Pin Definitions ────────────────────────────────────────
 #define ROW1_PIN 26
@@ -41,6 +39,7 @@ bool httpBusy = false;
 // Instead of calling HTTP directly from handleMegaMessages,
 // set a flag and let the loop handle it when HTTP is free
 String pendingPzem          = "";
+String esp32Buffer = "";
 bool   pendingScheduleFetch = false;
 
 // ── Row State ──────────────────────────────────────────────
@@ -56,7 +55,9 @@ bool pirOverrideActive = false;
 // ── Timing ─────────────────────────────────────────────────
 unsigned long lastDbPoll        = 0;
 unsigned long lastScheduleFetch = 0;
-#define DB_POLL_MS        5000
+unsigned long lastFlagPoll = 0;
+#define FLAG_POLL_MS 5000
+#define DB_POLL_MS        3000
 #define SCHEDULE_FETCH_MS 30000
 
 // ============================================================
@@ -80,32 +81,26 @@ void setup() {
     digitalWrite(ROW3_PIN, LOW);
 
     // PIR pin
-    pinMode(PIR_PIN, INPUT_PULLDOWN);
+    pinMode(PIR_PIN, INPUT);
 
-    // WiFi
-    WiFi.mode(WIFI_STA);
-    delay(100);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    Serial.print(F("[WiFi] Connecting to "));
-    Serial.println(WIFI_SSID);
+    // WiFi Manager — all inside setup()!
+    WiFiManager wm;
+    // wm.resetSettings(); // uncomment to forget saved WiFi
+    wm.setConfigPortalTimeout(180);
+    wm.setConnectTimeout(30);
 
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 40) {
-        delay(500);
-        Serial.print(".");
-        attempts++;
-    }
+    Serial.println(F("[WiFi] Starting WiFiManager..."));
 
-    if (WiFi.status() == WL_CONNECTED) {
+    bool connected = wm.autoConnect("LumineSense-Setup", "luminesense123");
+
+    if (connected) {
         Serial.println();
         Serial.print(F("[WiFi] Connected! IP: "));
         Serial.println(WiFi.localIP());
-
-        // Fetch schedule immediately on boot so Mega gets it right away
         delay(500);
         fetchAndForwardSchedule();
     } else {
-        Serial.println(F("[WiFi] Failed — running offline"));
+        Serial.println(F("[WiFi] Config portal timed out — running offline"));
     }
 
     Serial.println(F("=== ESP32 Ready ==="));
@@ -116,24 +111,26 @@ void setup() {
 // ============================================================
 void loop() {
     unsigned long now = millis();
+    Serial.print(F("[BUSY] ")); Serial.println(httpBusy);
 
     handlePIR(now);
     handleMegaMessages();
 
     // Only one HTTP task runs per loop iteration — they take turns
     if (!httpBusy) {
-        if (now - lastDbPoll >= DB_POLL_MS) {
+        if (pendingPzem != "") {
+            forwardPzemToDb(pendingPzem);
+            pendingPzem = "";
+        } else if (now - lastDbPoll >= DB_POLL_MS) {
             lastDbPoll = now;
             pollDatabase();
-        }
-        else if (now - lastScheduleFetch >= SCHEDULE_FETCH_MS || pendingScheduleFetch) {
+        } else if (now - lastFlagPoll >= FLAG_POLL_MS) {
+            lastFlagPoll = now;
+            checkScheduleFlag();
+        } else if (now - lastScheduleFetch >= SCHEDULE_FETCH_MS || pendingScheduleFetch) {
             lastScheduleFetch    = now;
             pendingScheduleFetch = false;
             fetchAndForwardSchedule();
-        }
-        else if (pendingPzem != "") {
-            forwardPzemToDb(pendingPzem);
-            pendingPzem = "";
         }
     }
 }
@@ -142,7 +139,15 @@ void loop() {
 // PIR HANDLER
 // ============================================================
 void handlePIR(unsigned long now) {
-    pirState = digitalRead(PIR_PIN);
+    static unsigned long lastPirChange = 0;
+    bool reading = digitalRead(PIR_PIN);
+
+    if (reading == pirState) return; // no change, do nothing
+
+    if (now - lastPirChange < 2000) return; // debounce: ignore changes within 2s
+
+    lastPirChange = now;
+    pirState = reading;
 
     if (pirState == HIGH && !pirOverrideActive) {
         Serial.println(F("[PIR] Motion detected!"));
@@ -155,44 +160,49 @@ void handlePIR(unsigned long now) {
         pirOverrideActive = false;
         Serial2.println("PIR:OFF");
     }
-
-    lastPirState = pirState;
 }
 
 // ============================================================
 // HANDLE MESSAGES FROM MEGA
 // ============================================================
+
 void handleMegaMessages() {
-    if (!Serial2.available()) return;
+    while (Serial2.available()) {
+        char c = Serial2.read();
+        if (c == '\r') continue;
+        if (c == '\n') {
+            esp32Buffer.trim();
+            if (esp32Buffer.length() == 0) {
+                esp32Buffer = "";
+                continue;
+            }
 
-    String msg = Serial2.readStringUntil('\n');
-    msg.trim();
+            String msg = esp32Buffer;
+            esp32Buffer = "";
 
-    Serial.print(F("[RAW MSG] ")); Serial.println(msg);
+            Serial.print(F("[RAW MSG] ")); Serial.println(msg);
 
-    // JSON from Mega — queue for DB posting
-    if (msg.startsWith("{")) {
-        pendingPzem = msg;
-        return;
+            if (msg.startsWith("{")) {
+                pendingPzem = msg;
+                // DON'T return — just continue the while loop
+            } else {
+                msg.toUpperCase();
+                Serial.print(F("[MEGA] ")); Serial.println(msg);
+
+                if      (msg == "ACK:ROW1:ON")    { setRow(1, true);  }
+                else if (msg == "ACK:ROW1:OFF")   { setRow(1, false); }
+                else if (msg == "ACK:ROW2:ON")    { setRow(2, true);  }
+                else if (msg == "ACK:ROW2:OFF")   { setRow(2, false); }
+                else if (msg == "ACK:ROW3:ON")    { setRow(3, true);  }
+                else if (msg == "ACK:ROW3:OFF")   { setRow(3, false); }
+                else if (msg == "ACK:ALL:ON")     { setAllRows(true); }
+                else if (msg == "ACK:ALL:OFF")    { setAllRows(false);}
+                else if (msg == "FETCH:SCHEDULE") { pendingScheduleFetch = true; }
+            }
+        } else {
+            esp32Buffer += c;
+        }
     }
-
-    msg.toUpperCase();
-    Serial.print(F("[MEGA] ")); Serial.println(msg);
-
-    if (msg == "FETCH:SCHEDULE") {
-        // Queue the fetch — don't call directly, let loop handle when free
-        pendingScheduleFetch = true;
-        return;
-    }
-
-    if      (msg == "ACK:ROW1:ON")  { setRow(1, true);  }
-    else if (msg == "ACK:ROW1:OFF") { setRow(1, false); }
-    else if (msg == "ACK:ROW2:ON")  { setRow(2, true);  }
-    else if (msg == "ACK:ROW2:OFF") { setRow(2, false); }
-    else if (msg == "ACK:ROW3:ON")  { setRow(3, true);  }
-    else if (msg == "ACK:ROW3:OFF") { setRow(3, false); }
-    else if (msg == "ACK:ALL:ON")   { setAllRows(true); }
-    else if (msg == "ACK:ALL:OFF")  { setAllRows(false);}
 }
 
 // ============================================================
@@ -363,6 +373,35 @@ void updateRowsInDb(bool r1, bool r2, bool r3) {
     body += "&row3=" + String(r3 ? "on" : "off");
 
     http.POST(body);
+    http.end();
+    httpBusy = false;
+}
+
+void checkScheduleFlag() {
+    if (WiFi.status() != WL_CONNECTED) return;
+    if (httpBusy) return;
+    httpBusy = true;
+
+    HTTPClient http;
+    http.begin(SCHEDULE_FLAG_URL);
+    http.setTimeout(3000);
+    int httpCode = http.GET();
+
+    if (httpCode == 200) {
+        String payload = http.getString();
+        StaticJsonDocument<64> doc;
+        DeserializationError err = deserializeJson(doc, payload);
+        if (!err && doc["dirty"] == true) {
+            Serial.println(F("[FLAG] Schedule changed — fetching now!"));
+            http.end();
+            httpBusy = false;
+            fetchAndForwardSchedule();
+            return;
+        }
+    } else {
+        Serial.print(F("[FLAG] Check failed, code: ")); Serial.println(httpCode);
+    }
+
     http.end();
     httpBusy = false;
 }

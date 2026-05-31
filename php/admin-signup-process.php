@@ -51,8 +51,7 @@ if ($password !== $confirm_password) {
 }
 
 // ── 6. Admin code validation ──────────────────────────────────────────────
-// Change LUMINESENSE_ADMIN_2025 to whatever secret code you want.
-define('VALID_ADMIN_CODE', 'LUMINESENSE_ADMIN_2025');
+require_once __DIR__ . '/config.php';
 if ($admin_code !== VALID_ADMIN_CODE) {
     $errors[] = 'Invalid admin code.';
 }

@@ -1,4 +1,4 @@
-<?php
+
 /**
  * api/pzem-push.php
  * ──────────────────
@@ -12,35 +12,57 @@
  * classroom_id must be appended by the ESP32 firmware.
  * Secured with the same X-Device-Token header as session-end.php.
  */
+<?php
 header('Content-Type: application/json');
 
-$expected = getenv('LUMINESENSE_DEVICE_TOKEN') ?: 'luminesense-secret-token';
-if (($_SERVER['HTTP_X_DEVICE_TOKEN'] ?? '') !== $expected) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
+// Token check
+require_once __DIR__ . '/../php/config.php';
+$expected = DEVICE_TOKEN;
+$received = $_SERVER['HTTP_X_DEVICE_TOKEN'] ?? 'MISSING';
+
+if ($received !== $expected) {
+    echo json_encode([
+        'error' => 'Unauthorized',
+        'received_token' => $received,
+        'expected_token' => $expected
+    ]);
     exit;
 }
 
-$b = json_decode(file_get_contents('php://input'), true);
+// Get raw body
+$raw = file_get_contents('php://input');
+$data = json_decode($raw, true);
 
-$cid     = (int)   ($b['classroom_id'] ?? 0);
-$voltage = (float) ($b['voltage']      ?? 0);
-$current = (float) ($b['current']      ?? 0);
-$power   = (float) ($b['power']        ?? 0);
-$energy  = (float) ($b['energy']       ?? 0);
-$row1    = !empty($b['row1']) ? 1 : 0;
-$row2    = !empty($b['row2']) ? 1 : 0;
-$row3    = !empty($b['row3']) ? 1 : 0;
-$pir     = !empty($b['pir'])  ? 1 : 0;
-$state   = (int)   ($b['state']        ?? 0);
+if (!$data) {
+    echo json_encode([
+        'error' => 'Invalid JSON',
+        'raw' => $raw
+    ]);
+    exit;
+}
+
+require_once '../php/db_connect.php';
+
+$cid     = (int)($data['classroom_id'] ?? 0);
+$voltage = (float)($data['voltage'] ?? 0);
+$current = (float)($data['current'] ?? 0);
+$power   = (float)($data['power'] ?? 0);
+$energy  = (float)($data['energy'] ?? 0);
+$row1    = !empty($data['row1']) ? 1 : 0;
+$row2    = !empty($data['row2']) ? 1 : 0;
+$row3    = !empty($data['row3']) ? 1 : 0;
+$pir     = !empty($data['pir'])  ? 1 : 0;
+$state   = (int)($data['state'] ?? 0);
 
 if (!$cid) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Missing classroom_id']);
+    echo json_encode(['error' => 'Missing classroom_id', 'data' => $data]);
     exit;
 }
 
-require_once __DIR__ . '/../php/db_connect.php';
+if (!$voltage) {
+    echo json_encode(['error' => 'No valid voltage', 'voltage' => $voltage, 'data' => $data]);
+    exit;
+}
 
 $stmt = $conn->prepare("
     INSERT INTO pzem_live
@@ -59,12 +81,32 @@ $stmt = $conn->prepare("
         sys_state  = VALUES(sys_state),
         updated_at = CURRENT_TIMESTAMP
 ");
+
+if (!$stmt) {
+    echo json_encode(['error' => 'Prepare failed', 'db_error' => $conn->error]);
+    exit;
+}
+
 $stmt->bind_param('iddddiiiii',
     $cid, $voltage, $current, $power, $energy,
     $row1, $row2, $row3, $pir, $state);
 
 $ok = $stmt->execute();
+
+if (!$ok) {
+    echo json_encode(['error' => 'Execute failed', 'db_error' => $stmt->error]);
+    $stmt->close();
+    $conn->close();
+    exit;
+}
+
+$affected = $stmt->affected_rows;
 $stmt->close();
 $conn->close();
 
-echo json_encode(['ok' => $ok]);
+echo json_encode([
+    'ok' => true,
+    'affected_rows' => $affected,
+    'classroom_id' => $cid,
+    'voltage' => $voltage
+]);

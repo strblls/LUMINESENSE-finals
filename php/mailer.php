@@ -17,11 +17,8 @@ use PHPMailer\PHPMailer\Exception;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// ── Gmail SMTP credentials ────────────────────────────────────────────────
-// TODO: Move these to a .env file or config file before going live.
-define('GMAIL_USER',         /*'luminesense.noreply@gmail.com'*/ 'ballesteros.alexandra08@gmail.com');  
-define('GMAIL_APP_PASSWORD', /*'wmcrwfqazgpvvrdy'*/ 'tueheqpmmkublpzp');                
-define('MAIL_FROM_NAME',     'LumineSense');
+// ── Hostinger SMTP credentials ──────────────────────────────────────────
+require_once __DIR__ . '/config.php';
 
 /**
  * Sends a verification OTP to the given email address.
@@ -36,17 +33,15 @@ function sendVerificationEmail(string $to, string $otp_code, string $name = 'Use
     $mail = new PHPMailer(true);
 
     try {
-        // ── Server settings ──────────────────────────────────────────────
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
+       $mail->isSMTP();
+        $mail->Host       = MAIL_HOST;
         $mail->SMTPAuth   = true;
-        $mail->Username   = GMAIL_USER;
-        $mail->Password   = GMAIL_APP_PASSWORD;
+        $mail->Username   = MAIL_USERNAME;
+        $mail->Password   = MAIL_PASSWORD;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->Port       = MAIL_PORT;
 
-        // ── Recipients ───────────────────────────────────────────────────
-        $mail->setFrom(GMAIL_USER, MAIL_FROM_NAME);
+        $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
         $mail->addAddress($to, $name);
 
         // ── Content ──────────────────────────────────────────────────────
@@ -55,11 +50,6 @@ function sendVerificationEmail(string $to, string $otp_code, string $name = 'Use
         $mail->Body    = buildEmailBody($name, $otp_code);
         $mail->AltBody = "Hi $name,\n\nYour LumineSense verification code is: $otp_code\n\nThis code expires in 15 minutes.\n\nIf you did not sign up, please ignore this email.";
 
-        //ADDED ALEXXXXXXXXXXXXXXXXXXXXXXXX
-        $mail->SMTPDebug = 2;
-        $mail->Debugoutput = function($str, $level) {
-            error_log("SMTP: $str");
-        };
         $mail->send();
         return true;
 
@@ -75,14 +65,14 @@ function sendApprovalEmail(string $to, string $name): bool
 
     try {
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
+        $mail->Host       = MAIL_HOST;
         $mail->SMTPAuth   = true;
-        $mail->Username   = GMAIL_USER;
-        $mail->Password   = GMAIL_APP_PASSWORD;
+        $mail->Username   = MAIL_USERNAME;
+        $mail->Password   = MAIL_PASSWORD;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->Port       = MAIL_PORT;
 
-        $mail->setFrom(GMAIL_USER, MAIL_FROM_NAME);
+        $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
         $mail->addAddress($to, $name);
 
         $mail->isHTML(true);

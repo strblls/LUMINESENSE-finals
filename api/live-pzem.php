@@ -90,6 +90,15 @@ if ($cid) {
         $conn->close(); exit;
     }
 
+    // Determine if all are stale (secs_ago > 15)
+    $allStale = true;
+    foreach ($rows as $row) {
+        if (isset($row['secs_ago']) && (int)$row['secs_ago'] <= 15) {
+            $allStale = false;
+            break;
+        }
+    }
+
     $totalPower   = array_sum(array_column($rows, 'power_w'));
     $totalCurrent = array_sum(array_column($rows, 'current_a'));
     $totalEnergy  = array_sum(array_column($rows, 'energy_wh'));
@@ -98,7 +107,7 @@ if ($cid) {
 
     echo json_encode([
         'success'   => true,
-        'stale'     => false,
+        'stale'     => $allStale,
         'voltage'   => round($avgVoltage, 1),
         'current'   => round($totalCurrent, 3),
         'power'     => round($totalPower, 2),

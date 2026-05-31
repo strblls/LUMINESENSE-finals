@@ -91,10 +91,6 @@ $conn->close();
                                     <span class="label">Email</span>
                                     <div class="field-value"><?= htmlspecialchars($faculty_email) ?></div>
                                 </div>
-                                <div class="info-field">
-                                    <span class="label">Department</span>
-                                    <div class="field-value">N/A</div>
-                                </div>
                             </div>
 
                             <!-- Change Password -->

@@ -117,6 +117,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->bind_param('si', $new_end, $sched_id);
                 $stmt->execute();
                 $stmt->close();
+
+                // Notify ESP32 that schedule changed
+                $conn->query("
+                    UPDATE classrooms c
+                    JOIN schedules s ON s.classroom_id = c.id
+                    SET c.schedule_dirty = 1
+                    WHERE s.id = $sched_id
+                ");
             }
 
             $message = 'Extension request approved.';
