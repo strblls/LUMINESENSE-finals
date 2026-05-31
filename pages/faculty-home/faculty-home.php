@@ -200,11 +200,13 @@ $conn->close();
                             </div>
                         </div>
                         <!-- Schedule ended notice -->
-                        <div id="scheduleEndNotice" class="alert alert-warning d-flex align-items-center gap-2 mx-2 mb-2 py-2"
-                            style="font-size:0.82rem; <?= !$active_schedule ? '' : 'display:none;' ?>">
-                            <i class="bi bi-lock-fill"></i>
-                            Controls are locked — no active class schedule.
-                        </div>
+                        <?php if (!$active_schedule): ?>
+                            <div id="scheduleEndNotice" class="alert alert-warning d-flex align-items-center gap-2 mx-2 mb-2 py-2"
+                                style="font-size:0.82rem;">
+                                <i class="bi bi-lock-fill"></i>
+                                Controls are locked — no active class schedule.
+                            </div>
+                        <?php endif; ?>
 
                         <?php
                         $b1 = ($row1_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
