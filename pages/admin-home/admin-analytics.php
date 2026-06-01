@@ -111,8 +111,6 @@ include '../../php/handlers/analytics-handler.php';
                 </div>
 
                 <!-- ── Summary cards ── -->
-
-                <!-- ── Summary cards ── -->
                 <div class="card-white">
                     <div class="live-card-header mb-3">
                         <span class="chart-card-title bold">Today's Summary</span>
