@@ -15,12 +15,12 @@
 #include <ArduinoJson.h>
 #include <WiFiManager.h>
 
-// ── XAMPP Server ───────────────────────────────────────────
-const char* TOGGLE_URL      = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* SCHEDULE_URL    = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* PZEM_POST_URL = "http://192.168.1.5/LUMINESENSE-finals/api/pzem_push.php";
-const char* UPDATE_ROWS_URL = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-update-rows.php";
-const char* SCHEDULE_FLAG_URL = "http://192.168.1.5/LUMINESENSE-finals/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+// ── Server URLs ────────────────────────────────────────────
+const char* TOGGLE_URL       = "https://luminesense-bet.site/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* SCHEDULE_URL     = "https://luminesense-bet.site/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* PZEM_POST_URL    = "https://luminesense-bet.site/api/pzem_push.php";
+const char* UPDATE_ROWS_URL  = "https://luminesense-bet.site/api/esp32-update-rows.php";
+const char* SCHEDULE_FLAG_URL= "https://luminesense-bet.site/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 
 // ── Pin Definitions ────────────────────────────────────────
 #define ROW1_PIN 26
