@@ -147,6 +147,13 @@ include '../../php/handlers/analytics-handler.php';
                                 <div class="summary-label">Avg Voltage (V)</div>
                             </div>
                         </div>
+                        <div class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-play-circle-fill"></i></div>
+                            <div class="summary-info">
+                                <div class="summary-val" id="activeSessionEnergy">—</div>
+                                <div class="summary-label">Active Session (kWh)</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

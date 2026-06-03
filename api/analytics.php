@@ -228,6 +228,100 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $sessions[] = $row;
 $stmt->close();
 
+// ── 7. Active (ongoing) session for today (if any) ───────────────────────
+$active_session = null;
+if ($cid) {
+    $stmt = $conn->prepare("SELECT ps.id, ps.classroom_id, ps.start_time
+        FROM power_sessions ps
+        WHERE ps.session_date = CURDATE()
+          AND ps.end_time IS NULL
+          AND ps.classroom_id = ?
+        LIMIT 1");
+    $stmt->bind_param('i', $cid);
+} else {
+    $stmt = $conn->prepare("SELECT ps.id, ps.classroom_id, ps.start_time
+        FROM power_sessions ps
+        WHERE ps.session_date = CURDATE()
+          AND ps.end_time IS NULL
+        LIMIT 1");
+}
+$stmt->execute();
+$res = $stmt->get_result();
+if ($row = $res->fetch_assoc()) {
+    $sid = $row['id'];
+    $start = $row['start_time'];
+    $roomid = (int)$row['classroom_id'];
+    $stmt->close();
+
+    if ($cid) {
+        $q = $conn->prepare("SELECT ROUND(SUM(power) * (3/3600), 4) AS energy_wh,
+            ROUND(AVG(voltage), 1) AS avg_voltage,
+            ROUND(AVG(current), 3) AS avg_current
+            FROM pzem_readings pr
+            WHERE pr.recorded_at >= ?
+            AND pr.classroom_id = ?");
+        $q->bind_param('si', $start, $cid);
+    } else {
+        $q = $conn->prepare("SELECT ROUND(SUM(power) * (3/3600), 4) AS energy_wh,
+            ROUND(AVG(voltage), 1) AS avg_voltage,
+            ROUND(AVG(current), 3) AS avg_current
+            FROM pzem_readings pr
+            WHERE pr.recorded_at >= ?");
+        $q->bind_param('s', $start);
+    }
+    $q->execute();
+    $liveRow = $q->get_result()->fetch_assoc();
+    $q->close();
+
+    $duration_mins = (int)floor((time() - strtotime($start)) / 60);
+
+    $active_session = [
+        'id' => (int)$sid,
+        'classroom_id' => $roomid,
+        'start_time' => $start,
+        'duration_mins' => $duration_mins,
+        'energy_wh' => (float)($liveRow['energy_wh'] ?? 0),
+        'energy_kwh' => round((($liveRow['energy_wh'] ?? 0) / 1000), 4),
+        'avg_voltage' => (float)($liveRow['avg_voltage'] ?? 0),
+        'avg_current' => (float)($liveRow['avg_current'] ?? 0),
+    ];
+} else {
+    $stmt->close();
+}
+
+// If no active power_sessions row found, try inferring from pzem_live (device still on)
+if (!$active_session) {
+    if ($cid) {
+        $q = $conn->prepare("SELECT *, TIMESTAMPDIFF(SECOND, updated_at, NOW()) AS secs_ago FROM pzem_live WHERE classroom_id = ? LIMIT 1");
+        $q->bind_param('i', $cid);
+    } else {
+        $q = $conn->prepare("SELECT *, TIMESTAMPDIFF(SECOND, updated_at, NOW()) AS secs_ago FROM pzem_live ORDER BY updated_at DESC LIMIT 1");
+    }
+    $q->execute();
+    $live = $q->get_result()->fetch_assoc();
+    $q->close();
+
+    if ($live) {
+        $lightsOn = (!empty($live['row1']) || !empty($live['row2']) || !empty($live['row3']));
+        $fresh = ((int)($live['secs_ago'] ?? 999)) <= 60;
+        if ($lightsOn && $fresh) {
+            $updated = $live['updated_at'];
+            $duration_mins = (int)floor((time() - strtotime($updated)) / 60);
+            $energy_wh = (float)($live['energy_wh'] ?? ($live['energy'] ?? 0));
+            $active_session = [
+                'id' => null,
+                'classroom_id' => $live['classroom_id'] ?? $cid,
+                'start_time' => $updated,
+                'duration_mins' => $duration_mins,
+                'energy_wh' => $energy_wh,
+                'energy_kwh' => round($energy_wh / 1000, 4),
+                'avg_voltage' => (float)($live['voltage_v'] ?? 0),
+                'avg_current' => (float)($live['current_a'] ?? 0),
+            ];
+        }
+    }
+}
+
 echo json_encode([
     'success'  => true,
     'range'    => $days,
@@ -237,4 +331,5 @@ echo json_encode([
     'triggers' => $triggers,
     'per_room' => $per_room,
     'sessions' => $sessions,   // NEW
+    'active_session' => $active_session,
 ]);
