@@ -4,8 +4,7 @@
 /** @var string $admin_email */
 ?>
 
-<div class="topbar d-flex"
-    style="background:linear-gradient(0deg,rgba(255,255,255,0) 9%,rgba(47,0,79,0.76) 40%,rgba(47,0,79,0.95) 70%,rgba(47,0,79,1) 100%);">
+<div class="topbar d-flex">
     <button type="button" id="sidebarTrigger">
         <i class="bi bi-list"></i>
     </button>

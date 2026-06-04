@@ -10,6 +10,8 @@
   --secondary-color-4: #9b00e9;
   --black: #181818;
   --muted: #9f9f9f;
+  --muted-dark: #4f4f4f;
+  --accent-color: #f9edfa;
   --font-primary: 'Poppins', sans-serif;
 }
 
@@ -284,7 +286,6 @@ body.contrast-bg {
 
 .offcanvas {
   width: auto !important;
-  background: #FFF;
 
   .logo {
     width: 100px;
@@ -527,8 +528,9 @@ body.contrast-bg {
 }
 
 .info-action-btn:hover {
-  background-color: #f0f0f0 !important;
-  border-color: var(--secondary-color-1) !important;
+  background-color: var(--secondary-color-1) !important;
+  border-color: #8235bc !important;
+  color: white !important;
 }
 
 .info-field {

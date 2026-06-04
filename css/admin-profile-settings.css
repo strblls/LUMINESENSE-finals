@@ -153,24 +153,6 @@
     }
 }
 
-/* ── Action button ── */
-.info-action-btn {
-    background-color: var(--primary-color);
-    color: var(--secondary-color-1);
-    border: 1px solid var(--secondary-color-2);
-    padding: 6px 14px;
-    font-size: .82rem;
-    border-radius: 8px;
-    white-space: nowrap;
-    transition: background-color .2s, transform .15s;
-    cursor: pointer;
-}
-
-.info-action-btn:hover {
-    background-color: var(--secondary-color-1);
-    color: var(--primary-color);
-    transform: scale(1.02);
-}
 
 /* ── Password strength bar ── */
 .strength-bar-wrap {

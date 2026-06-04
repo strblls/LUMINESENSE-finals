@@ -85,7 +85,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Room Management</title>
+    <title>LumineSense - Room Management</title>
 
     <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -109,134 +109,133 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
     <?php include '../../php/includes/admin-sidebar.php'; ?>
 
     <div class="parent-container">
-        
 
         <div class="child-container">
 
-    <!-- ═══ PAGE CONTENT ═══ -->
-    <div class="page-content">
-        <div class="section-heading">All Rooms</div>
+            <!-- ═══ PAGE CONTENT ═══ -->
+            <div class="page-content">
+                <div class="section-heading">All Rooms</div>
 
-        <div class="rooms-grid" id="roomsGrid">
-            <?php foreach ($classrooms as $c):
-                $on         = ($c['light_status'] === 'on');
-                $curSched   = getCurrentSchedule($conn, $c['id']);
-                $isOccupied = !empty($curSched);
-                $fName      = $isOccupied ? $curSched['faculty_name'] : '—';
+                <div class="rooms-grid" id="roomsGrid">
+                    <?php foreach ($classrooms as $c):
+                        $on         = ($c['light_status'] === 'on');
+                        $curSched   = getCurrentSchedule($conn, $c['id']);
+                        $isOccupied = !empty($curSched);
+                        $fName      = $isOccupied ? $curSched['faculty_name'] : '—';
 
-                if ($isOccupied) {
-                    $accentClass = 'accent-occupied';
-                    $badgeClass  = 'badge-occupied';
-                    $badgeLabel  = 'Occupied';
-                } elseif (!empty(getRoomSchedules($conn, $c['id']))) {
-                    $accentClass = 'accent-scheduled';
-                    $badgeClass  = 'badge-scheduled';
-                    $badgeLabel  = 'Scheduled';
-                } else {
-                    $accentClass = 'accent-vacant';
-                    $badgeClass  = 'badge-vacant';
-                    $badgeLabel  = 'Vacant';
-                }
+                        if ($isOccupied) {
+                            $accentClass = 'accent-occupied';
+                            $badgeClass  = 'badge-occupied';
+                            $badgeLabel  = 'Occupied';
+                        } elseif (!empty(getRoomSchedules($conn, $c['id']))) {
+                            $accentClass = 'accent-scheduled';
+                            $badgeClass  = 'badge-scheduled';
+                            $badgeLabel  = 'Scheduled';
+                        } else {
+                            $accentClass = 'accent-vacant';
+                            $badgeClass  = 'badge-vacant';
+                            $badgeLabel  = 'Vacant';
+                        }
 
-                $nextSched = null;
-                if (!$isOccupied) {
-                    $day  = date('l');
-                    $time = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc()['t'];
-                    $st = $conn->prepare("
-                    SELECT start_time FROM schedules 
-                    WHERE classroom_id = ? 
-                    AND day_of_week = ? 
-                    AND start_time > ?
-                    ORDER BY start_time 
-                    LIMIT 1
-                ");
-                    $st->bind_param('iss', $c['id'], $day, $time);
-                    $st->execute();
-                    $result = $st->get_result();
-                    $next = $result->fetch_assoc();
-                    $st->close();
-                    if ($next) $nextSched = date('g:i A', strtotime($next['start_time']));
-                }
-            ?>
-                <div class="room-card" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>">
-                    <div class="room-card-accent <?= $accentClass ?>"></div>
-                    <div class="room-card-body">
-                        <div class="room-card-header">
-                            <div>
-                                <div class="room-card-name"><?= htmlspecialchars($c['room_name']) ?></div>
-                                <div class="room-card-section">
-                                    <?= ucfirst($c['room_size']) ?> room
-                                    <?php if (!empty($c['description'])): ?>
-                                        &middot; <?= htmlspecialchars($c['description']) ?>
-                                    <?php endif; ?>
+                        $nextSched = null;
+                        if (!$isOccupied) {
+                            $day  = date('l');
+                            $time = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc()['t'];
+                            $st = $conn->prepare("
+                                SELECT start_time FROM schedules 
+                                WHERE classroom_id = ? 
+                                AND day_of_week = ? 
+                                AND start_time > ?
+                                ORDER BY start_time 
+                                LIMIT 1
+                            ");
+                            $st->bind_param('iss', $c['id'], $day, $time);
+                            $st->execute();
+                            $result = $st->get_result();
+                            $next = $result->fetch_assoc();
+                            $st->close();
+                            if ($next) $nextSched = date('g:i A', strtotime($next['start_time']));
+                        }
+                    ?>
+                        <div class="room-card" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>">
+                            <div class="room-card-accent <?= $accentClass ?>"></div>
+                            <div class="room-card-body">
+                                <div class="room-card-header">
+                                    <div>
+                                        <div class="room-card-name"><?= htmlspecialchars($c['room_name']) ?></div>
+                                        <div class="room-card-section">
+                                            <?= ucfirst($c['room_size']) ?> room
+                                            <?php if (!empty($c['description'])): ?>
+                                                &middot; <?= htmlspecialchars($c['description']) ?>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center room-icons gap-1">
+                                        <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
+                                            title="Edit"
+                                            onclick="openEditModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
+                                            title="Delete"
+                                            onclick="openDeleteModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
+                                    </div>
+                                </div>
+                                <hr class="room-card-divider">
+                                <div class="room-info-row">
+                                    <i class="bi bi-person-fill"></i>
+                                    <span class="room-info-label">Faculty:</span>
+                                    <span class="room-info-val"><?= htmlspecialchars($fName) ?></span>
+                                </div>
+                                <div class="room-info-row">
+                                    <i class="bi bi-clock-fill"></i>
+                                    <span class="room-info-label">
+                                        <?= $isOccupied ? 'Time:' : 'Next class:' ?>
+                                    </span>
+                                    <span class="room-info-val">
+                                        <?php if ($isOccupied): ?>
+                                            <?= date('g:i A', strtotime($curSched['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($curSched['end_time'])) ?>
+                                        <?php else: ?>
+                                            <?= $nextSched ?? 'None today' ?>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                                <div class="room-info-row">
+                                    <i class="bi bi-lightbulb-fill"></i>
+                                    <span class="room-info-label">Lighting:</span>
+                                    <span>
+                                        <span class="light-dot <?= $on ? 'on' : 'off' ?>"></span>
+                                        <span class="room-info-val"><?= $on ? 'ON' : 'OFF' ?></span>
+                                    </span>
                                 </div>
                             </div>
-                            <div class="d-flex align-items-center gap-1">
-                                <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
-                                    title="Edit"
-                                    onclick="openEditModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
-                                    <i class="bi bi-pencil"></i>
+
+                            <div class="room-card-actions">
+                                <button class="medium"
+                                    onclick="openRoomModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
+                                    View
                                 </button>
-                                <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
-                                    title="Delete"
-                                    onclick="openDeleteModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>')">
-                                    <i class="bi bi-trash"></i>
+                                <button class="light"
+                                    onclick="dissolve('admin-timetable-manage.php?room=<?= urlencode($c['room_name']) ?>')">
+                                    Timetable
                                 </button>
-                                <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
                             </div>
                         </div>
-                        <hr class="room-card-divider">
-                        <div class="room-info-row">
-                            <i class="bi bi-person-fill"></i>
-                            <span class="room-info-label">Faculty:&nbsp;</span>
-                            <span class="room-info-val"><?= htmlspecialchars($fName) ?></span>
-                        </div>
-                        <div class="room-info-row">
-                            <i class="bi bi-clock-fill"></i>
-                            <span class="room-info-label">
-                                <?= $isOccupied ? 'Time:' : 'Next class:' ?>&nbsp;
-                            </span>
-                            <span class="room-info-val">
-                                <?php if ($isOccupied): ?>
-                                    <?= date('g:i A', strtotime($curSched['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($curSched['end_time'])) ?>
-                                <?php else: ?>
-                                    <?= $nextSched ?? 'None today' ?>
-                                <?php endif; ?>
-                            </span>
-                        </div>
-                        <div class="room-info-row">
-                            <i class="bi bi-lightbulb-fill"></i>
-                            <span class="room-info-label">Lighting:&nbsp;</span>
-                            <span>
-                                <span class="light-dot <?= $on ? 'on' : 'off' ?>"></span>
-                                <span class="room-info-val"><?= $on ? 'ON' : 'OFF' ?></span>
-                            </span>
-                        </div>
+                    <?php endforeach; ?>
+
+                    <!-- Add Room card -->
+                    <div class="room-card" style="border:2px dashed #bbb;background:transparent;box-shadow:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:#aaa;min-height:200px;"
+                        onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()">
+                        <i class="bi bi-plus-circle" style="font-size:2rem;"></i>
+                        <span style="font-size:1rem;font-weight:600;">Add Room</span>
                     </div>
 
-                    <div class="room-card-actions">
-                        <button class="btn-room-view"
-                            onclick="openRoomModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
-                            View
-                        </button>
-                        <button class="btn-room-timetable"
-                            onclick="dissolve('admin-timetable-manage.php?room=<?= urlencode($c['room_name']) ?>')">
-                            Timetable
-                        </button>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-
-            <!-- Add Room card -->
-            <div class="room-card" style="border:2px dashed #bbb;background:#fafafa;box-shadow:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:#aaa;min-height:200px;"
-                onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()">
-                <i class="bi bi-plus-circle" style="font-size:2rem;"></i>
-                <span style="font-size:.85rem;font-weight:600;">Add Room</span>
-            </div>
-
-        </div><!-- /rooms-grid -->
-    </div><!-- /page-content -->
-    <?php $conn->close(); ?>
+                </div><!-- /rooms-grid -->
+            </div><!-- /page-content -->
+            <?php $conn->close(); ?>
 
         </div><!-- /child-container -->
     </div><!-- /parent-container -->
@@ -245,7 +244,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
     <!-- ═══ ADD ROOM MODAL ═══ -->
     <div class="modal fade" id="addRoomModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="room-details-modal modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Add New Room</h5>
@@ -271,9 +270,10 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                             <input type="text" name="description" class="form-control" placeholder="e.g. Near library, 2nd floor">
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="medium">Add Room</button>
+                        <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                            <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="medium">Add Room</button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -282,7 +282,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
     <!-- ═══ EDIT ROOM MODAL ═══ -->
     <div class="modal fade" id="editRoomModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="room-details-modal modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Edit Room</h5>
@@ -309,7 +309,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                             <input type="text" name="description" id="editRoomDesc" class="form-control">
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
                         <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="medium">Save Changes</button>
                     </div>
@@ -320,20 +320,20 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
     <!-- ═══ DELETE ROOM MODAL ═══ -->
     <div class="modal fade" id="deleteRoomModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="room-details-modal modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Delete Room</h5>
+                    <h5 class="modal-title">Warning!</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" style="min-height:420px;">
+                <div class="modal-body" >
                     Are you sure you want to delete <strong id="deleteRoomName"></strong>?
                     This will also remove all schedules and logs for this room.
                 </div>
                 <form method="POST" action="../../php/handlers/room-handler.php">
                     <input type="hidden" name="action" value="delete_room">
                     <input type="hidden" name="room_id" id="deleteRoomId">
-                    <div class="modal-footer">
+                    <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
                         <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="medium" style="background:#c0392b;">Delete</button>
                     </div>
@@ -457,7 +457,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             </div>
         </div>
     </div>
-    
+
 
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
