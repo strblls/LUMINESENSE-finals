@@ -36,34 +36,7 @@ $conn->close();
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
-
-    <style>
-    .toast-wrap {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        z-index: 9999;
-    }
-    .toast-msg {
-        background: var(--secondary-color-1);
-        color: #fff;
-        padding: 12px 20px;
-        border-radius: 10px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        box-shadow: 0 6px 20px rgba(0,0,0,.25);
-        display: none;
-    }
-    .toast-msg.show {
-        display: block;
-        animation: fadeInUp 0.3s ease, fadeOut 0.4s ease 2.2s forwards;
-    }
-    @keyframes fadeInUp {
-        from { opacity:0; transform:translateY(12px); }
-        to   { opacity:1; transform:translateY(0); }
-    }
-    @keyframes fadeOut { to { opacity:0; } }
-</style>
+    <link rel="stylesheet" href="../../css/admin-common.css">
 </head>
 <body class="contrast-bg">
     <?php include '../../php/includes/admin-topbar.php'; ?>
@@ -84,7 +57,7 @@ $conn->close();
                     <div class="card border-0 shadow-sm p-4 bg-white h-100">
                         <h5 class="bold mb-3 text-warning"><i class="fa-solid fa-user-clock me-2"></i> Registration Approvals Pending</h5>
                         <div class="style-scrollbar" style="max-height: 300px; overflow-y: auto;">
-                            <?php 
+                            <?php
                             $has_pending = false;
                             foreach ($faculty_list as $faculty): 
                                 if ($faculty['status_label'] === 'pending'): 
@@ -95,7 +68,7 @@ $conn->close();
                                         <h6 class="bold mb-0"><?= htmlspecialchars($faculty['first_name'] . ' ' . $faculty['last_name']) ?></h6>
                                         <span class="text-muted small"><?= htmlspecialchars($faculty['email']) ?></span>
                                     </div>
-                                    <<a href="admin-faculty-review.php?id=<?= $faculty['id'] ?>"
+                                    <a href="admin-faculty-review.php?id=<?= $faculty['id'] ?>"
                                         class="btn btn-sm btn-primary px-3">
                                             <i class="fa-solid fa-eye me-1"></i> Review
                                         </a>

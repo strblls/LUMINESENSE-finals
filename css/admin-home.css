@@ -353,7 +353,7 @@
 }
 
 #sidebarOffcanvas {
-    width: 100px !important;
+    width: auto !important;
     background-color: var(--primary-color);
 }
 
@@ -363,8 +363,8 @@
 }
 
 #sidebarOffcanvas .logo {
-    width: 75px;
-    height: 75px;
+    width: 100px;
+    height: 100px;
     object-fit: contain;
     cursor: pointer;
 }

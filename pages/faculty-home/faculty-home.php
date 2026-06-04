@@ -514,10 +514,7 @@ $conn->close();
         const FACULTY_ID = <?= (int) $faculty_id ?>;
         const HAS_ACTIVE_SCHEDULE = <?= $active_schedule ? 'true' : 'false' ?>;
 
-        // Sidebar trigger
-        document.getElementById('sidebarTrigger').addEventListener('click', function() {
-            bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('sidebarOffcanvas')).toggle();
-        });
+        // Sidebar trigger is handled by Bootstrap offcanvas attributes in the topbar.
 
         // Refresh
         document.getElementById('refreshBtn').addEventListener('click', () => location.reload());

@@ -33,8 +33,9 @@
 
 /* ── Sidebar offcanvas shell ── */
 #sidebarOffcanvas {
-    width: 100px !important;
+    width: auto !important;
     background-color: var(--primary-color);
+    transition: transform 0.3s ease-in-out, min-width 0.18s ease;
 }
 
 #sidebarOffcanvas .offcanvas-header {
@@ -59,7 +60,7 @@
 
 #sidebarOffcanvas .offcanvas-footer {
     display: flex;
-    justify-content: center;
+    
     padding: 1rem;
 }
 

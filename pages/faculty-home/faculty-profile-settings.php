@@ -172,11 +172,6 @@ $conn->close();
         <script src="../../script/toggles.js"></script>
     </div>
 
-    <script>
-        document.getElementById('sidebarTrigger').addEventListener('click', function () {
-            bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('sidebarOffcanvas')).toggle();
-        });
-    </script>
 </body>
 
 </html>

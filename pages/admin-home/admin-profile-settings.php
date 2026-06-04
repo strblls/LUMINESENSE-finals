@@ -29,6 +29,7 @@ unset($_SESSION['flash']);
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
     <link rel="stylesheet" href="../../css/admin-profile-settings.css">
+    <link rel="stylesheet" href="../../css/admin-common.css">
 </head>
 
 <body class="contrast-bg">
@@ -40,8 +41,10 @@ unset($_SESSION['flash']);
         </div>
     </div>
 
+    <?php include '../../php/includes/admin-topbar.php'; ?>
+
     <div class="parent-container">
-        <?php include '../../php/includes/admin-topbar.php'; ?>
+        <?php include '../../php/includes/admin-sidebar.php'; ?>
 
         <div class="child-container">
             <div class="profile-wrapper">
@@ -177,7 +180,6 @@ unset($_SESSION['flash']);
         </div>
     </div>
 
-    <?php include '../../php/includes/admin-sidebar.php'; ?>
     <?php include '../../php/includes/profile-offcanvas.php'; ?>
 
     <script src="../../script/animations.js"></script>

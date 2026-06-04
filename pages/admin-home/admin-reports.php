@@ -87,7 +87,8 @@ if ($res3) {
 $conn->close();
 
 /* ─── Icon map for event types ─── */
-function event_icon(string $type): array {
+function event_icon(string $type): array
+{
     $map = [
         'light_on'       => ['bi-lightbulb-fill',      '#0f5132', '#d1e7dd'],
         'light_off'      => ['bi-lightbulb',            '#842029', '#f8d7da'],
@@ -108,16 +109,17 @@ function event_icon(string $type): array {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reports – LumineSense Admin</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../css/global.css">
@@ -126,15 +128,15 @@ function event_icon(string $type): array {
 
     <style>
         :root {
-            --primary-color:      #f9edfa;
-            --secondary-color-1:  #2f004f;
-            --secondary-color-2:  #58078f;
-            --secondary-color-3:  #790faf;
-            --secondary-color-4:  #9b00e9;
-            --muted:              #9f9f9f;
-            --font-primary:       'Poppins', sans-serif;
-            --card-bg:            #fff;
-            --border:             #ece3f0;
+            --primary-color: #f9edfa;
+            --secondary-color-1: #2f004f;
+            --secondary-color-2: #58078f;
+            --secondary-color-3: #790faf;
+            --secondary-color-4: #9b00e9;
+            --muted: #9f9f9f;
+            --font-primary: 'Poppins', sans-serif;
+            --card-bg: #fff;
+            --border: #ece3f0;
         }
 
         /* ── Layout ── */
@@ -157,6 +159,7 @@ function event_icon(string $type): array {
             padding: 5px;
             width: fit-content;
         }
+
         .tab-btn {
             padding: 0.45rem 1.2rem;
             border-radius: 9px;
@@ -169,10 +172,12 @@ function event_icon(string $type): array {
             cursor: pointer;
             transition: background 0.18s, color 0.18s;
         }
+
         .tab-btn.active {
             background: var(--secondary-color-1);
             color: #fff;
         }
+
         .tab-btn:not(.active):hover {
             background: #d8c9e8;
         }
@@ -184,6 +189,7 @@ function event_icon(string $type): array {
             border: 1px solid var(--border);
             overflow: hidden;
         }
+
         .reports-card-header {
             display: flex;
             align-items: center;
@@ -193,6 +199,7 @@ function event_icon(string $type): array {
             gap: 1rem;
             flex-wrap: wrap;
         }
+
         .reports-card-header h2 {
             font-size: 1rem;
             font-weight: 700;
@@ -202,7 +209,11 @@ function event_icon(string $type): array {
             align-items: center;
             gap: 0.5rem;
         }
-        .reports-card-header h2 i { font-size: 1.1rem; color: var(--secondary-color-3); }
+
+        .reports-card-header h2 i {
+            font-size: 1.1rem;
+            color: var(--secondary-color-3);
+        }
 
         /* ── Filters ── */
         .filter-bar {
@@ -211,6 +222,7 @@ function event_icon(string $type): array {
             align-items: center;
             flex-wrap: wrap;
         }
+
         .filter-bar input,
         .filter-bar select {
             font-family: var(--font-primary);
@@ -221,8 +233,11 @@ function event_icon(string $type): array {
             outline: none;
             color: var(--secondary-color-1);
         }
+
         .filter-bar input:focus,
-        .filter-bar select:focus { border-color: var(--secondary-color-3); }
+        .filter-bar select:focus {
+            border-color: var(--secondary-color-3);
+        }
 
         /* ── Export btn ── */
         .export-btn {
@@ -240,7 +255,11 @@ function event_icon(string $type): array {
             gap: 0.4rem;
             transition: background 0.15s, color 0.15s;
         }
-        .export-btn:hover { background: var(--secondary-color-1); color: #fff; }
+
+        .export-btn:hover {
+            background: var(--secondary-color-1);
+            color: #fff;
+        }
 
         /* ── Timeline (Activity Log) ── */
         .timeline {
@@ -251,6 +270,7 @@ function event_icon(string $type): array {
             max-height: 60vh;
             overflow-y: auto;
         }
+
         .timeline-item {
             display: flex;
             gap: 1rem;
@@ -258,26 +278,46 @@ function event_icon(string $type): array {
             border-bottom: 1px solid #f3edf7;
             animation: fadeSlide 0.3s ease both;
         }
-        .timeline-item:last-child { border-bottom: none; }
+
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+
         @keyframes fadeSlide {
-            from { opacity: 0; transform: translateY(6px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .tl-icon {
-            width: 34px; height: 34px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             flex-shrink: 0;
             font-size: 0.9rem;
         }
-        .tl-body { flex: 1; min-width: 0; }
+
+        .tl-body {
+            flex: 1;
+            min-width: 0;
+        }
+
         .tl-action {
             font-size: 0.82rem;
             font-weight: 600;
             color: var(--secondary-color-1);
             margin: 0 0 2px;
         }
+
         .tl-meta {
             font-size: 0.72rem;
             color: var(--muted);
@@ -285,7 +325,13 @@ function event_icon(string $type): array {
             flex-wrap: wrap;
             gap: 0.5rem;
         }
-        .tl-meta span { display: flex; align-items: center; gap: 3px; }
+
+        .tl-meta span {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
         .tl-notes {
             font-size: 0.72rem;
             color: #666;
@@ -295,6 +341,7 @@ function event_icon(string $type): array {
             margin-top: 4px;
             display: inline-block;
         }
+
         .tl-type-badge {
             font-size: 0.65rem;
             font-weight: 700;
@@ -310,9 +357,11 @@ function event_icon(string $type): array {
             border-collapse: collapse;
             font-size: 0.82rem;
         }
+
         .room-table thead tr {
             background: #f6f0fb;
         }
+
         .room-table th {
             padding: 0.65rem 1rem;
             font-weight: 600;
@@ -324,25 +373,56 @@ function event_icon(string $type): array {
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
         }
+
         .room-table td {
             padding: 0.7rem 1rem;
             border-bottom: 1px solid #f3edf7;
             vertical-align: middle;
             color: var(--secondary-color-1);
         }
-        .room-table tbody tr:last-child td { border-bottom: none; }
-        .room-table tbody tr:hover { background: #faf5ff; }
+
+        .room-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .room-table tbody tr:hover {
+            background: #faf5ff;
+        }
 
         .light-pill {
-            display: inline-flex; align-items: center; gap: 5px;
-            font-size: 0.72rem; font-weight: 700;
-            padding: 3px 10px; border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
         }
-        .light-on  { background: #d1e7dd; color: #0f5132; }
-        .light-off { background: #f8d7da; color: #842029; }
-        .light-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-        .dot-on  { background: #198754; }
-        .dot-off { background: #dc3545; }
+
+        .light-on {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .light-off {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .light-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot-on {
+            background: #198754;
+        }
+
+        .dot-off {
+            background: #dc3545;
+        }
 
         .event-count-badge {
             background: #ede6f2;
@@ -364,8 +444,17 @@ function event_icon(string $type): array {
             text-align: center;
             color: var(--muted);
         }
-        .empty-state i { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
-        .empty-state p { font-size: 0.82rem; margin: 0; }
+
+        .empty-state i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .empty-state p {
+            font-size: 0.82rem;
+            margin: 0;
+        }
 
         /* ── Summary pills (top) ── */
         .summary-row {
@@ -373,6 +462,7 @@ function event_icon(string $type): array {
             gap: 0.75rem;
             flex-wrap: wrap;
         }
+
         .summary-pill {
             display: flex;
             align-items: center;
@@ -382,60 +472,144 @@ function event_icon(string $type): array {
             padding: 0.55rem 0.9rem;
             min-width: 130px;
         }
+
         .summary-pill .pill-val {
             font-size: 1.4rem;
             font-weight: 800;
             color: var(--secondary-color-1);
             line-height: 1;
         }
+
         .summary-pill .pill-label {
             font-size: 0.68rem;
             color: var(--muted);
             line-height: 1.3;
         }
-        .summary-pill i { font-size: 1.3rem; color: var(--secondary-color-3); }
+
+        .summary-pill i {
+            font-size: 1.3rem;
+            color: var(--secondary-color-3);
+        }
 
         /* ── Topbar adaptations ── */
-        .topbar h1 { font-size: 1.2rem !important; }
+        .topbar h1 {
+            font-size: 1.2rem !important;
+        }
 
         /* ── Tab panels ── */
-        .tab-panel { display: none; }
-        .tab-panel.active { display: block; }
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
 
         /* ── Sidebar/offcanvas (same as other admin pages) ── */
         .nav-btn {
-            width: 52px; height: 52px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            background-color: var(--secondary-color-1); color: var(--primary-color);
-            border: none; cursor: pointer;
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--secondary-color-1);
+            color: var(--primary-color);
+            border: none;
+            cursor: pointer;
             transition: background-color 0.2s, transform 0.15s;
         }
-        .nav-btn i { font-size: 22px; }
-        .nav-btn:hover { background-color: var(--secondary-color-4); transform: scale(1.06); }
-        #sidebarOffcanvas { width: 100px !important; background-color: var(--primary-color); }
-        #sidebarOffcanvas .offcanvas-header { justify-content: center; padding: 1rem 0.5rem; }
-        #sidebarOffcanvas .logo { width: 75px; height: 75px; object-fit: contain; cursor: pointer; }
-        #sidebarOffcanvas .offcanvas-body { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 0.5rem; }
-        #sidebarOffcanvas .offcanvas-footer { display: flex; justify-content: center; padding: 1rem; }
-        #profileOffcanvas { width: 240px !important; background-color: var(--primary-color); }
+
+        .nav-btn i {
+            font-size: 22px;
+        }
+
+        .nav-btn:hover {
+            background-color: var(--secondary-color-4);
+            transform: scale(1.06);
+        }
+
+        #sidebarOffcanvas {
+            width: auto !important;
+            background-color: var(--primary-color);
+            transition: transform 0.3s ease-in-out, min-width 0.18s ease;
+        }
+
+        #sidebarOffcanvas .offcanvas-header {
+            justify-content: center;
+            padding: 1rem 0.5rem;
+        }
+
+        #sidebarOffcanvas .logo {
+            width: 75px;
+            height: 75px;
+            object-fit: contain;
+            cursor: pointer;
+        }
+
+        #sidebarOffcanvas .offcanvas-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding-top: 0.5rem;
+        }
+
+        #sidebarOffcanvas .offcanvas-footer {
+            display: flex;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        #profileOffcanvas {
+            width: 240px !important;
+            background-color: var(--primary-color);
+        }
+
         .profile-btn {
-            width: 100%; padding: 8px; margin: 3px 0; border-radius: 8px;
-            background-color: var(--secondary-color-1); color: var(--primary-color);
-            border: none; font-size: 14px; cursor: pointer;
+            width: 100%;
+            padding: 8px;
+            margin: 3px 0;
+            border-radius: 8px;
+            background-color: var(--secondary-color-1);
+            color: var(--primary-color);
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
             font-family: var(--font-primary);
             transition: background-color 0.2s, transform 0.15s;
         }
-        .profile-btn:hover { background-color: var(--secondary-color-4); transform: scale(1.02); }
+
+        .profile-btn:hover {
+            background-color: var(--secondary-color-4);
+            transform: scale(1.02);
+        }
+
         .avatar-icon {
-            width: 44px; height: 44px; border-radius: 50%;
-            background: var(--secondary-color-1); color: #fff;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--secondary-color-1);
+            color: #fff;
         }
 
         @media (max-width: 600px) {
-            .summary-row { gap: 0.5rem; }
-            .summary-pill { min-width: 100px; }
-            .room-table th, .room-table td { padding: 0.5rem 0.6rem; }
-            .timeline { max-height: 55vh; }
+            .summary-row {
+                gap: 0.5rem;
+            }
+
+            .summary-pill {
+                min-width: 100px;
+            }
+
+            .room-table th,
+            .room-table td {
+                padding: 0.5rem 0.6rem;
+            }
+
+            .timeline {
+                max-height: 55vh;
+            }
         }
     </style>
 </head>
@@ -513,23 +687,23 @@ function event_icon(string $type): array {
                         </div>
                     </div>
 
-                        <div class="timeline" id="activityTimeline">
-                            <?php if (empty($activity_logs)): ?>
-                                <div class="empty-state">
-                                    <i class="bi bi-journal-x"></i>
-                                    <p>No activity logs found. Events will appear here as they are recorded.</p>
-                                </div>
-                            <?php else: ?>
-                                <?php foreach ($activity_logs as $i => $log):
-                                    [$icon, $iconColor, $iconBg] = event_icon($log['action']);
-                                    $isRoom  = $log['log_type'] === 'room';
-                                    $typeBg  = $isRoom  ? '#cfe2ff' : '#ede6f2';
-                                    $typeClr = $isRoom  ? '#084298' : '#4a0078';
-                                    $typeLabel = $isRoom ? 'Room' : 'Admin';
-                                    $logDate = strtotime($log['log_time']);
-                                    $dateStr = date('M j, Y', $logDate);
-                                    $timeStr = date('g:i A', $logDate);
-                                ?>
+                    <div class="timeline" id="activityTimeline">
+                        <?php if (empty($activity_logs)): ?>
+                            <div class="empty-state">
+                                <i class="bi bi-journal-x"></i>
+                                <p>No activity logs found. Events will appear here as they are recorded.</p>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($activity_logs as $i => $log):
+                                [$icon, $iconColor, $iconBg] = event_icon($log['action']);
+                                $isRoom  = $log['log_type'] === 'room';
+                                $typeBg  = $isRoom  ? '#cfe2ff' : '#ede6f2';
+                                $typeClr = $isRoom  ? '#084298' : '#4a0078';
+                                $typeLabel = $isRoom ? 'Room' : 'Admin';
+                                $logDate = strtotime($log['log_time']);
+                                $dateStr = date('M j, Y', $logDate);
+                                $timeStr = date('g:i A', $logDate);
+                            ?>
                                 <div class="timeline-item"
                                     data-type="<?= $log['log_type'] ?>"
                                     data-date="<?= date('Y-m-d', $logDate) ?>"
@@ -556,9 +730,9 @@ function event_icon(string $type): array {
                                         <?php endif; ?>
                                     </div>
                                 </div>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
 
@@ -583,46 +757,46 @@ function event_icon(string $type): array {
                             <p>No rooms found. Add classrooms to start tracking activity.</p>
                         </div>
                     <?php else: ?>
-                    <div style="overflow-x:auto;">
-                        <table class="room-table" id="roomTable">
-                            <thead>
-                                <tr>
-                                    <th>Room</th>
-                                    <th>Light Status</th>
-                                    <th>Size</th>
-                                    <th>Total Events</th>
-                                    <th>Last Activity</th>
-                                    <th>Description</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($rooms as $room):
-                                    $on       = $room['light_status'] === 'on';
-                                    $hasLast  = !empty($room['last_event']);
-                                    $lastStr  = $hasLast ? date('M j, g:i A', strtotime($room['last_event'])) : 'No events yet';
-                                ?>
-                                <tr data-light="<?= $room['light_status'] ?>"
-                                    data-search="<?= strtolower(htmlspecialchars($room['room_name'] . ' ' . $room['description'])) ?>">
-                                    <td>
-                                        <div style="font-weight:600;"><?= htmlspecialchars($room['room_name']) ?></div>
-                                    </td>
-                                    <td>
-                                        <span class="light-pill <?= $on ? 'light-on' : 'light-off' ?>">
-                                            <span class="light-dot <?= $on ? 'dot-on' : 'dot-off' ?>"></span>
-                                            <?= $on ? 'ON' : 'OFF' ?>
-                                        </span>
-                                    </td>
-                                    <td><?= ucfirst(htmlspecialchars($room['room_size'])) ?></td>
-                                    <td><span class="event-count-badge"><?= (int)$room['total_events'] ?></span></td>
-                                    <td class="last-event-text"><?= $lastStr ?></td>
-                                    <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:0.75rem;">
-                                        <?= htmlspecialchars($room['description'] ?? '—') ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                        <div style="overflow-x:auto;">
+                            <table class="room-table" id="roomTable">
+                                <thead>
+                                    <tr>
+                                        <th>Room</th>
+                                        <th>Light Status</th>
+                                        <th>Size</th>
+                                        <th>Total Events</th>
+                                        <th>Last Activity</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($rooms as $room):
+                                        $on       = $room['light_status'] === 'on';
+                                        $hasLast  = !empty($room['last_event']);
+                                        $lastStr  = $hasLast ? date('M j, g:i A', strtotime($room['last_event'])) : 'No events yet';
+                                    ?>
+                                        <tr data-light="<?= $room['light_status'] ?>"
+                                            data-search="<?= strtolower(htmlspecialchars($room['room_name'] . ' ' . $room['description'])) ?>">
+                                            <td>
+                                                <div style="font-weight:600;"><?= htmlspecialchars($room['room_name']) ?></div>
+                                            </td>
+                                            <td>
+                                                <span class="light-pill <?= $on ? 'light-on' : 'light-off' ?>">
+                                                    <span class="light-dot <?= $on ? 'dot-on' : 'dot-off' ?>"></span>
+                                                    <?= $on ? 'ON' : 'OFF' ?>
+                                                </span>
+                                            </td>
+                                            <td><?= ucfirst(htmlspecialchars($room['room_size'])) ?></td>
+                                            <td><span class="event-count-badge"><?= (int)$room['total_events'] ?></span></td>
+                                            <td class="last-event-text"><?= $lastStr ?></td>
+                                            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:0.75rem;">
+                                                <?= htmlspecialchars($room['description'] ?? '—') ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -638,99 +812,104 @@ function event_icon(string $type): array {
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
 
-   <script>
-document.addEventListener('DOMContentLoaded', function () {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
 
-    /* ── Tab switching ── */
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-        });
-    });
+            /* ── Tab switching ── */
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+                });
+            });
 
-    /* ── Deep-link: ?tab=activity or ?tab=rooms ── */
-    const urlParams = new URLSearchParams(window.location.search);
-    const tabParam  = urlParams.get('tab');
-    if (tabParam) {
-        const target = document.querySelector(`.tab-btn[data-tab="${tabParam}"]`);
-        if (target) target.click();
-    }
-
-    /* ── Global topbar search ── */
-    const globalSearch = document.getElementById('globalSearch');
-    if (globalSearch) {
-        globalSearch.addEventListener('input', function () {
-            const active = document.querySelector('.tab-btn.active').dataset.tab;
-            if (active === 'activity') {
-                document.getElementById('activitySearch').value = this.value;
-                filterActivity();
-            } else {
-                document.getElementById('roomSearch').value = this.value;
-                filterRooms();
+            /* ── Deep-link: ?tab=activity or ?tab=rooms ── */
+            const urlParams = new URLSearchParams(window.location.search);
+            const tabParam = urlParams.get('tab');
+            if (tabParam) {
+                const target = document.querySelector(`.tab-btn[data-tab="${tabParam}"]`);
+                if (target) target.click();
             }
+
+            /* ── Global topbar search ── */
+            const globalSearch = document.getElementById('globalSearch');
+            if (globalSearch) {
+                globalSearch.addEventListener('input', function() {
+                    const active = document.querySelector('.tab-btn.active').dataset.tab;
+                    if (active === 'activity') {
+                        document.getElementById('activitySearch').value = this.value;
+                        filterActivity();
+                    } else {
+                        document.getElementById('roomSearch').value = this.value;
+                        filterRooms();
+                    }
+                });
+            }
+
+            /* ── Activity Log filters ── */
+            function filterActivity() {
+                const q = document.getElementById('activitySearch').value.toLowerCase();
+                const type = document.getElementById('activityType').value;
+                const date = document.getElementById('activityDate').value;
+                const today = new Date().toISOString().slice(0, 10);
+                const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+                const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+
+                document.querySelectorAll('#activityTimeline .timeline-item').forEach(item => {
+                    const matchQ = !q || item.dataset.search.includes(q);
+                    const matchType = !type || item.dataset.type === type;
+                    let matchDate = true;
+                    if (date === 'today') matchDate = item.dataset.date === today;
+                    if (date === 'week') matchDate = item.dataset.date >= weekAgo;
+                    if (date === 'month') matchDate = item.dataset.date >= monthAgo;
+                    item.style.display = (matchQ && matchType && matchDate) ? '' : 'none';
+                });
+            }
+
+            /* ── Room filters ── */
+            function filterRooms() {
+                const q = document.getElementById('roomSearch').value.toLowerCase();
+                const light = document.getElementById('roomLightFilter').value;
+                document.querySelectorAll('#roomTable tbody tr').forEach(row => {
+                    const matchQ = !q || row.dataset.search.includes(q);
+                    const matchLight = !light || row.dataset.light === light;
+                    row.style.display = (matchQ && matchLight) ? '' : 'none';
+                });
+            }
+
+            /* ── Attach listeners ── */
+            document.getElementById('activitySearch').addEventListener('input', filterActivity);
+            document.getElementById('activityType').addEventListener('change', filterActivity);
+            document.getElementById('activityDate').addEventListener('change', filterActivity);
+            document.getElementById('roomSearch').addEventListener('input', filterRooms);
+            document.getElementById('roomLightFilter').addEventListener('change', filterRooms);
+
+            /* ── CSV export ── */
+            window.exportCSV = function() {
+                const rows = [
+                    ['Time', 'Action', 'Target', 'Actor', 'Type', 'Notes']
+                ];
+                document.querySelectorAll('#activityTimeline .timeline-item').forEach(item => {
+                    if (item.style.display === 'none') return;
+                    const tl_action = item.querySelector('.tl-action')?.innerText.trim() ?? '';
+                    const tl_meta = [...item.querySelectorAll('.tl-meta span')].map(s => s.innerText.trim()).join(' | ');
+                    const tl_notes = item.querySelector('.tl-notes')?.innerText.trim() ?? '';
+                    rows.push([tl_meta, tl_action, '', '', item.dataset.type, tl_notes]);
+                });
+                const csv = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
+                const blob = new Blob([csv], {
+                    type: 'text/csv'
+                });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `activity-log-${new Date().toISOString().slice(0, 10)}.csv`;
+                a.click();
+            };
+
         });
-    }
-
-    /* ── Activity Log filters ── */
-    function filterActivity() {
-        const q        = document.getElementById('activitySearch').value.toLowerCase();
-        const type     = document.getElementById('activityType').value;
-        const date     = document.getElementById('activityDate').value;
-        const today    = new Date().toISOString().slice(0, 10);
-        const weekAgo  = new Date(Date.now() - 7  * 86400000).toISOString().slice(0, 10);
-        const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-
-        document.querySelectorAll('#activityTimeline .timeline-item').forEach(item => {
-            const matchQ    = !q    || item.dataset.search.includes(q);
-            const matchType = !type || item.dataset.type === type;
-            let   matchDate = true;
-            if (date === 'today') matchDate = item.dataset.date === today;
-            if (date === 'week')  matchDate = item.dataset.date >= weekAgo;
-            if (date === 'month') matchDate = item.dataset.date >= monthAgo;
-            item.style.display = (matchQ && matchType && matchDate) ? '' : 'none';
-        });
-    }
-
-    /* ── Room filters ── */
-    function filterRooms() {
-        const q     = document.getElementById('roomSearch').value.toLowerCase();
-        const light = document.getElementById('roomLightFilter').value;
-        document.querySelectorAll('#roomTable tbody tr').forEach(row => {
-            const matchQ     = !q     || row.dataset.search.includes(q);
-            const matchLight = !light || row.dataset.light === light;
-            row.style.display = (matchQ && matchLight) ? '' : 'none';
-        });
-    }
-
-    /* ── Attach listeners ── */
-    document.getElementById('activitySearch').addEventListener('input',  filterActivity);
-    document.getElementById('activityType').addEventListener('change',   filterActivity);
-    document.getElementById('activityDate').addEventListener('change',   filterActivity);
-    document.getElementById('roomSearch').addEventListener('input',      filterRooms);
-    document.getElementById('roomLightFilter').addEventListener('change',filterRooms);
-
-    /* ── CSV export ── */
-    window.exportCSV = function () {
-        const rows = [['Time', 'Action', 'Target', 'Actor', 'Type', 'Notes']];
-        document.querySelectorAll('#activityTimeline .timeline-item').forEach(item => {
-            if (item.style.display === 'none') return;
-            const tl_action = item.querySelector('.tl-action')?.innerText.trim() ?? '';
-            const tl_meta   = [...item.querySelectorAll('.tl-meta span')].map(s => s.innerText.trim()).join(' | ');
-            const tl_notes  = item.querySelector('.tl-notes')?.innerText.trim() ?? '';
-            rows.push([tl_meta, tl_action, '', '', item.dataset.type, tl_notes]);
-        });
-        const csv  = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const a    = document.createElement('a');
-        a.href     = URL.createObjectURL(blob);
-        a.download = `activity-log-${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click();
-    };
-
-});
-</script>
+    </script>
 </body>
+
 </html>

@@ -11,19 +11,32 @@ function dissolve(url) {
     }, 500);
 }
 
-// For sidebar (left) in homepages
-const trigger = document.getElementById('sidebarTrigger');
-const sidebarEl = document.getElementById('sidebarOffcanvas');
-const sidebar = bootstrap.Offcanvas.getOrCreateInstance(sidebarEl);
+// Sidebar hover behavior uses Bootstrap's offcanvas API.
+(function setupSidebarHover() {
+    const trigger = document.getElementById('sidebarTrigger');
+    const sidebarEl = document.getElementById('sidebarOffcanvas');
+    if (!trigger || !sidebarEl || !window.bootstrap?.Offcanvas) return;
 
-trigger.addEventListener('mouseenter', () => sidebar.show());
-sidebarEl.addEventListener('mouseleave', () => sidebar.hide());
+    const sidebar = bootstrap.Offcanvas.getOrCreateInstance(sidebarEl);
+    let closeTimer = null;
 
-// For sidebar (right) in homepages
-const trigger2 = document.getElementById('something');
-if (trigger2) trigger2.addEventListener('mouseenter', () => sidebar2.show());
-const sidebarEl2 = document.getElementById('profileOffcanvas');
-const sidebar2 = bootstrap.Offcanvas.getOrCreateInstance(sidebarEl2);
+    const openSidebar = () => {
+        if (closeTimer) {
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+        sidebar.show();
+    };
 
-trigger2.addEventListener('mouseenter', () => sidebar2.show());
-sidebarEl2.addEventListener('mouseleave', () => sidebar2.hide());
+    const closeSidebar = () => {
+        if (closeTimer) clearTimeout(closeTimer);
+        closeTimer = setTimeout(() => sidebar.hide(), 120);
+    };
+
+    trigger.addEventListener('mouseenter', openSidebar);
+    trigger.addEventListener('focus', openSidebar);
+    sidebarEl.addEventListener('mouseenter', openSidebar);
+    sidebarEl.addEventListener('mouseleave', closeSidebar);
+    trigger.addEventListener('mouseleave', closeSidebar);
+    trigger.addEventListener('click', event => event.preventDefault());
+})();
