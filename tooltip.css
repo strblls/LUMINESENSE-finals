@@ -1,0 +1,21 @@
+.tooltip-inner {
+    background-color: var(--primary-color) !important;
+    color: var(--black) !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    z-index: 9999 !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5) !important;
+    padding: 0.75rem !important;
+}
+
+.tooltip .tooltip-arrow {
+    display: none !important; /*Hide the default arrow */
+}
+
+.tooltip.bs-tooltip-top .tooltip-arrow::before,
+.tooltip.bs-tooltip-bottom .tooltip-arrow::before, 
+.tooltip.bs-tooltip-start .tooltip-arrow::before,
+.tooltip.bs-tooltip-end .tooltip-arrow::before {
+    border-color: var(--primary-color) !important;
+}

@@ -1,0 +1,81 @@
+        .review-card {
+            max-width: 720px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, .08);
+            overflow: hidden;
+        }
+
+        .review-header {
+            background: #1a1a2e;
+            padding: 24px 32px;
+            color: #fff;
+        }
+
+        .review-body {
+            padding: 32px;
+        }
+
+        .id-image-box {
+            border: 2px dashed #dee2e6;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f8f9fa;
+            text-align: center;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .id-image-box img {
+            max-width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            cursor: pointer;
+        }
+
+        .ai-badge {
+            font-size: .85rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .ai-matched {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .ai-mismatched {
+            background: #fff3cd;
+            color: #664d03;
+        }
+
+        .ai-unreadable {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: .92rem;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #888;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #1a1a2e;
+        }

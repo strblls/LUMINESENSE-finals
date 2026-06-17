@@ -1,0 +1,49 @@
+{
+  "worktrees": {
+    "wt-1779419037184-1": {
+      "branch": "tulip-spectroscope",
+      "path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\.kilo\\worktrees\\tulip-spectroscope",
+      "parentBranch": "main",
+      "createdAt": "2026-05-22T03:03:57.184Z",
+      "remote": "origin"
+    },
+    "wt-1779419038745-2": {
+      "branch": "ripple-grill",
+      "path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\.kilo\\worktrees\\ripple-grill",
+      "parentBranch": "main",
+      "createdAt": "2026-05-22T03:03:58.745Z",
+      "remote": "origin"
+    },
+    "wt-1779473806928-1": {
+      "branch": "mountain-valley",
+      "path": "c:\\xampp\\htdocs\\LUMINESENSE-finals\\.kilo\\worktrees\\mountain-valley",
+      "parentBranch": "main",
+      "createdAt": "2026-05-22T18:16:46.928Z",
+      "remote": "origin"
+    }
+  },
+  "sessions": {
+    "ses_1b25c3ed3ffe4CeqGms9xsUKpN": {
+      "worktreeId": "wt-1779419037184-1",
+      "createdAt": "2026-05-22T03:03:58.061Z"
+    },
+    "ses_1b25c3915ffeVhFK5YvfIRtDFE": {
+      "worktreeId": "wt-1779419038745-2",
+      "createdAt": "2026-05-22T03:03:59.474Z"
+    },
+    "ses_1af1885aaffekclCUnF9lsb9Wi": {
+      "worktreeId": "wt-1779473806928-1",
+      "createdAt": "2026-05-22T18:16:48.141Z"
+    }
+  },
+  "tabOrder": {
+    "local": [
+      "pending:1"
+    ]
+  },
+  "worktreeOrder": [
+    "wt-1779419037184-1",
+    "wt-1779419038745-2",
+    "wt-1779473806928-1"
+  ]
+}
