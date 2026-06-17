@@ -2,7 +2,8 @@
            TOPBAR OVERRIDE (matches other admin pages)
         ══════════════════════════════════════ */
 .topbar {
-    background: linear-gradient(0deg, rgba(255, 255, 255, 0) 9%, rgba(47, 0, 79, .76) 40%, rgba(47, 0, 79, .95) 70%, rgba(47, 0, 79, 1) 100%);
+    background: #2E004E;
+    background: linear-gradient(0deg, rgba(46, 0, 78, 0) 3%, rgba(46, 0, 78, 0.16) 15%, rgba(46, 0, 78, 1) 77%, rgba(46, 0, 78, 1) 92%);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -126,16 +127,24 @@
 }
 
 .room-card-name {
-    font-size: 17px;
+    padding: 3px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--secondary-color-1);
     line-height: 1.25;
 }
 
 .room-card-section {
-    font-size: 12px;
-    color: #999;
+    font-size: 12.36px;
+    color: var(--muted-dark);
     margin-top: 2px;
+}
+
+.room-icons {
+    i {
+        font-size: 16px;
+        color: var(--secondary-color-2);
+    }
 }
 
 /* status badge */
@@ -183,8 +192,8 @@
 }
 
 .room-info-label {
-    color: #999;
-    font-size: 12px;
+    color: var(--secondary-color-2);
+    font-size: 12.36px;
 }
 
 .room-info-val {
@@ -327,8 +336,9 @@
 }
 
 #sidebarOffcanvas {
-    width: 100px !important;
+    width: auto !important;
     background-color: var(--primary-color);
+    transition: transform 0.3s ease-in-out, min-width 0.18s ease;
 }
 
 #sidebarOffcanvas .offcanvas-header {
@@ -336,11 +346,6 @@
     padding: 1rem .5rem;
 }
 
-#sidebarOffcanvas .logo {
-    width: 75px;
-    height: 75px;
-    object-fit: contain;
-}
 
 #sidebarOffcanvas .offcanvas-body {
     display: flex;

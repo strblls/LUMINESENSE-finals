@@ -161,9 +161,6 @@ $conn->close();
 </div>
 
 <script>
-    document.getElementById('sidebarTrigger').addEventListener('click', function () {
-        bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('sidebarOffcanvas')).toggle();
-    });
     document.getElementById('sidebarTrigger2').addEventListener('click', function () {
         bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('profileOffcanvas')).toggle();
     });

@@ -8,20 +8,25 @@ include '../../php/handlers/analytics-handler.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin Analytics</title>
+    <title>LumineSense - Admin Analytics</title>
 
+    <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <!--Relative links-->
+    <link rel="icon" href="../../images/logo.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
     <link rel="stylesheet" href="../../css/admin-analytics.css">
+    <link rel="stylesheet" href="../../css/admin-common.css">
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -30,9 +35,9 @@ include '../../php/handlers/analytics-handler.php';
 <body class="contrast-bg">
 
     <?php include '../../php/includes/admin-topbar.php'; ?>
+    <?php include '../../php/includes/admin-sidebar.php'; ?>
 
     <div class="parent-container">
-        <?php include '../../php/includes/admin-sidebar.php'; ?>
 
         <div class="child-container">
 
@@ -51,17 +56,17 @@ include '../../php/handlers/analytics-handler.php';
                         </select>
                     </div>
                     <?php if (count($rooms) > 1): ?>
-                    <div class="view-select-group">
-                        <label for="roomSelect">Room</label>
-                        <select id="roomSelect" onchange="onControlChange()">
-                            <option value="0">All Rooms</option>
-                            <?php foreach ($rooms as $room): ?>
-                                <option value="<?= $room['id'] ?>">
-                                    <?= htmlspecialchars($room['room_name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+                        <div class="view-select-group">
+                            <label for="roomSelect">Room</label>
+                            <select id="roomSelect" onchange="onControlChange()">
+                                <option value="0">All Rooms</option>
+                                <?php foreach ($rooms as $room): ?>
+                                    <option value="<?= $room['id'] ?>">
+                                        <?= htmlspecialchars($room['room_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     <?php else: ?>
                         <!-- Single room — no dropdown needed, pass ID silently -->
                         <input type="hidden" id="roomSelect" value="<?= $rooms[0]['id'] ?? 0 ?>">
@@ -109,8 +114,6 @@ include '../../php/handlers/analytics-handler.php';
                         </div>
                     </div>
                 </div>
-
-                <!-- ── Summary cards ── -->
 
                 <!-- ── Summary cards ── -->
                 <div class="card-white">
@@ -176,40 +179,43 @@ include '../../php/handlers/analytics-handler.php';
                             <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
                             <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
                         </div>
-                    <div class="history-table-wrapper">
-                        <table class="breakdown-table">
-                            <thead>
-                                <tr>
-                                    <th style="text-align:left;">Date</th>
-                                    <th>Sessions</th>
-                                    <th>Occupied Time</th>
-                                    <th>Energy (Wh)</th>
-                                    <th>Energy (kWh)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="historyBody">
-                                <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
-                            </tbody>
-                            <tfoot id="historyFoot"></tfoot>
-                        </table>
+                        <div class="history-table-wrapper">
+                            <table class="breakdown-table">
+                                <thead>
+                                    <tr>
+                                        <th style="text-align:left;">Date</th>
+                                        <th>Sessions</th>
+                                        <th>Occupied Time</th>
+                                        <th>Energy (Wh)</th>
+                                        <th>Energy (kWh)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Loading...</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot id="historyFoot"></tfoot>
+                            </table>
+                        </div>
                     </div>
-                </div>
 
-            </div><!-- /content-area -->
-        </div><!-- /child-container -->
-    </div><!-- /parent-container -->
+                </div><!-- /content-area -->
+            </div><!-- /child-container -->
+        </div><!-- /parent-container -->
 
-    <?php include '../../php/includes/profile-offcanvas.php'; ?>
+        <?php include '../../php/includes/profile-offcanvas.php'; ?>
 
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/toggles.js"></script>
+        <script src="../../script/animations.js"></script>
+        <script src="../../script/toggles.js"></script>
 
-    <script>
-        const roomData   = <?= json_encode($roomDataFromPHP, JSON_HEX_TAG) ?>;
-        const defaultCid = <?= (int)($rooms[0]['id'] ?? 3) ?>;
-    </script>
-    <script src="../../script/admin-analytics.js?v=<?= time() ?>"></script>
+        <script>
+            const roomData = <?= json_encode($roomDataFromPHP, JSON_HEX_TAG) ?>;
+            const defaultCid = <?= (int)($rooms[0]['id'] ?? 3) ?>;
+        </script>
+        <script src="../../script/admin-analytics.js?v=<?= time() ?>"></script>
 
 </body>
+
 </html>
 <?php if (isset($conn)) $conn->close(); ?>

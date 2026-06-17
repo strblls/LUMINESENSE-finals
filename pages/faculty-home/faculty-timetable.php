@@ -247,10 +247,6 @@ $conn->close();
 </div>
 
 <script>
-    document.getElementById('sidebarTrigger').addEventListener('click', function () {
-        bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('sidebarOffcanvas')).toggle();
-    });
-
     let currentScheduleId = null;
 
     function requestExtend(scheduleId, room, time) {

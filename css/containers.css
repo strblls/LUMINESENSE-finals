@@ -264,8 +264,8 @@
 }
 
 .topbar {
-    border-radius: 28px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+    /* border-radius: 28px; NOTE: Do not change for CONSISTENCY*/
+    /* box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22); NOTE: Do not change for CONSISTENCY*/
     padding: 1.3rem 1.5rem;
 }
 
@@ -274,7 +274,8 @@
     border-radius: 28px;
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.17);
     padding: 2rem;
-    width: 100%;
+    width: auto;
+    margin: 0px 1.5rem;
 }
 
 .access-icon {

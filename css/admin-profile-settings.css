@@ -1,0 +1,177 @@
+/* ── Toast ── */
+.toast-wrap {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+}
+
+.toast-msg {
+    background: var(--secondary-color-1);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: .85rem;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .25);
+    display: none;
+}
+
+.toast-msg.show {
+    display: block;
+    animation: fadeInUp .3s ease, fadeOut .4s ease 2.4s forwards;
+}
+
+.toast-msg.error {
+    background: #c0392b;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+    }
+}
+
+/* ── Page layout ── */
+.profile-wrapper {
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.profile-main-card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(47, 0, 79, .13);
+    width: 100%;
+    max-width: 1100px;
+    overflow: hidden;
+}
+
+/* ── Header ── */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem 2.5rem;
+    border-bottom: 1.5px solid #eee;
+}
+
+.profile-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: #d9d6d6;
+    color: var(--secondary-color-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.profile-user h2 {
+    color: var(--secondary-color-1);
+    margin-bottom: .2rem;
+}
+
+.profile-user p {
+    color: #666;
+    font-size: .95rem;
+}
+
+/* ── Content ── */
+.profile-content {
+    padding: 2rem 2.5rem;
+}
+
+/* ── Info cards ── */
+.info-card {
+    background: #fff;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 14px;
+    padding: 1.5rem;
+    height: 100%;
+}
+
+.info-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.2rem;
+}
+
+.info-card-header h3 {
+    font-size: 1rem;
+    color: var(--secondary-color-1);
+}
+
+.info-field {
+    margin-bottom: 1rem;
+}
+
+.info-field .label {
+    display: block;
+    font-size: .8rem;
+    font-weight: 500;
+    color: #888;
+    margin-bottom: .35rem;
+}
+
+.field-value {
+    background: #f0f0f0;
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: #333;
+    font-size: .92rem;
+}
+
+.input-group {
+    display: block ruby;
+    gap: 6px;
+    input {
+        width: 85% !important; 
+    }
+    button {
+        width: 50px;
+        justify-content: center;
+    }
+}
+
+
+/* ── Password strength bar ── */
+.strength-bar-wrap {
+    height: 4px;
+    background: #eee;
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+}
+
+.strength-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 2px;
+    transition: width .3s, background .3s;
+}
+
+.strength-label {
+    font-size: 11px;
+    color: #888;
+    margin-top: 3px;
+}

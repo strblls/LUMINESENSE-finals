@@ -200,13 +200,11 @@ $conn->close();
                             </div>
                         </div>
                         <!-- Schedule ended notice -->
-                        <?php if (!$active_schedule): ?>
-                            <div id="scheduleEndNotice" class="alert alert-warning d-flex align-items-center gap-2 mx-2 mb-2 py-2"
-                                style="font-size:0.82rem;">
-                                <i class="bi bi-lock-fill"></i>
-                                Controls are locked — no active class schedule.
-                            </div>
-                        <?php endif; ?>
+                        <div id="scheduleEndNotice" class="alert alert-warning d-flex align-items-center gap-2 mx-2 mb-2 py-2"
+                            style="font-size:0.82rem; <?= !$active_schedule ? '' : 'display:none;' ?>">
+                            <i class="bi bi-lock-fill"></i>
+                            Controls are locked — no active class schedule.
+                        </div>
 
                         <?php
                         $b1 = ($row1_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
@@ -516,10 +514,7 @@ $conn->close();
         const FACULTY_ID = <?= (int) $faculty_id ?>;
         const HAS_ACTIVE_SCHEDULE = <?= $active_schedule ? 'true' : 'false' ?>;
 
-        // Sidebar trigger
-        document.getElementById('sidebarTrigger').addEventListener('click', function() {
-            bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('sidebarOffcanvas')).toggle();
-        });
+        // Sidebar trigger is handled by Bootstrap offcanvas attributes in the topbar.
 
         // Refresh
         document.getElementById('refreshBtn').addEventListener('click', () => location.reload());

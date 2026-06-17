@@ -1,4 +1,8 @@
 # LumineSense — System Updates and Architecture Refactoring
+| Date | Modules Affected | Notes |
+| :--- | :---: | :--- |
+| June 4 | Admin sidebar, homepage, and room manage | <ul><li>Admin sidebar edits</li><li>Admin homepage partial edits (lacking Faculty Hierarchy API)</li><li>Admin room manage full edits (lacking View, Timetable subpages)</li></ul> |
+
 
 ## 1. Architectural Refactoring: Procedural to OOP Controllers
 To improve modularity, maintainability, and security, the entire procedural API layer has been refactored:

@@ -1,0 +1,67 @@
+.toast-wrap {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+}
+.toast-msg {
+    background: var(--secondary-color-1);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    display: none;
+}
+.toast-msg.show {
+    display: block;
+    animation: fadeInUp 0.3s ease, fadeOut 0.4s ease 2.2s forwards;
+}
+@keyframes fadeInUp {
+    from { opacity:0; transform:translateY(12px); }
+    to   { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeOut { to { opacity:0; } }
+
+
+/* Sidebar / logo standardization for admin pages */
+#sidebarOffcanvas {
+    background-color: var(--accent-color);
+}
+
+#sidebarOffcanvas .offcanvas-header {
+    justify-content: center;
+    padding: 1rem 0.5rem;
+}
+
+#sidebarOffcanvas .logo {
+    width: 100px !important;
+    height: 100px !important;
+    object-fit: contain;
+    cursor: pointer;
+}
+
+#sidebarOffcanvas .offcanvas-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding-top: 0.5rem;
+}
+
+#sidebarOffcanvas .offcanvas-footer {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+}
+
+#sidebarOffcanvas .offcanvas-footer img {
+    width: 4rem !important;
+}
+
+/* Keep profile offcanvas consistent */
+#profileOffcanvas {
+    width: 240px !important;
+    background-color: var(--primary-color);
+}

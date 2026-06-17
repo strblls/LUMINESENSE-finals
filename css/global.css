@@ -10,6 +10,8 @@
   --secondary-color-4: #9b00e9;
   --black: #181818;
   --muted: #9f9f9f;
+  --muted-dark: #4f4f4f;
+  --accent-color: #f9edfa;
   --font-primary: 'Poppins', sans-serif;
 }
 
@@ -283,8 +285,7 @@ body.contrast-bg {
 }
 
 .offcanvas {
-  width: 100px !important;
-  background-color: var(--primary-color);
+  width: auto !important;
 
   .logo {
     width: 100px;
@@ -321,6 +322,60 @@ body.contrast-bg {
       width: 5rem;
     }
   }
+}
+
+/* Sidebar labels: hidden by default, shown when the adjacent button is hovered/focused */
+/* Position labels absolutely so they can animate without reflowing layout. */
+#sidebarOffcanvas .sidebar-item {
+  position: relative;
+}
+
+#sidebarOffcanvas .sidebar-label {
+  position: absolute;
+  left: 56px;
+  /* button width (52) + gap */
+  top: 50%;
+  transform: translateY(-50%) translateX(-8px);
+  opacity: 0;
+  pointer-events: none;
+  font-size: 15px;
+  margin: 0;
+  background: #fff;
+  color: var(--secondary-color-1);
+  padding: 6px 10px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+}
+
+#sidebarOffcanvas .nav-btn:hover+.sidebar-label,
+#sidebarOffcanvas .nav-btn:focus+.sidebar-label,
+#sidebarOffcanvas .sidebar-item:hover .nav-btn+.sidebar-label {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+  pointer-events: auto;
+}
+
+/* Offcanvas base min-width and expanded state (toggled via JS) */
+#sidebarOffcanvas {
+  min-width: 64px;
+  overflow: hidden;
+  transition: transform 0.3s ease-in-out, min-width 0.18s ease;
+}
+
+/* expand when hovering the offcanvas area (includes button hover) */
+#sidebarOffcanvas:hover {
+  min-width: 220px;
+}
+
+#sidebarOffcanvas.expanded {
+  min-width: 220px;
+}
+
+#sidebarOffcanvas .offcanvas-body {
+  overflow: hidden;
 }
 
 .offcanvas.offcanvas-end {
@@ -473,8 +528,9 @@ body.contrast-bg {
 }
 
 .info-action-btn:hover {
-  background-color: #f0f0f0 !important;
-  border-color: var(--secondary-color-1) !important;
+  background-color: var(--secondary-color-1) !important;
+  border-color: #8235bc !important;
+  color: white !important;
 }
 
 .info-field {
