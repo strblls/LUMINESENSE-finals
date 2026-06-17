@@ -22,16 +22,19 @@
 </head>
 
 <body>
-    <div class="parent-container-index">
-        <div id="landing" class="landing-container zoom-animation">
+    <div class="parent-container">
+        <div id="landing" class="child-container zoom-animation">
             <img src="images/logo.png" alt="LumineSense Logo">
 
-            <button class="medium" onclick="dissolve('pages/faculty-login.php')">Faculty</button>
-            <button class="medium" onclick="dissolve('pages/admin-login.php')">Administrator</button>
-        
+            <!--
+                Updated to use role selector for administrators.
+            -->
+            <button class="medium" onclick="dissolve('pages/faculty-login.php', 1)">Faculty</button>
+            <button class="medium" onclick="dissolve('pages/admin-login.php', 1)">Administrator</button>
         </div>
     </div>
 
     <script src="script/animations.js"></script>
 </body>
+
 </html>

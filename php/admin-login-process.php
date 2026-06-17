@@ -30,7 +30,14 @@ if ($_SESSION['admin_attempts'] >= 3) {
     exit;
 }
 
-$stmt = $conn->prepare('SELECT id, first_name, last_name, password, is_verified FROM admins WHERE email = ?');
+// ── UPDATED: Fetch admin_role and department info ────────────────────
+$stmt = $conn->prepare('
+    SELECT a.id, a.first_name, a.last_name, a.password, a.is_verified,
+           a.admin_role, a.department_id, d.name AS department_name
+    FROM admins a
+    LEFT JOIN departments d ON d.id = a.department_id
+    WHERE a.email = ?
+');
 $stmt->bind_param('s', $email);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
@@ -60,7 +67,10 @@ session_regenerate_id(true);
 $_SESSION['admin_id']        = $row['id'];
 $_SESSION['admin_name']      = $row['first_name'] . ' ' . $row['last_name'];
 $_SESSION['admin_logged_in'] = true;
-$_SESSION['role']            = 'admin';
+$_SESSION['role']            = 'admin';  // Keep for backward compat
+$_SESSION['admin_role']      = $row['admin_role'] ?? 'principal';  // NEW
+$_SESSION['department_id']   = $row['department_id'];  // NEW
+$_SESSION['department_name'] = $row['department_name'];  // NEW
 $_SESSION['admin_attempts']  = 0;
 
 // Log admin login
@@ -69,4 +79,12 @@ $stmt->bind_param('i', $_SESSION['admin_id']);
 $stmt->execute();
 $stmt->close();
 
-header('Location: ../pages/admin-home/admin-homepage.php');
+// ── UPDATED: Route by admin_role ──────────────────────────────────────
+$redirect_url = match ($row['admin_role']) {
+    'principal'    => '../pages/principal-home/principal-homepage.php',
+    'head_faculty' => '../pages/head-faculty-home/head-faculty-homepage.php',
+    default        => '../pages/admin-home/admin-homepage.php',  // fallback
+};
+
+header("Location: {$redirect_url}");
+exit;

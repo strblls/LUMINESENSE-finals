@@ -1,19 +1,36 @@
 <?php
-// api/analytics.php
-// GET ?classroom_id=X&range=7|14|30
-// Returns energy summary, daily chart, heatmap, trigger breakdown, per-session detail
+/**
+ * app/Controllers/AnalyticsController.php
+ * ──────────────────────────────────────
+ * Energy analytics & reporting.
+ * GET ?classroom_id=X&range=7|14|30
+ * Returns: summary, daily chart, heatmap, trigger breakdown, per-session detail, active session
+ *
+ * Moved from: api/analytics.php
+ */
 
-require_once '../php/db_connect.php';
+require_once '../../php/db_connect.php';
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 
 if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['faculty_logged_in'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Unauthorized.']); exit;
+    echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
+    exit;
 }
 
 $range = $_GET['range'] ?? '30';
 $cid   = (int)($_GET['classroom_id'] ?? 0);
+
+// ── FACULTY GUARD: must specify classroom ──────────────────────────────────
+if (!empty($_SESSION['faculty_logged_in']) && !$cid) {
+    http_response_code(400);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Faculty must specify ?classroom_id to view analytics.'
+    ]);
+    exit;
+}
 
 $days = match($range) {
     'week'  => 7,
@@ -196,7 +213,7 @@ if (!$cid) {
     $stmt->close();
 }
 
-// ── 6. Per-session detail (NEW) ───────────────────────────────────────────
+// ── 6. Per-session detail ─────────────────────────────────────────────────
 $sessions = [];
 $stmt = $conn->prepare("
     SELECT
@@ -330,6 +347,6 @@ echo json_encode([
     'heatmap'  => $heatmap,
     'triggers' => $triggers,
     'per_room' => $per_room,
-    'sessions' => $sessions,   // NEW
+    'sessions' => $sessions,
     'active_session' => $active_session,
 ]);
