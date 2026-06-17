@@ -8,4 +8,5 @@
 Backend Recommendations:
 
 - Do not accept Duplicate E-mail Registrations from Faculty Members to avoid redundancy
-- Form validation in certain modals (Require some fields to be inputted before submitting/confirming/adding)
+- Form validation in certain modals (Require some fields to be inputted before submitting/confirming/adding)    
+
