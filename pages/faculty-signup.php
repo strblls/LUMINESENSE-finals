@@ -66,7 +66,7 @@
             ?>
 
             <div class="form-container">
-                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST" enctype="multipart/form-data" onsubmit="return validateSignupForm();">
+                <form id="faculty-signup-form" action="../php/onboarding/faculty-signup-process.php" method="POST" enctype="multipart/form-data" onsubmit="return validateSignupForm();">
                     <div class="form-group mb-3">
                         <div class="child-1">
                             <label for="fname">Last Name</label>
