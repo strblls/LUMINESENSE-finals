@@ -67,7 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             f.first_name,
             f.middle_initial,
             f.email,
-            f.employee_id,
             f.is_verified,
             f.created_at,
             f.approved_at,
