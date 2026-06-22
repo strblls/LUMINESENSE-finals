@@ -11,7 +11,7 @@ from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
 
 app = Flask(__name__)
-API_URL      = "http://localhost/LUMINESENSE-finals/api/lights.php"
+API_URL      = "http://localhost/LUMINESENSE-finals/app/controllers/LightingController.php"
 CLASSROOM_ID = 1
 COOLDOWN     = 1.5
 

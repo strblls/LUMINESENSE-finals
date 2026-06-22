@@ -374,10 +374,11 @@ $conn->close();
     function savePermission(permission, value) {
         const form = new FormData();
         form.append('faculty_id', <?= $faculty_id ?>);
+        form.append('action', 'save_permissions');
         form.append('permission', permission);
         form.append('value', value ? 1 : 0);
 
-        fetch('../../api/permissions.php', { method: 'POST', body: form })
+        fetch('../../app/controllers/AccountController.php', { method: 'POST', body: form })
             .then(r => r.json())
             .then(data => {
                 if (data.success) showToast('Permission updated!');

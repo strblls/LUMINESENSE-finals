@@ -526,7 +526,7 @@ $conn->close();
             form.append('faculty_id', FACULTY_ID);
             form.append('event_type', eventType);
             form.append('triggered_by', 'gesture');
-            await fetch('../../api/logs.php', {
+            await fetch('../../app/controllers/LogController.php', {
                 method: 'POST',
                 body: form
             });
@@ -657,7 +657,7 @@ $conn->close();
 
         async function pollDashboard() {
             try {
-                const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
+                const res = await fetch(`../../app/controllers/DashboardController.php?action=faculty_snapshot&classroom_id=${CLASSROOM_ID}`);
                 if (!res.ok) return;
                 const data = await res.json();
                 if (!data.success) return;
@@ -1066,11 +1066,12 @@ if (data.logs && data.logs.length > 0) {
                     btn.textContent = 'Sending…';
 
                     const form = new FormData();
+                    form.append('action', 'request_extension');
                     form.append('schedule_id', SCHEDULE_ID);
                     form.append('extend_mins', selectedMins);
 
                     try {
-                        const res = await fetch('../../api/request-extension.php', {
+                        const res = await fetch('../../app/controllers/ScheduleController.php', {
                             method: 'POST',
                             body: form
                         });

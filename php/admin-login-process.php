@@ -30,9 +30,9 @@ if ($_SESSION['admin_attempts'] >= 3) {
     exit;
 }
 
-// ── UPDATED: Fetch admin_role and department info ────────────────────
+// ── UPDATED: now also pulls approved_by ───────────────────────────────
 $stmt = $conn->prepare('
-    SELECT a.id, a.first_name, a.last_name, a.password, a.is_verified,
+    SELECT a.id, a.first_name, a.last_name, a.password, a.is_verified, a.approved_by,
            a.admin_role, a.department_id, d.name AS department_name
     FROM admins a
     LEFT JOIN departments d ON d.id = a.department_id
@@ -59,6 +59,36 @@ if (!password_verify($password, $row['password'])) {
 
 if (!$row['is_verified']) {
     $_SESSION['login_error'] = 'Please verify your email before logging in.';
+    header('Location: ../pages/admin-login.php');
+    exit;
+}
+
+// ── NEW: block login while an ID quarantine entry is still unresolved ──
+// approved_by being non-null does NOT mean the quarantine was resolved —
+// faculty-approvals-handler.php's normal Approve button has no idea
+// id_review_queue exists, so it can set approved_by while a mismatched/
+// unreadable entry still sits there with reviewed = 0. We check the
+// queue directly here, the actual source of truth, instead of trusting
+// approved_by to imply it.
+$qStmt = $conn->prepare("
+    SELECT id FROM id_review_queue
+    WHERE account_type = 'admin' AND account_id = ? AND reviewed = 0
+    LIMIT 1
+");
+$qStmt->bind_param('i', $row['id']);
+$qStmt->execute();
+$pending_review = $qStmt->get_result()->fetch_assoc();
+$qStmt->close();
+
+if ($pending_review) {
+    $_SESSION['login_error'] = 'Your ID verification is still under manual review. Please wait for an administrator to confirm it before logging in.';
+    header('Location: ../pages/admin-login.php');
+    exit;
+}
+
+// ── NEW: approval gate ──────────────────────────────────────────────
+if (!$row['approved_by']) {
+    $_SESSION['login_error'] = 'Your account is pending administrator approval.';
     header('Location: ../pages/admin-login.php');
     exit;
 }

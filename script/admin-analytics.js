@@ -5,8 +5,8 @@
 //   - Daily energy bar chart
 //   - Daily history table with export
 
-const API_URL = '../../api/analytics.php';
-const LIVE_API_URL = '../../api/live-pzem.php';
+const API_URL = '../../app/controllers/AnalyticsController.php';
+const LIVE_API_URL = '../../app/controllers/PzemController.php?action=live';
 
 // ── Chart instance ─────────────────────────────────────────────────────────
 const usageChart = new Chart(document.getElementById('usageChart'), {

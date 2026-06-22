@@ -689,7 +689,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             form.append('state', stateToSend);
             form.append('triggered_by', 'admin_override');
 
-            fetch('../../api/lights.php', {
+            fetch('../../app/controllers/LightingController.php', {
                     method: 'POST',
                     body: form
                 })
