@@ -52,7 +52,7 @@
             ?>
 
             <div class="form-container">
-                <form action="../php/admin-signup-process.php" method="POST">
+                <form action="../php/onboarding/admin-signup-process.php" method="POST">
 
                     <!-- Full Name Row -->
                     <div class="mb-3">

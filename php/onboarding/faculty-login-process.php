@@ -2,23 +2,34 @@
 /**
  * php/handlers/faculty-login-process.php
  *
- * Handles login for Teacher (Faculty) accounts.
+ * Handles login for ALL faculty accounts — both regular Faculty
+ * and Head Faculty. There is no separate Head Faculty login or
+ * signup; it's the exact same account type and the exact same
+ * login form. The system auto-detects Head Faculty status here,
+ * every time, based on data the Admin set — not a flag the
+ * faculty member can see or touch.
+ *
+ * HOW HEAD FACULTY DETECTION WORKS:
+ * The Admin assigns a Head Faculty by setting
+ * departments.head_faculty_id = <that faculty's id> from the
+ * admin dashboard. There is no separate role column on the
+ * faculty table itself — being Head Faculty just means "some
+ * department points to me." This query runs on every login,
+ * so if the Admin reassigns the role tomorrow, the affected
+ * faculty member's dashboard updates automatically on their
+ * next login — no manual sync needed anywhere.
  *
  * A teacher can only log in if:
- *   1. Their email is verified (they clicked the OTP link)
- *   2. Their account was approved by their Head Teacher
+ *   1. Their email is verified (OTP confirmed)
+ *   2. Their account was approved by an Admin (approved_by IS NOT NULL)
  *
- * If not approved yet, they are sent to the pending-approval page
- * instead of the faculty dashboard.
- *
- * LIGHT ACTIVATION ON LOGIN:
- * If the teacher has a class scheduled RIGHT NOW when they log in,
- * the system automatically turns the lights on in their classroom.
- * This is the "login trigger" for lighting.
+ * LIGHT ACTIVATION ON LOGIN (unchanged from before):
+ * If the teacher has a class scheduled RIGHT NOW, lights turn on
+ * automatically in their classroom.
  */
 
 if (session_status() === PHP_SESSION_NONE) session_start();
-require_once __DIR__ . '/db_connect.php';
+require_once __DIR__ . '/../db_connect.php';
 
 date_default_timezone_set('Asia/Manila');
 
@@ -90,29 +101,57 @@ if (!$row['is_verified']) {
     exit;
 }
 
-// Step 2: Has the Head Teacher approved this account?
-// approved_by = NULL means nobody has approved them yet
+// Step 2: Has an Admin approved this account?
+// approved_by = NULL means nobody has approved them yet.
+// (No more "Head Teacher approval" — only Admins approve, per the new hierarchy.)
 if ($row['approved_by'] === null) {
-    // Don't show an error — send them to a friendly waiting page instead
     $_SESSION['pending_name'] = $row['first_name'];
     header('Location: ../../pages/pending-approval.php');
     exit;
 }
 
+$faculty_id = (int) $row['id'];
+
+// ── NEW: Auto-detect Head Faculty status ──────────────────────
+// Being Head Faculty isn't stored on the faculty row at all — it's
+// derived from whether any department currently points to this
+// faculty as its head_faculty_id. This is what makes the "system
+// automatically knows" behavior work: the Admin sets this once on
+// the department side, and every login re-checks it fresh.
+$stmt = $conn->prepare("
+    SELECT id, name
+    FROM departments
+    WHERE head_faculty_id = ?
+    LIMIT 1
+");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$headOf = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+$is_head_faculty = $headOf !== null;
+
 // All good — create the session
 session_regenerate_id(true);
 
 $_SESSION['faculty_logged_in']  = true;
-$_SESSION['faculty_id']         = (int)$row['id'];
+$_SESSION['faculty_id']         = $faculty_id;
 $_SESSION['faculty_name']       = $row['first_name'] . ' ' . $row['last_name'];
 $_SESSION['role']               = 'faculty';
 $_SESSION['department_id']      = $row['department_id'];
 $_SESSION['department_name']    = $row['department_name'];
 $_SESSION['faculty_attempts']   = 0;
 
-$faculty_id = (int)$row['id'];
-$now_time   = date('H:i:s');
-$now_day    = date('l');    // e.g. "Tuesday"
+// These two lines are the entire "automation" — the dashboard view
+// just checks $_SESSION['is_head_faculty'] to decide whether to
+// render the extra Head Faculty overview tab. No separate login
+// page, no separate signup, no extra question asked at login time.
+$_SESSION['is_head_faculty']       = $is_head_faculty;
+$_SESSION['head_faculty_of_dept']  = $is_head_faculty ? $headOf['id']   : null;
+$_SESSION['head_faculty_dept_name'] = $is_head_faculty ? $headOf['name'] : null;
+
+$now_time = date('H:i:s');
+$now_day  = date('l');    // e.g. "Tuesday"
 
 // Check if this teacher has a class happening RIGHT NOW
 // If yes, turn on their classroom lights automatically
@@ -131,7 +170,7 @@ $sched = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if ($sched) {
-    $cid = (int)$sched['classroom_id'];
+    $cid = (int) $sched['classroom_id'];
 
     // Turn on all rows
     $stmt = $conn->prepare("

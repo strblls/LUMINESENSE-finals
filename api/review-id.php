@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($decision === 'approve') {
             // Manual override: a different admin confirms identity
             // despite the OCR mismatch/unreadable result.
-            $upd2 = $conn->prepare("UPDATE {$targetTable} SET approved_by = ? WHERE id = ?");
+            $upd2 = $conn->prepare("UPDATE {$targetTable} SET is_verified = 1, approved_by = ? WHERE id = ?");
             $upd2->bind_param('ii', $admin_id, $row['account_id']);
         } else {
             $upd2 = $conn->prepare("UPDATE {$targetTable} SET is_verified = 0 WHERE id = ?");

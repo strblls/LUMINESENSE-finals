@@ -25,9 +25,16 @@ $conn->query("
         email          VARCHAR(100) NOT NULL UNIQUE,
         password       VARCHAR(255) NOT NULL,
         is_verified    TINYINT(1)   DEFAULT 0,
+        approved_by    INT          DEFAULT NULL,
+        approved_at    TIMESTAMP    NULL DEFAULT NULL,
+        admin_role     ENUM('admin') NOT NULL DEFAULT 'admin',
         otp_code       VARCHAR(6)   DEFAULT NULL,
         otp_expires_at DATETIME     DEFAULT NULL,
-        created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+        ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL,
+        ai_extracted_name VARCHAR(150) DEFAULT NULL,
+        ai_confidence_note TEXT        DEFAULT NULL,
+        created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (approved_by) REFERENCES admins(id) ON DELETE SET NULL
     )
 ");
 
@@ -130,6 +137,30 @@ $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS faculty_id VARCHAR(20
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL");
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_extracted_name VARCHAR(100) DEFAULT NULL");
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_confidence_note TEXT DEFAULT NULL");
+
+// ── Admin ID, approval, and verification columns ──────────────────────────
+$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS approved_by INT DEFAULT NULL");
+$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP NULL DEFAULT NULL");
+$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS admin_role ENUM('admin') NOT NULL DEFAULT 'admin'");
+$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL");
+$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS ai_extracted_name VARCHAR(150) DEFAULT NULL");
+$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS ai_confidence_note TEXT DEFAULT NULL");
+
+// Add self-referencing foreign key constraint for admin approved_by if not present
+// Using silent error ignore as standard MySQL 5.7/8 does not support ADD FOREIGN KEY IF NOT EXISTS directly.
+try {
+    $conn->query("
+        ALTER TABLE admins
+        ADD CONSTRAINT fk_admin_approved_by
+        FOREIGN KEY (approved_by) REFERENCES admins(id)
+        ON DELETE SET NULL
+    ");
+} catch (mysqli_sql_exception $e) {
+    // Ignore error if constraint already exists
+}
+
+// Self-healing: auto-approve existing verified admins who have approved_by = NULL
+$conn->query("UPDATE admins SET approved_by = id WHERE is_verified = 1 AND approved_by IS NULL");
 
 
 // ── Admin logs table ──────────────────────────────────────────────────────

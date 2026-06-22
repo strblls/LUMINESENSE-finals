@@ -1,8 +1,22 @@
 <?php
     if (session_status() === PHP_SESSION_NONE) session_start();
-    
+
+    require_once __DIR__ . '/../php/db_connect.php';
+
     $old = $_SESSION['signup_form'] ?? [];
     unset($_SESSION['signup_form']);
+
+    // Pull the list of departments for the dropdown.
+    // The Principal creates these — Science, Math, TLE, etc.
+    // If this list is empty, it means no departments exist yet,
+    // which means the Principal hasn't set up the school yet.
+    $departments = [];
+    $deptResult = $conn->query("SELECT id, name FROM departments ORDER BY name");
+    if ($deptResult) {
+        while ($row = $deptResult->fetch_assoc()) {
+            $departments[] = $row;
+        }
+    }
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,7 +66,7 @@
             ?>
 
             <div class="form-container">
-                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST" enctype="multipart/form-data" onsubmit="showSignupModal(); return false;">
+                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST" enctype="multipart/form-data" onsubmit="return validateSignupForm();">
                     <div class="form-group mb-3">
                         <div class="child-1">
                             <label for="fname">Last Name</label>
@@ -100,6 +114,33 @@
                             autocomplete="email"
                             value="<?= htmlspecialchars($old['email'] ?? '') ?>"
                             required>
+                    </div>
+
+                    <!-- Department — matches faculty-signup-process.php's $_POST['department_id'] -->
+                    <!-- This is a REQUIRED field; the backend rejects signup without it. -->
+                    <div class="mb-3">
+                        <label for="department_id">Department</label>
+                        <select
+                            class="form-control"
+                            id="department_id"
+                            name="department_id"
+                            required>
+                            <option value="" disabled <?= empty($old['department_id']) ? 'selected' : '' ?>>
+                                Select your department
+                            </option>
+                            <?php foreach ($departments as $dept): ?>
+                                <option
+                                    value="<?= (int)$dept['id'] ?>"
+                                    <?= (isset($old['department_id']) && (int)$old['department_id'] === (int)$dept['id']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($dept['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if (empty($departments)): ?>
+                            <small class="text-danger d-block mt-1">
+                                No departments have been set up yet. Please contact your Principal before registering.
+                            </small>
+                        <?php endif; ?>
                     </div>
 
                     <div class="mb-3">
@@ -156,23 +197,6 @@
                         </div>
                     </div>
 
-                    <!-- Confirmation Modal
-                    <div class="notify-modal" id="notify-modal" style="display:none;">
-                        <div class="modal-box">
-                            <div id="modal-header">
-                                <h5><strong>!</strong> Validation Required</h5>
-                            </div>
-                            <div id="modal-body">
-                                <i class="bi bi-exclamation-triangle" id="cautionTriangle"></i>
-                                <h5>Validate your account e-mail to the <strong>Administrator</strong> for verification and authentication.</h5>
-                            </div>
-                            <div id="modal-footer">
-                                <button class="medium" type="submit">CONFIRM & SIGN UP</button>
-                                <button class="medium" type="button" onclick="hideSignupModal()">CANCEL</button>
-                            </div>
-                        </div>
-                    </div> -->
-
                 </form>
             </div>
         </div>
@@ -182,24 +206,33 @@
     <script src="../script/animations.js"></script>
     <script src="../script/password.js"></script>
     <script>
-        function showSignupModal() {
+        // Runs on submit. Returning true lets the form actually POST;
+        // returning false stops it (used to show an alert instead).
+        //
+        // PREVIOUS BUG: this used to be showSignupModal() with a hardcoded
+        // "return false" on the form tag, while the only real submit button
+        // lived inside a commented-out modal. That meant clicking SIGN UP
+        // never submitted anything. The modal is gone for now — this
+        // function just validates and lets the native form submit happen.
+        function validateSignupForm() {
             const pass    = document.getElementById('password').value;
             const confirm = document.getElementById('confirmPassword').value;
+            const dept    = document.getElementById('department_id').value;
 
+            if (!dept) {
+                alert('Please select your department.');
+                return false;
+            }
             if (pass !== confirm) {
                 alert('Passwords do not match! Please check again.');
-                return;
+                return false;
             }
             if (pass.length < 8) {
                 alert('Password must be at least 8 characters long.');
-                return;
+                return false;
             }
 
-            document.getElementById('notify-modal').style.display = 'flex';
-        }
-
-        function hideSignupModal() {
-            document.getElementById('notify-modal').style.display = 'none';
+            return true; // let the form submit normally
         }
     </script>
 </body>
