@@ -67,7 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             f.first_name,
             f.middle_initial,
             f.email,
-            f.employee_id,
             f.is_verified,
             f.created_at,
             f.approved_at,
@@ -225,6 +224,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
 
         echo json_encode(['success' => true, 'message' => 'Faculty account deleted.']);
+        exit;
+    }
+
+    // ── save_permissions ──────────────────────────────────────────────────────
+    if ($action === 'save_permissions') {
+        $permission = trim($_POST['permission'] ?? '');
+        $val        = (int)($_POST['value'] ?? 1);
+
+        $allowed_perms = ['lighting_control', 'gesture_control', 'request_access'];
+        if (!in_array($permission, $allowed_perms)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid permission field.']);
+            exit;
+        }
+
+        // Check if row already exists
+        $stmt = $conn->prepare('SELECT id FROM faculty_permissions WHERE faculty_id = ?');
+        $stmt->bind_param('i', $faculty_id);
+        $stmt->execute();
+        $stmt->store_result();
+        $exists = $stmt->num_rows > 0;
+        $stmt->close();
+
+        if ($exists) {
+            $stmt = $conn->prepare("UPDATE faculty_permissions SET {$permission} = ? WHERE faculty_id = ?");
+            $stmt->bind_param('ii', $val, $faculty_id);
+        } else {
+            $stmt = $conn->prepare("INSERT INTO faculty_permissions (faculty_id, {$permission}) VALUES (?, ?)");
+            $stmt->bind_param('ii', $faculty_id, $val);
+        }
+        $stmt->execute();
+        $stmt->close();
+
+        echo json_encode(['success' => true, 'message' => 'Permission updated.']);
         exit;
     }
 

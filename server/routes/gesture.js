@@ -46,7 +46,7 @@ function isFlaskReady() {
 router.post('/start', async (req, res) => {
     if (flaskProcess) return res.json({ status: 'already running' });
 
-    flaskProcess = spawn('python', ['gesture-control.py'], {
+    flaskProcess = spawn('python', ['python/gesture-control.py'], {
         cwd: 'C:/xampp/htdocs/LUMINESENSE-finals',
         stdio: 'inherit'
     });

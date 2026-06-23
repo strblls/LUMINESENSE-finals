@@ -234,6 +234,24 @@ function handle_request_extension(mysqli $conn): void
         exit;
     }
 
+    // Verify that the schedule belongs to the logged-in faculty member
+    $stmt = $conn->prepare("
+        SELECT id FROM schedules
+        WHERE id = ? AND faculty_id = ?
+        LIMIT 1
+    ");
+    $stmt->bind_param('ii', $schedule_id, $faculty_id);
+    $stmt->execute();
+    $stmt->store_result();
+    $belongs = $stmt->num_rows > 0;
+    $stmt->close();
+
+    if (!$belongs) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Forbidden: You do not own this schedule.']);
+        exit;
+    }
+
     // Block duplicate pending request for this schedule
     $stmt = $conn->prepare("
         SELECT id FROM extension_requests

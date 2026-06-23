@@ -383,7 +383,7 @@ require_once '../../php/includes/admin-head.php';
         // ── Admin Dashboard Auto-refresh (every 5s) ───────────────────────────────
 async function pollAdminDashboard() {
     try {
-        const res = await fetch('../../api/admin-status.php');
+        const res = await fetch('../../app/controllers/DashboardController.php?action=admin_status');
         if (!res.ok) return;
         const data = await res.json();
         if (!data.success) return;

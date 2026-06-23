@@ -10,7 +10,7 @@
   --secondary-color-4: #9b00e9;
   --black: #181818;
   --muted: #9f9f9f;
-  --muted-dark: #4f4f4f;
+  --muted-dark: #6c6c6c;
   --accent-color: #f9edfa;
   --font-primary: 'Poppins', sans-serif;
 }
@@ -589,4 +589,11 @@ body.contrast-bg {
 .schedule-item .light {
   color: var(--muted);
   font-weight: 300;
+}
+
+/*Subtitle for topbars*/
+.section-topbar .subtitle {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
 }

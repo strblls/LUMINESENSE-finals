@@ -90,66 +90,18 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Faculty Review – LumineSense</title>
 
+    <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <!--Relative links-->
+    <link rel="icon" href="../../images/logo.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
-
-    <style>
-        .review-card {
-            max-width: 720px;
-            margin: 0 auto;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,.08);
-            overflow: hidden;
-        }
-        .review-header {
-            background: #1a1a2e;
-            padding: 24px 32px;
-            color: #fff;
-        }
-        .review-body { padding: 32px; }
-        .id-image-box {
-            border: 2px dashed #dee2e6;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #f8f9fa;
-            text-align: center;
-            min-height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .id-image-box img {
-            max-width: 100%;
-            max-height: 300px;
-            object-fit: contain;
-            cursor: pointer;
-        }
-        .ai-badge {
-            font-size: .85rem;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-        .ai-matched    { background: #d1e7dd; color: #0f5132; }
-        .ai-mismatched { background: #fff3cd; color: #664d03; }
-        .ai-unreadable { background: #f8d7da; color: #842029; }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: .92rem;
-        }
-        .info-row:last-child { border-bottom: none; }
-        .info-label { color: #888; font-weight: 500; }
-        .info-value { font-weight: 600; color: #1a1a2e; }
-    </style>
+    <link rel="stylesheet" href="../../css/admin-common.css">
+    <link rel="stylesheet" href="../../css/admin-faculty-review.css">
 </head>
 <body class="contrast-bg">
     <?php include '../../php/includes/admin-topbar.php'; ?>
@@ -161,10 +113,10 @@ $conn->close();
 
             <!-- Back button -->
             <div class="mb-3">
-                <a onclick="dissolve('admin-faculty-management.php')"
-                   class="btn btn-sm btn-outline-secondary">
+                <button onclick="dissolve('admin-faculty-management.php')"
+                   class="light w-auto">
                     <i class="bi bi-arrow-left me-1"></i> Back to Faculty Management
-                </a>
+                </button>
             </div>
 
             <?php if ($message === 'approved'): ?>

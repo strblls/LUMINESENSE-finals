@@ -288,3 +288,20 @@
 
 
 }
+
+/* Bootstrap Form Overwrite Styles */
+.form-label {
+    font-size: .85rem;
+    font-weight: 600;
+}
+
+.form-control:hover, .form-select:hover {
+    border-color: var(--secondary-color-1);
+    box-shadow: 0 0 5px var(--secondary-color-1);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--secondary-color-1);
+    box-shadow: 0 0 5px var(--secondary-color-1);
+    outline: none;
+}

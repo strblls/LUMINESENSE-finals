@@ -15,8 +15,8 @@ date_default_timezone_set('Asia/Manila');
 
 // ── Token gate — every request must pass ─────────────────────────────────────
 $method = $_SERVER['REQUEST_METHOD'];
-$token  = ($method === 'POST') ? ($_POST['token'] ?? '') : ($_GET['token'] ?? '');
-$action = ($method === 'POST') ? ($_POST['action'] ?? '') : ($_GET['action'] ?? '');
+$token  = $_POST['token']  ?? $_GET['token']  ?? '';
+$action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 if ($token !== ESP32_TOKEN) {
     http_response_code(401);

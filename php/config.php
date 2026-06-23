@@ -14,3 +14,6 @@ define('VALID_ADMIN_CODE', 'LUMINESENSE_ADMIN_2025');
 
 // Device token
 define('DEVICE_TOKEN', 'luminesense-secret-token');
+
+// ID Encryption Key (for quarantined ID images review queue)
+define('ID_ENCRYPTION_KEY', 'u7TbYWLZCOhxSmX8JnW3aVL0/4HN5a2uSAwAgT1MY7U=');

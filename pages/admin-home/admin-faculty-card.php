@@ -41,7 +41,7 @@ $f_schedules = [];
 $stmt = $conn->prepare("
     SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name
     FROM schedules s JOIN classrooms c ON c.id = s.classroom_id
-    WHERE s.created_by = ?
+    WHERE s.faculty_id = ?
     ORDER BY FIELD(s.day_of_week,
         'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
         s.start_time
@@ -374,10 +374,11 @@ $conn->close();
     function savePermission(permission, value) {
         const form = new FormData();
         form.append('faculty_id', <?= $faculty_id ?>);
+        form.append('action', 'save_permissions');
         form.append('permission', permission);
         form.append('value', value ? 1 : 0);
 
-        fetch('../../api/permissions.php', { method: 'POST', body: form })
+        fetch('../../app/controllers/AccountController.php', { method: 'POST', body: form })
             .then(r => r.json())
             .then(data => {
                 if (data.success) showToast('Permission updated!');

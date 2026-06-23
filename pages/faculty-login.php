@@ -58,7 +58,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success']);
 
             <div class="form-container">
                 <!-- ONE form tag wrapping everything -->
-                <form action="../php/faculty-login-process.php" method="POST">
+                <form action="../php/onboarding/faculty-login-process.php" method="POST">
 
                     <div class="mb-3">
                         <label for="email">E-mail</label>

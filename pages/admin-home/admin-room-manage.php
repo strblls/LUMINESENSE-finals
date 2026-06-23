@@ -11,7 +11,7 @@ function getRoomSchedules($conn, $room_id)
         SELECT s.start_time, s.end_time,
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name
         FROM schedules s
-        JOIN faculty f ON f.id = s.created_by
+        JOIN faculty f ON f.id = s.faculty_id
         WHERE s.classroom_id = ? 
           AND s.day_of_week = ?
           AND s.end_time >= ?
@@ -56,7 +56,7 @@ function getCurrentSchedule($conn, $room_id)
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
                f.first_name, f.last_name
         FROM schedules s
-        JOIN faculty f ON f.id = s.created_by
+        JOIN faculty f ON f.id = s.faculty_id
         WHERE s.classroom_id = ?
           AND s.day_of_week  = ?
           AND s.start_time  <= ?
@@ -689,7 +689,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             form.append('state', stateToSend);
             form.append('triggered_by', 'admin_override');
 
-            fetch('../../api/lights.php', {
+            fetch('../../app/controllers/LightingController.php', {
                     method: 'POST',
                     body: form
                 })

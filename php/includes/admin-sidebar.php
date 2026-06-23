@@ -29,9 +29,12 @@
             </button>
             <h3 class="bold mb-0 sidebar-label">Analytics</h3>
         </div>
-        <!-- <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.php')">
-            <i class="bi bi-exclamation-triangle"></i>
-        </button> -->
+        <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
+            <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.php')">
+                <i class="bi bi-exclamation-triangle"></i>
+            </button>
+            <h3 class="bold mb-0 sidebar-label">Reports</h3>
+        </div>
         <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
             <button class="nav-btn" title="Faculty" onclick="dissolve('admin-faculty-management.php')">
                 <i class="bi bi-people"></i>
@@ -54,10 +57,8 @@
             'admin-homepage.php': 0,
             'admin-room-manage.php': 1,
             'admin-analytics.php': 2,
-            'admin-faculty-management.php': 3,
-            'admin-faculty-card.php': 3,
-            'admin-profile-settings.php': 4,
-            'admin-reports.php': null,
+            'admin-reports.php': 3,
+            'admin-faculty-management.php': 4,
         };
         const index = map[page];
         if (index !== null && index !== undefined) {
