@@ -54,7 +54,7 @@ if ($selected_room_id) {
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
                s.day_of_week, s.start_time, s.end_time
         FROM   schedules s
-        JOIN   faculty f ON f.id = s.created_by
+        JOIN   faculty f ON f.id = s.faculty_id
         WHERE  s.classroom_id = ?
         ORDER  BY FIELD(s.day_of_week,'Monday','Tuesday','Wednesday',
                         'Thursday','Friday','Saturday','Sunday'),

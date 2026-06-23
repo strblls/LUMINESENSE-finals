@@ -15,6 +15,8 @@
  * ---------------------------------------------------------
  */
 
+require_once __DIR__ . '/config.php';
+
 class IdQuarantine
 {
     private const CIPHER = 'aes-256-gcm';
@@ -74,10 +76,13 @@ class IdQuarantine
     private static function getKey(): string
     {
         $key = getenv('ID_ENCRYPTION_KEY');
-        if (!$key) {
-            throw new \RuntimeException('ID_ENCRYPTION_KEY is not set in the server environment.');
+        if (!$key && defined('ID_ENCRYPTION_KEY')) {
+            $key = ID_ENCRYPTION_KEY;
         }
-        // Expecting a 32-byte key, base64-encoded in the env var.
+        if (!$key) {
+            throw new \RuntimeException('ID_ENCRYPTION_KEY is not set in the server environment or config.php.');
+        }
+        // Expecting a 32-byte key, base64-encoded in the env var / config.
         $decoded = base64_decode($key, true);
         if ($decoded === false || strlen($decoded) !== 32) {
             throw new \RuntimeException('ID_ENCRYPTION_KEY must be a base64-encoded 32-byte key.');

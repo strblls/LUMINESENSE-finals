@@ -59,6 +59,32 @@ function handle_toggle(mysqli $conn): void
         exit;
     }
 
+    if (!empty($_SESSION['faculty_logged_in'])) {
+        $now_time = date('H:i:s');
+        $now_day  = date('l');
+
+        $stmt = $conn->prepare("
+            SELECT id FROM schedules
+            WHERE classroom_id = ?
+              AND faculty_id = ?
+              AND day_of_week = ?
+              AND start_time <= ?
+              AND (extended_until >= ? OR (extended_until IS NULL AND end_time >= ?))
+            LIMIT 1
+        ");
+        $stmt->bind_param('iissss', $cid, $faculty_id, $now_day, $now_time, $now_time, $now_time);
+        $stmt->execute();
+        $stmt->store_result();
+        $has_active = $stmt->num_rows > 0;
+        $stmt->close();
+
+        if (!$has_active) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Forbidden: You do not have an active schedule for this classroom.']);
+            exit;
+        }
+    }
+
     if ($row === 'all') {
         // ── All rows ──────────────────────────────────────────────────────────
         $stmt = $conn->prepare("
@@ -103,16 +129,15 @@ function handle_toggle(mysqli $conn): void
         $stmt->close();
     }
 
-    // ── Log the event ─────────────────────────────────────────────────────────
-    $stmt = $conn->prepare("
-        INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by)
-        VALUES (?, ?, ?, ?)
-    ");
-    $stmt->bind_param('iiss', $cid, $faculty_id, $state, $triggered);
-    $stmt->execute();
-    $stmt->close();
-
-    echo json_encode(['success' => true, 'light_status' => $state, 'row' => $row]);
+    // ── Log the event ─────────────────────────────────────────────────────────────
+$row_affected = in_array($row, ['1','2','3']) ? (int)$row : null;
+$stmt = $conn->prepare("
+    INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by, row_affected)
+    VALUES (?, ?, ?, ?, ?)
+");
+$stmt->bind_param('iissi', $cid, $faculty_id, $state, $triggered, $row_affected);
+$stmt->execute();
+$stmt->close();
 }
 
 

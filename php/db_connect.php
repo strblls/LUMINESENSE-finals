@@ -185,3 +185,72 @@ $conn->query("
         FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
     )
 ");
+
+// ── Auto lights off sync ──────────────────────────────────────────────────────
+if (!function_exists('sync_auto_lights_off')) {
+    function sync_auto_lights_off(mysqli $conn): void
+    {
+        $old_tz = date_default_timezone_get();
+        date_default_timezone_set('Asia/Manila');
+
+        $now_time = date('H:i:s');
+        $now_day  = date('l');
+        $five_mins_ago = date('H:i:s', time() - 300);
+
+        // Find classrooms where lights are on but schedule ended AND pir has been
+        // unoccupied (pir_occupied = 0) OR the last schedule ended 5+ mins ago
+        $result = $conn->query("
+            SELECT c.id, c.room_name
+            FROM classrooms c
+            WHERE c.light_status = 'on'
+              AND c.id NOT IN (
+                  SELECT DISTINCT classroom_id FROM schedules
+                  WHERE day_of_week = '$now_day'
+                    AND start_time <= '$now_time'
+                    AND COALESCE(extended_until, end_time) >= '$now_time'
+              )
+              AND (
+                  c.pir_occupied = 0
+                  OR c.pir_since IS NULL
+                  OR NOT EXISTS (
+                      SELECT 1 FROM schedules s
+                      WHERE s.classroom_id = c.id
+                        AND s.day_of_week = '$now_day'
+                        AND COALESCE(s.extended_until, s.end_time) > '$five_mins_ago'
+                  )
+              )
+        ");
+
+        if ($result) {
+            while ($room = $result->fetch_assoc()) {
+                $cid = (int)$room['id'];
+
+                // Turn off all lights
+                $conn->query("
+                    UPDATE classrooms
+                    SET light_status = 'off',
+                        row1_status  = 'off',
+                        row2_status  = 'off',
+                        row3_status  = 'off',
+                        pir_occupied = 0,
+                        pir_since    = NULL
+                    WHERE id = $cid
+                ");
+
+                // Log it
+                $stmt = $conn->prepare("
+                    INSERT INTO lighting_logs (classroom_id, event_type, triggered_by)
+                    VALUES (?, 'off', 'auto')
+                ");
+                $stmt->bind_param('i', $cid);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+
+        date_default_timezone_set($old_tz);
+    }
+}
+
+// Run automatic lights off sync on every DB connection
+sync_auto_lights_off($conn);

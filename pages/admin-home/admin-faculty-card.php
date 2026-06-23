@@ -41,7 +41,7 @@ $f_schedules = [];
 $stmt = $conn->prepare("
     SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name
     FROM schedules s JOIN classrooms c ON c.id = s.classroom_id
-    WHERE s.created_by = ?
+    WHERE s.faculty_id = ?
     ORDER BY FIELD(s.day_of_week,
         'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
         s.start_time
