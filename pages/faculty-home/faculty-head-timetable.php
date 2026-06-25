@@ -13,7 +13,6 @@ if (empty($_SESSION['is_head'])) {
     header('Location: faculty-timetable.php');
 
     exit;
-
 }
 
 
@@ -119,7 +118,6 @@ if ($dept_id) {
     while ($row = $res->fetch_assoc()) $dept_members[] = $row;
 
     $stmt->close();
-
 }
 
 
@@ -143,7 +141,6 @@ $r = $conn->query("
 if ($r) {
 
     while ($row = $r->fetch_assoc()) $subject_areas[] = $row;
-
 }
 
 
@@ -240,75 +237,77 @@ $conn->close();
 
                             <p class="text-muted mb-0 p-2"><i class="bi bi-people me-1"></i>No faculty members assigned to this department yet.</p>
 
-                        <?php else: foreach ($dept_members as $member):
+                            <?php else: foreach ($dept_members as $member):
 
-                            $is_active = $member['is_verified'] && $member['approved_by'];
+                                $is_active = $member['is_verified'] && $member['approved_by'];
 
-                            $area_label = !empty($member['subject_area_name'])
+                                $area_label = !empty($member['subject_area_name'])
 
-                                ? $member['subject_area_name']
+                                    ? $member['subject_area_name']
 
-                                : 'No subject area assigned';
+                                    : 'No subject area assigned';
 
-                        ?>
+                            ?>
 
-                            <div class="section-container head-timetable p-2 mb-1">
+                                <div class="section-container head-timetable p-2 mb-1">
 
-                                <div class="faculty-member-container">
+                                    <div class="faculty-member-container">
 
-                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                        <div class="d-flex align-items-center justify-content-center gap-2">
 
-                                        <div class="faculty-name"><i class="bi bi-person-fill me-1"></i><?= htmlspecialchars($member['full_name']) ?></div>
+                                            <div class="faculty-name"><i class="bi bi-person-fill me-1"></i><?= htmlspecialchars($member['full_name']) ?></div>
 
-                                        <div class="faculty-subject-area" id="area-label-<?= (int)$member['id'] ?>">
+                                            <div class="faculty-subject-area" id="area-label-<?= (int)$member['id'] ?>">
 
-                                            <i class="bi bi-briefcase me-1"></i><?= htmlspecialchars($area_label) ?>
+                                                <i class="bi bi-briefcase me-1"></i><?= htmlspecialchars($area_label) ?>
+
+                                            </div>
 
                                         </div>
 
-                                    </div>
+                                        <div class="d-flex align-items-end gap-2">
 
-                                    <div class="d-flex align-items-end gap-2">
+                                            <div class="d-flex align-items-center room-icons gap-1">
 
-                                        <div class="d-flex align-items-center room-icons gap-1">
+                                                <?php if ($is_active): ?>
 
-                                            <?php if ($is_active): ?>
+                                                    <span class="status-badge badge-active bold">Active</span>
 
-                                                <span class="status-badge badge-active bold">Active</span>
+                                                <?php else: ?>
 
-                                            <?php else: ?>
+                                                    <span class="status-badge bold" style="background:#888;">Pending</span>
 
-                                                <span class="status-badge bold" style="background:#888;">Pending</span>
+                                                <?php endif; ?>
 
-                                            <?php endif; ?>
+                                                <button class="btn-icon btn-icon-edit"
 
-                                            <button class="btn-icon btn-icon-edit"
+                                                    title="Edit Subject Area"
 
-                                                title="Edit Subject Area"
+                                                    onclick="openSubjectAreaModal(<?= (int)$member['id'] ?>, '<?= addslashes($member['full_name']) ?>', <?= (int)($member['subject_area_id'] ?? 0) ?>)"
 
-                                                onclick="openSubjectAreaModal(<?= (int)$member['id'] ?>, '<?= addslashes($member['full_name']) ?>', <?= (int)($member['subject_area_id'] ?? 0) ?>)"
+                                                    data-bs-toggle="tooltip"
 
-                                                data-bs-toggle="tooltip"
+                                                    data-bs-placement="auto">
 
-                                                data-bs-placement="auto">
+                                                    <i class="bi bi-pencil"></i>
 
-                                                <i class="bi bi-pencil"></i>
+                                                </button>
 
-                                            </button>
+                                                <button class="btn-icon btn-icon-view"
 
-                                            <button class="btn-icon btn-icon-view"
+                                                    title="View Faculty Schedule"
 
-                                                title="View Faculty Schedule"
+                                                    onclick="window.location.href='faculty-head-membersched.php?faculty_id=<?= (int)$member['id'] ?>'"
 
-                                                onclick="window.location.href='faculty-head-membersched.php?faculty_id=<?= (int)$member['id'] ?>'"
+                                                    data-bs-toggle="tooltip"
 
-                                                data-bs-toggle="tooltip"
+                                                    data-bs-placement="auto">
 
-                                                data-bs-placement="auto">
+                                                    <i class="bi bi-eye"></i>
 
-                                                <i class="bi bi-eye"></i>
+                                                </button>
 
-                                            </button>
+                                            </div>
 
                                         </div>
 
@@ -316,9 +315,8 @@ $conn->close();
 
                                 </div>
 
-                            </div>
-
-                        <?php endforeach; endif; ?>
+                        <?php endforeach;
+                        endif; ?>
 
                     </div>
 
@@ -417,7 +415,6 @@ $conn->close();
 
 
     <script>
-
         let subjectAreaModal = null;
 
 
@@ -443,16 +440,10 @@ $conn->close();
 
 
         async function saveSubjectArea() {
-
             const facultyId = document.getElementById('sa-faculty-id').value;
-
             const subjectAreaId = document.getElementById('sa-select').value;
-
             const selectEl = document.getElementById('sa-select');
-
             const labelText = selectEl.options[selectEl.selectedIndex].text;
-
-
 
             const body = new URLSearchParams({
 
@@ -470,7 +461,9 @@ $conn->close();
 
                 method: 'POST',
 
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
 
                 body
 
@@ -484,9 +477,11 @@ $conn->close();
 
                 const displayLabel = subjectAreaId === '0'
 
-                    ? 'No subject area assigned'
+                    ?
+                    'No subject area assigned'
 
-                    : labelText.replace(/\s*\([^)]*\)\s*$/, '').trim();
+                    :
+                    labelText.replace(/\s*\([^)]*\)\s*$/, '').trim();
 
                 document.getElementById('area-label-' + facultyId).innerHTML =
 
@@ -501,7 +496,6 @@ $conn->close();
             }
 
         }
-
     </script>
 
 
@@ -511,4 +505,3 @@ $conn->close();
 
 
 </html>
-

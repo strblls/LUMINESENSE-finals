@@ -7,6 +7,9 @@
 
 // Check if the session variable is set and true
 $is_head = $_SESSION['is_head'] ?? false;
+
+// Initialize current schedule with default value if not set
+$current_sched ??= 'No class right now';
 ?>
 
 <link rel="stylesheet" href="../../css/faculty-settings.css">

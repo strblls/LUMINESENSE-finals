@@ -1,10 +1,12 @@
 <?php
+error_reporting(0);
+ini_set('display_errors', 0);
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'luminesense_db');
+define('DB_USER', 'u805324966_luminesense');
+define('DB_PASS', 'E=P9p4KJc2ksX9T');
+define('DB_NAME', 'u805324966_luminesense_db');
 
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS);
 if ($conn->connect_error) {
@@ -174,4 +176,17 @@ $conn->query("
         login_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
     )
+");
+
+// ── Departments table ──────────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS departments (
+        id              INT AUTO_INCREMENT PRIMARY KEY,
+        name            VARCHAR(255) NOT NULL,
+        description     TEXT DEFAULT '',
+        status          ENUM('active','inactive') DEFAULT 'active',
+        head_faculty_id INT DEFAULT NULL,
+        created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (head_faculty_id) REFERENCES faculty(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");

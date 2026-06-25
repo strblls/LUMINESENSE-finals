@@ -1,4 +1,6 @@
 <?php
+ob_start(); // Start output buffering FIRST
+
 $page_title = "Faculty Management";
 require_once '../../php/includes/admin-head.php';
 
@@ -19,7 +21,11 @@ require_once $phpRoot . '/handlers/admin-handlers.php';
 /** @var array $extensions */
 /** @var array $departments */
 
-require_once '../../php/handlers/admin-handlers.php';
+// Get message from session if available
+if (isset($_SESSION['message']) && !empty($_SESSION['message'])) {
+    $message = $_SESSION['message'];
+    unset($_SESSION['message']);
+}
 
 // faculty_id => department_id for anyone who is already a department head
 $faculty_head_of_dept = [];
@@ -29,9 +35,14 @@ foreach ($departments as $dept) {
     }
 }
 
-$conn->close();
-?>
+// Fix stat values
+$total_rooms = count($departments);
+$pending = $pending_count;
 
+$conn->close();
+
+$php_content = ob_get_clean(); // Get any PHP output and clear buffer
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -277,8 +288,8 @@ $conn->close();
                                             </button>
                                         </div>
                                     </div>
-                            <?php endforeach;
-                            endif; ?>
+                                <?php endforeach;
+                                endif; ?>
                         </div>
                     </div>
 
@@ -581,35 +592,20 @@ $conn->close();
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header modal-header-primary">
-                    <h5 class="modal-title"><i class="bi bi-diagram-3 me-2"></i><span id="viewDeptTitle">Department</span></h5>
+                    <h5 class="modal-title"><i class="bi bi-eye me-2"></i>View Department</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <!-- Description -->
-                    <div class="mb-4">
-                        <label class="form-label bold text-muted" style="font-size:11px; text-transform:uppercase; letter-spacing:.05em;">Description</label>
-                        <p id="viewDeptDescription" class="mb-0" style="font-size:15px;"></p>
+                    <div class="mb-3">
+                        <label class="form-label bold">Name</label>
+                        <input type="text" class="form-control" id="viewDeptName" readonly>
                     </div>
-
-                    <hr>
-
-                    <!-- Head of Department -->
-                    <div class="mb-4">
-                        <label class="form-label bold"><i class="bi bi-person-badge me-1"></i>Head of Department</label>
-                        <div id="viewDeptHead" class="border rounded p-3 bg-light">
-                            <p class="text-muted mb-0 small">No head assigned.</p>
-                        </div>
-                    </div>
-
-                    <!-- Faculty Members -->
-                    <div class="mb-2">
-                        <label class="form-label bold"><i class="bi bi-people me-1"></i>Faculty Members</label>
-                        <div id="viewDeptMembers" class="border rounded p-3 bg-light" style="max-height:200px; overflow-y:auto;">
-                            <p class="text-muted mb-0 small">No faculty members assigned.</p>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label bold">Description</label>
+                        <input type="text" class="form-control" id="viewDeptDescription" readonly>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
                     <button type="button" class="light" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
@@ -617,220 +613,65 @@ $conn->close();
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/toggles.js"></script>
-    <script src="../../script/tooltip.js"></script>
-
-    <!-- Faculty data for JS usage -->
     <script>
-        // All faculty (all statuses) so the View modal can resolve the head name
-        // even if they are pending/unverified. department_id drives deptMembers.
-        const allFaculty = <?= json_encode(array_values(array_map(function($f) {
-            return [
-                'id'            => (int)$f['id'],
-                'name'          => $f['first_name'] . ' ' . $f['last_name'],
-                'email'         => $f['email'],
-                'status'        => $f['status_label'],
-                'department_id' => isset($f['department_id']) ? (int)$f['department_id'] : null
-            ];
-        }, $faculty_list))) ?>;
-
-        /**
-         * Build deptMembers from faculty.department_id.
-         * department_id is the FK on the faculty table linking them to a dept.
-         * head_faculty_id is the FK on departments linking the head — handled separately.
-         * Shape: { dept_id: [faculty_id, ...] }
-         */
-        const deptMembers = allFaculty.reduce((map, f) => {
-            if (f.department_id !== null) {
-                if (!map[f.department_id]) map[f.department_id] = [];
-                map[f.department_id].push(f.id);
-            }
-            return map;
-        }, {});
-    </script>
-
-    <script>
-        // ── Toast ──
-        document.addEventListener("DOMContentLoaded", function() {
-            const toast = document.getElementById('toastMsg');
-            if (toast && toast.classList.contains('show')) {
-                setTimeout(() => toast.classList.remove('show'), 3500);
-            }
-        });
-
-        // ── Faculty List Filter ──
-        function filterList(status) {
-            const buttons = document.querySelectorAll('.btn-group button');
-            buttons.forEach(btn => btn.classList.remove('medium'));
-            event.currentTarget.classList.add('medium');
-
-            document.querySelectorAll('.faculty-list-item').forEach(item => {
-                if (status === 'all' || item.dataset.status === status) {
-                    item.style.setProperty('display', 'flex', 'important');
-                } else {
-                    item.style.setProperty('display', 'none', 'important');
-                }
-            });
-        }
-
-        // ── Search filter for faculty lists inside modals ──
-        function filterFacultySearch(inputEl, listId) {
-            const query = inputEl.value.toLowerCase().trim();
-            const list = document.getElementById(listId);
-            if (!list) return;
-            const editingDeptId = (listId === 'editHodList' || listId === 'editMembersList')
-                ? parseInt(document.getElementById('editDeptId')?.value || '0', 10)
-                : 0;
-
-            list.querySelectorAll('.faculty-search-item').forEach(item => {
-                const label = item.querySelector('label');
-                const name = label ? label.textContent.toLowerCase() : '';
-                const matchesQuery = !query || name.includes(query);
-
-                let allowed = true;
-                if (editingDeptId > 0) {
-                    const headOfDept = parseInt(item.dataset.headOfDept || '0', 10);
-                    if (listId === 'editHodList') {
-                        allowed = headOfDept === 0 || headOfDept === editingDeptId;
-                    } else if (listId === 'editMembersList') {
-                        allowed = headOfDept === 0;
-                    }
-                }
-
-                item.style.display = (matchesQuery && allowed) ? '' : 'none';
-            });
-        }
-
-        // ── DELETE FACULTY MODAL ──
-        function openDeleteFacultyModal(id, name) {
-            document.getElementById('deleteFacultyId').value = id;
-            document.getElementById('deleteFacultyName').textContent = name;
+        function openDeleteFacultyModal(facultyId, facultyName) {
+            document.getElementById('deleteFacultyId').value = facultyId;
+            document.getElementById('deleteFacultyName').textContent = facultyName;
             new bootstrap.Modal(document.getElementById('deleteFacultyModal')).show();
         }
 
-        // ── DELETE DEPARTMENT MODAL ──
-        function openDeleteDepartmentModal(id, name) {
-            document.getElementById('deleteDepartmentId').value = id;
-            document.getElementById('deleteDepartmentName').textContent = name;
+        function openDeleteDepartmentModal(deptId, deptName) {
+            document.getElementById('deleteDepartmentId').value = deptId;
+            document.getElementById('deleteDepartmentName').textContent = deptName;
             new bootstrap.Modal(document.getElementById('deleteDepartmentModal')).show();
         }
 
-        // ── ADD DEPARTMENT MODAL ──
         function openAddDepartmentModal() {
-            // Reset the form
-            document.getElementById('addDepartmentModal').querySelectorAll('input[type=radio], input[type=checkbox]').forEach(el => el.checked = false);
-            document.getElementById('addDepartmentModal').querySelectorAll('input[type=text]').forEach(el => el.value = '');
-            // Show all search items
-            document.querySelectorAll('#addHodList .faculty-search-item, #addMembersList .faculty-search-item').forEach(el => el.style.display = '');
             new bootstrap.Modal(document.getElementById('addDepartmentModal')).show();
         }
 
-        // ── EDIT DEPARTMENT MODAL ──
-        function applyEditDepartmentFacultyVisibility(deptId) {
-            document.querySelectorAll('#editHodList .faculty-search-item').forEach(item => {
-                const headOfDept = parseInt(item.dataset.headOfDept || '0', 10);
-                const visible = headOfDept === 0 || headOfDept === deptId;
-                item.style.display = visible ? '' : 'none';
-                if (!visible) {
-                    const input = item.querySelector('.edit-hod-radio');
-                    if (input) input.checked = false;
-                }
-            });
-
-            document.querySelectorAll('#editMembersList .faculty-search-item').forEach(item => {
-                const headOfDept = parseInt(item.dataset.headOfDept || '0', 10);
-                const visible = headOfDept === 0;
-                item.style.display = visible ? '' : 'none';
-                if (!visible) {
-                    const input = item.querySelector('.edit-member-checkbox');
-                    if (input) input.checked = false;
-                }
-            });
-        }
-
-        function openEditDepartmentModal(id, name, description, headFacultyId) {
-            // Populate fields
-            document.getElementById('editDeptId').value = id;
-            document.getElementById('editDeptName').value = name;
-            document.getElementById('editDeptDescription').value = description || '';
-
-            // Reset all radios & checkboxes first, reset search inputs
-            document.querySelectorAll('.edit-hod-radio').forEach(r => r.checked = false);
-            document.querySelectorAll('.edit-member-checkbox').forEach(c => c.checked = false);
-            document.getElementById('editDepartmentModal').querySelectorAll('input[type=text]:not(#editDeptName):not(#editDeptDescription)').forEach(el => el.value = '');
-
-            applyEditDepartmentFacultyVisibility(id);
-
-            // Pre-select Head of Department
-            if (headFacultyId) {
-                const hodRadio = document.getElementById('editHod_' + headFacultyId);
-                if (hodRadio) hodRadio.checked = true;
+        function openEditDepartmentModal(deptId, deptName, deptDesc, headId) {
+            document.getElementById('editDeptId').value = deptId;
+            document.getElementById('editDeptName').value = deptName;
+            document.getElementById('editDeptDescription').value = deptDesc;
+            // Pre-select head of department if provided
+            if (headId) {
+                const radio = document.getElementById('editHod_' + headId);
+                if (radio) radio.checked = true;
             }
-
-            // Pre-select Faculty Members from map
-            const members = deptMembers[id] || [];
-            members.forEach(fid => {
-                const cb = document.getElementById('editMember_' + fid);
-                if (cb && cb.closest('.faculty-search-item').style.display !== 'none') cb.checked = true;
-            });
-
             new bootstrap.Modal(document.getElementById('editDepartmentModal')).show();
         }
 
-        // ── VIEW DEPARTMENT MODAL ──
-        function openViewDepartmentModal(id, name, description, headFacultyId) {
-            document.getElementById('viewDeptTitle').textContent = name;
-            document.getElementById('viewDeptDescription').textContent = description || 'No description provided.';
-
-            // Render Head
-            const headContainer = document.getElementById('viewDeptHead');
-            if (headFacultyId) {
-                const head = allFaculty.find(f => f.id == headFacultyId);
-                if (head) {
-                    headContainer.innerHTML = `
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="avatar bg-white rounded-circle d-flex align-items-center justify-content-center text-secondary bold border" style="min-width:36px;width:36px;height:36px;font-size:13px;">
-                                ${head.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase()}
-                            </div>
-                            <div>
-                                <div class="bold mb-0" style="font-size:14px;">${head.name}</div>
-                                <div class="text-muted" style="font-size:11px;">${head.email}</div>
-                            </div>
-                        </div>`;
-                } else {
-                    headContainer.innerHTML = '<p class="text-muted mb-0 small">Faculty record not found.</p>';
-                }
-            } else {
-                headContainer.innerHTML = '<p class="text-muted mb-0 small">No head assigned.</p>';
-            }
-
-            // Render Faculty Members
-            const membersContainer = document.getElementById('viewDeptMembers');
-            const members = deptMembers[id] || [];
-            if (members.length > 0) {
-                const memberFaculty = allFaculty.filter(f => members.includes(f.id) || members.map(Number).includes(Number(f.id)));
-                if (memberFaculty.length > 0) {
-                    membersContainer.innerHTML = memberFaculty.map(f => `
-                        <div class="d-flex align-items-center gap-2 py-2 border-bottom">
-                            <div class="avatar bg-white rounded-circle d-flex align-items-center justify-content-center text-secondary bold border" style="min-width:36px;width:36px;height:36px;font-size:13px;">
-                                ${f.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase()}
-                            </div>
-                            <div>
-                                <div class="bold mb-0" style="font-size:14px;">${f.name}</div>
-                                <div class="text-muted" style="font-size:11px;">${f.email}</div>
-                            </div>
-                        </div>`).join('');
-                } else {
-                    membersContainer.innerHTML = '<p class="text-muted mb-0 small">No faculty members assigned.</p>';
-                }
-            } else {
-                membersContainer.innerHTML = '<p class="text-muted mb-0 small">No faculty members assigned.</p>';
-            }
-
+        function openViewDepartmentModal(deptId, deptName, deptDesc, headId) {
+            document.getElementById('viewDeptName').value = deptName;
+            document.getElementById('viewDeptDescription').value = deptDesc;
             new bootstrap.Modal(document.getElementById('viewDepartmentModal')).show();
+        }
+
+        function filterFacultySearch(input, listId) {
+            const filter = input.value.toLowerCase();
+            const list = document.getElementById(listId);
+            const items = list.querySelectorAll('.faculty-search-item');
+            items.forEach(item => {
+                const name = item.getAttribute('data-name') || item.textContent.toLowerCase();
+                if (name.includes(filter)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterList(status) {
+            const items = document.querySelectorAll('.faculty-list-item');
+            items.forEach(item => {
+                if (status === 'all' || item.getAttribute('data-status') === status) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         }
     </script>
 </body>
-
 </html>

@@ -70,3 +70,4 @@ $stmt->execute();
 $stmt->close();
 
 header('Location: ../pages/admin-home/admin-homepage.php');
+exit;

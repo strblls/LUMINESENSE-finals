@@ -1,17 +1,32 @@
 <?php
-require_once __DIR__ . '/admin-handlers.php';
 /**
  * Faculty Management Handler
  * Handles: approve, reject, revoke, delete, ext_approve, ext_reject
  *
- * Requires: $conn, $admin_id, $phpRoot to be defined before including this file
- *
- * @var mysqli $conn
- * @var int    $admin_id
- * @var string $phpRoot
+ * Can be included or called directly as POST handler
  */
 
-$message = '';
+// Start output buffering to prevent any accidental output
+ob_start();
+
+// If called directly, initialize required variables
+$isStandalone = false;
+if (!isset($conn) || !isset($admin_id) || !isset($phpRoot)) {
+    $isStandalone = true;
+    session_start();
+    require_once __DIR__ . '/../db_connect.php';
+    require_once __DIR__ . '/admin-handlers.php';
+    
+    // Check admin is logged in
+    if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
+        header('Location: ../../pages/admin-login.php');
+        exit;
+    }
+    
+    $admin_id = $_SESSION['admin_id'];
+    $phpRoot = __DIR__ . '/..';
+    $message = '';
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action     = $_POST['action'];
@@ -118,13 +133,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt->execute();
                 $stmt->close();
 
-                // Notify ESP32 that schedule changed
-                $conn->query("
-                    UPDATE classrooms c
-                    JOIN schedules s ON s.classroom_id = c.id
-                    SET c.schedule_dirty = 1
-                    WHERE s.id = $sched_id
-                ");
+                // Notify ESP32 that schedule changed (only if schedule_dirty column exists)
+                $checkCol = $conn->query("SHOW COLUMNS FROM classrooms LIKE 'schedule_dirty'");
+                if ($checkCol && $checkCol->num_rows > 0) {
+                    $conn->query("
+                        UPDATE classrooms c
+                        JOIN schedules s ON s.classroom_id = c.id
+                        SET c.schedule_dirty = 1
+                        WHERE s.id = $sched_id
+                    ");
+                }
             }
 
             $message = 'Extension request approved.';
@@ -151,62 +169,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             );
         }
     }
+
+    // If called directly, redirect back to faculty management page
+    if ($isStandalone) {
+        $_SESSION['message'] = $message;
+        header('Location: ../../pages/admin-home/admin-faculty-management.php');
+        exit;
+    }
 }
 
-// ── Data fetching ─────────────────────────────────────────────────────────
+// If accessed directly via GET (not POST), redirect to management page
+if ($isStandalone && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ../../pages/admin-home/admin-faculty-management.php');
+    exit;
+}
 
-$total_faculty = $conn->query("SELECT COUNT(*) AS c FROM faculty")->fetch_assoc()['c'] ?? 0;
-$pending_count = $conn->query("SELECT COUNT(*) AS c FROM faculty WHERE is_verified = 1 AND approved_by IS NULL")->fetch_assoc()['c'] ?? 0;
-
+// ── Data fetching (only for when included, not standalone) ─────────────────
+$total_faculty = 0;
+$pending_count = 0;
 $ext_pending = 0;
-if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
-    $ext_pending = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE status = 'pending'")->fetch_assoc()['c'] ?? 0;
-}
-
 $faculty_list = [];
-$res = $conn->query("
-    SELECT id, first_name, last_name, email, department_id, is_verified, approved_by, approved_at,
-           faculty_id, id_image, ai_match_status, ai_extracted_name, ai_confidence_note
-    FROM faculty
-    ORDER BY last_name ASC
-");
-while ($row = $res->fetch_assoc()) {
-    $row['status_label'] = match(true) {
-        $row['is_verified'] == 1 && $row['approved_by'] !== null => 'approved',
-        $row['is_verified'] == 1 && $row['approved_by'] === null => 'pending',
-        default => 'unverified'
-    };
-    $faculty_list[] = $row;
-}
-
 $extensions = [];
-if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
-    $res2 = $conn->query("
-        SELECT
-            er.id,
-            er.extend_mins,
-            er.status,
-            er.requested_at,
-            CONCAT(f.first_name, ' ', f.last_name) AS faculty_name,
-            s.day_of_week,
-            s.start_time,
-            s.end_time,
-            c.room_name
-        FROM extension_requests er
-        JOIN faculty     f ON f.id = er.faculty_id
-        JOIN schedules   s ON s.id = er.schedule_id
-        JOIN classrooms  c ON c.id = s.classroom_id
-        ORDER BY er.id DESC
+$all_faculty_map = [];
+
+if (!$isStandalone) {
+    $total_faculty = $conn->query("SELECT COUNT(*) AS c FROM faculty")->fetch_assoc()['c'] ?? 0;
+    $pending_count = $conn->query("SELECT COUNT(*) AS c FROM faculty WHERE is_verified = 1 AND approved_by IS NULL")->fetch_assoc()['c'] ?? 0;
+
+    if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
+        $ext_pending = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE status = 'pending'")->fetch_assoc()['c'] ?? 0;
+    }
+
+    $res = $conn->query("
+        SELECT id, first_name, last_name, email, department_id, is_verified, approved_by, approved_at,
+               faculty_id, id_image, ai_match_status, ai_extracted_name, ai_confidence_note
+        FROM faculty
+        ORDER BY last_name ASC
     ");
-    while ($row = $res2->fetch_assoc()) $extensions[] = $row;
+    while ($row = $res->fetch_assoc()) {
+        $row['status_label'] = match(true) {
+            $row['is_verified'] == 1 && $row['approved_by'] !== null => 'approved',
+            $row['is_verified'] == 1 && $row['approved_by'] === null => 'pending',
+            default => 'unverified'
+        };
+        $faculty_list[] = $row;
+    }
+
+    if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
+        $res2 = $conn->query("
+            SELECT
+                er.id,
+                er.extend_mins,
+                er.status,
+                er.requested_at,
+                CONCAT(f.first_name, ' ', f.last_name) AS faculty_name,
+                s.day_of_week,
+                s.start_time,
+                s.end_time,
+                c.room_name
+            FROM extension_requests er
+            JOIN faculty     f ON f.id = er.faculty_id
+            JOIN schedules   s ON s.id = er.schedule_id
+            JOIN classrooms  c ON c.id = s.classroom_id
+            ORDER BY er.id DESC
+        ");
+        while ($row = $res2->fetch_assoc()) $extensions[] = $row;
+    }
+
+    // Build the lookup map for the view file
+    foreach ($faculty_list as $f) {
+        $all_faculty_map[$f['id']] = [
+            'name' => $f['first_name'] . ' ' . $f['last_name'],
+            'email' => $f['email']
+        ];
+    }
+    $GLOBALS['all_faculty_map'] = $all_faculty_map;
 }
 
-// Build the lookup map for the view file
-$all_faculty_map = [];
-foreach ($faculty_list as $f) {
-    $all_faculty_map[$f['id']] = [
-        'name' => $f['first_name'] . ' ' . $f['last_name'],
-        'email' => $f['email']
-    ];
-}
-$GLOBALS['all_faculty_map'] = $all_faculty_map;
+// Clean output buffer to ensure no accidental output
+ob_end_clean();

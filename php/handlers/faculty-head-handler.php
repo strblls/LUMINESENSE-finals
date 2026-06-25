@@ -71,14 +71,52 @@ $action = trim($_POST['action'] ?? '');
 
 // ── UPDATE SUBJECT AREA ────────────────────────────────────────────────────
 if ($action === 'update_subject_area') {
-    $member_id       = (int)($_POST['faculty_id'] ?? 0);
-    $subject_area_id = (int)($_POST['subject_area_id'] ?? 0);
+    $member_id           = (int)($_POST['faculty_id'] ?? 0);
+    $subject_area_id     = (int)($_POST['subject_area_id'] ?? 0);
+    $new_subject_area    = trim($_POST['new_subject_area'] ?? '');
+    $subject_id          = (int)($_POST['subject_id'] ?? 0);
 
     if (!$member_id || !member_in_department($conn, $dept_id, $member_id)) {
         echo json_encode(['success' => false, 'message' => 'Faculty member not found in your department.']); exit;
     }
 
-    if ($subject_area_id > 0) {
+    $target_subject_area_id = 0;
+
+    if (!empty($new_subject_area)) {
+        // Create new subject area
+        // First check if there are any subjects available; if not, use first available or create a default?
+        if ($subject_id <= 0) {
+            // Get first available subject
+            $sub_res = $conn->query('SELECT id FROM subjects LIMIT 1');
+            if ($sub_res && $sub_res->num_rows > 0) {
+                $subject_id = (int)$sub_res->fetch_assoc()['id'];
+            } else {
+                // Create a default subject
+                $stmt = $conn->prepare('INSERT INTO subjects (name) VALUES (?)');
+                $default_subject = 'General';
+                $stmt->bind_param('s', $default_subject);
+                $stmt->execute();
+                $subject_id = $conn->insert_id;
+                $stmt->close();
+            }
+        }
+        // Check if this subject area already exists
+        $chk = $conn->prepare('SELECT id FROM subject_area WHERE name = ? AND subject_id = ? LIMIT 1');
+        $chk->bind_param('si', $new_subject_area, $subject_id);
+        $chk->execute();
+        $res = $chk->get_result();
+        if ($res->num_rows > 0) {
+            $target_subject_area_id = (int)$res->fetch_assoc()['id'];
+        } else {
+            // Insert new subject area
+            $ins = $conn->prepare('INSERT INTO subject_area (name, subject_id) VALUES (?, ?)');
+            $ins->bind_param('si', $new_subject_area, $subject_id);
+            $ins->execute();
+            $target_subject_area_id = $conn->insert_id;
+            $ins->close();
+        }
+        $chk->close();
+    } else if ($subject_area_id > 0) {
         $chk = $conn->prepare('SELECT id FROM subject_area WHERE id = ? LIMIT 1');
         $chk->bind_param('i', $subject_area_id);
         $chk->execute();
@@ -87,12 +125,94 @@ if ($action === 'update_subject_area') {
             echo json_encode(['success' => false, 'message' => 'Invalid subject area.']); exit;
         }
         $chk->close();
+        $target_subject_area_id = $subject_area_id;
+    }
 
+    if ($target_subject_area_id > 0) {
         $stmt = $conn->prepare('UPDATE faculty SET subject_area_id = ? WHERE id = ?');
-        $stmt->bind_param('ii', $subject_area_id, $member_id);
+        $stmt->bind_param('ii', $target_subject_area_id, $member_id);
     } else {
         $stmt = $conn->prepare('UPDATE faculty SET subject_area_id = NULL WHERE id = ?');
         $stmt->bind_param('i', $member_id);
+    }
+
+    if ($stmt->execute()) {
+        $stmt->close();
+        echo json_encode(['success' => true, 'subject_area_id' => $target_subject_area_id]); exit;
+    }
+    $stmt->close();
+    echo json_encode(['success' => false, 'message' => 'Database error.']); exit;
+}
+
+// ── ADD SCHEDULE ────────────────────────────────────────────────────────
+if ($action === 'add_schedule') {
+    $member_id  = (int)($_POST['member_id'] ?? 0);
+    $room_id    = (int)($_POST['room_id'] ?? 0);
+    $day        = trim($_POST['day_of_week'] ?? '');
+    $start      = trim($_POST['start_time'] ?? '');
+    $end        = trim($_POST['end_time'] ?? '');
+    $subject_id = (int)($_POST['subject_id'] ?? 0);
+    $new_subject = trim($_POST['new_subject'] ?? '');
+
+    $valid_days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+    if (!$member_id || !$room_id || !in_array($day, $valid_days) || !$start || !$end) {
+        echo json_encode(['success' => false, 'message' => 'Missing required fields.']); exit;
+    }
+    if (!member_in_department($conn, $dept_id, $member_id)) {
+        echo json_encode(['success' => false, 'message' => 'Faculty member not found in your department.']); exit;
+    }
+    if ($start >= $end) {
+        echo json_encode(['success' => false, 'message' => 'End time must be after start time.']); exit;
+    }
+
+    $target_subject_id = $subject_id;
+
+    if (!empty($new_subject)) {
+        // Check if subject exists, if not create it
+        $chk_subj = $conn->prepare('SELECT id FROM subjects WHERE name = ? LIMIT 1');
+        $chk_subj->bind_param('s', $new_subject);
+        $chk_subj->execute();
+        $res_subj = $chk_subj->get_result();
+        if ($res_subj->num_rows > 0) {
+            $target_subject_id = (int)$res_subj->fetch_assoc()['id'];
+        } else {
+            $ins_subj = $conn->prepare('INSERT INTO subjects (name) VALUES (?)');
+            $ins_subj->bind_param('s', $new_subject);
+            $ins_subj->execute();
+            $target_subject_id = $conn->insert_id;
+            $ins_subj->close();
+        }
+        $chk_subj->close();
+    }
+
+    // Check for overlaps
+    $chk_overlap = $conn->prepare("
+        SELECT id FROM schedules
+        WHERE classroom_id = ? AND day_of_week = ?
+          AND start_time < ? AND end_time > ?
+        LIMIT 1
+    ");
+    $chk_overlap->bind_param('isss', $room_id, $day, $end, $start);
+    $chk_overlap->execute();
+    if ($chk_overlap->get_result()->num_rows > 0) {
+        $chk_overlap->close();
+        echo json_encode(['success' => false, 'message' => 'This slot overlaps with an existing schedule.']); exit;
+    }
+    $chk_overlap->close();
+
+    $stmt = $conn->prepare("
+        INSERT INTO schedules (classroom_id, faculty_id, created_by, day_of_week, start_time, end_time, subject_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ");
+    if ($target_subject_id > 0) {
+        $stmt->bind_param('iiisssi', $room_id, $member_id, $head_id, $day, $start, $end, $target_subject_id);
+    } else {
+        $stmt = $conn->prepare("
+            INSERT INTO schedules (classroom_id, faculty_id, created_by, day_of_week, start_time, end_time)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->bind_param('iiisss', $room_id, $member_id, $head_id, $day, $start, $end);
     }
 
     if ($stmt->execute()) {
@@ -111,6 +231,7 @@ if ($action === 'update_schedule') {
     $start      = trim($_POST['start_time'] ?? '');
     $end        = trim($_POST['end_time'] ?? '');
     $subject_id = (int)($_POST['subject_id'] ?? 0);
+    $new_subject = trim($_POST['new_subject'] ?? '');
 
     $valid_days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
@@ -126,15 +247,23 @@ if ($action === 'update_schedule') {
         echo json_encode(['success' => false, 'message' => 'Schedule not found in your department.']); exit;
     }
 
-    if ($subject_id > 0) {
-        $chk = $conn->prepare('SELECT id FROM subjects WHERE id = ? LIMIT 1');
-        $chk->bind_param('i', $subject_id);
-        $chk->execute();
-        if ($chk->get_result()->num_rows === 0) {
-            $chk->close();
-            echo json_encode(['success' => false, 'message' => 'Invalid subject.']); exit;
+    $target_subject_id = $subject_id;
+    if (!empty($new_subject)) {
+        // Check if subject exists, if not create it
+        $chk_subj = $conn->prepare('SELECT id FROM subjects WHERE name = ? LIMIT 1');
+        $chk_subj->bind_param('s', $new_subject);
+        $chk_subj->execute();
+        $res_subj = $chk_subj->get_result();
+        if ($res_subj->num_rows > 0) {
+            $target_subject_id = (int)$res_subj->fetch_assoc()['id'];
+        } else {
+            $ins_subj = $conn->prepare('INSERT INTO subjects (name) VALUES (?)');
+            $ins_subj->bind_param('s', $new_subject);
+            $ins_subj->execute();
+            $target_subject_id = $conn->insert_id;
+            $ins_subj->close();
         }
-        $chk->close();
+        $chk_subj->close();
     }
 
     $chk = $conn->prepare("
@@ -152,13 +281,13 @@ if ($action === 'update_schedule') {
     }
     $chk->close();
 
-    if ($subject_id > 0) {
+    if ($target_subject_id > 0) {
         $stmt = $conn->prepare("
             UPDATE schedules
             SET classroom_id = ?, day_of_week = ?, start_time = ?, end_time = ?, subject_id = ?
             WHERE id = ?
         ");
-        $stmt->bind_param('isssii', $room_id, $day, $start, $end, $subject_id, $slot_id);
+        $stmt->bind_param('isssii', $room_id, $day, $start, $end, $target_subject_id, $slot_id);
     } else {
         $stmt = $conn->prepare("
             UPDATE schedules
@@ -167,6 +296,30 @@ if ($action === 'update_schedule') {
         ");
         $stmt->bind_param('isssi', $room_id, $day, $start, $end, $slot_id);
     }
+
+    if ($stmt->execute()) {
+        $stmt->close();
+        echo json_encode(['success' => true]); exit;
+    }
+    $stmt->close();
+    echo json_encode(['success' => false, 'message' => 'Database error.']); exit;
+}
+
+// ── DELETE SCHEDULE ────────────────────────────────────────────────────────
+if ($action === 'delete_schedule') {
+    $slot_id = (int)($_POST['slot_id'] ?? 0);
+
+    if (!$slot_id) {
+        echo json_encode(['success' => false, 'message' => 'Missing slot ID.']); exit;
+    }
+
+    $slot = schedule_in_department($conn, $dept_id, $slot_id);
+    if (!$slot) {
+        echo json_encode(['success' => false, 'message' => 'Schedule not found in your department.']); exit;
+    }
+
+    $stmt = $conn->prepare('DELETE FROM schedules WHERE id = ?');
+    $stmt->bind_param('i', $slot_id);
 
     if ($stmt->execute()) {
         $stmt->close();

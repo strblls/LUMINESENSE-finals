@@ -136,14 +136,16 @@ $conn->close();
 
         <div class="child-container mb-3">
 
-            <div class="main-container faculty-timetable w-auto mb-3">
-                <button class="light mb-3" onclick="dissolve('faculty-head-timetable.php')">
+            <div class="main-container faculty-timetable align-items-center justify-content-center w-auto mb-3">
+                <button class="light w-auto px-3 mb-3" onclick="dissolve('faculty-head-timetable.php')">
                     <i class="bi bi-arrow-left me-1"></i> Back to Department
                 </button>
             </div>
 
             <div class="main-container faculty-timetable-heading d-flex flex-column align-items-center justify-content-center w-auto mb-3">
-                <h2 class="bold"><?= htmlspecialchars($member_name) ?>'s Schedule</h2>
+                <div class="d-flex justify-content-center align-items-center w-100 px-3">
+                    <h2 class="bold"><?= htmlspecialchars($member_name) ?>'s Schedule</h2>
+                </div>
                 <p class="text-center mb-0">
                     Subject Area: <span class="bold"><?= htmlspecialchars($member_area) ?></span> •
                     Effective A.Y. <?= date('Y') . '-' . (date('Y') + 1) ?> •
@@ -156,6 +158,9 @@ $conn->close();
                         <span class="bold"><?= date('Y') ?></span>
                     </span>
                 </p>
+                <button class="medium w-auto px-3" data-bs-toggle="modal" data-bs-target="#editScheduleModal" onclick="openAddScheduleModal()">
+                    <i class="bi bi-plus-lg me-1"></i> Add Schedule Slot
+                </button>
             </div>
 
             <div class="main-container homepage gap-3" style="flex-direction:column;">
@@ -171,70 +176,79 @@ $conn->close();
 
                             <?php if (empty($slots)): ?>
                                 <p class="no-sched">No classes scheduled.</p>
-                            <?php else: foreach ($slots as $slot):
-                                $start    = date('g:i A', strtotime($slot['start_time']));
-                                $end      = date('g:i A', strtotime($slot['end_time']));
-                                $subject_label = !empty($slot['subject_name'])
-                                    ? trim($slot['subject_name'])
-                                    : 'None assigned';
-                            ?>
-                                <div class="slot-row">
-                                    <div class="slot-header">
-                                        <div class="slot-time-left">
-                                            <?php
-                                            $start_parts = explode(' ', $start);
-                                            $start_time_part = $start_parts[0];
-                                            $start_ampm = $start_parts[1] ?? 'AM';
-                                            $end_parts = explode(' ', $end);
-                                            $end_time_part = $end_parts[0];
-                                            $end_ampm = $end_parts[1] ?? 'AM';
-                                            ?>
-                                            <span class="slot-time-start"><?= $start_time_part ?></span>
-                                            <span class="slot-time-separator">TO</span>
-                                            <span class="slot-time-end"><?= $end_time_part ?></span>
-                                            <span class="slot-time-ampm"><?= $end_ampm ?></span>
-                                        </div>
-                                        <div class="slot-actions-right">
-                                            <button class="btn-icon btn-icon-edit"
-                                                title="Edit Schedule Details"
-                                                onclick="openEditScheduleModal(
+                                <?php else: foreach ($slots as $slot):
+                                    $start    = date('g:i A', strtotime($slot['start_time']));
+                                    $end      = date('g:i A', strtotime($slot['end_time']));
+                                    $subject_label = !empty($slot['subject_name'])
+                                        ? trim($slot['subject_name'])
+                                        : 'None assigned';
+                                ?>
+                                    <div class="slot-row">
+                                        <div class="slot-header">
+                                            <div class="slot-time-left">
+                                                <?php
+                                                $start_parts = explode(' ', $start);
+                                                $start_time_part = $start_parts[0];
+                                                $start_ampm = $start_parts[1] ?? 'AM';
+                                                $end_parts = explode(' ', $end);
+                                                $end_time_part = $end_parts[0];
+                                                $end_ampm = $end_parts[1] ?? 'AM';
+                                                ?>
+                                                <span class="slot-time-start"><?= $start_time_part ?></span>
+                                                <span class="slot-time-separator">TO</span>
+                                                <span class="slot-time-end"><?= $end_time_part ?></span>
+                                                <span class="slot-time-ampm"><?= $end_ampm ?></span>
+                                            </div>
+                                            <div class="slot-actions-right">
+                                                <button class="btn-icon btn-icon-edit"
+                                                    title="Edit Schedule Details"
+                                                    onclick="openEditScheduleModal(
                                                     <?= (int)$slot['id'] ?>,
                                                     '<?= $slot['day_of_week'] ?>',
                                                     '<?= substr($slot['start_time'], 0, 5) ?>',
                                                     '<?= substr($slot['end_time'], 0, 5) ?>',
                                                     <?= (int)$slot['classroom_id'] ?>,
-                                                    <?= (int)($slot['subject_id'] ?? 0) ?>
+                                                    <?= (int)($slot['subject_id'] ?? 0) ?>,
+                                                    '<?= htmlspecialchars($subject_label, ENT_QUOTES) ?>'
                                                 )"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-placement="auto">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button class="btn-icon btn-icon-view"
-                                                title="View Details"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-placement="auto"
-                                                onclick="openSlotDetails(
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="auto">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn-icon btn-icon-view"
+                                                    title="View Details"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="auto"
+                                                    onclick="openSlotDetails(
                                                     '<?= htmlspecialchars($slot['day_of_week'], ENT_QUOTES) ?>',
                                                     '<?= $start ?>',
                                                     '<?= $end ?>',
                                                     '<?= htmlspecialchars($slot['room_name'], ENT_QUOTES) ?>',
                                                     '<?= htmlspecialchars($subject_label, ENT_QUOTES) ?>'
                                                 )">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn-icon btn-icon-del"
+                                                    title="Delete Schedule"
+                                                    onclick="confirmDeleteSchedule(<?= (int)$slot['id'] ?>)"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="auto">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="slot-content">
+                                            <div class="slot-room">
+                                                <i class="bi bi-door-open me-1"></i><?= htmlspecialchars($slot['room_name']) ?>
+                                            </div>
+                                            <div class="slot-subject d-flex flex-row">
+                                                <i class="bi bi-book me-1"></i>
+                                                <h5><?= htmlspecialchars($subject_label) ?></h5>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="slot-content">
-                                        <div class="slot-room">
-                                            <i class="bi bi-door-open me-1"></i><?= htmlspecialchars($slot['room_name']) ?>
-                                        </div>
-                                        <div class="slot-subject d-flex flex-row">
-                                            <i class="bi bi-book me-1"></i>
-                                            <h5><?= htmlspecialchars($subject_label) ?></h5>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; endif; ?>
+                            <?php endforeach;
+                            endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -261,6 +275,7 @@ $conn->close();
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="edit-slot-id" value="">
+                    <input type="hidden" id="edit-is-add" value="">
                     <div class="mb-3">
                         <label class="form-label bold">Day of Week</label>
                         <select class="form-select" id="edit-day">
@@ -289,18 +304,44 @@ $conn->close();
                     </div>
                     <div class="mb-3">
                         <label class="form-label bold">Subject</label>
-                        <select class="form-select" id="edit-subject">
-                            <option value="0">None assigned</option>
+                        <input type="text" class="form-control" id="edit-subject-input" list="subject-datalist" placeholder="Search or enter new subject...">
+                        <datalist id="subject-datalist">
+                            <option value="">None assigned</option>
                             <?php foreach ($subjects as $sub): ?>
-                                <option value="<?= (int)$sub['id'] ?>"><?= htmlspecialchars(trim($sub['name'])) ?></option>
+                                <option value="<?= htmlspecialchars(trim($sub['name'])) ?>" data-id="<?= (int)$sub['id'] ?>">
+                                </option>
                             <?php endforeach; ?>
-                        </select>
+                        </datalist>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="medium" onclick="saveSchedule()">
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button type="button" class="light w-100 px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="medium w-100 px-3" onclick="saveSchedule()">
                         <i class="bi bi-check-lg me-1"></i>Save
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header" style="background:linear-gradient(135deg,#c0004e,#e05580);color:#fff;">
+                    <h5 class="modal-title" style="font-weight:700;">Delete Schedule Slot</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-trash" style="font-size:2.5rem;color:#c0004e;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;">
+                        Are you sure you want to delete this schedule slot?
+                    </p>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button class="light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="medium" style="background:#c0004e;" onclick="executeDeleteSchedule()">
+                        <i class="bi bi-trash me-1"></i> Delete
                     </button>
                 </div>
             </div>
@@ -359,27 +400,50 @@ $conn->close();
     <script>
         let editScheduleModal = null;
         let viewSlotModal = null;
+        let deleteScheduleModal = null;
+        let deleteSlotId = null;
+        const subjects = <?php echo json_encode($subjects); ?>;
+        const rooms = <?php echo json_encode($rooms); ?>;
+        const memberId = <?= (int)$member_id ?>;
 
-        function openEditScheduleModal(id, day, start, end, roomId, subjectId) {
+        function openAddScheduleModal() {
             if (!editScheduleModal) {
                 editScheduleModal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
             }
+            document.getElementById('editScheduleLabel').innerHTML = '<i class="bi bi-plus-lg me-2"></i>Add Schedule Slot';
+            document.getElementById('edit-slot-id').value = '';
+            document.getElementById('edit-is-add').value = '1';
+            document.getElementById('edit-day').value = 'Monday';
+            document.getElementById('edit-start').value = '09:00';
+            document.getElementById('edit-end').value = '10:00';
+            document.getElementById('edit-room').value = rooms.length > 0 ? rooms[0].id : '';
+            document.getElementById('edit-subject-input').value = '';
+            editScheduleModal.show();
+        }
+
+        function openEditScheduleModal(id, day, start, end, roomId, subjectId, subjectName) {
+            if (!editScheduleModal) {
+                editScheduleModal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
+            }
+            document.getElementById('editScheduleLabel').innerHTML = '<i class="bi bi-pencil me-2"></i>Edit Schedule Details';
             document.getElementById('edit-slot-id').value = id;
+            document.getElementById('edit-is-add').value = '0';
             document.getElementById('edit-day').value = day;
             document.getElementById('edit-start').value = start;
             document.getElementById('edit-end').value = end;
             document.getElementById('edit-room').value = roomId;
-            document.getElementById('edit-subject').value = subjectId || 0;
+            document.getElementById('edit-subject-input').value = subjectName || '';
             editScheduleModal.show();
         }
 
         async function saveSchedule() {
-            const slotId    = document.getElementById('edit-slot-id').value;
-            const day       = document.getElementById('edit-day').value;
-            const start     = document.getElementById('edit-start').value;
-            const end       = document.getElementById('edit-end').value;
-            const roomId    = document.getElementById('edit-room').value;
-            const subjectId = document.getElementById('edit-subject').value;
+            const isAdd = document.getElementById('edit-is-add').value === '1';
+            const slotId = document.getElementById('edit-slot-id').value;
+            const day = document.getElementById('edit-day').value;
+            const start = document.getElementById('edit-start').value;
+            const end = document.getElementById('edit-end').value;
+            const roomId = document.getElementById('edit-room').value;
+            const subjectInput = document.getElementById('edit-subject-input').value.trim();
 
             if (!day || !start || !end || !roomId) {
                 alert('Please fill in all required fields.');
@@ -390,19 +454,35 @@ $conn->close();
                 return;
             }
 
+            // Find existing subject by name
+            let subjectId = 0;
+            let newSubject = '';
+            if (subjectInput) {
+                const foundSubject = subjects.find(s => s.name.toLowerCase() === subjectInput.toLowerCase());
+                if (foundSubject) {
+                    subjectId = foundSubject.id;
+                } else {
+                    newSubject = subjectInput;
+                }
+            }
+
             const body = new URLSearchParams({
-                action: 'update_schedule',
+                action: isAdd ? 'add_schedule' : 'update_schedule',
+                member_id: memberId,
                 slot_id: slotId,
                 room_id: roomId,
                 day_of_week: day,
                 start_time: start,
                 end_time: end,
-                subject_id: subjectId
+                subject_id: subjectId,
+                new_subject: newSubject
             });
 
             const res = await fetch('../../php/handlers/faculty-head-handler.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
                 body
             });
             const data = await res.json();
@@ -411,6 +491,38 @@ $conn->close();
                 window.location.reload();
             } else {
                 alert(data.message || 'Could not save schedule.');
+            }
+        }
+
+        function confirmDeleteSchedule(slotId) {
+            if (!deleteScheduleModal) {
+                deleteScheduleModal = new bootstrap.Modal(document.getElementById('deleteScheduleModal'));
+            }
+            deleteSlotId = slotId;
+            deleteScheduleModal.show();
+        }
+
+        async function executeDeleteSchedule() {
+            if (!deleteSlotId) return;
+
+            const body = new URLSearchParams({
+                action: 'delete_schedule',
+                slot_id: deleteSlotId
+            });
+
+            const res = await fetch('../../php/handlers/faculty-head-handler.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Could not delete schedule.');
             }
         }
 
