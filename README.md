@@ -10,9 +10,9 @@
 
 - Tab navigation in admin-reports.php
 - ~~Updating stat cards in admin-faculty-management.php~~ **__resolved June 25 -G__**
-- Status of Extension Requests (pending, disapproved) in faculty-timetable.php
-- Assigned room and subject non-static and fully implemented in faculty-timetable.php
-- Current classes and next classes reflected in faculty-timetable.php
+- Status of Extension Requests (pending, disapproved) in faculty-timetable.php 
+- ~~Assigned room and subject non-static and fully implemented in faculty-timetable.php~~ **__resolved June 24 -G__**
+- Current classes and next classes reflected in faculty-timetable.php 
 
 ## Backend Recommendations:
 
