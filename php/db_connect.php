@@ -3,10 +3,17 @@ error_reporting(0);
 ini_set('display_errors', 0);
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-define('DB_HOST', 'localhost');
-define('DB_USER', 'u805324966_luminesense');
-define('DB_PASS', 'E=P9p4KJc2ksX9T');
-define('DB_NAME', 'u805324966_luminesense_db');
+if ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1') {
+    define('DB_HOST', 'localhost');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');
+    define('DB_NAME', 'luminesense_db');
+} else {
+    define('DB_HOST', 'localhost');
+    define('DB_USER', 'u805324966_luminesense');
+    define('DB_PASS', 'E=P9p4KJc2ksX9T');
+    define('DB_NAME', 'u805324966_luminesense_db');
+}
 
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS);
 if ($conn->connect_error) {
