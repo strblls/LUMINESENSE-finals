@@ -11,7 +11,7 @@ function getRoomSchedules($conn, $room_id)
         SELECT s.start_time, s.end_time,
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name
         FROM schedules s
-        JOIN faculty f ON f.id = s.faculty_id
+        JOIN faculty f ON f.id = s.created_by
         WHERE s.classroom_id = ? 
           AND s.day_of_week = ?
           AND s.end_time >= ?
@@ -56,7 +56,7 @@ function getCurrentSchedule($conn, $room_id)
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
                f.first_name, f.last_name
         FROM schedules s
-        JOIN faculty f ON f.id = s.faculty_id
+        JOIN faculty f ON f.id = s.created_by
         WHERE s.classroom_id = ?
           AND s.day_of_week  = ?
           AND s.start_time  <= ?
@@ -101,6 +101,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/admin-timetable.css">
     <link rel="stylesheet" href="../../css/admin-room-manage.css">
 </head>
 
@@ -171,12 +172,12 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center room-icons gap-1">
-                                        <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
+                                        <button class="btn-icon btn-icon-edit"
                                             title="Edit"
                                             onclick="openEditModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
+                                        <button class="btn-icon btn-icon-del"
                                             title="Delete"
                                             onclick="openDeleteModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>')">
                                             <i class="bi bi-trash"></i>
@@ -218,10 +219,10 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                     onclick="openRoomModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
                                     View
                                 </button>
-                                <button class="light"
+                                <!-- <button class="light"
                                     onclick="dissolve('admin-timetable-manage.php?room=<?= urlencode($c['room_name']) ?>')">
                                     Timetable
-                                </button>
+                                </button> -->
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -270,14 +271,14 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                             <input type="text" name="description" class="form-control" placeholder="e.g. Near library, 2nd floor">
                         </div>
                     </div>
-                        <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
-                            <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="medium">Add Room</button>
-                        </div>
+                    <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                        <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="medium">Add Room</button>
                     </div>
-                </form>
             </div>
+            </form>
         </div>
+    </div>
     </div>
 
     <!-- ═══ EDIT ROOM MODAL ═══ -->
@@ -322,13 +323,16 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
     <div class="modal fade" id="deleteRoomModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Warning!</h5>
+                <div class="modal-header modal-header-warning">
+                    <h5 class="modal-title">Delete Room</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" >
-                    Are you sure you want to delete <strong id="deleteRoomName"></strong>?
-                    This will also remove all schedules and logs for this room.
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-trash" style="font-size:2.5rem;color:#c0004e;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;">
+                        Are you sure you want to delete <strong id="deleteRoomName"></strong>?
+                        This will also remove all schedules and logs for this room.
+                    </p>
                 </div>
                 <form method="POST" action="../../php/handlers/room-handler.php">
                     <input type="hidden" name="action" value="delete_room">
@@ -689,7 +693,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             form.append('state', stateToSend);
             form.append('triggered_by', 'admin_override');
 
-            fetch('../../app/controllers/LightingController.php', {
+            fetch('../../api/lights.php', {
                     method: 'POST',
                     body: form
                 })

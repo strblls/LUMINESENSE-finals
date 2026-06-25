@@ -40,7 +40,7 @@ async function initializeRecognizer() {
     // Initialize recognizer with options, explicitly enabling video running mode!
     recognizer = await GestureRecognizer.createFromOptions(vision, {
         baseOptions: {
-            modelAssetPath: "../../python/gesture_recognizer.task",
+            modelAssetPath: "../../gesture_recognizer.task",
             delegate: "GPU"
         },
         runningMode: "VIDEO"
@@ -148,7 +148,7 @@ async function executePendingAction() {
         });
         _updateAllLightsBadge(true);
         flashAllPills();
-        await fetch('../../app/controllers/LightingController.php', { method: 'POST', body: form });
+        await fetch('../../api/lights.php', { method: 'POST', body: form });
         if (typeof logGestureEvent === 'function') logGestureEvent('Open_Palm – all ON');
 
     } else if (action === 'all_off') {
@@ -159,7 +159,7 @@ async function executePendingAction() {
         });
         _updateAllLightsBadge(false);
         flashAllPills();
-        await fetch('../../app/controllers/LightingController.php', { method: 'POST', body: form });
+        await fetch('../../api/lights.php', { method: 'POST', body: form });
         if (typeof logGestureEvent === 'function') logGestureEvent('Closed_Fist – all OFF');
 
     } else if (action === 'toggle_row') {
@@ -181,7 +181,7 @@ async function executePendingAction() {
         flashPill(row);
         form.append('row', String(row));
         form.append('state', newState ? 'on' : 'off');
-        await fetch('../../app/controllers/LightingController.php', { method: 'POST', body: form });
+        await fetch('../../api/lights.php', { method: 'POST', body: form });
         if (typeof logGestureEvent === 'function') logGestureEvent(`Thumb_Up – row ${row} ${newState ? 'ON' : 'OFF'}`);
     }
 

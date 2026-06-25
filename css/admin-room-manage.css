@@ -80,7 +80,7 @@
 /* ── Room card ── */
 .room-card {
     background: #fff;
-    border-radius: 20px;
+    border-radius: 15px; /*NOTE: Do not change for CONSISTENCY*/
     box-shadow: 0 6px 28px rgba(47, 0, 79, .16);
     overflow: hidden;
     display: flex;
@@ -141,10 +141,12 @@
 }
 
 .room-icons {
-    i {
-        font-size: 16px;
-        color: var(--secondary-color-2);
-    }
+    display: flex;
+    align-items: center;
+}
+
+.room-icons i {
+    font-size: 16px;
 }
 
 /* status badge */
@@ -276,6 +278,16 @@
         ══════════════════════════════════════ */
 .room-details-modal .modal-header {
     background: linear-gradient(135deg, #2d0d5f 0%, #4a1d8f 100%);
+    color: #fff;
+}
+
+.room-details-modal .modal-header-warning {
+    background: linear-gradient(135deg,#c0004e,#e05580);
+    color: #fff;
+}
+
+.modal-header-warning {
+    background: linear-gradient(135deg,#c0004e,#e05580);
     color: #fff;
 }
 

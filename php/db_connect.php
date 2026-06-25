@@ -25,16 +25,9 @@ $conn->query("
         email          VARCHAR(100) NOT NULL UNIQUE,
         password       VARCHAR(255) NOT NULL,
         is_verified    TINYINT(1)   DEFAULT 0,
-        approved_by    INT          DEFAULT NULL,
-        approved_at    TIMESTAMP    NULL DEFAULT NULL,
-        admin_role     ENUM('admin') NOT NULL DEFAULT 'admin',
         otp_code       VARCHAR(6)   DEFAULT NULL,
         otp_expires_at DATETIME     DEFAULT NULL,
-        ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL,
-        ai_extracted_name VARCHAR(150) DEFAULT NULL,
-        ai_confidence_note TEXT        DEFAULT NULL,
-        created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (approved_by) REFERENCES admins(id) ON DELETE SET NULL
+        created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
     )
 ");
 
@@ -137,30 +130,27 @@ $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS faculty_id VARCHAR(20
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL");
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_extracted_name VARCHAR(100) DEFAULT NULL");
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_confidence_note TEXT DEFAULT NULL");
+$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS department_id INT DEFAULT NULL");
+$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS subject_area_id INT DEFAULT NULL");
 
-// ── Admin ID, approval, and verification columns ──────────────────────────
-$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS approved_by INT DEFAULT NULL");
-$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP NULL DEFAULT NULL");
-$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS admin_role ENUM('admin') NOT NULL DEFAULT 'admin'");
-$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL");
-$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS ai_extracted_name VARCHAR(150) DEFAULT NULL");
-$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS ai_confidence_note TEXT DEFAULT NULL");
+$conn->query("
+    CREATE TABLE IF NOT EXISTS subjects (
+        id   INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
 
-// Add self-referencing foreign key constraint for admin approved_by if not present
-// Using silent error ignore as standard MySQL 5.7/8 does not support ADD FOREIGN KEY IF NOT EXISTS directly.
-try {
-    $conn->query("
-        ALTER TABLE admins
-        ADD CONSTRAINT fk_admin_approved_by
-        FOREIGN KEY (approved_by) REFERENCES admins(id)
-        ON DELETE SET NULL
-    ");
-} catch (mysqli_sql_exception $e) {
-    // Ignore error if constraint already exists
-}
+$conn->query("
+    CREATE TABLE IF NOT EXISTS subject_area (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        name       VARCHAR(255) DEFAULT NULL,
+        subject_id INT NOT NULL,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
 
-// Self-healing: auto-approve existing verified admins who have approved_by = NULL
-$conn->query("UPDATE admins SET approved_by = id WHERE is_verified = 1 AND approved_by IS NULL");
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS subject_id INT DEFAULT NULL");
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS faculty_id INT DEFAULT NULL");
 
 
 // ── Admin logs table ──────────────────────────────────────────────────────
@@ -185,72 +175,3 @@ $conn->query("
         FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
     )
 ");
-
-// ── Auto lights off sync ──────────────────────────────────────────────────────
-if (!function_exists('sync_auto_lights_off')) {
-    function sync_auto_lights_off(mysqli $conn): void
-    {
-        $old_tz = date_default_timezone_get();
-        date_default_timezone_set('Asia/Manila');
-
-        $now_time = date('H:i:s');
-        $now_day  = date('l');
-        $five_mins_ago = date('H:i:s', time() - 300);
-
-        // Find classrooms where lights are on but schedule ended AND pir has been
-        // unoccupied (pir_occupied = 0) OR the last schedule ended 5+ mins ago
-        $result = $conn->query("
-            SELECT c.id, c.room_name
-            FROM classrooms c
-            WHERE c.light_status = 'on'
-              AND c.id NOT IN (
-                  SELECT DISTINCT classroom_id FROM schedules
-                  WHERE day_of_week = '$now_day'
-                    AND start_time <= '$now_time'
-                    AND COALESCE(extended_until, end_time) >= '$now_time'
-              )
-              AND (
-                  c.pir_occupied = 0
-                  OR c.pir_since IS NULL
-                  OR NOT EXISTS (
-                      SELECT 1 FROM schedules s
-                      WHERE s.classroom_id = c.id
-                        AND s.day_of_week = '$now_day'
-                        AND COALESCE(s.extended_until, s.end_time) > '$five_mins_ago'
-                  )
-              )
-        ");
-
-        if ($result) {
-            while ($room = $result->fetch_assoc()) {
-                $cid = (int)$room['id'];
-
-                // Turn off all lights
-                $conn->query("
-                    UPDATE classrooms
-                    SET light_status = 'off',
-                        row1_status  = 'off',
-                        row2_status  = 'off',
-                        row3_status  = 'off',
-                        pir_occupied = 0,
-                        pir_since    = NULL
-                    WHERE id = $cid
-                ");
-
-                // Log it
-                $stmt = $conn->prepare("
-                    INSERT INTO lighting_logs (classroom_id, event_type, triggered_by)
-                    VALUES (?, 'off', 'auto')
-                ");
-                $stmt->bind_param('i', $cid);
-                $stmt->execute();
-                $stmt->close();
-            }
-        }
-
-        date_default_timezone_set($old_tz);
-    }
-}
-
-// Run automatic lights off sync on every DB connection
-sync_auto_lights_off($conn);

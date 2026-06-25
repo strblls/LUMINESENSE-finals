@@ -4,7 +4,12 @@
 /** @var string $faculty_email */
 /** @var string $initials */
 /** @var string $first_name */
+
+// Check if the session variable is set and true
+$is_head = $_SESSION['is_head'] ?? false;
 ?>
+
+<link rel="stylesheet" href="../../css/faculty-settings.css">
 
 <div class="topbar d-flex">
     <button type="button" id="sidebarTrigger">
@@ -15,7 +20,13 @@
         <h5 class="light">Current Schedule: <?= $current_sched ?></h5>
     </div>
     <div class="d-flex align-items-center justify-content-center gap-2 mx-2">
-        <h4><?= $faculty_name ?></h4>
+        <h4><?= htmlspecialchars($faculty_name) ?>
+            <?php if ($is_head): ?>
+                <span class="bold status-badge faculty-head">Faculty Head</span>
+            <?php else: ?>
+                <span class="bold status-badge faculty-member">Faculty Member</span>
+            <?php endif; ?>
+        </h4>
         <a href="faculty-profile-settings.php" class="avatar-icon d-flex align-items-center justify-content-center"
             style="text-decoration: none;">
             <h3 class="bold"><?= $initials ?></h3>

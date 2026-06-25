@@ -1,0 +1,22 @@
+.status-badge {
+    font-size: 11px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.status-badge.faculty-member {
+    background: #4be1d4;
+    color: #12447a;
+}
+
+.status-badge.faculty-head {
+    background: #f9c74f;
+    color: #3b3809;
+}
+
+.status-badge.badge-active {
+    background: #d6fbe9;
+    color: #0a7a60;
+}

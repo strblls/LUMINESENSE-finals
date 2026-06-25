@@ -30,12 +30,7 @@ if ($_SESSION['admin_attempts'] >= 3) {
     exit;
 }
 
-// ── Fetch admin info ────────────────────
-$stmt = $conn->prepare('
-    SELECT id, first_name, last_name, password, is_verified
-    FROM admins
-    WHERE email = ?
-');
+$stmt = $conn->prepare('SELECT id, first_name, last_name, password, is_verified FROM admins WHERE email = ?');
 $stmt->bind_param('s', $email);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
@@ -74,6 +69,4 @@ $stmt->bind_param('i', $_SESSION['admin_id']);
 $stmt->execute();
 $stmt->close();
 
-// Redirect all admins to the admin homepage
-header("Location: ../pages/admin-home/admin-homepage.php");
-exit;
+header('Location: ../pages/admin-home/admin-homepage.php');

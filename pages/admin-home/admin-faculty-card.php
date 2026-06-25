@@ -41,9 +41,9 @@ $f_schedules = [];
 $stmt = $conn->prepare("
     SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name
     FROM schedules s JOIN classrooms c ON c.id = s.classroom_id
-    WHERE s.faculty_id = ?
+    WHERE s.created_by = ?
     ORDER BY FIELD(s.day_of_week,
-        'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
+        'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
         s.start_time
 ");
 $stmt->bind_param('i', $faculty_id);
@@ -90,158 +90,209 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
+
+    <!--Relative links-->
+    <link href="../../images/logo.png" rel="icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/admin-common.css">
+    <link rel="stylesheet" href="../../css/faculty-settings.css">
+    <link rel="stylesheet" href="../../css/admin-profile-settings.css">
+    <link rel="stylesheet" href="../../css/faculty-timetable.css">
+
+    <title>Faculty Profile - LumineSense</title>
 </head>
 
 <body class="contrast-bg">
     <?php include '../../php/includes/admin-topbar.php'; ?>
-    <div class="px-4 pt-3">
-    <button class="light info-action-btn" 
-            onclick="dissolve('admin-faculty-management.php')"
-            style="padding:6px 14px; border-radius:8px; font-size:13px;">
-        <i class="bi bi-arrow-left me-1"></i> Back to Faculty Management
-        </button>
-    </div>
 
-    <div class="page-shell main-container p-4 faculty-card">
 
-        <!-- Profile row -->
-        <div class="d-flex align-items-center gap-4 mb-4 pb-4 divider-bottom">
-            <div class="avatar-icon avatar-large d-flex align-items-center justify-content-center flex-shrink-0"
-                id="profileAvatar">
-                <h3 class="bold mb-0" id="profileAvatarText"><?= $f_initials ?></h3>
-            </div>
-            <div>
-                <h3 class="bold mb-1 profile-name" id="profileName"><?= $f_name ?></h3>
-            </div>
+
+    <div class="profile-wrapper flex-column">
+        <div class="p-2 mb-3">
+            <button class="light mb-2"
+                onclick="dissolve('admin-faculty-management.php')">
+                <i class="bi bi-arrow-left me-1"></i> Back to Faculty Management
+            </button>
         </div>
+        <div class="page-shell main-container p-4 faculty-card">
 
-        <!-- Assigned Rooms + Access Control row -->
-        <div class="d-flex gap-3 mb-3 flex-wrap">
-
-            <!-- Assigned Rooms -->
-            <div class="section-container p-3 flex-fill faculty-info-card">
-                <h6 class="bold mb-3">Assigned Rooms</h6>
-                <div class="mb-2">
-                    <?php if (empty($f_rooms)): ?>
-                        <p class="text-muted small">No rooms assigned yet.</p>
-                        <?php else: foreach ($f_rooms as $room): ?>
-                            <span class="badge faculty-badge me-2"><?= htmlspecialchars($room) ?></span>
-                    <?php endforeach;
-                    endif; ?>
+            <!-- Profile row -->
+            <div class="profile-header d-flex align-items-center gap-3 mb-4">
+                <div class="profile-avatar avatar-icon avatar-large d-flex align-items-center justify-content-center flex-shrink-0"
+                    id="profileAvatar">
+                    <?= $f_initials ?>
+                </div>
+                <div>
+                    <h2 class="bold mb-1 profile-name" id="profileName"><?= $f_name ?></h2>
+                    <span class="bold status-badge faculty-member">Faculty Member</span>
+                    <span class="bold status-badge faculty-head">Faculty Head</span>
+                </div>
+            </div>
+            <!-- Assigned Rooms + Access Control row -->
+            <div class="d-flex gap-3 mb-3 flex-row">
+                <!-- Assigned Rooms -->
+                <div class="section-container p-3 flex-fill faculty-info-card">
+                    <h3 class="bold mb-3">Assigned Rooms</h3>
+                    <div class="mb-2">
+                        <?php if (empty($f_rooms)): ?>
+                            <p class="text-muted small">No rooms assigned yet.</p>
+                            <?php else: foreach ($f_rooms as $room): ?>
+                                <span class="badge faculty-badge me-2"><?= htmlspecialchars($room) ?></span>
+                        <?php endforeach;
+                        endif; ?>
+                    </div>
+                </div>
+                <!-- Access Control -->
+                <div class="section-container p-3 flex-fill faculty-info-card">
+                    <h3 class="bold mb-3">Access Control</h3>
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-lightbulb-fill access-icon"></i>
+                            <span class="access-label">Lighting Control</span>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                id="switch-lighting"
+                                <?= $permissions['lighting_control'] ? 'checked' : '' ?>
+                                onchange="savePermission('lighting_control', this.checked)">
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-hand-index-fill access-icon"></i>
+                            <span class="access-label">Gesture Control</span>
+                        </div>
+                        <div class="form-checkS form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                id="switch-gesture"
+                                <?= $permissions['gesture_control'] ? 'checked' : '' ?>
+                                onchange="savePermission('gesture_control', this.checked)">
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-journal-text access-icon"></i>
+                            <span class="access-label">Request Access</span>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                id="switch-request"
+                                <?= $permissions['request_access'] ? 'checked' : '' ?>
+                                onchange="savePermission('request_access', this.checked)">
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Access Control -->
-            <div class="section-container p-3 flex-fill faculty-info-card">
-                <h6 class="bold mb-3">Access Control</h6>
+            <!-- Schedule -->
+            <div class="section-container faculty-info-card p-3 mb-3">
+                <h3 class="bold mb-3">Schedule</h3>
+                <!-- Weekly schedule -->
+                <div class="weekly-schedule-grid">
+                    <?php
+                    // Group schedules by day of week
+                    $days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                    $schedule_by_day = [];
+                    foreach ($days as $day) {
+                        $schedule_by_day[$day] = array_filter($f_schedules, fn($s) => $s['day_of_week'] === $day);
+                    }
+                    ?>
+                    <?php foreach ($days as $day): ?>
+                        <div class="day-card">
+                            <div class="day-label">
+                                <?= $day ?>
+                            </div>
 
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-lightbulb-fill access-icon"></i>
-                        <span class="access-label">Lighting Control</span>
-                    </div>
-                    <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" role="switch"
-                            id="switch-lighting"
-                            <?= $permissions['lighting_control'] ? 'checked' : '' ?>
-                            onchange="savePermission('lighting_control', this.checked)">
-                    </div>
-                </div>
+                            <?php if (empty($schedule_by_day[$day])): ?>
+                                <p class="no-sched">No classes scheduled.</p>
+                                <?php else: foreach ($schedule_by_day[$day] as $s):
+                                    $start    = date('g:i A', strtotime($s['start_time']));
+                                    $end      = date('g:i A', strtotime($s['end_time']));
+                                ?>
+                                    <div class="slot-row">
+                                        <div class="slot-header">
+                                            <div class="slot-time-left">
+                                                <?php
+                                                // Start time
+                                                $start_parts = explode(' ', $start);
+                                                $start_time_part = $start_parts[0];
+                                                $start_ampm = isset($start_parts[1]) ? $start_parts[1] : 'AM';
 
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-hand-index-fill access-icon"></i>
-                        <span class="access-label">Gesture Control</span>
-                    </div>
-                    <div class="form-checkS form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" role="switch"
-                            id="switch-gesture"
-                            <?= $permissions['gesture_control'] ? 'checked' : '' ?>
-                            onchange="savePermission('gesture_control', this.checked)">
-                    </div>
-                </div>
-
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-journal-text access-icon"></i>
-                        <span class="access-label">Request Access</span>
-                    </div>
-                    <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" role="switch"
-                            id="switch-request"
-                            <?= $permissions['request_access'] ? 'checked' : '' ?>
-                            onchange="savePermission('request_access', this.checked)">
-                    </div>
+                                                // End time
+                                                $end_parts = explode(' ', $end);
+                                                $end_time_part = $end_parts[0];
+                                                $end_ampm = isset($end_parts[1]) ? $end_parts[1] : 'AM';
+                                                ?>
+                                                <span class="slot-time-start"><?= $start_time_part ?></span>
+                                                <span class="slot-time-separator">TO</span><br>
+                                                <span class="slot-time-end"><?= $end_time_part ?></span>
+                                                <span class="slot-time-ampm"><?= $end_ampm ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="slot-content">
+                                            <div class="slot-room">
+                                                <i class="bi bi-door-open me-1"></i><?= htmlspecialchars($s['room_name']) ?>
+                                            </div>
+                                             <div class="slot-subject d-flex flex-row">
+                                                <i class="bi bi-book me-1"></i>
+                                                <h5>Math</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                            <?php endforeach;
+                            endif; ?>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
-
+            <!-- Edit Faculty Modal -->
+            <!-- <div class="profile-details-modal modal fade" id="editFacultyModal" tabindex="-1"
+                aria-labelledby="editFacultyModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title bold" id="editFacultyModalLabel">
+                                <i class="bi bi-pencil me-2"></i>Edit Faculty
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <div class="mb-3">
+                                <label for="editName" class="modal-label">Full Name</label>
+                                <input type="text" class="form-control mt-1" id="editName" value="John Doe">
+                            </div>
+                            <div class="mb-3">
+                                <label for="editEmail" class="modal-label">Email Address</label>
+                                <input type="email" class="form-control mt-1" id="editEmail" value="john.doe@school.edu">
+                            </div>
+                            <div class="mb-3">
+                                <label for="editStatusModal" class="modal-label">Status</label>
+                                <select class="form-select mt-1" id="editStatusModal">
+                                    <option value="Validated" selected>Validated</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <button class="light action-btn" data-bs-dismiss="modal">Cancel</button>
+                                <button class="action-btn" onclick="saveEdit()">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> -->
         </div>
-
-        <!-- Schedule -->
-        <?php if (empty($f_schedules)): ?>
-            <p class="text-muted">No schedules yet.</p>
-            <?php else: foreach ($f_schedules as $s): ?>
-                <div class="d-flex align-items-center justify-content-between py-2 schedule-row">
-                    <div>
-                        <p class="bold mb-0 schedule-time">
-                            <?= date('g:i A', strtotime($s['start_time'])) ?> –
-                            <?= date('g:i A', strtotime($s['end_time'])) ?>
-                        </p>
-                        <small class="text-muted"><?= $s['day_of_week'] ?></small>
-                    </div>
-                    <span class="badge schedule-badge"><?= htmlspecialchars($s['room_name']) ?></span>
-                </div>
-        <?php endforeach;
-        endif; ?>
-
-        <!-- Edit Faculty Modal -->
-        <!-- <div class="profile-details-modal modal fade" id="editFacultyModal" tabindex="-1"
-            aria-labelledby="editFacultyModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title bold" id="editFacultyModalLabel">
-                            <i class="bi bi-pencil me-2"></i>Edit Faculty
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body p-4">
-                        <div class="mb-3">
-                            <label for="editName" class="modal-label">Full Name</label>
-                            <input type="text" class="form-control mt-1" id="editName" value="John Doe">
-                        </div>
-                        <div class="mb-3">
-                            <label for="editEmail" class="modal-label">Email Address</label>
-                            <input type="email" class="form-control mt-1" id="editEmail" value="john.doe@school.edu">
-                        </div>
-                        <div class="mb-3">
-                            <label for="editStatusModal" class="modal-label">Status</label>
-                            <select class="form-select mt-1" id="editStatusModal">
-                                <option value="Validated" selected>Validated</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Inactive">Inactive</option>
-                            </select>
-                        </div>
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <button class="light action-btn" data-bs-dismiss="modal">Cancel</button>
-                            <button class="action-btn" onclick="saveEdit()">Save Changes</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> -->
-
     </div><!-- /page-shell -->
 
     <!-- Status select inline style (minimal, blends with topbar) -->
@@ -371,21 +422,23 @@ $conn->close();
     <script src="../../script/toggles.js"></script>
 
     <script>
-    function savePermission(permission, value) {
-        const form = new FormData();
-        form.append('faculty_id', <?= $faculty_id ?>);
-        form.append('action', 'save_permissions');
-        form.append('permission', permission);
-        form.append('value', value ? 1 : 0);
+        function savePermission(permission, value) {
+            const form = new FormData();
+            form.append('faculty_id', <?= $faculty_id ?>);
+            form.append('permission', permission);
+            form.append('value', value ? 1 : 0);
 
-        fetch('../../app/controllers/AccountController.php', { method: 'POST', body: form })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) showToast('Permission updated!');
-                else showToast('Failed to update permission.');
-            });
-    }
-</script>
+            fetch('../../api/permissions.php', {
+                    method: 'POST',
+                    body: form
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) showToast('Permission updated!');
+                    else showToast('Failed to update permission.');
+                });
+        }
+    </script>
 </body>
 
 </html>

@@ -1,0 +1,24 @@
+.faculty-name {
+    padding: 3px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1.25;
+}
+
+.faculty-subject-area {
+    font-size: 12.36px;
+    color: var(--secondary-color-2);
+    margin-top: 2px;
+}
+
+.faculty-member-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+}
+
+.department-emphases {
+    color: var(--secondary-color-1);
+}

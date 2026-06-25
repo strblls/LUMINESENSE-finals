@@ -30,7 +30,7 @@ const bulbOn  = '../../images/bulb-on.png';
             form.append('classroom_id', cid);
             form.append('row',   String(row));
             form.append('state', state ? 'on' : 'off');
-            await fetch('../../app/controllers/LightingController.php', { method: 'POST', body: form });
+            await fetch('../../api/lights.php', { method: 'POST', body: form });
         } catch (e) {
             console.warn('persistLight error:', e);
         }

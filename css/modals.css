@@ -168,7 +168,7 @@
     }
 }
 
-.profile-details-modal {
+.profile-details-modal,.modal-wrapper {
 
     .modal-header {
         background: linear-gradient(135deg, #2d0d5f 0%, #4a1d8f 100%);

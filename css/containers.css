@@ -16,6 +16,15 @@
     justify-content: center;
 }
 
+.parent-container-index.faculty-signup {
+    height: auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
 .child-container {
     display: flex;
     flex-direction: column;
@@ -202,9 +211,40 @@
 .main-container.homepage {
     display: flex;
     flex-direction: row;
-    width: 100%;
     padding: 2rem;
     gap: 3rem;
+
+    .group-container:first-child {
+        flex: 2;
+    }
+
+    .group-container:last-child {
+        flex: 0.5;
+    }
+}
+
+.main-container.faculty-timetable {
+    background-color: #440074;
+    display: flex;
+    padding: 1rem;
+    gap: 2rem;
+
+    div.section-container.head-timetable {
+        background-color: #f8f9fa;
+    }
+
+    .group-container:first-child {
+        flex: 2;
+    }
+
+    .group-container:last-child {
+        flex: 0.5;
+    }
+}
+
+.main-container.faculty-timetable-heading {
+    display: flex;
+    padding: 0.5rem;
 
     .group-container:first-child {
         flex: 2;
@@ -271,7 +311,8 @@
 
 .main-container {
     background-color: #ffffff;
-    border-radius: 28px;
+    border-radius: 15px;
+    /*NOTE: Do not change for CONSISTENCY*/
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.17);
     padding: 2rem;
     width: auto;
@@ -308,9 +349,10 @@
 }
 
 .faculty-card {
-    border-radius: 24px;
+    border-radius: 10px;
     box-shadow: 0 8px 32px rgba(47, 0, 79, 0.18);
     border: none;
+    padding: 50px;
 }
 
 .divider-bottom {
@@ -435,6 +477,12 @@
     width: 100%;
 }
 
+.subsection-container {
+    background-color: var(--secondary-color-1);
+    border-radius: 8px;
+}
+
+
 
 /* Responsive timer font so large clocks don't overflow their container */
 .section-container .display-1 {
@@ -471,6 +519,17 @@
     max-width: 45vh;
 }
 
+.section-container.timetable {
+    border-left: 5px solid var(--secondary-color-4);
+    box-shadow: 0 8px 32px rgba(47, 0, 79, 0.18);
+    height: 30vh;
+}
+
+.section-container.head-timetable {
+    border-left: 5px solid var(--secondary-color-4);
+    box-shadow: 0 8px 32px rgba(47, 0, 79, 0.18);
+}
+
 .section-topbar {
     padding: 10px 15px 10px 0px;
 }
@@ -500,7 +559,7 @@
     img {
         width: 8rem;
         height: 8rem;
-        object-fit: cover;
+        object-fit: fill;
     }
 }
 
@@ -555,6 +614,10 @@ h4.bold.off {
     hr {
         border: 1px solid var(--secondary-color-1);
     }
+}
+
+.activity-list.system-status {
+    max-height: 39vh;
 }
 
 .activity-list.admin {
@@ -696,5 +759,6 @@ h4.bold.off {
     transform: translateY(-50%);
     color: #888;
 }
+
 
 /* end styles */

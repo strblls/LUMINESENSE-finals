@@ -10,7 +10,7 @@ body.contrast-bg {
 /* ── Schedule card ── */
 .schedule-card {
     background: #fff;
-    border-radius: 20px;
+    border-radius: 8px;
     box-shadow: 0 8px 40px rgba(47, 0, 79, .18);
     overflow: hidden;
 }

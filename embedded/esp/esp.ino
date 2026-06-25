@@ -16,11 +16,11 @@
 #include <WiFiManager.h>
 
 // ── Server URLs ────────────────────────────────────────────
-const char* TOGGLE_URL       = "https://luminesense-bet.site/app/controllers/Esp32Controller.php?action=status&token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* SCHEDULE_URL     = "https://luminesense-bet.site/app/controllers/Esp32Controller.php?action=schedule&token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* PZEM_POST_URL    = "https://luminesense-bet.site/app/controllers/PzemController.php?action=push";
-const char* UPDATE_ROWS_URL  = "https://luminesense-bet.site/app/controllers/Esp32Controller.php?action=update_rows";
-const char* SCHEDULE_FLAG_URL= "https://luminesense-bet.site/app/controllers/Esp32Controller.php?action=flag&token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* TOGGLE_URL       = "https://luminesense-bet.site/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* SCHEDULE_URL     = "https://luminesense-bet.site/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* PZEM_POST_URL    = "https://luminesense-bet.site/api/pzem_push.php";
+const char* UPDATE_ROWS_URL  = "https://luminesense-bet.site/api/esp32-update-rows.php";
+const char* SCHEDULE_FLAG_URL= "https://luminesense-bet.site/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 
 // ── Pin Definitions ────────────────────────────────────────
 #define ROW1_PIN 26

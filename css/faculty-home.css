@@ -111,4 +111,92 @@
     }
 }
 
+/* ── Timeline / Recent Activities styling (mirrors admin-home.css) ── */
+.timeline-item {
+    display: flex;
+    gap: 1rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid #f3edf7;
+    animation: fadeSlide 0.3s ease both;
+}
 
+.timeline-item:last-child {
+    border-bottom: none;
+}
+
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.tl-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+}
+
+.tl-icon i {
+    font-size: 1.2rem;
+}
+
+.tl-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.tl-action {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: var(--secondary-color-1);
+    margin: 0 0 2px;
+}
+
+.tl-meta {
+    font-size: 0.80rem;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 2px;
+    column-gap: 8px;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tl-meta i {
+    font-size: 0.9rem;
+}
+
+.tl-meta span {
+    font-weight: 500;
+    color: #6c6c6c;
+}
+
+.tl-meta span {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.tl-notes {
+    font-size: 0.72rem;
+    color: #666;
+    background: #f9f3fc;
+    border-radius: 6px;
+    padding: 3px 8px;
+    margin-top: 4px;
+    display: inline-block;
+}
+
+.tl-type-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}

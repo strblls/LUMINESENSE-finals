@@ -1,0 +1,12 @@
+.status-badge {
+    font-size: 11px;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.status-badge.admin {
+    background: #cae14b;
+    color: #767a12;
+}

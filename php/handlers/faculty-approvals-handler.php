@@ -165,7 +165,7 @@ if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
 
 $faculty_list = [];
 $res = $conn->query("
-    SELECT id, first_name, last_name, email, is_verified, approved_by, approved_at,
+    SELECT id, first_name, last_name, email, department_id, is_verified, approved_by, approved_at,
            faculty_id, id_image, ai_match_status, ai_extracted_name, ai_confidence_note
     FROM faculty
     ORDER BY last_name ASC
@@ -200,3 +200,13 @@ if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
     ");
     while ($row = $res2->fetch_assoc()) $extensions[] = $row;
 }
+
+// Build the lookup map for the view file
+$all_faculty_map = [];
+foreach ($faculty_list as $f) {
+    $all_faculty_map[$f['id']] = [
+        'name' => $f['first_name'] . ' ' . $f['last_name'],
+        'email' => $f['email']
+    ];
+}
+$GLOBALS['all_faculty_map'] = $all_faculty_map;

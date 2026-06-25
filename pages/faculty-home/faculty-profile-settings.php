@@ -40,14 +40,22 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
+
+    <!--Relative links-->
+    <link rel="icon" href="../../images/logo.png">   
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
+    <link rel="stylesheet" href="../../css/faculty-common.css">
+    <link rel="stylesheet" href="../../css/faculty-settings.css">
+
     <title>Profile Settings – LumineSense</title>
 </head>
 
@@ -75,7 +83,8 @@ $conn->close();
                         <div class="profile-avatar avatar-icon"><?= $initials ?></div>
                         <div class="profile-user">
                             <h2 class="bold mb-1"><?= $faculty_name ?></h2>
-                            <p class="light mb-0">Faculty Member</p>
+                            <span class="bold status-badge faculty-member">Faculty Member</span>
+                            <span class="bold status-badge faculty-head">Faculty Head</span>
                         </div>
                     </div>
 

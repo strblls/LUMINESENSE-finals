@@ -183,7 +183,7 @@
 }
 
 .department-badge-active {
-    background: #d1fae5;
+    background: #9bd9a8;
     color: #065f46;
 }
 
@@ -195,4 +195,132 @@
 .department-badge-inactive {
     background: #fee2e2;
     color: #991b1b;
+}
+
+/* ── Department card (matches room-card style) ── */
+.department-card {
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), box-shadow .22s ease;
+    margin-bottom: 0;
+    border-left: none;
+    padding: 0;
+}
+
+.department-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 40px rgba(47, 0, 79, .28);
+}
+
+/* colour accent strip */
+.department-card-accent {
+    height: 6px;
+    width: 100%;
+}
+
+.department-card-body {
+    padding: 18px 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.department-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.department-card-name {
+    padding: 3px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1.25;
+}
+
+.department-card-section {
+    font-size: 12.36px;
+    color: var(--muted-dark);
+    margin-top: 2px;
+}
+
+.department-icons {
+    display: flex;
+    align-items: center;
+}
+
+.department-icons i {
+    font-size: 16px;
+}
+
+/* status badge */
+.department-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.department-badge-active {
+    background: #77c37e;
+    color: #005e19;
+}
+
+.department-badge-pending {
+    background: #fff5d6;
+    color: #a06800;
+}
+
+.department-badge-inactive {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* info rows */
+.department-info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--secondary-color-1);
+}
+
+.department-info-row i {
+    font-size: 14px;
+    color: var(--secondary-color-3);
+    width: 16px;
+    flex-shrink: 0;
+}
+
+.department-info-label {
+    color: var(--secondary-color-2);
+    font-size: 12.36px;
+}
+
+.department-info-val {
+    font-weight: 600;
+}
+
+.department-card-divider {
+    border: none;
+    border-top: 1px solid #f0eaf8;
+    margin: 2px 0;
+}
+
+/* action buttons */
+.department-card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 18px;
 }

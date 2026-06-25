@@ -1,31 +1,8 @@
 <?php
     if (session_status() === PHP_SESSION_NONE) session_start();
-
-    require_once __DIR__ . '/../php/db_connect.php';
-
+    
     $old = $_SESSION['signup_form'] ?? [];
     unset($_SESSION['signup_form']);
-
-    // Pull the list of departments for the dropdown.
-    // The Principal creates these — Science, Math, TLE, etc.
-    // If this list is empty, it means no departments exist yet,
-    // which means the Principal hasn't set up the school yet.
-    $departments = [];
-    $deptResult = $conn->query("SELECT id, name FROM departments ORDER BY name");
-    if ($deptResult) {
-        while ($row = $deptResult->fetch_assoc()) {
-            $departments[] = $row;
-        }
-    }
-?>
-
-<?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-if (session_status() === PHP_SESSION_NONE) session_start();
-// ... rest of file
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,7 +11,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!--Bootstrap and JS CDN-->
+    <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -42,7 +19,8 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 
-    <!--CSS files-->
+    <!--Relative links-->
+    <link rel="icon" href="../images/logo.png">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/containers.css">
     <link rel="stylesheet" href="../css/registration.css">
@@ -58,7 +36,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
         </a>
     </div>
 
-    <div class="parent-container-index">
+    <div class="parent-container-index faculty-signup">
         <div class="registration-container">
             <div class="image-background faculty">
                 <img src="../images/logo.png" alt="LumineSense Logo">
@@ -75,7 +53,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
             ?>
 
             <div class="form-container">
-                <form id="faculty-signup-form" action="../php/onboarding/faculty-signup-process.php" method="POST" enctype="multipart/form-data" onsubmit="return validateSignupForm();">
+                <form id="faculty-signup-form" action="../php/faculty-signup-process.php" method="POST" enctype="multipart/form-data" onsubmit="showSignupModal(); return false;">
                     <div class="form-group mb-3">
                         <div class="child-1">
                             <label for="fname">Last Name</label>
@@ -123,33 +101,6 @@ if (session_status() === PHP_SESSION_NONE) session_start();
                             autocomplete="email"
                             value="<?= htmlspecialchars($old['email'] ?? '') ?>"
                             required>
-                    </div>
-
-                    <!-- Department — matches faculty-signup-process.php's $_POST['department_id'] -->
-                    <!-- This is a REQUIRED field; the backend rejects signup without it. -->
-                    <div class="mb-3">
-                        <label for="department_id">Department</label>
-                        <select
-                            class="form-control"
-                            id="department_id"
-                            name="department_id"
-                            required>
-                            <option value="" disabled <?= empty($old['department_id']) ? 'selected' : '' ?>>
-                                Select your department
-                            </option>
-                            <?php foreach ($departments as $dept): ?>
-                                <option
-                                    value="<?= (int)$dept['id'] ?>"
-                                    <?= (isset($old['department_id']) && (int)$old['department_id'] === (int)$dept['id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($dept['name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <?php if (empty($departments)): ?>
-                            <small class="text-danger d-block mt-1">
-                                No departments have been set up yet. Please contact your Principal before registering.
-                            </small>
-                        <?php endif; ?>
                     </div>
 
                     <div class="mb-3">
@@ -206,6 +157,23 @@ if (session_status() === PHP_SESSION_NONE) session_start();
                         </div>
                     </div>
 
+                    <!-- Confirmation Modal
+                    <div class="notify-modal" id="notify-modal" style="display:none;">
+                        <div class="modal-box">
+                            <div id="modal-header">
+                                <h5><strong>!</strong> Validation Required</h5>
+                            </div>
+                            <div id="modal-body">
+                                <i class="bi bi-exclamation-triangle" id="cautionTriangle"></i>
+                                <h5>Validate your account e-mail to the <strong>Administrator</strong> for verification and authentication.</h5>
+                            </div>
+                            <div id="modal-footer">
+                                <button class="medium" type="submit">CONFIRM & SIGN UP</button>
+                                <button class="medium" type="button" onclick="hideSignupModal()">CANCEL</button>
+                            </div>
+                        </div>
+                    </div> -->
+
                 </form>
             </div>
         </div>
@@ -215,33 +183,24 @@ if (session_status() === PHP_SESSION_NONE) session_start();
     <script src="../script/animations.js"></script>
     <script src="../script/password.js"></script>
     <script>
-        // Runs on submit. Returning true lets the form actually POST;
-        // returning false stops it (used to show an alert instead).
-        //
-        // PREVIOUS BUG: this used to be showSignupModal() with a hardcoded
-        // "return false" on the form tag, while the only real submit button
-        // lived inside a commented-out modal. That meant clicking SIGN UP
-        // never submitted anything. The modal is gone for now — this
-        // function just validates and lets the native form submit happen.
-        function validateSignupForm() {
+        function showSignupModal() {
             const pass    = document.getElementById('password').value;
             const confirm = document.getElementById('confirmPassword').value;
-            const dept    = document.getElementById('department_id').value;
 
-            if (!dept) {
-                alert('Please select your department.');
-                return false;
-            }
             if (pass !== confirm) {
                 alert('Passwords do not match! Please check again.');
-                return false;
+                return;
             }
             if (pass.length < 8) {
                 alert('Password must be at least 8 characters long.');
-                return false;
+                return;
             }
 
-            return true; // let the form submit normally
+            document.getElementById('notify-modal').style.display = 'flex';
+        }
+
+        function hideSignupModal() {
+            document.getElementById('notify-modal').style.display = 'none';
         }
     </script>
 </body>
