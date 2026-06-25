@@ -1,5 +1,6 @@
 {
     "editor.fontSize": 12,
     "liveServer.settings.port": 5501,
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "cmake.sourceDirectory": "C:/xampp/htdocs/LUMINESENSE-finals/embedded/libraries/ArduinoJson/extras/tests/Cpp17"
 }
