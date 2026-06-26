@@ -5,6 +5,7 @@
 | June 17 | Directory Restructuring & Path Refactoring | <ul><li>Moved files from root to subdirectories (`css/`, `script/`, `pages/`, `python/`, `misc/`)</li><li>Refactored stand-alone `api/` scripts into OOP controllers under `app/controllers/`</li><li>Fixed all broken asset paths, fetch URLs, and spawned script paths across JS, Python, and ESP32 firmware</li></ul> |
 | June 23 | Faculty Timetable | <ul><li>BACKEND NEEDS: Subject name per schedule as assigned by Faculty Head (FH)</li></ul> | 
 | June 25 | Deployment | <ul><li>Fixed Hostinger: db_connect now has database name and etc. (sorry lex ginoverwrite ko tanan huhu -G)</li><li>Added localhost credentials in db_connect so that you may edit also in xampp-control</li><li>Updated newsqlhere.sql (updated database schema)</li></ul> | 
+| June 27 | CSS Consistency | <ul><li>Fixed CSS on each page, specificall ang sa verify email button :3</ul> | 
 
 ## Backend Needs:
 
