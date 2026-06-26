@@ -141,6 +141,7 @@ $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_extracted_name VAR
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_confidence_note TEXT DEFAULT NULL");
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS department_id INT DEFAULT NULL");
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS subject_area_id INT DEFAULT NULL");
+$conn->query("ALTER TABLE subject_area ADD COLUMN IF NOT EXISTS subject_id INT DEFAULT NULL");
 
 $conn->query("
     CREATE TABLE IF NOT EXISTS subjects (

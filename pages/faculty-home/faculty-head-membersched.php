@@ -23,22 +23,13 @@ $stmt->bind_result($faculty_email);
 $stmt->fetch();
 $stmt->close();
 
-// Department this head manages
-$dept_id = 0;
-$stmt = $conn->prepare("SELECT id FROM departments WHERE head_faculty_id = ? AND status = 'active' LIMIT 1");
-$stmt->bind_param('i', $faculty_id);
-$stmt->execute();
-$stmt->bind_result($dept_id);
-$stmt->fetch();
-$stmt->close();
-
 $member_id = (int)($_GET['faculty_id'] ?? 0);
-if (!$member_id || !$dept_id) {
+if (!$member_id) {
     header('Location: faculty-head-timetable.php');
     exit;
 }
 
-// Verify member belongs to department
+// Verify member belongs to any of the departments the head manages
 $member_name = '';
 $member_area = '';
 $stmt = $conn->prepare("
@@ -46,10 +37,13 @@ $stmt = $conn->prepare("
            sa.name AS subject_area_name
     FROM faculty f
     LEFT JOIN subject_area sa ON sa.id = f.subject_area_id
-    WHERE f.id = ? AND f.department_id = ?
+    JOIN departments d ON d.id = f.department_id
+    WHERE f.id = ? 
+      AND d.head_faculty_id = ? 
+      AND d.status = 'active'
     LIMIT 1
 ");
-$stmt->bind_param('ii', $member_id, $dept_id);
+$stmt->bind_param('ii', $member_id, $faculty_id);
 $stmt->execute();
 $member = $stmt->get_result()->fetch_assoc();
 $stmt->close();

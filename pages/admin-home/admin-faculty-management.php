@@ -127,93 +127,85 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                         <div class="departments-scroll-container gap-2" style="max-height: 100vh; overflow-y: auto;">
 
                             <?php if (!empty($departments)): foreach ($departments as $dept): ?>
-                            <div class="department-card m-3">
-                                <div class="department-card-accent <?= $dept['status'] === 'active' ? 'department-badge-active' : 'department-badge-pending' ?>"></div>
-                                <div class="department-card-body">
-                                    <div class="department-card-header">
-                                        <div>
-                                            <div class="department-card-name d-flex align-items-center justify-content-between">
-                                                <?= htmlspecialchars($dept['name']) ?>
-                                                <span class="department-status-badge <?= $dept['status'] === 'active' ? 'department-badge-active' : 'department-badge-pending' ?> bold mx-2">
-                                                    <?= ucfirst(htmlspecialchars($dept['status'])) ?>
-                                                </span>
-                                            </div>
-                                            <div class="department-card-section"><?= htmlspecialchars($dept['description']) ?></div>
+                        <div class="department-card m-3">
+                            <div class="department-card-accent <?= $dept['status'] === 'active' ? 'department-badge-active' : ($dept['status'] === 'inactive' ? 'department-badge-inactive' : 'department-badge-pending') ?>"></div>
+                            <div class="department-card-body">
+                                <div class="department-card-header">
+                                    <div>
+                                        <div class="department-card-name d-flex align-items-center justify-content-between">
+                                            <?= htmlspecialchars($dept['name']) ?>
+                                            <span class="department-status-badge <?= $dept['status'] === 'active' ? 'department-badge-active' : ($dept['status'] === 'inactive' ? 'department-badge-inactive' : 'department-badge-pending') ?> bold mx-2">
+                                                <?= ucfirst(htmlspecialchars($dept['status'])) ?>
+                                            </span>
                                         </div>
-                                        <div class="d-flex align-items-center department-icons gap-1">
-                                            <button class="btn-icon btn-icon-view d-inline-flex align-items-center justify-content-center"
-                                                onclick="openViewDepartmentModal(<?= $dept['id'] ?>, '<?= addslashes($dept['name']) ?>', '<?= addslashes($dept['description']) ?>', <?= $dept['head_faculty_id'] ?? 'null' ?>)"
-                                                title="View Department"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-placement="auto">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                            <button class="btn-icon btn-icon-edit"
-                                                title="Edit Department"
-                                                onclick="openEditDepartmentModal(<?= $dept['id'] ?>, '<?= addslashes($dept['name']) ?>', '<?= addslashes($dept['description']) ?>', <?= $dept['head_faculty_id'] ?? 'null' ?>)"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-placement="auto">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button class="btn-icon btn-icon-del"
-                                                title="Delete Department"
-                                                onclick="openDeleteDepartmentModal(<?= $dept['id'] ?>, '<?= addslashes($dept['name']) ?>')"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-placement="auto">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
+                                        <div class="department-card-section"><?= htmlspecialchars($dept['description']) ?></div>
                                     </div>
-                                    <hr class="department-card-divider">
-                                    <div class="department-info-row">
-                                        <i class="bi bi-person-badge"></i>
-                                        <span class="department-info-label">Head:</span>
-                                        <span class="department-info-val bold">
-                                            <?php
-                                            // head_faculty_id sits on departments (FK → faculty.id ON DELETE SET NULL).
-                                            // The handler JOINs faculty, so head_first_name / head_last_name are
-                                            // already in $dept — use them directly without touching $all_faculty_map.
-                                            // Fallback to the map in case the handler hasn't been updated yet.
-                                            if (!empty($dept['head_faculty_id'])) {
-                                                if (!empty($dept['head_first_name'])) {
-                                                    // Fast path: name came from the JOIN in admin-handlers.php
-                                                    echo htmlspecialchars($dept['head_first_name'] . ' ' . $dept['head_last_name']);
-                                                } elseif (!empty($all_faculty_map[(int)$dept['head_faculty_id']])) {
-                                                    // Fallback: full row stored in map has first_name / last_name
-                                                    $h = $all_faculty_map[(int)$dept['head_faculty_id']];
-                                                    echo htmlspecialchars($h['name']);
+                                    <div class="d-flex align-items-center department-icons gap-1">
+                                        <button class="btn-icon btn-icon-view d-inline-flex align-items-center justify-content-center"
+                                            onclick="openViewDepartmentModal(<?= $dept['id'] ?>, '<?= addslashes($dept['name']) ?>', '<?= addslashes($dept['description']) ?>', <?= $dept['head_faculty_id'] ?? 'null' ?>)"
+                                            title="View Department"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="auto">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn-icon btn-icon-edit"
+                                            title="Edit Department"
+                                            onclick="openEditDepartmentModal(<?= $dept['id'] ?>, '<?= addslashes($dept['name']) ?>', '<?= addslashes($dept['description']) ?>', <?= $dept['head_faculty_id'] ?? 'null' ?>, '<?= addslashes($dept['status']) ?>')"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="auto">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn-icon btn-icon-del"
+                                            title="Delete Department"
+                                            onclick="openDeleteDepartmentModal(<?= $dept['id'] ?>, '<?= addslashes($dept['name']) ?>')"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="auto">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <hr class="department-card-divider">
+                                <div class="department-info-row">
+                                    <i class="bi bi-person-badge"></i>
+                                    <span class="department-info-label">Head:</span>
+                                    <span class="department-info-val bold">
+                                        <?php
+                                        // head_faculty_id sits on departments (FK → faculty.id ON DELETE SET NULL).
+                                        // The handler JOINs faculty, so head_first_name / head_last_name are
+                                        // already in $dept — use them directly without touching $all_faculty_map.
+                                        // Fallback to the map in case the handler hasn't been updated yet.
+                                        if (!empty($dept['head_faculty_id'])) {
+                                            if (!empty($dept['head_first_name'])) {
+                                                // Fast path: name came from the JOIN in admin-handlers.php
+                                                echo htmlspecialchars($dept['head_first_name'] . ' ' . $dept['head_last_name']);
+                                            } elseif (!empty($all_faculty_map[(int)$dept['head_faculty_id']])) {
+                                                // Fallback: full row stored in map has first_name / last_name
+                                                $h = $all_faculty_map[(int)$dept['head_faculty_id']];
+                                                echo htmlspecialchars($h['name']);
 
-                                                } else {
-                                                    echo 'None assigned';
-                                                }
                                             } else {
                                                 echo 'None assigned';
                                             }
-                                            ?>
-                                        </span>
-                                    </div>
-                                    <div class="department-info-row">
-                                        <i class="bi bi-people"></i>
-                                        <span class="department-info-label">Number of faculty:</span>
-                                        <span class="department-info-val bold">
-                                            <?php
-                                            // Count all faculty whose department_id matches this department.
-                                            // This includes the head of department if they also belong to this dept.
-                                            $faculty_count = 0;
-                                            if (!empty($faculty_list)) {
-                                                foreach ($faculty_list as $f) {
-                                                    if (isset($f['department_id']) && (int)$f['department_id'] === (int)$dept['id']) {
-                                                        $faculty_count++;
-                                                    }
-                                                }
-                                            }
-                                            echo $faculty_count > 0 ? $faculty_count : '—';
-                                            ?>
-                                        </span>
-                                    </div>
+                                        } else {
+                                            echo 'None assigned';
+                                        }
+                                        ?>
+                                    </span>
+                                </div>
+                                <div class="department-info-row">
+                                    <i class="bi bi-people"></i>
+                                    <span class="department-info-label">Number of faculty:</span>
+                                    <span class="department-info-val bold">
+                                        <?php
+                                        // Count all faculty in this department via junction table
+                                        $faculty_count = count($dept['faculty_members'] ?? []);
+                                        echo $faculty_count > 0 ? $faculty_count : '—';
+                                        ?>
+                                    </span>
                                 </div>
                             </div>
-                            <?php endforeach; else: ?>
+                        </div>
+                        <?php endforeach; else: ?>
                             <p class="text-muted text-center py-4">No departments found.</p>
                             <?php endif; ?>
 
@@ -446,6 +438,27 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
         </div>
     </div>
 
+    <!-- ═══ DUPLICATE WARNING MODAL ═══ -->
+    <div class="modal fade" id="duplicateWarningModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+        <div class="room-details-modal modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header modal-header-warning">
+                    <h5 class="modal-title">Duplicate Selection</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;color:#e67e22;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;" id="duplicateWarningMessage">
+                        A faculty member cannot be both Head of Department and a regular Faculty Member.
+                    </p>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button type="button" class="light" data-bs-dismiss="modal">Understood</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ ADD DEPARTMENT MODAL ═══ -->
     <div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-lg">
@@ -454,7 +467,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                     <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Department</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" action="../../php/handlers/admin-handlers.php">
+                <form method="POST" action="../../php/handlers/admin-handlers.php" id="addDepartmentForm">
                     <input type="hidden" name="action" value="add_department">
                     <div class="modal-body p-4">
                         <!-- Name Field -->
@@ -469,14 +482,28 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                             <input type="text" class="form-control" name="dept_description" placeholder="Enter department description">
                         </div>
 
+                        <!-- Subject Area Field -->
+                        <div class="mb-3">
+                            <label class="form-label bold">Subject Area</label>
+                            <input type="text" class="form-control" name="dept_subject_area" id="addDeptSubjectArea" placeholder="Enter or search subject area" list="subjectAreaList">
+                            <datalist id="subjectAreaList">
+                                <?php foreach ($subject_areas as $sa): ?>
+                                    <option value="<?= htmlspecialchars($sa) ?>">
+                                <?php endforeach; ?>
+                            </datalist>
+                        </div>
+
                         <!-- Head of Department Section -->
                         <div class="mb-3">
-                            <label class="form-label bold">Head of Department <span class="text-muted fw-normal" style="font-size:12px;">(Optional)</span></label>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label bold mb-0">Head of Department <span class="text-muted fw-normal" style="font-size:12px;">(Optional)</span></label>
+                                <button type="button" class="btn btn-sm btn-outline-secondary w-auto px-2" onclick="clearHod('add')">None</button>
+                            </div>
                             <input type="text" class="form-control mb-2" placeholder="Search faculty members..." oninput="filterFacultySearch(this, 'addHodList')">
                             <div id="addHodList" class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
                                 <?php if (!empty($faculty_list)): foreach ($faculty_list as $f): if ($f['status_label'] === 'approved'): ?>
-                                <div class="form-check py-1 faculty-search-item">
-                                    <input class="form-check-input" type="radio" name="head_faculty_id" id="addHod_<?= $f['id'] ?>" value="<?= $f['id'] ?>">
+                                <div class="form-check py-1 faculty-search-item" data-name="<?= strtolower(htmlspecialchars($f['first_name'] . ' ' . $f['last_name'])) ?>">
+                                    <input class="form-check-input add-hod-radio" type="radio" name="head_faculty_id" id="addHod_<?= $f['id'] ?>" value="<?= $f['id'] ?>" data-faculty-id="<?= $f['id'] ?>">
                                     <label class="form-check-label" for="addHod_<?= $f['id'] ?>">
                                         <?= htmlspecialchars($f['first_name'] . ' ' . $f['last_name']) ?>
                                         <span class="text-muted small ms-1">(<?= htmlspecialchars($f['email']) ?>)</span>
@@ -494,8 +521,8 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                             <input type="text" class="form-control mb-2" placeholder="Search faculty members..." oninput="filterFacultySearch(this, 'addMembersList')">
                             <div id="addMembersList" class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
                                 <?php if (!empty($faculty_list)): foreach ($faculty_list as $f): if ($f['status_label'] === 'approved'): ?>
-                                <div class="form-check py-1 faculty-search-item">
-                                    <input class="form-check-input" type="checkbox" name="faculty_members[]" id="addMember_<?= $f['id'] ?>" value="<?= $f['id'] ?>">
+                                <div class="form-check py-1 faculty-search-item" data-name="<?= strtolower(htmlspecialchars($f['first_name'] . ' ' . $f['last_name'])) ?>">
+                                    <input class="form-check-input add-member-checkbox" type="checkbox" name="faculty_members[]" id="addMember_<?= $f['id'] ?>" value="<?= $f['id'] ?>" data-faculty-id="<?= $f['id'] ?>">
                                     <label class="form-check-label" for="addMember_<?= $f['id'] ?>">
                                         <?= htmlspecialchars($f['first_name'] . ' ' . $f['last_name']) ?>
                                         <span class="text-muted small ms-1">(<?= htmlspecialchars($f['email']) ?>)</span>
@@ -524,7 +551,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                     <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Department</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" action="../../php/handlers/admin-handlers.php">
+                <form method="POST" action="../../php/handlers/admin-handlers.php" id="editDepartmentForm">
                     <input type="hidden" name="action" value="edit_department">
                     <input type="hidden" name="department_id" id="editDeptId">
                     <div class="modal-body p-4">
@@ -534,19 +561,42 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                             <input type="text" class="form-control" name="dept_name" id="editDeptName" placeholder="Enter department name" required>
                         </div>
 
+                        <!-- Status Field -->
+                        <div class="mb-3">
+                            <label class="form-label bold">Status</label>
+                            <select class="form-control" name="dept_status" id="editDeptStatus">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+
                         <!-- Description Field -->
                         <div class="mb-3">
                             <label class="form-label bold">Description</label>
                             <input type="text" class="form-control" name="dept_description" id="editDeptDescription" placeholder="Enter department description">
                         </div>
 
+                        <!-- Subject Area Field -->
+                        <div class="mb-3">
+                            <label class="form-label bold">Subject Area</label>
+                            <input type="text" class="form-control" name="dept_subject_area" id="editDeptSubjectArea" placeholder="Enter or search subject area" list="subjectAreaList">
+                        </div>
+
                         <!-- Head of Department Section -->
                         <div class="mb-3">
-                            <label class="form-label bold">Head of Department <span class="text-muted fw-normal" style="font-size:12px;">(Optional)</span></label>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label bold mb-0">Head of Department <span class="text-muted fw-normal" style="font-size:12px;">(Optional)</span></label>
+                                <button type="button" 
+                                    class="btn btn-sm btn-outline-secondary w-auto px-3" 
+                                    onclick="clearHod('edit')"
+                                    title="Clear Selection">
+                                    None
+                                </button>
+                            </div>
                             <input type="text" class="form-control mb-2" placeholder="Search faculty members..." oninput="filterFacultySearch(this, 'editHodList')">
                             <div id="editHodList" class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
                                 <?php if (!empty($faculty_list)): foreach ($faculty_list as $f): if ($f['status_label'] === 'approved'): ?>
-                                <div class="form-check py-1 faculty-search-item" data-name="<?= strtolower(htmlspecialchars($f['first_name'] . ' ' . $f['last_name'])) ?>" data-head-of-dept="<?= (int)($faculty_head_of_dept[(int)$f['id']] ?? 0) ?>">
+                                <div class="form-check py-1 faculty-search-item" data-name="<?= strtolower(htmlspecialchars($f['first_name'] . ' ' . $f['last_name'])) ?>">
                                     <input class="form-check-input edit-hod-radio" type="radio" name="head_faculty_id" id="editHod_<?= $f['id'] ?>" value="<?= $f['id'] ?>" data-faculty-id="<?= $f['id'] ?>">
                                     <label class="form-check-label" for="editHod_<?= $f['id'] ?>">
                                         <?= htmlspecialchars($f['first_name'] . ' ' . $f['last_name']) ?>
@@ -565,7 +615,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                             <input type="text" class="form-control mb-2" placeholder="Search faculty members..." oninput="filterFacultySearch(this, 'editMembersList')">
                             <div id="editMembersList" class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
                                 <?php if (!empty($faculty_list)): foreach ($faculty_list as $f): if ($f['status_label'] === 'approved'): ?>
-                                <div class="form-check py-1 faculty-search-item" data-name="<?= strtolower(htmlspecialchars($f['first_name'] . ' ' . $f['last_name'])) ?>" data-head-of-dept="<?= (int)($faculty_head_of_dept[(int)$f['id']] ?? 0) ?>">
+                                <div class="form-check py-1 faculty-search-item" data-name="<?= strtolower(htmlspecialchars($f['first_name'] . ' ' . $f['last_name'])) ?>">
                                     <input class="form-check-input edit-member-checkbox" type="checkbox" name="faculty_members[]" id="editMember_<?= $f['id'] ?>" value="<?= $f['id'] ?>" data-faculty-id="<?= $f['id'] ?>">
                                     <label class="form-check-label" for="editMember_<?= $f['id'] ?>">
                                         <?= htmlspecialchars($f['first_name'] . ' ' . $f['last_name']) ?>
@@ -604,6 +654,16 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                         <label class="form-label bold">Description</label>
                         <input type="text" class="form-control" id="viewDeptDescription" readonly>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label bold">Head of Department</label>
+                        <p class="form-control-plaintext" id="viewDeptHead">—</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label bold">Faculty Members</label>
+                        <ul class="list-group" id="viewDeptMembers">
+                            <li class="list-group-item text-muted">None</li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
                     <button type="button" class="light" data-bs-dismiss="modal">Close</button>
@@ -613,7 +673,11 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../script/animations.js"></script>
     <script>
+        // Departments data to prefill edit modal
+        const departmentsData = <?= json_encode($departments) ?>;
+
         function openDeleteFacultyModal(facultyId, facultyName) {
             document.getElementById('deleteFacultyId').value = facultyId;
             document.getElementById('deleteFacultyName').textContent = facultyName;
@@ -627,24 +691,87 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
         }
 
         function openAddDepartmentModal() {
+            // Reset form
+            document.getElementById('addDepartmentForm').reset();
             new bootstrap.Modal(document.getElementById('addDepartmentModal')).show();
         }
 
-        function openEditDepartmentModal(deptId, deptName, deptDesc, headId) {
+        function openEditDepartmentModal(deptId, deptName, deptDesc, headId, deptStatus) {
             document.getElementById('editDeptId').value = deptId;
             document.getElementById('editDeptName').value = deptName;
             document.getElementById('editDeptDescription').value = deptDesc;
+
+            // Set status dropdown
+            const statusSelect = document.getElementById('editDeptStatus');
+            if (deptStatus && ['active', 'inactive'].includes(deptStatus)) {
+                statusSelect.value = deptStatus;
+            } else {
+                statusSelect.value = 'active';
+            }
+            
+            // Find the department in departmentsData
+            const dept = departmentsData.find(d => d.id == deptId);
+            
+            // Pre-select subject area
+            if (dept && dept.subject_area) {
+                document.getElementById('editDeptSubjectArea').value = dept.subject_area;
+            } else {
+                document.getElementById('editDeptSubjectArea').value = '';
+            }
+            
+            // Clear all previous selections
+            document.querySelectorAll('.edit-hod-radio').forEach(r => r.checked = false);
+            document.querySelectorAll('.edit-member-checkbox').forEach(c => c.checked = false);
+            
             // Pre-select head of department if provided
             if (headId) {
                 const radio = document.getElementById('editHod_' + headId);
                 if (radio) radio.checked = true;
             }
+            
+            // Pre-select faculty members
+            if (dept && dept.faculty_members) {
+                dept.faculty_members.forEach(m => {
+                    const checkbox = document.getElementById('editMember_' + m.id);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            
             new bootstrap.Modal(document.getElementById('editDepartmentModal')).show();
         }
 
         function openViewDepartmentModal(deptId, deptName, deptDesc, headId) {
             document.getElementById('viewDeptName').value = deptName;
             document.getElementById('viewDeptDescription').value = deptDesc;
+
+            const dept = departmentsData.find(d => d.id == deptId);
+
+            // Head of Department — resolved from the departments query JOIN (faculty h)
+            const headEl = document.getElementById('viewDeptHead');
+            if (headId && dept && dept.head_first_name) {
+                headEl.textContent = dept.head_first_name + ' ' + dept.head_last_name;
+            } else {
+                headEl.textContent = 'None assigned';
+            }
+
+            // Faculty Members — resolved via junction_faculty_department JOIN
+            const membersEl = document.getElementById('viewDeptMembers');
+            if (dept && dept.faculty_members && dept.faculty_members.length > 0) {
+                const names = dept.faculty_members
+                    .map(m => (m.first_name || '') + ' ' + (m.last_name || ''))
+                    .map(n => n.trim())
+                    .filter(n => n);
+                if (names.length > 0) {
+                    membersEl.innerHTML = names.map(n =>
+                        '<li class="list-group-item"><i class="bi bi-person-fill me-2"></i>' + n + '</li>'
+                    ).join('');
+                } else {
+                    membersEl.innerHTML = '<li class="list-group-item text-muted">None</li>';
+                }
+            } else {
+                membersEl.innerHTML = '<li class="list-group-item text-muted">None</li>';
+            }
+
             new bootstrap.Modal(document.getElementById('viewDepartmentModal')).show();
         }
 
@@ -672,6 +799,52 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                 }
             });
         }
+
+        function clearHod(type) {
+            const prefix = type === 'add' ? 'add' : 'edit';
+            document.querySelectorAll(`.${prefix}-hod-radio`).forEach(r => r.checked = false);
+        }
+
+        function showDuplicateWarning() {
+            const modal = new bootstrap.Modal(document.getElementById('duplicateWarningModal'));
+            modal.show();
+        }
+
+        // Form validation to prevent duplicate selection in edit department
+        document.getElementById('editDepartmentForm').addEventListener('submit', function(e) {
+            const selectedHod = document.querySelector('.edit-hod-radio:checked');
+            const selectedMembers = document.querySelectorAll('.edit-member-checkbox:checked');
+            
+            if (selectedHod) {
+                const hodId = selectedHod.getAttribute('data-faculty-id');
+                const duplicate = Array.from(selectedMembers).find(m => m.getAttribute('data-faculty-id') === hodId);
+                
+                if (duplicate) {
+                    e.preventDefault();
+                    duplicate.closest('.faculty-search-item').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    showDuplicateWarning();
+                    return false;
+                }
+            }
+        });
+
+        // Form validation for add department
+        document.getElementById('addDepartmentForm').addEventListener('submit', function(e) {
+            const selectedHod = document.querySelector('.add-hod-radio:checked');
+            const selectedMembers = document.querySelectorAll('.add-member-checkbox:checked');
+            
+            if (selectedHod) {
+                const hodId = selectedHod.getAttribute('data-faculty-id');
+                const duplicate = Array.from(selectedMembers).find(m => m.getAttribute('data-faculty-id') === hodId);
+                
+                if (duplicate) {
+                    e.preventDefault();
+                    duplicate.closest('.faculty-search-item').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    showDuplicateWarning();
+                    return false;
+                }
+            }
+        });
     </script>
 </body>
 </html>

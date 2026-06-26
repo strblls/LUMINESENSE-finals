@@ -22,3 +22,18 @@
 .department-emphases {
     color: var(--secondary-color-1);
 }
+
+.department-accent {
+    height: 6px;
+    width: 100%;
+}
+
+.accent-inactive {
+    border-top: linear-gradient(90deg, #c0004e, #e05580);
+}
+
+.accent-active {
+    border-top: linear-gradient(90deg, #0a7a45, #27ae60);
+
+}
+

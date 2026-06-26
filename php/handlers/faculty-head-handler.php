@@ -16,41 +16,51 @@ if (empty($_SESSION['is_head'])) {
 
 $head_id = (int)$_SESSION['faculty_id'];
 
-function head_department(mysqli $conn, int $head_id): ?array {
+function get_head_departments(mysqli $conn, int $head_id): array {
     $stmt = $conn->prepare("
         SELECT id, name FROM departments
         WHERE head_faculty_id = ? AND status = 'active'
-        LIMIT 1
+        ORDER BY name
     ");
     $stmt->bind_param('i', $head_id);
     $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
+    $res = $stmt->get_result();
+    $depts = [];
+    while ($row = $res->fetch_assoc()) $depts[] = $row;
     $stmt->close();
-    return $row ?: null;
+    return $depts;
 }
 
-function member_in_department(mysqli $conn, int $dept_id, int $member_id): bool {
+function member_in_any_head_department(mysqli $conn, int $head_id, int $member_id): bool {
     $stmt = $conn->prepare("
-        SELECT id FROM faculty
-        WHERE id = ? AND department_id = ? AND is_verified = 1 AND approved_by IS NOT NULL
+        SELECT f.id FROM faculty f
+        JOIN departments d ON d.id = f.department_id
+        WHERE f.id = ? 
+          AND d.head_faculty_id = ? 
+          AND d.status = 'active'
+          AND f.is_verified = 1 
+          AND f.approved_by IS NOT NULL
         LIMIT 1
     ");
-    $stmt->bind_param('ii', $member_id, $dept_id);
+    $stmt->bind_param('ii', $member_id, $head_id);
     $stmt->execute();
     $ok = $stmt->get_result()->num_rows > 0;
     $stmt->close();
     return $ok;
 }
 
-function schedule_in_department(mysqli $conn, int $dept_id, int $slot_id): ?array {
+function schedule_in_any_head_department(mysqli $conn, int $head_id, int $slot_id): ?array {
     $stmt = $conn->prepare("
         SELECT s.id, s.classroom_id, s.faculty_id, s.day_of_week, s.start_time, s.end_time, s.subject_id
         FROM schedules s
         JOIN faculty f ON f.id = s.faculty_id
-        WHERE s.id = ? AND f.department_id = ?
+        JOIN departments d ON d.id = f.department_id
+        WHERE s.id = ? 
+          AND d.head_faculty_id = ? 
+          AND d.status = 'active'
         LIMIT 1
     ");
-    $stmt->bind_param('ii', $slot_id, $dept_id);
+    $stmt->bind_param('ii', $slot_id, $head_id);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
@@ -61,11 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method.']); exit;
 }
 
-$dept = head_department($conn, $head_id);
-if (!$dept) {
-    echo json_encode(['success' => false, 'message' => 'No active department found for this head.']); exit;
+$depts = get_head_departments($conn, $head_id);
+if (empty($depts)) {
+    echo json_encode(['success' => false, 'message' => 'No active departments found for this head.']); exit;
 }
-$dept_id = (int)$dept['id'];
 
 $action = trim($_POST['action'] ?? '');
 
@@ -76,7 +85,7 @@ if ($action === 'update_subject_area') {
     $new_subject_area    = trim($_POST['new_subject_area'] ?? '');
     $subject_id          = (int)($_POST['subject_id'] ?? 0);
 
-    if (!$member_id || !member_in_department($conn, $dept_id, $member_id)) {
+    if (!$member_id || !member_in_any_head_department($conn, $head_id, $member_id)) {
         echo json_encode(['success' => false, 'message' => 'Faculty member not found in your department.']); exit;
     }
 
@@ -159,7 +168,7 @@ if ($action === 'add_schedule') {
     if (!$member_id || !$room_id || !in_array($day, $valid_days) || !$start || !$end) {
         echo json_encode(['success' => false, 'message' => 'Missing required fields.']); exit;
     }
-    if (!member_in_department($conn, $dept_id, $member_id)) {
+    if (!member_in_any_head_department($conn, $head_id, $member_id)) {
         echo json_encode(['success' => false, 'message' => 'Faculty member not found in your department.']); exit;
     }
     if ($start >= $end) {
@@ -242,7 +251,7 @@ if ($action === 'update_schedule') {
         echo json_encode(['success' => false, 'message' => 'End time must be after start time.']); exit;
     }
 
-    $slot = schedule_in_department($conn, $dept_id, $slot_id);
+    $slot = schedule_in_any_head_department($conn, $head_id, $slot_id);
     if (!$slot) {
         echo json_encode(['success' => false, 'message' => 'Schedule not found in your department.']); exit;
     }
@@ -313,7 +322,7 @@ if ($action === 'delete_schedule') {
         echo json_encode(['success' => false, 'message' => 'Missing slot ID.']); exit;
     }
 
-    $slot = schedule_in_department($conn, $dept_id, $slot_id);
+    $slot = schedule_in_any_head_department($conn, $head_id, $slot_id);
     if (!$slot) {
         echo json_encode(['success' => false, 'message' => 'Schedule not found in your department.']); exit;
     }

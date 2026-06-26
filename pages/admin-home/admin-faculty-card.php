@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
 /** @var string $admin_email */
 /** @var int $admin_id */
 
+
 // Guard — must have a faculty ID
 $faculty_id = (int)($_GET['id'] ?? 0);
 if (!$faculty_id) {
@@ -80,6 +81,14 @@ if ($stmt->fetch()) {
 }
 $stmt->close();
 
+$is_head = false;
+$stmt = $conn->prepare('SELECT 1 FROM departments WHERE head_faculty_id = ? LIMIT 1');
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$stmt->bind_result($dummy);
+$is_head = (bool)$stmt->fetch();
+$stmt->close();
+
 $conn->close();
 ?>
 
@@ -134,8 +143,11 @@ $conn->close();
                 </div>
                 <div>
                     <h2 class="bold mb-1 profile-name" id="profileName"><?= $f_name ?></h2>
-                    <span class="bold status-badge faculty-member">Faculty Member</span>
-                    <span class="bold status-badge faculty-head">Faculty Head</span>
+                    <?php if ($is_head): ?>
+                        <span class="bold status-badge faculty-head">Faculty Head</span>
+                    <?php else: ?>
+                        <span class="bold status-badge faculty-member">Faculty Member</span>
+                    <?php endif; ?>
                 </div>
             </div>
             <!-- Assigned Rooms + Access Control row -->
@@ -201,7 +213,7 @@ $conn->close();
                 <div class="weekly-schedule-grid">
                     <?php
                     // Group schedules by day of week
-                    $days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+                    $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
                     $schedule_by_day = [];
                     foreach ($days as $day) {
                         $schedule_by_day[$day] = array_filter($f_schedules, fn($s) => $s['day_of_week'] === $day);
@@ -243,7 +255,7 @@ $conn->close();
                                             <div class="slot-room">
                                                 <i class="bi bi-door-open me-1"></i><?= htmlspecialchars($s['room_name']) ?>
                                             </div>
-                                             <div class="slot-subject d-flex flex-row">
+                                            <div class="slot-subject d-flex flex-row">
                                                 <i class="bi bi-book me-1"></i>
                                                 <h5>Math</h5>
                                             </div>

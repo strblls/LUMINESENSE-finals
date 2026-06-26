@@ -27,11 +27,11 @@
 
 ## Personal Issues:
 
-- PHPMailer seems to have errors on me when developing -G **__resolved June 24 -G__**
+- ~~PHPMailer seems to have errors on me when developing -G~~ **__resolved June 24 -G__**
 
 
 
-## Outdated:
+## ⚠️ Outdated ⚠️
 
 | Date | Modules Affected | Notes |
 | :--- | :---: | :--- |
