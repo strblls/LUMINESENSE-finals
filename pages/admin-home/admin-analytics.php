@@ -174,10 +174,12 @@ include '../../php/handlers/analytics-handler.php';
                 <!-- ── Daily history table ── -->
                 <div class="card-white">
                     <div class="breakdown-header" style="margin-bottom:14px;">
-                        <span class="breakdown-title bold">Daily History</span>
-                        <div class="export-btns">
-                            <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
-                            <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
+                        <div class="breakdown-title-row">
+                            <span class="breakdown-title bold">Daily History</span>
+                            <div class="export-btns">
+                                <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
+                                <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
+                            </div>
                         </div>
                         <div class="history-table-wrapper">
                             <table class="breakdown-table">

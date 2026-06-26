@@ -101,6 +101,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/admin-common.css">
     <link rel="stylesheet" href="../../css/admin-timetable.css">
     <link rel="stylesheet" href="../../css/admin-room-manage.css">
 </head>

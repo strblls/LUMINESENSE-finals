@@ -23,13 +23,14 @@ $current_sched ??= 'No class right now';
         <h5 class="light">Current Schedule: <?= $current_sched ?></h5>
     </div>
     <div class="d-flex align-items-center justify-content-center gap-2 mx-2">
-        <h4><?= htmlspecialchars($faculty_name) ?>
+        <div class="d-flex flex-column align-items-end">
+            <h4 class="mb-0"><?= htmlspecialchars($faculty_name) ?></h4>
             <?php if ($is_head): ?>
                 <span class="bold status-badge faculty-head">Faculty Head</span>
             <?php else: ?>
                 <span class="bold status-badge faculty-member">Faculty Member</span>
             <?php endif; ?>
-        </h4>
+        </div>
         <a href="faculty-profile-settings.php" class="avatar-icon d-flex align-items-center justify-content-center"
             style="text-decoration: none;">
             <h3 class="bold"><?= $initials ?></h3>
