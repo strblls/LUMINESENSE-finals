@@ -43,38 +43,59 @@ include '../../php/handlers/analytics-handler.php';
 
             <!-- Page header -->
             <div class="analytics-header">
-                <div class="room-label bold" id="roomLabel">
-                    <?= htmlspecialchars($rooms[0]['room_name'] ?? 'No Rooms') ?>
-                </div>
-                <div class="analytics-controls">
-                    <div class="view-select-group">
-                        <label for="periodSelect">Period</label>
-                        <select id="periodSelect" onchange="onControlChange()">
-                            <option value="7" selected>Last 7 days</option>
-                            <option value="14">Last 14 days</option>
-                            <option value="30">Last 30 days</option>
-                        </select>
+                <div>
+                    <h2 class="page-title">Energy</h2>
+                    <div class="room-label bold" id="roomLabel">
+                        <?= htmlspecialchars($rooms[0]['room_name'] ?? 'Room') ?>
                     </div>
-                    <?php if (count($rooms) > 1): ?>
-                        <div class="view-select-group">
-                            <label for="roomSelect">Room</label>
-                            <select id="roomSelect" onchange="onControlChange()">
-                                <option value="0">All Rooms</option>
-                                <?php foreach ($rooms as $room): ?>
-                                    <option value="<?= $room['id'] ?>">
-                                        <?= htmlspecialchars($room['room_name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    <?php else: ?>
-                        <!-- Single room — no dropdown needed, pass ID silently -->
-                        <input type="hidden" id="roomSelect" value="<?= $rooms[0]['id'] ?? 0 ?>">
-                    <?php endif; ?>
                 </div>
             </div>
 
             <div class="content-area">
+                <div class="analytics-grid">
+                    <aside class="analytics-filters">
+                        <div class="card-white filters-card">
+                            <div class="filters-title">
+                                <h3 class="chart-card-title bold">Slicers</h3>
+                                <p class="metric-subtitle">Select the period and metric you want to view.</p>
+                            </div>
+                            <div class="filter-group">
+                                <label for="periodSelect">Period</label>
+                                <select id="periodSelect" onchange="onControlChange()">
+                                    <option value="7" selected>Last 7 days</option>
+                                    <option value="14">Last 14 days</option>
+                                    <option value="30">Last 30 days</option>
+                                </select>
+                            </div>
+                            <?php if (count($rooms) > 1): ?>
+                                <div class="filter-group">
+                                    <label for="roomSelect">Room</label>
+                                    <select id="roomSelect" onchange="onControlChange()">
+                                        <option value="0">All Rooms</option>
+                                        <?php foreach ($rooms as $room): ?>
+                                            <option value="<?= $room['id'] ?>">
+                                                <?= htmlspecialchars($room['room_name']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            <?php else: ?>
+                                <input type="hidden" id="roomSelect" value="<?= $rooms[0]['id'] ?? 0 ?>">
+                            <?php endif; ?>
+                            <div class="filter-group">
+                                <div class="filters-subtitle">Metrics</div>
+                                <div class="metric-buttons" id="metricButtons">
+                                    <button type="button" class="metric-button active" data-metric="all">All Metrics</button>
+                                    <button type="button" class="metric-button" data-metric="voltage">Voltage</button>
+                                    <button type="button" class="metric-button" data-metric="current">Current</button>
+                                    <button type="button" class="metric-button" data-metric="power">Power</button>
+                                    <button type="button" class="metric-button" data-metric="cost">Cost</button>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <main class="analytics-main">
 
                 <!-- ── Live readings ── -->
                 <div class="card-white live-card">
@@ -118,7 +139,7 @@ include '../../php/handlers/analytics-handler.php';
                 <!-- ── Summary cards ── -->
                 <div class="card-white">
                     <div class="live-card-header mb-3">
-                        <span class="chart-card-title bold">Today's Summary</span>
+                        <h3 class="chart-card-title bold">Today's Summary</h3>
                         <span class="summary-label"><?= date('F j, Y') ?></span>
                     </div>
                     <div class="summary-cards-row">
@@ -144,30 +165,54 @@ include '../../php/handlers/analytics-handler.php';
                             </div>
                         </div>
                         <div class="summary-card">
-                            <div class="summary-icon"><i class="bi bi-plug-fill"></i></div>
+                            <div class="summary-icon"><i class="bi bi-bolt-fill"></i></div>
                             <div class="summary-info">
                                 <div class="summary-val" id="sumVoltage">—</div>
                                 <div class="summary-label">Avg Voltage (V)</div>
                             </div>
                         </div>
                         <div class="summary-card">
-                            <div class="summary-icon"><i class="bi bi-play-circle-fill"></i></div>
+                            <div class="summary-icon"><i class="bi bi-tachometer-fill"></i></div>
                             <div class="summary-info">
-                                <div class="summary-val" id="activeSessionEnergy">—</div>
-                                <div class="summary-label">Active Session (kWh)</div>
+                                <div class="summary-val" id="sumCurrent">—</div>
+                                <div class="summary-label">Avg Current (A)</div>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-hdd-stack-fill"></i></div>
+                            <div class="summary-info">
+                                <div class="summary-val" id="sumPower">—</div>
+                                <div class="summary-label">Peak Power (W)</div>
+                            </div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon"><i class="bi bi-currency-dollar"></i></div>
+                            <div class="summary-info">
+                                <div class="summary-val" id="sumCost">—</div>
+                                <div class="summary-label">Est. Cost (PHP)</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- ── Daily energy chart ── -->
-                <div class="card-white">
-                    <div class="chart-card-header">
-                        <span class="chart-card-title bold">Daily Energy Consumption</span>
-                        <span class="summary-label">Wh per day</span>
+                <div class="chart-grid">
+                    <div class="card-white">
+                        <div class="chart-card-header">
+                            <h3 class="chart-card-title bold">Line Graph</h3>
+                            <span class="summary-label" id="lineMetricLabel">All Metrics</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="lineChart"></canvas>
+                        </div>
                     </div>
-                    <div class="chart-wrapper">
-                        <canvas id="usageChart"></canvas>
+                    <div class="card-white">
+                        <div class="chart-card-header">
+                            <h3 class="chart-card-title bold">Vertical Bar Graph</h3>
+                            <span class="summary-label" id="barMetricLabel">All Metrics</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="barChart"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -202,8 +247,11 @@ include '../../php/handlers/analytics-handler.php';
                         </div>
                     </div>
 
-                </div><!-- /content-area -->
-            </div><!-- /child-container -->
+                </div>
+                </main><!-- /analytics-main -->
+                </div><!-- /analytics-grid -->
+            </div><!-- /content-area -->
+        </div><!-- /child-container -->
         </div><!-- /parent-container -->
 
         <?php include '../../php/includes/profile-offcanvas.php'; ?>
