@@ -363,7 +363,12 @@
 }
 
 /* ── Tab panels ── */
-
+.tab-panel {
+    display: none;
+}
+.tab-panel.active {
+    display: block;
+}
 
 /* ── Sidebar/offcanvas (same as other admin pages) ── */
 .nav-btn {

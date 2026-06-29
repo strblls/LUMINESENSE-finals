@@ -102,6 +102,7 @@ $conn->close();
     <link rel="icon" href="../../images/logo.png">   
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
+    <link rel="stylesheet" href="../../css/modals.css">
     <link rel="stylesheet" href="../../css/faculty-common.css">
     <link rel="stylesheet" href="../../css/faculty-settings.css">
 

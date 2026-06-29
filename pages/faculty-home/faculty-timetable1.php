@@ -105,6 +105,8 @@ $conn->close();
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/faculty-common.css">
+    <link rel="stylesheet" href="../../css/faculty-settings.css">
     <link rel="stylesheet" href="../../css/faculty-timetable.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.1.0/fullcalendar.min.css">
     <title>Faculty Timetable - LumineSense</title>
@@ -147,18 +149,14 @@ $conn->close();
                 <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas"
                     aria-labelledby="sidebarOffcanvasLabel">
                     <div class="offcanvas-header justify-content-center">
-                        <img src="../../images/logo.png" class="logo" onclick="dissolve('faculty-homepage.html')">
+                        <img src="../../images/logo.png" class="logo" onclick="dissolve('faculty-home.php')">
                     </div>
                     <div class="offcanvas-body align-items-center d-flex flex-column">
-                        <button class="wb-2" onclick="dissolve('faculty-lighting.html')"><i
-                                class="bi bi-lightbulb"></i></button>
-                        <button class="wb-2" onclick="dissolve('faculty-readings.html')"><i
-                                class="bi bi-broadcast"></i></button>
-                        <button class="wb-2" onclick="dissolve('faculty-gesture.html')"><i
-                                class="bi bi-hand-thumbs-up"></i></button>
-                        <button class="wb-2" onclick="dissolve('faculty-timetable.html')"><i
+                        <button class="wb-2" onclick="dissolve('faculty-home.php')"><i
+                                class="bi bi-house-door"></i></button>
+                        <button class="wb-2" onclick="dissolve('faculty-timetable.php')"><i
                                 class="bi bi-calendar-event"></i></button>
-                        <button class="wb-2" onclick="dissolve('faculty-profile-settings.html')"><i
+                        <button class="wb-2" onclick="dissolve('faculty-profile-settings.php')"><i
                                 class="bi bi-gear"></i></button>
                     </div>
                     <div class="offcanvas-footer">

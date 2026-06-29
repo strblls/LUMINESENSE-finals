@@ -432,6 +432,93 @@ function event_icon(string $type): array
                 a.click();
             };
 
+            /* ── Icon map (mirrors PHP event_icon) ── */
+            const EVENT_ICONS = {
+                light_on:       ['bi-lightbulb-fill',      '#0f5132', '#d1e7dd'],
+                light_off:      ['bi-lightbulb',            '#842029', '#f8d7da'],
+                motion_detect:  ['bi-person-bounding-box',  '#084298', '#cfe2ff'],
+                door_open:      ['bi-door-open-fill',       '#664d03', '#fff3cd'],
+                door_close:     ['bi-door-closed-fill',     '#5a3a00', '#ffe5b4'],
+                class_start:    ['bi-play-circle-fill',     '#0d6e3b', '#d1e7dd'],
+                class_end:      ['bi-stop-circle',          '#6c4c00', '#fff3cd'],
+                faculty_approved: ['bi-person-check-fill',  '#0f5132', '#d1e7dd'],
+                faculty_pending:  ['bi-person-plus',        '#664d03', '#fff3cd'],
+                issue_raised:   ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+                issue_resolved: ['bi-check-circle-fill',   '#0f5132', '#d1e7dd'],
+                admin_action:   ['bi-shield-check',        '#084298', '#cfe2ff'],
+            };
+            const DEFAULT_ICON = ['bi-clock-history', '#5a5a5a', '#e9ecef'];
+
+            function getEventIcon(action) {
+                const key = action.toLowerCase().replace(/\s+/g, '_');
+                return EVENT_ICONS[key] || DEFAULT_ICON;
+            }
+
+            function renderActivityLog(logs) {
+                const container = document.getElementById('activityTimeline');
+                if (!logs.length) {
+                    container.innerHTML = '<div class="empty-state"><i class="bi bi-journal-x"></i><p>No activity logs found. Events will appear here as they are recorded.</p></div>';
+                    return;
+                }
+                container.innerHTML = logs.map(log => {
+                    const [icon, iconColor, iconBg] = getEventIcon(log.action);
+                    const isRoom = log.log_type === 'room';
+                    const typeBg = isRoom ? '#cfe2ff' : '#ede6f2';
+                    const typeClr = isRoom ? '#084298' : '#4a0078';
+                    const typeLabel = isRoom ? 'Room' : 'Admin';
+                    const d = new Date(log.log_time);
+                    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    const dateVal = d.toISOString().slice(0, 10);
+                    const searchVal = (log.target + ' ' + log.actor + ' ' + log.action).toLowerCase().replace(/"/g, '&quot;');
+                    const actionLabel = log.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    return `<div class="timeline-item" data-type="${log.log_type}" data-date="${dateVal}" data-search="${searchVal}">
+                        <div class="tl-icon" style="background:${iconBg}; color:${iconColor};"><i class="bi ${icon}"></i></div>
+                        <div class="tl-body">
+                            <p class="tl-action">${actionLabel}${log.target ? ' &mdash; <span style="color:var(--secondary-color-3);">' + log.target.replace(/"/g, '&quot;') + '</span>' : ''}</p>
+                            <div class="tl-meta">
+                                <span><i class="bi bi-clock"></i> ${timeStr}, ${dateStr}</span>
+                                ${log.actor ? '<span><i class="bi bi-person"></i> ' + log.actor.replace(/"/g, '&quot;') + '</span>' : ''}
+                                <span class="tl-type-badge" style="background:${typeBg}; color:${typeClr};">${typeLabel}</span>
+                            </div>
+                            ${log.notes ? '<span class="tl-notes"><i class="bi bi-chat-left-text me-1"></i>' + log.notes.replace(/"/g, '&quot;') + '</span>' : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            function updateStats(stats) {
+                const cards = document.querySelectorAll('.stat-card');
+                if (cards.length >= 4) {
+                    cards[0].querySelector('.stat-value').textContent = stats.total_logs;
+                    cards[1].querySelector('.stat-value').textContent = stats.total_rooms;
+                    cards[2].querySelector('.stat-value').textContent = stats.lights_on;
+                    cards[3].querySelector('.stat-value').textContent = stats.issues;
+                }
+            }
+
+            function reapplyFilters() {
+                const active = document.querySelector('.tab-btn.active');
+                if (active && active.dataset.tab === 'activity') {
+                    filterActivity();
+                } else {
+                    filterRooms();
+                }
+            }
+
+            function pollActivityLog() {
+                fetch('../../api/activity-logs.php')
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            renderActivityLog(res.data);
+                            if (res.stats) updateStats(res.stats);
+                            reapplyFilters();
+                        }
+                    })
+                    .catch(() => {});
+            }
+            setInterval(pollActivityLog, 30000);
         });
     </script>
 </body>

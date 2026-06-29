@@ -425,7 +425,6 @@ $conn->close();
     <link rel="stylesheet" href="../../css/faculty-timetable.css">
     <link rel="stylesheet" href="../../css/faculty-common.css">
     <link rel="stylesheet" href="../../css/faculty-settings.css">
-    <link rel="stylesheet" href="../../css/faculty-head-timetable.css">
 
     <title>Class Schedule – LumineSense</title>
 </head>
