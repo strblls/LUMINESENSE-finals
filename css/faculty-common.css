@@ -24,6 +24,48 @@
 }
 @keyframes fadeOut { to { opacity:0; } }
 
+/* ── Audio notification toast (modal-header + modal-body style) ──── */
+.notif-toast-wrap {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 99999;
+    min-width: 320px;
+    display: none;
+}
+.notif-toast-wrap.show {
+    display: block;
+    animation: notifFadeIn 0.4s ease, notifFadeOut 0.5s ease 5.2s forwards;
+}
+.notif-toast-msg {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    overflow: hidden;
+}
+.notif-toast-header {
+    background: var(--secondary-color-1);
+    color: #fff;
+    padding: 14px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.notif-toast-body {
+    padding: 20px;
+    color: #333;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.5;
+}
+@keyframes notifFadeIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes notifFadeOut { to { opacity: 0; } }
+
 
 /* Sidebar / logo standardization for admin pages */
 #sidebarOffcanvas {
@@ -64,5 +106,33 @@
 #profileOffcanvas {
     width: 240px !important;
     background-color: var(--primary-color);
+}
+
+/* ── Page-wide PIN overlay (timeout + setup) ───────────────────── */
+.page-timeout-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.page-timeout-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    max-width: 320px;
+    width: 100%;
+}
+.page-timeout-modal .form-control.pin-input {
+    font-size: 1.5rem;
+    letter-spacing: 6px;
+    width: 140px;
+    text-align: center;
 }
 

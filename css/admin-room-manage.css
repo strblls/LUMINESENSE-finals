@@ -149,6 +149,17 @@
     font-size: 16px;
 }
 
+.btn-icon-view {
+    background: #599bf1;
+    color: #fff;
+}
+
+.btn-icon-view:hover {
+    background: #b0d2ff;
+    color: #599bf1;
+    transform: scale(1.08);
+}
+
 /* status badge */
 .room-status-badge {
     display: inline-flex;
@@ -423,32 +434,32 @@
            ADMIN LIGHT OVERRIDE PANEL
         ══════════════════════════════════════ */
 .admin-override-panel {
-    background: #0f0f1a;
-    border-radius: 14px;
-    padding: 16px;
-    border: 1px solid rgba(116, 47, 211, 0.35);
-    box-shadow: 0 0 0 1px rgba(116, 47, 211, 0.12), 0 4px 20px rgba(0, 0, 0, 0.3);
+    background: var(--secondary-color-1);
+    border-radius: 16px;
+    padding: 22px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .05), 0 6px 28px rgba(0, 0, 0, .25);
 }
 
 .override-panel-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-    font-size: 11px;
+    gap: 10px;
+    margin-bottom: 18px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: .10em;
     text-transform: uppercase;
-    color: #a78bfa;
+    color: #c9a8f5;
 }
 
 .override-live-badge {
     margin-left: auto;
     background: #16a34a;
     color: #fff;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
-    padding: 2px 7px;
+    padding: 3px 10px;
     border-radius: 20px;
     letter-spacing: .08em;
     animation: pulse-green 2s infinite;
@@ -470,19 +481,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 16px;
+    margin-bottom: 18px;
 }
 
 .bulb-preview-grid {
     display: grid;
-    grid-template-columns: repeat(3, 28px);
-    gap: 4px;
+    grid-template-columns: repeat(3, 38px);
+    gap: 6px;
 }
 
 .bulb-img {
-    width: 28px;
-    height: 28px;
+    width: 38px;
+    height: 38px;
     object-fit: contain;
     transition: filter .2s;
 }
@@ -491,41 +502,41 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .override-master-btn {
-    width: 52px;
-    height: 52px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    border: 2px solid;
+    border: 2.5px solid;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 2px;
     cursor: pointer;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: .04em;
     transition: transform .15s, box-shadow .15s;
 }
 
 .override-master-btn i {
-    font-size: 18px;
+    font-size: 22px;
 }
 
 .override-master-btn.off {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: #555;
-    color: #777;
+    background: rgba(255, 255, 255, .08);
+    border-color: rgba(255, 255, 255, .2);
+    color: rgba(255, 255, 255, .45);
 }
 
 .override-master-btn.on {
-    background: rgba(250, 204, 21, 0.12);
+    background: rgba(250, 204, 21, .12);
     border-color: #facc15;
     color: #facc15;
-    box-shadow: 0 0 14px rgba(250, 204, 21, 0.3);
+    box-shadow: 0 0 18px rgba(250, 204, 21, 0.25);
 }
 
 .override-master-btn:hover {
@@ -533,32 +544,32 @@
 }
 
 .override-hint {
-    font-size: 10px;
-    color: #555;
+    font-size: 11px;
+    color: rgba(255, 255, 255, .35);
 }
 
 /* Per-row toggles */
 .override-rows {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 10px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.07);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-    margin-bottom: 10px;
+    gap: 10px;
+    padding: 14px 0;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    margin-bottom: 14px;
 }
 
 .override-row-item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .override-row-label {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
-    color: #888;
-    width: 36px;
+    color: rgba(255, 255, 255, .55);
+    width: 44px;
 }
 
 /* Custom toggle switch */
@@ -568,10 +579,10 @@
 
 .override-switch-label {
     display: inline-block;
-    width: 36px;
-    height: 20px;
-    background: #333;
-    border-radius: 20px;
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, .12);
+    border-radius: 24px;
     position: relative;
     cursor: pointer;
     transition: background .2s;
@@ -582,38 +593,181 @@
     position: absolute;
     top: 3px;
     left: 3px;
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    background: #666;
+    background: rgba(255, 255, 255, .35);
     transition: transform .2s, background .2s;
 }
 
 .override-switch:checked+.override-switch-label {
-    background: rgba(116, 47, 211, 0.5);
+    background: rgba(167, 139, 250, .4);
 }
 
 .override-switch:checked+.override-switch-label::after {
-    background: #a78bfa;
-    transform: translateX(16px);
+    background: #c9a8f5;
+    transform: translateX(20px);
 }
 
 .override-row-status {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
-    color: #555;
-    width: 28px;
+    color: rgba(255, 255, 255, .4);
+    width: 32px;
     transition: color .2s;
 }
 
 .override-row-status.is-on {
-    color: #a78bfa;
+    color: #c9a8f5;
 }
 
 .override-footer-note {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, .35);
+}
+
+/* ══════════════════════════════════════
+           MODAL TIMETABLE — SLOT-ROW STYLE
+        ══════════════════════════════════════ */
+.modal-slot-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+}
+
+.modal-slot-time {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.modal-slot-start {
+    font-size: 14px;
+    font-weight: 800;
+    color: #333;
+    line-height: 1.1;
+}
+
+.modal-slot-sep {
+    font-size: 9px;
+    color: #bbb;
+    font-weight: 600;
+}
+
+.modal-slot-end {
+    font-size: 14px;
+    font-weight: 800;
+    color: #333;
+    line-height: 1.1;
+}
+
+.modal-slot-ampm {
     font-size: 10px;
-    color: #444;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 2px;
+}
+
+.modal-slot-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.modal-slot-faculty {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--secondary-color-1);
+}
+
+.modal-slot-day {
+    font-size: 10px;
+    color: #999;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-top: 1px;
+}
+
+.modal-slot-empty {
+    padding: 16px;
+    text-align: center;
+    color: #bbb;
+    font-size: 13px;
+}
+
+/* ══════════════════════════════════════
+           MODAL ROOM ALERTS — TIMELINE STYLE
+        ══════════════════════════════════════ */
+.modal-timeline-item {
+    display: flex;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0eaf8;
+    animation: fadeSlide .3s ease both;
+}
+
+.modal-timeline-item:last-child {
+    border-bottom: none;
+}
+
+.modal-tl-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: .85rem;
+}
+
+.modal-tl-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.modal-tl-action {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    margin: 0 0 2px;
+}
+
+.modal-tl-meta {
+    font-size: 11px;
+    color: #999;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.modal-tl-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.modal-tl-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
 }

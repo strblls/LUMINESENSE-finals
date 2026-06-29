@@ -1,7 +1,7 @@
 .main-container.faculty-management {
     display: grid !important;
     grid-template-columns: minmax(0, 2.5fr) minmax(0, 1fr) !important;
-    align-items: start !important;
+    align-items: stretch !important;
 }
 
 .stat-row {
@@ -323,4 +323,10 @@
     display: flex;
     gap: 8px;
     padding: 0 20px 18px;
+}
+
+.sticky-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }

@@ -101,6 +101,9 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .slot-time hr {
@@ -192,6 +195,17 @@
     transform: scale(1.08);
 }
 
+.btn-icon-del {
+    background: #ffe4ec;
+    color: #c0004e;
+}
+
+.btn-icon-del:hover {
+    background: #c0004e;
+    color: #fff;
+    transform: scale(1.08);
+}
+
 .badge-ext-pending {
     background: #fff3cd;
     color: #856404;
@@ -229,6 +243,23 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+.coverage-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.coverage-grid .dept-info-card {
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .coverage-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .no-sched {
@@ -333,7 +364,7 @@
     color: #555;
     text-align: center;
 
-    .emphasis  {
+    .emphasis {
         font-size: 1rem;
         font-weight: 600;
         color: var(--secondary-color-1, #6c5ce7);
@@ -365,15 +396,15 @@
         flex-direction: column;
         gap: 1.5rem !important;
     }
-    
+
     .extend-right-div {
         order: -1;
     }
-    
+
     .timer-display {
         font-size: 1.5rem;
     }
-    
+
     .timer-input {
         width: 40px;
         height: 40px;

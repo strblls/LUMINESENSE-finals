@@ -12,7 +12,7 @@
 .main-container.admin {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr) !important;
-    align-items: start !important;
+    align-items: stretch !important;
 }
 
 .main-container.admin .group-container {
@@ -387,7 +387,7 @@
 
 .cal-popover-body {
     padding: 8px 12px !important;
-    max-height: 160px !important;
+    max-height: 250px !important;
     overflow-y: auto !important;
     display: block !important;
 }
@@ -536,4 +536,134 @@
     padding: 3px 10px;
     border-radius: 20px;
     font-size: 11px;
+}
+
+/* ══════════════════════════════════════
+           FACULTY HIERARCHY TREE
+        ══════════════════════════════════════ */
+.hierarchy-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.hierarchy-dept {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.hierarchy-dept-node {
+    background: var(--secondary-color-1);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 22px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.hierarchy-connector {
+    width: 2px;
+    height: 18px;
+    background: var(--secondary-color-3);
+    flex-shrink: 0;
+}
+
+.hierarchy-head-node {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border: 1.5px solid var(--secondary-color-2);
+    border-radius: 10px;
+    padding: 10px 16px;
+    min-width: 200px;
+}
+
+.hierarchy-head-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--secondary-color-3);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.hierarchy-head-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1.2;
+}
+
+.hierarchy-head-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--secondary-color-3);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.hierarchy-cross {
+    font-size: 10px;
+    color: var(--muted-dark);
+    margin-top: 3px;
+    font-style: italic;
+    max-width: 200px;
+    white-space: normal;
+}
+
+.hierarchy-members-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.hierarchy-member-node {
+    background: #fff;
+    border: 1px solid #e0d6f0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+}
+
+.hierarchy-member-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e9d5ff;
+    color: var(--secondary-color-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.hierarchy-member-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    line-height: 1.2;
+}
+
+.hierarchy-empty {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 8px 0;
 }
