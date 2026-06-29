@@ -341,7 +341,10 @@ if ($dept_q && $dept_q->num_rows > 0) {
     $dept_name = implode(', ', $dept_names);
 }
 foreach ($coverage as $sa) {
-    if (!empty($sa['subjects'])) { $has_any_subject = true; break; }
+    if (!empty($sa['subjects'])) {
+        $has_any_subject = true;
+        break;
+    }
 }
 
 $le_q = $conn->query("
@@ -395,10 +398,18 @@ if ($limit_q) {
     $limit_q->close();
 }
 
-function ordinal(int $number): string {
+function ordinal(int $number): string
+{
     if (!in_array($number % 100, [11, 12, 13])) {
-        $suffix = match ($number % 10) { 1 => 'st', 2 => 'nd', 3 => 'rd', default => 'th' };
-    } else { $suffix = 'th'; }
+        $suffix = match ($number % 10) {
+            1 => 'st',
+            2 => 'nd',
+            3 => 'rd',
+            default => 'th'
+        };
+    } else {
+        $suffix = 'th';
+    }
     return $number . $suffix;
 }
 
@@ -418,11 +429,13 @@ $conn->close();
 
     <!--Relative links-->
     <link type="icon" href="../../logo.png">
+    
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/tooltip.css">
     <link rel="stylesheet" href="../../css/modals.css">
     <link rel="stylesheet" href="../../css/faculty-timetable.css">
+    <link rel="stylesheet" href="../../css/faculty-head-timetable.css">
     <link rel="stylesheet" href="../../css/faculty-common.css">
     <link rel="stylesheet" href="../../css/faculty-settings.css">
 
@@ -498,26 +511,26 @@ $conn->close();
                         <?php if ($current_class):
                             $cc_end = $current_class['extended_until'] ?? $current_class['end_time'];
                         ?>
-                        <div class="subsection-container p-3">
-                            <h2 class="bold text-uppercase" style="color: #fff;">Current</h2>
-                            <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($current_class['start_time'])) ?> – <?= date('g:i A', strtotime($cc_end)) ?></h2>
-                            <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($current_class['room_name']) ?></h2>
-                            <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($current_class['subject_name'] ?? 'N/A') ?></h2>
-                        </div>
+                            <div class="subsection-container p-3">
+                                <h2 class="bold text-uppercase" style="color: #fff;">Current</h2>
+                                <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($current_class['start_time'])) ?> – <?= date('g:i A', strtotime($cc_end)) ?></h2>
+                                <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($current_class['room_name']) ?></h2>
+                                <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($current_class['subject_name'] ?? 'N/A') ?></h2>
+                            </div>
                         <?php elseif (!$current_class && !$next_class): ?>
-                        <div class="d-flex align-items-center justify-content-center w-100">
-                            <p class="text-muted text-center my-2">No classes scheduled for today.</p>
-                        </div>
+                            <div class="d-flex align-items-center justify-content-center w-100">
+                                <p class="text-muted text-center my-2">No classes scheduled for today.</p>
+                            </div>
                         <?php endif; ?>
                         <?php if ($next_class):
                             $nc_end = $next_class['extended_until'] ?? $next_class['end_time'];
                         ?>
-                        <div>
-                            <h2 class="bold text-uppercase" style="font-size: 14px;">Next</h2>
-                            <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($next_class['start_time'])) ?> – <?= date('g:i A', strtotime($nc_end)) ?></h2>
-                            <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($next_class['room_name']) ?></h2>
-                            <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($next_class['subject_name'] ?? 'N/A') ?></h2>
-                        </div>
+                            <div>
+                                <h2 class="bold text-uppercase" style="font-size: 14px;">Next</h2>
+                                <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($next_class['start_time'])) ?> – <?= date('g:i A', strtotime($nc_end)) ?></h2>
+                                <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($next_class['room_name']) ?></h2>
+                                <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($next_class['subject_name'] ?? 'N/A') ?></h2>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -539,31 +552,31 @@ $conn->close();
                     <?php else: ?>
                         <div class="d-flex flex-column gap-2 p-2 overflow-auto flex-grow-1" style="max-height:25vh;">
                             <?php foreach ($extension_requests as $er): ?>
-                            <div class="dept-info-card d-flex flex-row align-items-center justify-content-between gap-2 p-2">
-                                <div class="d-flex flex-column small flex-grow-1">
-                                    <span><strong><?= htmlspecialchars($er['room_name']) ?></strong> · <?= htmlspecialchars($er['subject_name'] ?? 'No subject') ?></span>
-                                    <span class="text-muted"><?= htmlspecialchars($er['day_of_week']) ?> · <?= date('g:i A', strtotime($er['start_time'])) ?> - <?= date('g:i A', strtotime($er['extended_until'] ?? $er['end_time'])) ?></span>
-                                    <span class="text-muted">+<?= (int)$er['extend_mins'] ?> min · Status: 
-                                        <span class="fw-bold <?= $er['status'] === 'approved' ? 'text-success' : ($er['status'] === 'rejected' ? 'text-danger' : 'text-warning') ?>">
-                                            <?= ucfirst($er['status']) ?>
+                                <div class="dept-info-card d-flex flex-row align-items-center justify-content-between gap-2 p-2">
+                                    <div class="d-flex flex-column small flex-grow-1">
+                                        <span><strong><?= htmlspecialchars($er['room_name']) ?></strong> · <?= htmlspecialchars($er['subject_name'] ?? 'No subject') ?></span>
+                                        <span class="text-muted"><?= htmlspecialchars($er['day_of_week']) ?> · <?= date('g:i A', strtotime($er['start_time'])) ?> - <?= date('g:i A', strtotime($er['extended_until'] ?? $er['end_time'])) ?></span>
+                                        <span class="text-muted">+<?= (int)$er['extend_mins'] ?> min · Status:
+                                            <span class="fw-bold <?= $er['status'] === 'approved' ? 'text-success' : ($er['status'] === 'rejected' ? 'text-danger' : 'text-warning') ?>">
+                                                <?= ucfirst($er['status']) ?>
+                                            </span>
                                         </span>
-                                    </span>
+                                    </div>
+                                    <?php if ($er['status'] === 'pending'): ?>
+                                        <div class="d-flex gap-1 flex-shrink-0">
+                                            <button class="btn-icon btn-icon-view" style="width:auto;padding:4px 10px;font-size:12px;"
+                                                onclick="editExtensionRequest(<?= $er['schedule_id'] ?>, '<?= htmlspecialchars($er['room_name']) ?>', '<?= date('g:i A', strtotime($er['start_time'])) ?>', '<?= date('g:i A', strtotime($er['end_time'])) ?>', <?= (int)$er['extend_mins'] ?>, <?= (int)$er['id'] ?>)"
+                                                title="Edit" data-bs-toggle="tooltip">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn-icon btn-icon-del" style="width:auto;padding:4px 10px;font-size:12px;"
+                                                onclick="openDeleteModal(<?= (int)$er['id'] ?>)"
+                                                title="Delete" data-bs-toggle="tooltip">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                                <?php if ($er['status'] === 'pending'): ?>
-                                <div class="d-flex gap-1 flex-shrink-0">
-                                    <button class="btn-icon btn-icon-view" style="width:auto;padding:4px 10px;font-size:12px;"
-                                        onclick="editExtensionRequest(<?= $er['schedule_id'] ?>, '<?= htmlspecialchars($er['room_name']) ?>', '<?= date('g:i A', strtotime($er['start_time'])) ?>', '<?= date('g:i A', strtotime($er['end_time'])) ?>', <?= (int)$er['extend_mins'] ?>, <?= (int)$er['id'] ?>)"
-                                        title="Edit" data-bs-toggle="tooltip">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn-icon btn-icon-del" style="width:auto;padding:4px 10px;font-size:12px;"
-                                        onclick="openDeleteModal(<?= (int)$er['id'] ?>)"
-                                        title="Delete" data-bs-toggle="tooltip">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                                <?php endif; ?>
-                            </div>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
@@ -744,13 +757,13 @@ $conn->close();
                                                     <i class="bi bi-eye"></i>
                                                 </button>
                                                 <?php if ($is_today): ?>
-                                                <button class="extend-icon-btn"
-                                                    onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
-                                                    title="Request Another Extension"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto">
-                                                    <i class="bi bi-clock-history"></i>
-                                                </button>
+                                                    <button class="extend-icon-btn"
+                                                        onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
+                                                        title="Request Another Extension"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="auto">
+                                                        <i class="bi bi-clock-history"></i>
+                                                    </button>
                                                 <?php endif; ?>
                                                 <span class="badge-ext-approved"
                                                     title="Extension approved"
@@ -1010,7 +1023,9 @@ $conn->close();
 
             // Check for succeeding schedule in the same room
             fetch('../../api/check-room-successor.php?schedule_id=' + scheduleId)
-                .then(function(r) { return r.json(); })
+                .then(function(r) {
+                    return r.json();
+                })
                 .then(function(data) {
                     if (data.success && data.has_successor) {
                         showConflictModal(
@@ -1059,7 +1074,9 @@ $conn->close();
 
             // Check for succeeding schedule in the same room
             fetch('../../api/check-room-successor.php?schedule_id=' + scheduleId)
-                .then(function(r) { return r.json(); })
+                .then(function(r) {
+                    return r.json();
+                })
                 .then(function(data) {
                     if (data.success && data.has_successor) {
                         showConflictModal(
@@ -1299,7 +1316,11 @@ $conn->close();
 
     <script>
         document.querySelectorAll('.flash-dismiss').forEach(el => {
-            setTimeout(() => { el.style.transition = 'opacity .5s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }, 5000);
+            setTimeout(() => {
+                el.style.transition = 'opacity .5s';
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 500);
+            }, 5000);
         });
     </script>
 
@@ -1494,39 +1515,42 @@ $conn->close();
     </div>
 
     <script>
-    function openEndEarlyModal(schedId, roomName) {
-        document.getElementById('endEarlyRoom').textContent = roomName;
-        document.getElementById('endEarlySchedId').value = schedId;
-        new bootstrap.Modal(document.getElementById('endEarlyModal')).show();
-    }
+        function openEndEarlyModal(schedId, roomName) {
+            document.getElementById('endEarlyRoom').textContent = roomName;
+            document.getElementById('endEarlySchedId').value = schedId;
+            new bootstrap.Modal(document.getElementById('endEarlyModal')).show();
+        }
     </script>
 
     <?php if (!empty($_SESSION['show_limit_modal'])): ?>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var limitModal = new bootstrap.Modal(document.getElementById('limitModal'));
-            limitModal.show();
-        });
-    </script>
-    <?php unset($_SESSION['show_limit_modal']); endif; ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var limitModal = new bootstrap.Modal(document.getElementById('limitModal'));
+                limitModal.show();
+            });
+        </script>
+    <?php unset($_SESSION['show_limit_modal']);
+    endif; ?>
 
     <?php if (!empty($_SESSION['room_conflict_successor'])): ?>
-    <?php
+        <?php
         $cs = $_SESSION['room_conflict_successor'];
         unset($_SESSION['room_conflict_successor']);
-    ?>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('conflictRoom').textContent = '<?= htmlspecialchars($cs['room'], ENT_QUOTES) ?>';
-            document.getElementById('conflictTime').textContent = '<?= htmlspecialchars($cs['start'], ENT_QUOTES) ?> - <?= htmlspecialchars($cs['end'], ENT_QUOTES) ?>';
-            document.getElementById('conflictSubject').textContent = '<?= htmlspecialchars($cs['subject'], ENT_QUOTES) ?>';
-            var conflictModal = new bootstrap.Modal(document.getElementById('roomConflictModal'));
-            conflictModal.show();
-        });
-    </script>
+        ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('conflictRoom').textContent = '<?= htmlspecialchars($cs['room'], ENT_QUOTES) ?>';
+                document.getElementById('conflictTime').textContent = '<?= htmlspecialchars($cs['start'], ENT_QUOTES) ?> - <?= htmlspecialchars($cs['end'], ENT_QUOTES) ?>';
+                document.getElementById('conflictSubject').textContent = '<?= htmlspecialchars($cs['subject'], ENT_QUOTES) ?>';
+                var conflictModal = new bootstrap.Modal(document.getElementById('roomConflictModal'));
+                conflictModal.show();
+            });
+        </script>
     <?php endif; ?>
 
-    <script>fetch('../../api/auto-approve-extensions.php').catch(function(){});</script>
+    <script>
+        fetch('../../api/auto-approve-extensions.php').catch(function() {});
+    </script>
 
 </body>
 
