@@ -1,7 +1,10 @@
 <?php
 $phpRoot = realpath(__DIR__ . '/../../php');
 require_once $phpRoot . '/session_guard.php';
-check_admin();
+if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['faculty_logged_in'])) {
+    echo json_encode(['error' => 'Unauthorized']);
+    exit;
+}
 require_once $phpRoot . '/db_connect.php';
 date_default_timezone_set('Asia/Manila');
 
@@ -48,7 +51,7 @@ $stmt = $conn->prepare("
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
            f.first_name, f.last_name
     FROM schedules s
-    JOIN faculty f ON f.id = s.created_by
+    JOIN faculty f ON f.id = s.faculty_id
     WHERE s.classroom_id = ?
       AND s.day_of_week  = ?
       AND TIME(s.start_time) <= TIME(?)
@@ -76,7 +79,7 @@ $stmt = $conn->prepare("
     SELECT s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name
     FROM schedules s
-    JOIN faculty f ON f.id = s.created_by
+    JOIN faculty f ON f.id = s.faculty_id
     WHERE s.classroom_id = ?
       AND s.day_of_week = ?
     ORDER BY TIME(s.start_time) ASC
@@ -104,7 +107,7 @@ $stmt = $conn->prepare("
     SELECT s.day_of_week, s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name
     FROM schedules s
-    JOIN faculty f ON f.id = s.created_by
+    JOIN faculty f ON f.id = s.faculty_id
     WHERE s.classroom_id = ?
     ORDER BY FIELD(s.day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
              s.start_time
@@ -144,7 +147,7 @@ $stmt = $conn->prepare("
     SELECT s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name
     FROM schedules s
-    JOIN faculty f ON f.id = s.created_by
+    JOIN faculty f ON f.id = s.faculty_id
     WHERE s.classroom_id = ?
       AND s.day_of_week = ?
       AND TIME(s.start_time) > TIME(?)

@@ -72,8 +72,55 @@ foreach ($schedules as $s) {
     }
 }
 
-// ── Recent logs for this faculty's classroom only ─────────────
-// FIX: was showing all rooms, now filters by classroom_id
+// ── Active schedule end time (with extension) for audio notifications ─────────
+$active_schedule_end = '';
+$active_schedule_room = '';
+$stmt = $conn->prepare("
+    SELECT COALESCE(s.extended_until, s.end_time) AS end_time, c.room_name
+    FROM schedules s
+    JOIN classrooms c ON c.id = s.classroom_id
+    WHERE s.faculty_id = ?
+      AND s.day_of_week = ?
+      AND s.start_time <= ?
+      AND (s.extended_until >= ? OR (s.extended_until IS NULL AND s.end_time >= ?))
+    ORDER BY s.start_time
+    LIMIT 1
+");
+$stmt->bind_param('issss', $faculty_id, $today, $now, $now, $now);
+$stmt->execute();
+$stmt->bind_result($active_schedule_end, $active_schedule_room);
+$stmt->fetch();
+$stmt->close();
+
+// ── Has any schedule at all? ──────────────────────────────────────
+$has_any_schedule = false;
+$stmt = $conn->prepare("SELECT 1 FROM schedules WHERE faculty_id = ? LIMIT 1");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$stmt->bind_result($dummy);
+$has_any_schedule = (bool)$stmt->fetch();
+$stmt->close();
+
+// ── Faculty permissions ───────────────────────────────────────────
+$permissions = ['lighting_control' => 1, 'gesture_control' => 1];
+$stmt = $conn->prepare("SELECT lighting_control, gesture_control FROM faculty_permissions WHERE faculty_id = ?");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$stmt->bind_result($pc_lc, $pc_gc);
+if ($stmt->fetch()) {
+    $permissions = ['lighting_control' => $pc_lc, 'gesture_control' => $pc_gc];
+}
+$stmt->close();
+
+// ── Has PIN set? ──────────────────────────────────────────────
+$has_pin = false;
+$stmt = $conn->prepare("SELECT pin_hash FROM faculty_permissions WHERE faculty_id = ? AND pin_hash IS NOT NULL");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$stmt->bind_result($pin_hash_val);
+$has_pin = (bool)$stmt->fetch();
+$stmt->close();
+
 $logs = [];
 $r = $conn->query("
     SELECT l.event_type, l.triggered_by, l.event_time, c.room_name

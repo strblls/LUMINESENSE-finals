@@ -10,8 +10,8 @@ require_once '../../php/includes/admin-head.php';
 /** @var int $admin_id */
 
 $phpRoot = realpath(__DIR__ . '/../../php');
-require_once $phpRoot . '/handlers/faculty-approvals-handler.php';
 require_once $phpRoot . '/handlers/admin-handlers.php';
+require_once $phpRoot . '/handlers/faculty-approvals-handler.php';
 
 /** @var string $message */
 /** @var int $total_faculty */
@@ -87,6 +87,109 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
             <div class="main-container faculty-management gap-5">
 
                 <div class="group-container">
+                    <!--Registration Approvals Pending-->
+                    <div class="row g-4 mb-2">
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm p-4 h-100" style="background-color: var(--secondary-color-1);">
+                                <div class="style-scrollbar" style="max-height: 300px; overflow-y: auto;">
+                                    <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between p-3 mb-2 sticky-topbar" style="background: var(--primary-color) !important;
+                                    border-radius: 8px !important;">
+                                        <div class="d-flex flex-column mx-2 align-items-start">
+                                            <h2 class="bold" style="font-size:24.5px;"><i class="fa-solid fa-user-clock me-2"></i>Pending Approvals</h2>
+                                            <p class="subtitle">Pending registration approvals are displayed here.</p>
+                                        </div>
+                                    </div>
+                                    <?php
+                                    $has_pending = false;
+                                    foreach ($faculty_list as $faculty):
+                                        if ($faculty['status_label'] === 'pending'):
+                                            $has_pending = true;
+                                    ?>
+                                            <div class="d-flex align-items-center justify-content-between p-3 mb-2 border border-warning-subtle rounded bg-warning-subtle bg-opacity-10">
+                                                <div>
+                                                    <h5 class="bold mb-0"><?= htmlspecialchars($faculty['first_name'] . ' ' . $faculty['last_name']) ?></h5>
+                                                    <span class="text-muted small" style="font-size: 11px;"><?= htmlspecialchars($faculty['email']) ?></span>
+                                                </div>
+
+                                                <button type="button"
+                                                    class="btn-icon btn-icon-view d-inline-flex align-items-center"
+                                                    onclick="window.location.href='admin-faculty-review.php?id=<?= $faculty['id'] ?>'"
+                                                    title="Review Access Request"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="auto">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                        <?php endif;
+                                    endforeach;
+                                    if (!$has_pending):
+                                        ?>
+                                        <p class="text-center py-4 small" style="color: #fff;">No pending registrations require attention right now.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Schedule Extension Requests -->
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm px-4 pb-4 h-100" style="background-color: var(--secondary-color-1);">
+                                <div class="style-scrollbar" style="max-height: 300px; overflow-y: auto;">
+                                    <div class="section-topbar d-flex my-4 gap-1 align-items-center justify-content-between p-3 sticky-topbar" style="background: var(--primary-color) !important;
+                                    border-radius: 8px !important;">
+                                        <div class="d-flex flex-column mx-2 align-items-start">
+                                            <h5 class="bold" style="font-size:24.5px;"><i class="bi bi-clock-history me-2"></i>Pending Extensions</h5>
+                                            <p class="subtitle">Pending schedule extensions are displayed here.</p>
+                                            <form method="POST" class="d-flex align-items-center gap-2 mt-2">
+                                                <input type="hidden" name="action" value="set_grace_period">
+                                                <label class="small" style="white-space:nowrap;">Auto-accept:</label>
+                                                <select name="grace_minutes" class="form-select form-select-sm" style="width:auto;font-size:12px;" onchange="this.form.submit()">
+                                                    <option value="0" <?= (($_SESSION['ext_grace_minutes'] ?? 0) == 0) ? 'selected' : '' ?>>Off</option>
+                                                    <option value="15" <?= (($_SESSION['ext_grace_minutes'] ?? 0) == 15) ? 'selected' : '' ?>>15 min</option>
+                                                    <option value="30" <?= (($_SESSION['ext_grace_minutes'] ?? 0) == 30) ? 'selected' : '' ?>>30 min</option>
+                                                    <option value="60" <?= (($_SESSION['ext_grace_minutes'] ?? 0) == 60) ? 'selected' : '' ?>>1 hr</option>
+                                                </select>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <?php
+                                    $has_ext = false;
+                                    foreach ($extensions as $ext):
+                                        if ($ext['status'] === 'pending'):
+                                            $has_ext = true;
+                                    ?>
+                                            <div class="p-3 border rounded mb-2 bg-light">
+                                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                                    <h6 class="bold mb-0 text-dark"><?= htmlspecialchars($ext['faculty_name']) ?></h6>
+                                                    <span class="badge bg-info text-dark">+<?= $ext['extend_mins'] ?> mins</span>
+                                                </div>
+                                                <p class="text-secondary small mb-2">
+                                                    <?= htmlspecialchars($ext['room_name']) ?> ·
+                                                    <?= htmlspecialchars($ext['subject_name'] ?? 'No subject') ?> ·
+                                                    <?= $ext['day_of_week'] ?> ·
+                                                    <?= date('g:i A', strtotime($ext['start_time'])) ?> –
+                                                    <?= date('g:i A', strtotime($ext['end_time'])) ?>
+                                                </p>
+                                                <div class="d-flex gap-2 justify-content-end">
+                                                    <form method="POST" class="mb-0">
+                                                        <input type="hidden" name="extension_id" value="<?= $ext['id'] ?>"><input type="hidden" name="action" value="ext_reject">
+                                                        <button type="submit" class="light py-1 px-2" data-bs-toggle="tooltip" title="Deny Extension">Deny</button>
+                                                    </form>
+                                                    <form method="POST" class="mb-0">
+                                                        <input type="hidden" name="extension_id" value="<?= $ext['id'] ?>"><input type="hidden" name="action" value="ext_approve">
+                                                        <button type="submit" class="medium py-1 px-2" data-bs-toggle="tooltip" title="Grant Extension">Grant</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        <?php
+                                        endif;
+                                    endforeach;
+                                    if (!$has_ext):
+                                        ?>
+                                        <p class=" text-center small" style="color: #fff;">No schedule extensions are currently requested.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Stats cards -->
                     <div style="background-color:#f8f9fa;" class="section-container py-4">
                         <div class="stat-row gap-3">
@@ -213,10 +316,9 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                     </div>
                 </div>
 
-
-                <div class="group-container gap-3">
+                <div class="group-container gap-3 d-flex flex-column">
                     <!-- Faculty Directory -->
-                    <div class="faculty-directory card border-0 shadow-sm p-4 bg-white w-100">
+                    <div class="faculty-directory card border-0 shadow-sm p-4 bg-white w-100 d-flex flex-column flex-grow-1">
                         <div class="faculty-directory-container d-flex flex-column justify-content-center align-items-center p-3 mb-3">
                             <h2 class="bold mb-0"><i class="bi bi-people mb-3"></i> Faculty Directory</h2>
                             <div class="btn-group btn-group-sm" role="group">
@@ -225,7 +327,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                 <button type="button" class="light gap-2" style="font-size: 12px;" onclick="filterList('unverified')"><i class="bi bi-x-circle"></i> Unverified</button>
                             </div>
                         </div>
-                        <div class="style-scrollbar" style="max-height: 400px; overflow-y: auto;">
+                        <div class="style-scrollbar flex-grow-1" style="overflow-y: auto;">
                             <?php if (empty($faculty_list)): ?>
                                 <p class="text-muted text-center py-4">No records found inside the active index.</p>
                                 <?php else: foreach ($faculty_list as $faculty): ?>
@@ -285,97 +387,6 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                         </div>
                     </div>
 
-                    <!--Registration Approvals Pending-->
-                    <div class="row g-4 mb-4">
-                        <div class="col-12">
-                            <div class="card border-0 shadow-sm p-4 h-100" style="background-color: var(--secondary-color-1);">
-                                <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between p-3 mb-3" style="background: var(--primary-color) !important;
-                                border-radius: 8px !important;">
-                                    <div class="d-flex flex-column mx-2 align-items-start">
-                                        <h2 class="bold" style="font-size:24.5px;"><i class="fa-solid fa-user-clock me-2"></i>Pending Approvals</h2>
-                                        <p class="subtitle">Pending registration approvals are displayed here.</p>
-                                    </div>
-                                </div>
-                                <div class="style-scrollbar" style="max-height: 300px; overflow-y: auto;">
-                                    <?php
-                                    $has_pending = false;
-                                    foreach ($faculty_list as $faculty):
-                                        if ($faculty['status_label'] === 'pending'):
-                                            $has_pending = true;
-                                    ?>
-                                            <div class="d-flex align-items-center justify-content-between p-3 mb-2 border border-warning-subtle rounded bg-warning-subtle bg-opacity-10">
-                                                <div>
-                                                    <h5 class="bold mb-0"><?= htmlspecialchars($faculty['first_name'] . ' ' . $faculty['last_name']) ?></h5>
-                                                    <span class="text-muted small" style="font-size: 11px;"><?= htmlspecialchars($faculty['email']) ?></span>
-                                                </div>
-
-                                                <button type="button"
-                                                    class="btn-icon btn-icon-view d-inline-flex align-items-center"
-                                                    onclick="window.location.href='admin-faculty-review.php?id=<?= $faculty['id'] ?>'"
-                                                    title="Review Access Request"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                            </div>
-                                        <?php endif;
-                                    endforeach;
-                                    if (!$has_pending):
-                                        ?>
-                                        <p class="text-center py-4 small" style="color: #fff;">No pending registrations require attention right now.</p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Schedule Extension Requests -->
-                        <div class="col-12">
-                            <div class="card border-0 shadow-sm p-4 h-100" style="background-color: var(--secondary-color-1);">
-                                <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between p-3 mb-3" style="background: var(--primary-color) !important;
-                                border-radius: 8px !important;">
-                                    <div class="d-flex flex-column mx-2 align-items-start">
-                                        <h5 class="bold" style="font-size:24.5px;"><i class="bi bi-clock-history me-2"></i>Pending Extensions</h5>
-                                        <p class="subtitle">Pending schedule extensions are displayed here.</p>
-                                    </div>
-                                </div>
-                                <div class="style-scrollbar" style="max-height: 300px; overflow-y: auto;">
-                                    <?php
-                                    $has_ext = false;
-                                    foreach ($extensions as $ext):
-                                        if ($ext['status'] === 'pending'):
-                                            $has_ext = true;
-                                    ?>
-                                            <div class="p-3 border rounded mb-2 bg-light">
-                                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                                    <h6 class="bold mb-0 text-dark"><?= htmlspecialchars($ext['faculty_name']) ?></h6>
-                                                    <span class="badge bg-info text-dark">+<?= $ext['extend_mins'] ?> mins</span>
-                                                </div>
-                                                <p class="text-secondary small mb-2">
-                                                    <?= $ext['room_name'] ?> · <?= $ext['day_of_week'] ?> ·
-                                                    <?= date('g:i A', strtotime($ext['start_time'])) ?> –
-                                                    <?= date('g:i A', strtotime($ext['end_time'])) ?>
-                                                </p>
-                                                <div class="d-flex gap-2 justify-content-end">
-                                                    <form method="POST" class="mb-0">
-                                                        <input type="hidden" name="extension_id" value="<?= $ext['id'] ?>"><input type="hidden" name="action" value="ext_reject">
-                                                        <button type="submit" class="btn btn-xs btn-outline-danger py-1 px-2">Deny</button>
-                                                    </form>
-                                                    <form method="POST" class="mb-0">
-                                                        <input type="hidden" name="extension_id" value="<?= $ext['id'] ?>"><input type="hidden" name="action" value="ext_approve">
-                                                        <button type="submit" class="btn btn-xs btn-primary py-1 px-2">Grant</button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        <?php
-                                        endif;
-                                    endforeach;
-                                    if (!$has_ext):
-                                        ?>
-                                        <p class=" text-center py-4 small" style="color: #fff;">No schedule extensions are currently requested.</p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -674,6 +685,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../script/animations.js"></script>
+    <script src="../../script/tooltip.js"></script>
     <script>
         // Departments data to prefill edit modal
         const departmentsData = <?= json_encode($departments) ?>;
@@ -827,6 +839,17 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                 }
             }
         });
+
+        // Set departments-scroll-container max-height to match main-container
+        function syncScrollContainerHeight() {
+            const mainContainer = document.querySelector('.main-container.faculty-management.gap-5');
+            const scrollContainer = document.querySelector('.departments-scroll-container');
+            if (mainContainer && scrollContainer) {
+                scrollContainer.style.maxHeight = mainContainer.offsetHeight + 'px';
+            }
+        }
+        document.addEventListener('DOMContentLoaded', syncScrollContainerHeight);
+        window.addEventListener('resize', syncScrollContainerHeight);
 
         // Form validation for add department
         document.getElementById('addDepartmentForm').addEventListener('submit', function(e) {

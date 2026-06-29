@@ -40,9 +40,12 @@ $f_approved = $faculty['approved_by'] !== null;
 // Fetch their schedules
 $f_schedules = [];
 $stmt = $conn->prepare("
-    SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name
-    FROM schedules s JOIN classrooms c ON c.id = s.classroom_id
-    WHERE s.created_by = ?
+    SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name,
+           COALESCE(sub.name, 'No subject') AS subject_name
+    FROM schedules s
+    JOIN classrooms c ON c.id = s.classroom_id
+    LEFT JOIN subjects sub ON sub.id = s.subject_id
+    WHERE s.faculty_id = ?
     ORDER BY FIELD(s.day_of_week,
         'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
         s.start_time
@@ -71,13 +74,13 @@ while ($row = $r->fetch_assoc()) $f_logs[] = $row;
 $stmt->close();
 
 //Fetch Permissions
-$permissions = ['lighting_control' => 1, 'gesture_control' => 1, 'request_access' => 1];
-$stmt = $conn->prepare('SELECT lighting_control, gesture_control, request_access FROM faculty_permissions WHERE faculty_id = ?');
+$permissions = ['lighting_control' => 1, 'gesture_control' => 1];
+$stmt = $conn->prepare('SELECT lighting_control, gesture_control FROM faculty_permissions WHERE faculty_id = ?');
 $stmt->bind_param('i', $faculty_id);
 $stmt->execute();
-$stmt->bind_result($lc, $gc, $ra);
+$stmt->bind_result($lc, $gc);
 if ($stmt->fetch()) {
-    $permissions = ['lighting_control' => $lc, 'gesture_control' => $gc, 'request_access' => $ra];
+    $permissions = ['lighting_control' => $lc, 'gesture_control' => $gc];
 }
 $stmt->close();
 
@@ -184,23 +187,11 @@ $conn->close();
                             <i class="bi bi-hand-index-fill access-icon"></i>
                             <span class="access-label">Gesture Control</span>
                         </div>
-                        <div class="form-checkS form-switch mb-0">
+                        <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" role="switch"
                                 id="switch-gesture"
                                 <?= $permissions['gesture_control'] ? 'checked' : '' ?>
                                 onchange="savePermission('gesture_control', this.checked)">
-                        </div>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-journal-text access-icon"></i>
-                            <span class="access-label">Request Access</span>
-                        </div>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" role="switch"
-                                id="switch-request"
-                                <?= $permissions['request_access'] ? 'checked' : '' ?>
-                                onchange="savePermission('request_access', this.checked)">
                         </div>
                     </div>
                 </div>
@@ -257,7 +248,7 @@ $conn->close();
                                             </div>
                                             <div class="slot-subject d-flex flex-row">
                                                 <i class="bi bi-book me-1"></i>
-                                                <h5>Math</h5>
+                                                <h5><?= htmlspecialchars($s['subject_name']) ?></h5>
                                             </div>
                                         </div>
                                     </div>

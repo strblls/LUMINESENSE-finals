@@ -23,8 +23,9 @@ $stmt->bind_result($faculty_email);
 $stmt->fetch();
 $stmt->close();
 
-$member_id = (int)($_GET['faculty_id'] ?? 0);
-if (!$member_id) {
+$member_id    = (int)($_GET['faculty_id'] ?? 0);
+$department_id = (int)($_GET['department_id'] ?? 0);
+if (!$member_id || !$department_id) {
     header('Location: faculty-head-timetable.php');
     exit;
 }
@@ -34,16 +35,20 @@ $member_name = '';
 $member_area = '';
 $stmt = $conn->prepare("
     SELECT CONCAT(f.first_name, ' ', f.last_name) AS full_name,
-           sa.name AS subject_area_name
+           GROUP_CONCAT(DISTINCT sa.name ORDER BY sa.name SEPARATOR ', ') AS subject_area_name
     FROM faculty f
-    LEFT JOIN subject_area sa ON sa.id = f.subject_area_id
-    JOIN departments d ON d.id = f.department_id
+    JOIN junction_faculty_department jfd ON f.id = jfd.faculty_id
+    LEFT JOIN junction_faculty_subjectarea jfsa ON f.id = jfsa.faculty_id
+    LEFT JOIN subject_area sa ON sa.id = jfsa.subject_area_id AND sa.department_id = jfd.department_id
+    JOIN departments d ON d.id = jfd.department_id
     WHERE f.id = ? 
+      AND d.id = ?
       AND d.head_faculty_id = ? 
       AND d.status = 'active'
+    GROUP BY f.id
     LIMIT 1
 ");
-$stmt->bind_param('ii', $member_id, $faculty_id);
+$stmt->bind_param('iii', $member_id, $department_id, $faculty_id);
 $stmt->execute();
 $member = $stmt->get_result()->fetch_assoc();
 $stmt->close();
@@ -64,15 +69,17 @@ foreach ($days as $day) $schedule_by_day[$day] = [];
 $mid = (int)$member_id;
 $r = $conn->query("
     SELECT s.id, s.day_of_week, s.start_time, s.end_time, s.classroom_id,
-           s.extended_until, s.subject_id,
+           s.extended_until, s.subject_id, s.created_by,
            c.room_name,
            sub.name AS subject_name,
+           cr.first_name AS creator_first, cr.last_name AS creator_last,
            (SELECT status FROM extension_requests
             WHERE schedule_id = s.id AND faculty_id = s.faculty_id
             ORDER BY requested_at DESC LIMIT 1) AS ext_status
     FROM schedules s
     JOIN classrooms c ON c.id = s.classroom_id
     LEFT JOIN subjects sub ON sub.id = s.subject_id
+    LEFT JOIN faculty cr ON cr.id = s.created_by
     WHERE s.faculty_id = $mid
     ORDER BY FIELD(s.day_of_week,'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
              s.start_time
@@ -88,11 +95,116 @@ if ($rr) {
     while ($row = $rr->fetch_assoc()) $rooms[] = $row;
 }
 
-// Subjects for edit modal
+// Subjects for edit modal (only those directly assigned to this member)
 $subjects = [];
-$sr = $conn->query('SELECT id, name FROM subjects ORDER BY name');
-if ($sr) {
-    while ($row = $sr->fetch_assoc()) $subjects[] = $row;
+$sr = $conn->prepare("
+    SELECT DISTINCT s.id, s.name
+    FROM subjects s
+    JOIN junction_faculty_subject jfs ON s.id = jfs.subject_id
+    WHERE jfs.faculty_id = ?
+      AND s.subject_area_id IN (
+          SELECT id FROM subject_area WHERE department_id = ?
+      )
+    ORDER BY s.name
+");
+$sr->bind_param('ii', $member_id, $department_id);
+$sr->execute();
+$res_sr = $sr->get_result();
+if ($res_sr) {
+    while ($row = $res_sr->fetch_assoc()) $subjects[] = $row;
+}
+$sr->close();
+
+// ── Member coverage: subject areas and their subjects (within this department) ──
+$coverage = [];
+$cov_stmt = $conn->prepare("
+    SELECT sa.id AS sa_id, sa.name AS sa_name, s.id AS subj_id, s.name AS subj_name
+    FROM junction_faculty_subjectarea jfsa
+    JOIN subject_area sa ON sa.id = jfsa.subject_area_id
+    LEFT JOIN junction_faculty_subject jfs ON jfs.faculty_id = jfsa.faculty_id
+    LEFT JOIN subjects s ON s.id = jfs.subject_id AND s.subject_area_id = sa.id
+    WHERE jfsa.faculty_id = ?
+      AND sa.department_id = ?
+    ORDER BY sa.name, s.name
+");
+$cov_stmt->bind_param('ii', $member_id, $department_id);
+$cov_stmt->execute();
+$cov_res = $cov_stmt->get_result();
+while ($row = $cov_res->fetch_assoc()) {
+    $sa_id = $row['sa_id'];
+    if (!isset($coverage[$sa_id])) {
+        $coverage[$sa_id] = ['name' => $row['sa_name'], 'subjects' => []];
+    }
+    if ($row['subj_id']) {
+        $coverage[$sa_id]['subjects'][$row['subj_id']] = $row['subj_name'];
+    }
+}
+$cov_stmt->close();
+
+// Determine if any subject is actually assigned to the member
+$has_any_subject = false;
+foreach ($coverage as $sa) {
+    if (!empty($sa['subjects'])) {
+        $has_any_subject = true;
+        break;
+    }
+}
+
+// ── Head's full name ──
+$head_name = '';
+$hstmt = $conn->prepare("SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM faculty WHERE id = ?");
+$hstmt->bind_param('i', $faculty_id);
+$hstmt->execute();
+$hstmt->bind_result($head_name);
+$hstmt->fetch();
+$hstmt->close();
+
+// ── Department name ──
+$dept_name = '';
+$dstmt = $conn->prepare("SELECT name FROM departments WHERE id = ?");
+$dstmt->bind_param('i', $department_id);
+$dstmt->execute();
+$dstmt->bind_result($dept_name);
+$dstmt->fetch();
+$dstmt->close();
+
+// ── Last edited timestamp and who edited it ──
+$last_edited = null;
+$edited_by_name = '';
+$lestmt = $conn->prepare("
+    SELECT COALESCE(s.updated_at, s.created_at) AS last_time,
+           CONCAT(f.first_name, ' ', f.last_name) AS editor_name
+    FROM schedules s
+    LEFT JOIN faculty f ON f.id = COALESCE(s.updated_by, s.created_by)
+    WHERE s.faculty_id = ?
+    ORDER BY COALESCE(s.updated_at, s.created_at) DESC
+    LIMIT 1
+");
+$lestmt->bind_param('i', $member_id);
+$lestmt->execute();
+$le_res = $lestmt->get_result();
+if ($le_row = $le_res->fetch_assoc()) {
+    $last_edited = $le_row['last_time'];
+    $edited_by_name = ' by ' . ($le_row['editor_name'] ?? '');
+}
+$lestmt->close();
+
+// ── Ordinal helper ──
+function ordinal($number)
+{
+    $ends = ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'];
+    if (($number % 100) >= 11 && ($number % 100) <= 13) return $number . 'th';
+    return $number . $ends[$number % 10];
+}
+
+// ── Date map for each day of the week ──
+$dow_map = ['Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6];
+$today_dow_num = $dow_map[$today];
+$day_date_map = [];
+foreach ($days as $day) {
+    $diff = $dow_map[$day] - $today_dow_num;
+    $dt = new DateTime("$diff days");
+    $day_date_map[$day] = strtoupper($dt->format('M j'));
 }
 
 $conn->close();
@@ -136,27 +248,90 @@ $conn->close();
                 </button>
             </div>
 
+            <!---Timetable Info Header-->
             <div class="main-container faculty-timetable-heading d-flex flex-column align-items-center justify-content-center w-auto mb-3">
                 <div class="d-flex justify-content-center align-items-center w-100 px-3">
-                    <h2 class="bold"><?= htmlspecialchars($member_name) ?>'s Schedule</h2>
+                    <h2 class="bold"><?= htmlspecialchars($member_name) ?>'s Schedule Effective A.Y. <?= date('Y') ?>-<?= date('Y', strtotime('+1 year')) ?></h2>
                 </div>
-                <p class="text-center mb-0">
-                    Subject Area: <span class="bold"><?= htmlspecialchars($member_area) ?></span> •
-                    Effective A.Y. <?= date('Y') . '-' . (date('Y') + 1) ?> •
-                    <span class="bold status-badge faculty-head">Faculty Head</span>
-                    <span class="bold" style="color: var(--secondary-color-2);"><?= $faculty_name ?></span><br>
-                    <span style="color: var(--secondary-color-2);">
-                        Today is the
-                        <span class="bold"><?= date('jS') ?></span> day of the month of
-                        <span class="bold"><?= date('F') ?></span>, S.Y.
-                        <span class="bold"><?= date('Y') ?></span>
-                    </span>
-                </p>
+                <div>
+                    <!-- Additional Info -->
+                    <p class="text-center mb-0">
+                    <div class="d-flex flex-row align-items-stretch gap-3" style="width:100%;flex-wrap:nowrap;">
+
+                        <div class="d-flex flex-column justify-content-center flex-grow-1" style="flex:1 1 0;"> <!--info container-->
+                            <h4 class="bold me-1"><i class="bi bi-folder2 mx-1"></i>Assigned Coverage</h4>
+
+
+                            <?php if (!empty($coverage)): ?>
+                                <?php foreach ($coverage as $sa): ?>
+
+                                    <div class="dept-info-card mb-2">
+
+                                        <i class="bi bi-briefcase mx-1"></i><span class="dept-subject-area bold dept-emphases"><?= htmlspecialchars($sa['name']) ?></span>
+                                        <?php if (!empty($sa['subjects'])): ?>
+                                            <label class="bold" style="font-size: 14px;"></label>
+                                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                                <i class="bi bi-book"></i>
+                                                <?php foreach ($sa['subjects'] as $subj_name): ?>
+                                                    <span class="subarea-subject bold dept-emphases"><?= htmlspecialchars($subj_name) ?></span>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="small text-muted mt-1">No subjects under this area.</div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <span class="text-muted">No subject areas assigned.</span>
+                            <?php endif; ?>
+                            <?php if (!$has_any_subject): ?>
+                            <p style="text-align:justify;" class="small mb-2"><br>
+                                <strong>Attention:</strong> Currently, <?= htmlspecialchars($member_name) ?> <strong>doesn't have any subjects assigned for teaching</strong>.
+                                Please assign subjects to this faculty member <strong>in the previous page</strong> to ensure they have the necessary teaching responsibilities.
+                            </p>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="d-flex flex-column justify-content-center flex-grow-1" style="flex:1 1 0;"> <!--info container-->
+                            
+                            <h4 class="bold me-1"><i class="bi bi-info-circle mx-1"></i>Info</h4>
+                            <div class="dept-info-card">
+                                Prepared by: <span class="status-badge faculty-head bold">Faculty Head</span> <strong><?= htmlspecialchars($head_name) ?></strong><br>
+                                Last Edited: <strong><?= $last_edited ? date('F j, Y (g:i A)', strtotime($last_edited)) : 'No schedules yet' ?></strong><strong> <?= htmlspecialchars($edited_by_name) ?></strong><br>
+                                Current Department: <strong><?= htmlspecialchars($dept_name) ?></strong>
+                            </div>
+                            <h4 class="bold me-1"><i class="bi bi-info-circle mx-1"></i>Date Today</h4>
+
+                            <?php
+                            $today_num = date('j');
+                            $today_month_name = date('F');
+                            $today_year = date('Y');
+                            ?>
+                            <div class="dept-info-card">
+                                Today is the <span class="bold"><?= ordinal((int)$today_num) ?> </span>
+                                day of <span class="bold"><?= $today_month_name ?></span>,
+                                of school year <span class="bold"><?= $today_year ?></span>
+                            </div>
+
+                            <p style="text-align:justify;" class="small mb-2"><br>
+                                <strong>Note:</strong> As a <span class="status-badge faculty-head bold">Faculty Head</span> of this department, you can manage the schedule of this faculty member.
+                                You can add, edit, or delete schedule slots as needed while abiding by the department's policies and guidelines.
+                                Please ensure that any changes made are communicated to the faculty member and relevant parties.
+                            </p>
+                        </div>
+
+         
+                    </div>
+                    </p>
+
+
+                </div>
                 <button class="medium w-auto px-3" data-bs-toggle="modal" data-bs-target="#editScheduleModal" onclick="openAddScheduleModal()">
                     <i class="bi bi-plus-lg me-1"></i> Add Schedule Slot
                 </button>
             </div>
 
+            <!-- Weekly Calendar Type -->
             <div class="main-container homepage gap-3" style="flex-direction:column;">
                 <div class="weekly-schedule-grid">
                     <?php foreach ($days as $day):
@@ -165,6 +340,7 @@ $conn->close();
                     ?>
                         <div class="day-card <?= $is_today ? 'today' : '' ?>">
                             <div class="day-label">
+                                <div class="text-uppercase small fw-bold mb-1" style="font-size:11px;letter-spacing:0.5px;color:<?= $is_today ? '#fff' : '#6c757d' ?>;"><?= $day_date_map[$day] ?? '' ?></div>
                                 <?= $day ?> <?= $is_today ? '· Today' : '' ?>
                             </div>
 
@@ -176,60 +352,23 @@ $conn->close();
                                     $subject_label = !empty($slot['subject_name'])
                                         ? trim($slot['subject_name'])
                                         : 'None assigned';
+                                    $is_owner = (int)$slot['created_by'] === $faculty_id;
+                                    $creator_name = trim(($slot['creator_first'] ?? '') . ' ' . ($slot['creator_last'] ?? ''));
                                 ?>
                                     <div class="slot-row">
-                                        <div class="slot-header">
-                                            <div class="slot-time-left">
-                                                <?php
-                                                $start_parts = explode(' ', $start);
-                                                $start_time_part = $start_parts[0];
-                                                $start_ampm = $start_parts[1] ?? 'AM';
-                                                $end_parts = explode(' ', $end);
-                                                $end_time_part = $end_parts[0];
-                                                $end_ampm = $end_parts[1] ?? 'AM';
-                                                ?>
-                                                <span class="slot-time-start"><?= $start_time_part ?></span>
-                                                <span class="slot-time-separator">TO</span>
-                                                <span class="slot-time-end"><?= $end_time_part ?></span>
-                                                <span class="slot-time-ampm"><?= $end_ampm ?></span>
-                                            </div>
-                                            <div class="slot-actions-right">
-                                                <button class="btn-icon btn-icon-edit"
-                                                    title="Edit Schedule Details"
-                                                    onclick="openEditScheduleModal(
-                                                    <?= (int)$slot['id'] ?>,
-                                                    '<?= $slot['day_of_week'] ?>',
-                                                    '<?= substr($slot['start_time'], 0, 5) ?>',
-                                                    '<?= substr($slot['end_time'], 0, 5) ?>',
-                                                    <?= (int)$slot['classroom_id'] ?>,
-                                                    <?= (int)($slot['subject_id'] ?? 0) ?>,
-                                                    '<?= htmlspecialchars($subject_label, ENT_QUOTES) ?>'
-                                                )"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn-icon btn-icon-view"
-                                                    title="View Details"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto"
-                                                    onclick="openSlotDetails(
-                                                    '<?= htmlspecialchars($slot['day_of_week'], ENT_QUOTES) ?>',
-                                                    '<?= $start ?>',
-                                                    '<?= $end ?>',
-                                                    '<?= htmlspecialchars($slot['room_name'], ENT_QUOTES) ?>',
-                                                    '<?= htmlspecialchars($subject_label, ENT_QUOTES) ?>'
-                                                )">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                                <button class="btn-icon btn-icon-del"
-                                                    title="Delete Schedule"
-                                                    onclick="confirmDeleteSchedule(<?= (int)$slot['id'] ?>)"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
+                                        <div class="slot-time">
+                                            <?php
+                                            $start_parts = explode(' ', $start);
+                                            $start_time_part = $start_parts[0];
+                                            $start_ampm = $start_parts[1] ?? 'AM';
+                                            $end_parts = explode(' ', $end);
+                                            $end_time_part = $end_parts[0];
+                                            $end_ampm = $end_parts[1] ?? 'AM';
+                                            ?>
+                                            <span class="slot-time-start"><?= $start_time_part ?></span>
+                                            <span class="slot-time-separator">TO</span>
+                                            <span class="slot-time-end"><?= $end_time_part ?></span>
+                                            <span class="slot-time-ampm"><?= $end_ampm ?></span>
                                         </div>
                                         <div class="slot-content">
                                             <div class="slot-room">
@@ -239,6 +378,41 @@ $conn->close();
                                                 <i class="bi bi-book me-1"></i>
                                                 <h5><?= htmlspecialchars($subject_label) ?></h5>
                                             </div>
+                                        </div>
+                                        <div class="slot-actions">
+                                            <button class="btn-icon <?= $is_owner ? 'btn-icon-edit' : 'btn-icon-disabled' ?>"
+                                                title="<?= $is_owner ? 'Edit Schedule Details' : 'Restricted - assigned by another faculty head' ?>"
+                                                onclick="<?= $is_owner
+                                                    ? "openEditScheduleModal(" . (int)$slot['id'] . ",'" . $slot['day_of_week'] . "','" . substr($slot['start_time'], 0, 5) . "','" . substr($slot['end_time'], 0, 5) . "'," . (int)$slot['classroom_id'] . "," . (int)($slot['subject_id'] ?? 0) . ",'" . htmlspecialchars($subject_label, ENT_QUOTES) . "')"
+                                                    : "showRestrictedModal('" . htmlspecialchars($creator_name, ENT_QUOTES) . "')"
+                                                ?>"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="auto">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn-icon btn-icon-view"
+                                                title="View Details"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="auto"
+                                                onclick="openSlotDetails(
+                                                '<?= htmlspecialchars($slot['day_of_week'], ENT_QUOTES) ?>',
+                                                '<?= $start ?>',
+                                                '<?= $end ?>',
+                                                '<?= htmlspecialchars($slot['room_name'], ENT_QUOTES) ?>',
+                                                '<?= htmlspecialchars($subject_label, ENT_QUOTES) ?>'
+                                            )">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button class="btn-icon <?= $is_owner ? 'btn-icon-del' : 'btn-icon-disabled' ?>"
+                                                title="<?= $is_owner ? 'Delete Schedule' : 'Restricted - assigned by another faculty head' ?>"
+                                                onclick="<?= $is_owner
+                                                    ? "confirmDeleteSchedule(" . (int)$slot['id'] . ")"
+                                                    : "showRestrictedModal('" . htmlspecialchars($creator_name, ENT_QUOTES) . "')"
+                                                ?>"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="auto">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
                                         </div>
                                     </div>
                             <?php endforeach;
@@ -298,14 +472,27 @@ $conn->close();
                     </div>
                     <div class="mb-3">
                         <label class="form-label bold">Subject</label>
-                        <input type="text" class="form-control" id="edit-subject-input" list="subject-datalist" placeholder="Search or enter new subject...">
-                        <datalist id="subject-datalist">
-                            <option value="">None assigned</option>
+                        <input type="text" class="form-control mb-2" id="edit-subject-search" placeholder="Search subjects..." autocomplete="off">
+                        <div class="mb-1" style="font-size:13px;color:var(--text-muted);">Selected: <span id="edit-selected-subject-name" class="text-muted" style="font-style:italic;">None</span></div>
+                        <div class="d-flex flex-wrap gap-1" id="edit-available-subjects-container">
                             <?php foreach ($subjects as $sub): ?>
-                                <option value="<?= htmlspecialchars(trim($sub['name'])) ?>" data-id="<?= (int)$sub['id'] ?>">
-                                </option>
+                                <span class="subarea-subject bold dept-emphases align-items-center justify-content-center px-3 edit-subject-item"
+                                    data-subject-id="<?= (int)$sub['id'] ?>"
+                                    data-subject-name="<?= htmlspecialchars(trim($sub['name']), ENT_QUOTES) ?>"
+                                    title="Click to select this subject"
+                                    style="cursor:pointer;">
+                                    <?= htmlspecialchars(trim($sub['name'])) ?>
+                                    <button type="button" class="p-0 ms-1 d-inline-flex flex-shrink-0 align-items-center text-white border-0 bg-transparent" title="Select Subject">
+                                        <i class="bi bi-plus-circle"></i>
+                                    </button>
+                                </span>
                             <?php endforeach; ?>
-                        </datalist>
+                            <?php if (empty($subjects)): ?>
+                                <p class="text-muted small mb-0">No subjects assigned.</p>
+                            <?php endif; ?>
+                        </div>
+                        <input type="hidden" id="edit-subject-id" value="0">
+                        <input type="hidden" id="edit-subject-name" value="">
                     </div>
                 </div>
                 <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
@@ -342,6 +529,73 @@ $conn->close();
         </div>
     </div>
 
+    <!-- Confirm Save Schedule Modal (stacked on top of edit modal) -->
+    <div class="modal fade" id="confirmSaveScheduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header" style="background:linear-gradient(135deg,#2a7a3e,#5cb85c);color:#fff;">
+                    <h5 class="modal-title" style="font-weight:700;">Confirm Schedule</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-question-circle" style="font-size:2.5rem;color:#2a7a3e;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;" id="confirm-save-message">
+                        Are you sure you want to save this schedule slot?
+                    </p>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button class="light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="medium" style="background:#2a7a3e;" id="confirm-save-btn">
+                        <i class="bi bi-check-lg me-1"></i> Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlap Warning Modal -->
+    <div class="modal fade" id="overlapWarningModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header" style="background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;">
+                    <h5 class="modal-title" style="font-weight:700;">Schedule Overlap</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-exclamation-octagon" style="font-size:2.5rem;color:#c0392b;"></i>
+                    <p class="mt-3 mb-2" style="font-size:15px;font-weight:600;">This slot overlaps with an existing schedule:</p>
+                    <div id="overlap-details" class="text-start d-inline-block" style="font-size:14px;"></div>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button type="button" class="medium w-100 px-3" style="background:#c0392b;" data-bs-dismiss="modal">Understood</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restricted Action Modal -->
+    <div class="modal fade" id="restrictedActionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header" style="background:linear-gradient(135deg,#8e44ad,#bb6bd9);color:#fff;">
+                    <h5 class="modal-title" style="font-weight:700;">Action Restricted</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-shield-exclamation" style="font-size:2.5rem;color:#8e44ad;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;">
+                        This schedule slot was assigned by<br>
+                        <strong id="restricted-creator-name">another Faculty Head</strong>.<br><br>
+                        You cannot edit or delete a slot created by a different Faculty Head.
+                    </p>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button type="button" class="medium w-100 px-3" style="background:#8e44ad;" data-bs-dismiss="modal">Understood</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- View Slot Details Modal -->
     <div class="profile-details-modal modal fade" id="viewSlotModal" tabindex="-1" aria-labelledby="viewSlotLabel" aria-hidden="true">
         <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
@@ -355,31 +609,31 @@ $conn->close();
                 <div class="modal-body">
                     <div class="d-flex flex-column gap-3">
                         <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3">
-                            <i class="bi bi-calendar-week text-primary" style="font-size:1.6rem; flex-shrink:0;"></i>
+                            <i class="bi bi-calendar-week" style="font-size:1.6rem; flex-shrink:0; color:var(--secondary-color-4);"></i>
                             <div class="flex-grow-1">
-                                <strong>Day</strong>
-                                <div id="slot-day" class="text-muted"></div>
+                                <div class="text-muted">Day</div>
+                                <strong id="slot-day"></strong>
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3">
-                            <i class="bi bi-clock text-primary" style="font-size:1.6rem; flex-shrink:0;"></i>
+                            <i class="bi bi-clock" style="font-size:1.6rem; flex-shrink:0; color:var(--secondary-color-4);"></i>
                             <div class="flex-grow-1">
-                                <strong>Time</strong>
-                                <div id="slot-time" class="text-muted"></div>
+                                <div class="text-muted">Time</div>
+                                <strong id="slot-time"></strong>
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3">
-                            <i class="bi bi-door-open text-primary" style="font-size:1.6rem; flex-shrink:0;"></i>
+                            <i class="bi bi-door-open" style="font-size:1.6rem; flex-shrink:0; color:var(--secondary-color-4);"></i>
                             <div class="flex-grow-1">
-                                <strong>Room</strong>
-                                <div id="slot-room" class="text-muted"></div>
+                                <div class="text-muted">Room</div>
+                                <strong id="slot-room"></strong>
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3">
-                            <i class="bi bi-book text-primary" style="font-size:1.6rem; flex-shrink:0;"></i>
+                            <i class="bi bi-book" style="font-size:1.6rem; flex-shrink:0; color:var(--secondary-color-4);"></i>
                             <div class="flex-grow-1">
-                                <strong>Subject</strong>
-                                <div id="slot-subject" class="text-muted"></div>
+                                <div class="text-muted">Subject</div>
+                                <strong id="slot-subject"></strong>
                             </div>
                         </div>
                     </div>
@@ -395,11 +649,94 @@ $conn->close();
         let editScheduleModal = null;
         let viewSlotModal = null;
         let deleteScheduleModal = null;
+        let confirmSaveModal = null;
+        let restrictedModal = null;
+        let overlapWarningModal = null;
         let deleteSlotId = null;
         const subjects = <?php echo json_encode($subjects); ?>;
         const rooms = <?php echo json_encode($rooms); ?>;
         const memberId = <?= (int)$member_id ?>;
 
+        function cleanupModalBackdrop() {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+
+        document.addEventListener('hidden.bs.modal', cleanupModalBackdrop);
+
+        // ── Overlap warning modal ──
+        function showOverlapModal(conflict) {
+            if (!overlapWarningModal) {
+                overlapWarningModal = new bootstrap.Modal(document.getElementById('overlapWarningModal'));
+            }
+            document.getElementById('overlap-details').innerHTML =
+                '<div class="mb-1"><strong>Day:</strong> ' + conflict.day + '</div>' +
+                '<div class="mb-1"><strong>Time:</strong> ' + conflict.start + ' \u2014 ' + conflict.end + '</div>' +
+                '<div class="mb-1"><strong>Room:</strong> ' + conflict.room + '</div>' +
+                '<div class="mb-1"><strong>Subject:</strong> ' + conflict.subject + '</div>';
+            overlapWarningModal.show();
+        }
+
+        // ── Subject search filtering ──
+        document.addEventListener('input', function(e) {
+            if (e.target.id === 'edit-subject-search') {
+                const filter = e.target.value.toLowerCase();
+                const container = document.getElementById('edit-available-subjects-container');
+                const items = container.querySelectorAll('.edit-subject-item');
+                let anyVisible = false;
+                items.forEach(function(item) {
+                    const name = item.dataset.subjectName.toLowerCase();
+                    const show = name.includes(filter);
+                    item.style.display = show ? '' : 'none';
+                    if (show) anyVisible = true;
+                });
+                let emptyMsg = container.querySelector('.no-match-msg');
+                if (!anyVisible) {
+                    if (!emptyMsg) {
+                        emptyMsg = document.createElement('p');
+                        emptyMsg.className = 'text-muted small mb-0 no-match-msg';
+                        emptyMsg.textContent = 'No matching subjects.';
+                        container.appendChild(emptyMsg);
+                    }
+                } else if (emptyMsg) {
+                    emptyMsg.remove();
+                }
+            }
+        });
+
+        // ── Subject chip click to select ──
+        document.addEventListener('click', function(e) {
+            const item = e.target.closest('.edit-subject-item');
+            if (!item) return;
+
+            const subjectId = item.dataset.subjectId;
+            const subjectName = item.dataset.subjectName;
+
+            document.getElementById('edit-subject-id').value = subjectId;
+            document.getElementById('edit-subject-name').value = subjectName;
+            document.getElementById('edit-selected-subject-name').textContent = subjectName;
+            document.getElementById('edit-selected-subject-name').style.fontStyle = 'normal';
+            document.getElementById('edit-selected-subject-name').style.color = 'var(--text-color, #212529)';
+
+            // Highlight selected
+            document.querySelectorAll('.edit-subject-item').forEach(function(el) {
+                el.style.border = '2px solid transparent';
+            });
+            item.style.border = '2px solid #2a7a3e';
+
+            // Clear search
+            document.getElementById('edit-subject-search').value = '';
+            // Reset filter
+            document.querySelectorAll('.edit-subject-item').forEach(function(el) {
+                el.style.display = '';
+            });
+            const emptyMsg = document.getElementById('edit-available-subjects-container').querySelector('.no-match-msg');
+            if (emptyMsg) emptyMsg.remove();
+        });
+
+        // ── Modal open functions ──
         function openAddScheduleModal() {
             if (!editScheduleModal) {
                 editScheduleModal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
@@ -411,7 +748,7 @@ $conn->close();
             document.getElementById('edit-start').value = '09:00';
             document.getElementById('edit-end').value = '10:00';
             document.getElementById('edit-room').value = rooms.length > 0 ? rooms[0].id : '';
-            document.getElementById('edit-subject-input').value = '';
+            resetSubjectSelection();
             editScheduleModal.show();
         }
 
@@ -426,18 +763,44 @@ $conn->close();
             document.getElementById('edit-start').value = start;
             document.getElementById('edit-end').value = end;
             document.getElementById('edit-room').value = roomId;
-            document.getElementById('edit-subject-input').value = subjectName || '';
+            resetSubjectSelection();
+
+            if (subjectId && subjectId > 0) {
+                document.getElementById('edit-subject-id').value = subjectId;
+                document.getElementById('edit-subject-name').value = subjectName || '';
+                document.getElementById('edit-selected-subject-name').textContent = subjectName || '';
+                document.getElementById('edit-selected-subject-name').style.fontStyle = 'normal';
+                document.getElementById('edit-selected-subject-name').style.color = 'var(--text-color, #212529)';
+                document.querySelectorAll('.edit-subject-item').forEach(function(el) {
+                    if (parseInt(el.dataset.subjectId) === subjectId) {
+                        el.style.border = '2px solid #2a7a3e';
+                    }
+                });
+            }
             editScheduleModal.show();
         }
 
-        async function saveSchedule() {
-            const isAdd = document.getElementById('edit-is-add').value === '1';
-            const slotId = document.getElementById('edit-slot-id').value;
+        function resetSubjectSelection() {
+            document.getElementById('edit-subject-id').value = '0';
+            document.getElementById('edit-subject-name').value = '';
+            document.getElementById('edit-selected-subject-name').textContent = 'None';
+            document.getElementById('edit-selected-subject-name').style.fontStyle = 'italic';
+            document.getElementById('edit-selected-subject-name').style.color = 'var(--text-muted, #6c757d)';
+            document.getElementById('edit-subject-search').value = '';
+            document.querySelectorAll('.edit-subject-item').forEach(function(el) {
+                el.style.display = '';
+                el.style.border = '2px solid transparent';
+            });
+            const emptyMsg = document.getElementById('edit-available-subjects-container').querySelector('.no-match-msg');
+            if (emptyMsg) emptyMsg.remove();
+        }
+
+        // ── Confirm-then-save flow ──
+        function saveSchedule() {
             const day = document.getElementById('edit-day').value;
             const start = document.getElementById('edit-start').value;
             const end = document.getElementById('edit-end').value;
             const roomId = document.getElementById('edit-room').value;
-            const subjectInput = document.getElementById('edit-subject-input').value.trim();
 
             if (!day || !start || !end || !roomId) {
                 alert('Please fill in all required fields.');
@@ -448,15 +811,44 @@ $conn->close();
                 return;
             }
 
-            // Find existing subject by name
-            let subjectId = 0;
+            // Build preview message
+            const subjectName = document.getElementById('edit-subject-name').value || 'None assigned';
+            const roomName = document.getElementById('edit-room').selectedOptions[0]?.text || 'Unknown';
+            const isAdd = document.getElementById('edit-is-add').value === '1';
+            const actionLabel = isAdd ? 'Add' : 'Update';
+            document.getElementById('confirm-save-message').innerHTML =
+                '<strong>' + actionLabel + ' schedule slot:</strong><br>' +
+                day + ' | ' + start + ' – ' + end + '<br>' +
+                'Room: ' + roomName + '<br>' +
+                'Subject: ' + subjectName;
+
+            if (!confirmSaveModal) {
+                confirmSaveModal = new bootstrap.Modal(document.getElementById('confirmSaveScheduleModal'));
+            }
+            confirmSaveModal.show();
+        }
+
+        document.getElementById('confirm-save-btn').addEventListener('click', executeSaveSchedule);
+
+        async function executeSaveSchedule() {
+            const isAdd = document.getElementById('edit-is-add').value === '1';
+            const slotId = document.getElementById('edit-slot-id').value;
+            const day = document.getElementById('edit-day').value;
+            const start = document.getElementById('edit-start').value;
+            const end = document.getElementById('edit-end').value;
+            const roomId = document.getElementById('edit-room').value;
+            const subjectId = parseInt(document.getElementById('edit-subject-id').value) || 0;
+            const subjectName = document.getElementById('edit-subject-name').value.trim();
+
             let newSubject = '';
-            if (subjectInput) {
-                const foundSubject = subjects.find(s => s.name.toLowerCase() === subjectInput.toLowerCase());
-                if (foundSubject) {
-                    subjectId = foundSubject.id;
+            if (subjectName && subjectId === 0) {
+                const found = subjects.find(function(s) {
+                    return s.name.toLowerCase() === subjectName.toLowerCase();
+                });
+                if (found) {
+                    // It's actually an existing subject - should not happen with chip UI, but handle gracefully
                 } else {
-                    newSubject = subjectInput;
+                    newSubject = subjectName;
                 }
             }
 
@@ -472,6 +864,9 @@ $conn->close();
                 new_subject: newSubject
             });
 
+            if (confirmSaveModal) confirmSaveModal.hide();
+            if (editScheduleModal) editScheduleModal.hide();
+
             const res = await fetch('../../php/handlers/faculty-head-handler.php', {
                 method: 'POST',
                 headers: {
@@ -483,6 +878,10 @@ $conn->close();
 
             if (data.success) {
                 window.location.reload();
+            } else if (data.message === 'not_your_slot') {
+                showRestrictedModal('another Faculty Head');
+            } else if (data.conflict) {
+                showOverlapModal(data.conflict);
             } else {
                 alert(data.message || 'Could not save schedule.');
             }
@@ -515,9 +914,19 @@ $conn->close();
 
             if (data.success) {
                 window.location.reload();
+            } else if (data.message === 'not_your_slot') {
+                showRestrictedModal('another Faculty Head');
             } else {
                 alert(data.message || 'Could not delete schedule.');
             }
+        }
+
+        function showRestrictedModal(creatorName) {
+            if (!restrictedModal) {
+                restrictedModal = new bootstrap.Modal(document.getElementById('restrictedActionModal'));
+            }
+            document.getElementById('restricted-creator-name').textContent = creatorName;
+            restrictedModal.show();
         }
 
         function openSlotDetails(day, startTime, endTime, room, subject) {
@@ -525,7 +934,7 @@ $conn->close();
                 viewSlotModal = new bootstrap.Modal(document.getElementById('viewSlotModal'));
             }
             document.getElementById('slot-day').textContent = day;
-            document.getElementById('slot-time').textContent = `${startTime} — ${endTime}`;
+            document.getElementById('slot-time').textContent = startTime + ' \u2014 ' + endTime;
             document.getElementById('slot-room').textContent = room;
             document.getElementById('slot-subject').textContent = subject;
             viewSlotModal.show();

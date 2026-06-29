@@ -37,3 +37,19 @@ $current_sched ??= 'No class right now';
         <button class="light info-action-btn logout-btn" onclick="dissolve('../../php/logout.php')">Logout</button>
     </div>
 </div>
+
+<!-- Hidden schedule end data for audio notifications -->
+<div id="scheduleEndData" data-end="<?= htmlspecialchars($active_schedule_end ?? '') ?>" style="display:none;"></div>
+
+<!-- Audio notification toast -->
+<div class="notif-toast-wrap" id="notificationToastWrap">
+    <div class="notif-toast-msg" id="notificationToastMsg">
+        <div class="notif-toast-header">
+            <i class="bi bi-clock-fill"></i>
+            <span id="notifTimeLabel">Time Remaining</span>
+        </div>
+        <div class="notif-toast-body" id="notifTimeMessage">5 minutes remaining in your class.</div>
+    </div>
+</div>
+
+<script src="../../script/faculty-notification.js"></script>

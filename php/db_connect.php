@@ -110,6 +110,15 @@ $conn->query("
     )
 ");
 
+$conn->query("
+    CREATE TABLE IF NOT EXISTS faculty_permissions (
+        faculty_id       INT PRIMARY KEY,
+        lighting_control TINYINT(1) DEFAULT 1,
+        gesture_control  TINYINT(1) DEFAULT 1,
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
 $conn->set_charset('utf8mb4');
 
 // ── Runtime column migrations (safe – only adds if missing) ──────────────────
@@ -143,6 +152,9 @@ $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS department_id INT DEF
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS subject_area_id INT DEFAULT NULL");
 $conn->query("ALTER TABLE subject_area ADD COLUMN IF NOT EXISTS subject_id INT DEFAULT NULL");
 
+// pin_hash on faculty_permissions (4-digit PIN, bcrypt hashed)
+$conn->query("ALTER TABLE faculty_permissions ADD COLUMN IF NOT EXISTS pin_hash VARCHAR(255) DEFAULT NULL");
+
 $conn->query("
     CREATE TABLE IF NOT EXISTS subjects (
         id   INT AUTO_INCREMENT PRIMARY KEY,
@@ -161,7 +173,34 @@ $conn->query("
 
 $conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS subject_id INT DEFAULT NULL");
 $conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS faculty_id INT DEFAULT NULL");
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NULL DEFAULT NULL");
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL");
 
+
+// ── Fix FK on schedules.created_by: should point to faculty, not admins ──
+$db_name = DB_NAME;
+$fk_bad = $conn->query("
+    SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = 'schedules'
+      AND COLUMN_NAME = 'created_by' AND REFERENCED_TABLE_NAME = 'admins'
+    LIMIT 1
+");
+$fk_good = $conn->query("
+    SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = 'schedules'
+      AND COLUMN_NAME = 'created_by' AND REFERENCED_TABLE_NAME = 'faculty'
+    LIMIT 1
+");
+if (($fk_bad && $fk_bad->num_rows > 0) || !($fk_good && $fk_good->num_rows > 0)) {
+    if ($fk_bad && $row = $fk_bad->fetch_assoc()) {
+        $conn->query("ALTER TABLE schedules DROP FOREIGN KEY `{$row['CONSTRAINT_NAME']}`");
+    }
+    // Fix orphaned created_by values that reference admins instead of faculty
+    $conn->query("UPDATE schedules s LEFT JOIN faculty f ON f.id = s.created_by SET s.created_by = s.faculty_id WHERE f.id IS NULL AND s.faculty_id IS NOT NULL");
+    // Delete orphaned schedules with no faculty owner
+    $conn->query("DELETE s FROM schedules s LEFT JOIN faculty f ON f.id = s.created_by WHERE f.id IS NULL");
+    $conn->query("ALTER TABLE schedules ADD FOREIGN KEY (created_by) REFERENCES faculty(id) ON DELETE CASCADE");
+}
 
 // ── Admin logs table ──────────────────────────────────────────────────────
 $conn->query("
@@ -198,3 +237,14 @@ $conn->query("
         FOREIGN KEY (head_faculty_id) REFERENCES faculty(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
+
+// ── System settings table ─────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS system_settings (
+        setting_key   VARCHAR(64) PRIMARY KEY,
+        setting_value TEXT DEFAULT NULL,
+        updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+");
+// Ensure a row for grace_minutes exists
+$conn->query("INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('grace_minutes', '0')");

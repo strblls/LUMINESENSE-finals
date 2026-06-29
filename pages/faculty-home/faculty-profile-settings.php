@@ -5,6 +5,7 @@ require_once '../../php/db_connect.php';
 
 $faculty_name = htmlspecialchars($_SESSION['faculty_name']);
 $faculty_id = $_SESSION['faculty_id'];
+$is_head = $_SESSION['is_head'] ?? false;
 $name_parts = explode(' ', $faculty_name);
 $first_name = $name_parts[0];
 $initials = strtoupper(substr($name_parts[0], 0, 1) . substr(end($name_parts), 0, 1));
@@ -20,6 +21,26 @@ $stmt->bind_result($faculty_first, $faculty_last, $faculty_email);
 $stmt->fetch();
 $stmt->close();
 
+// Fetch departments
+$departments = [];
+$r = $conn->query("
+    SELECT d.name FROM departments d
+    JOIN junction_faculty_department jfd ON jfd.department_id = d.id
+    WHERE jfd.faculty_id = $faculty_id
+");
+while ($row = $r->fetch_assoc())
+    $departments[] = $row['name'];
+
+// Fetch subjects
+$subjects = [];
+$r = $conn->query("
+    SELECT s.name FROM subjects s
+    JOIN junction_faculty_subject jfs ON jfs.subject_id = s.id
+    WHERE jfs.faculty_id = $faculty_id
+");
+while ($row = $r->fetch_assoc())
+    $subjects[] = $row['name'];
+
 // Today's schedule
 $today = date('l');
 $schedules = [];
@@ -31,6 +52,34 @@ $r = $conn->query("
 ");
 while ($row = $r->fetch_assoc())
     $schedules[] = $row;
+
+// ── PIN status ────────────────────────────────────────────────
+$has_pin = false;
+$stmt = $conn->prepare("SELECT 1 FROM faculty_permissions WHERE faculty_id = ? AND pin_hash IS NOT NULL");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$stmt->bind_result($pin_exists);
+$has_pin = (bool)$stmt->fetch();
+$stmt->close();
+
+// ── Active schedule end time (with extension) for audio notifications ──
+$now = date('H:i:s');
+$active_schedule_end = '';
+$stmt = $conn->prepare("
+    SELECT COALESCE(s.extended_until, s.end_time) AS end_time
+    FROM schedules s
+    WHERE s.faculty_id = ?
+      AND s.day_of_week = ?
+      AND s.start_time <= ?
+      AND (s.extended_until >= ? OR (s.extended_until IS NULL AND s.end_time >= ?))
+    ORDER BY s.start_time
+    LIMIT 1
+");
+$stmt->bind_param('issss', $faculty_id, $today, $now, $now, $now);
+$stmt->execute();
+$stmt->bind_result($active_schedule_end);
+$stmt->fetch();
+$stmt->close();
 
 $conn->close();
 ?>
@@ -83,8 +132,11 @@ $conn->close();
                         <div class="profile-avatar avatar-icon"><?= $initials ?></div>
                         <div class="profile-user">
                             <h2 class="bold mb-1"><?= $faculty_name ?></h2>
-                            <span class="bold status-badge faculty-member">Faculty Member</span>
-                            <span class="bold status-badge faculty-head">Faculty Head</span>
+                            <?php if ($is_head): ?>
+                                <span class="bold status-badge faculty-head">Faculty Head</span>
+                            <?php else: ?>
+                                <span class="bold status-badge faculty-member">Faculty Member</span>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -99,6 +151,33 @@ $conn->close();
                                 <div class="info-field">
                                     <span class="label">Email</span>
                                     <div class="field-value"><?= htmlspecialchars($faculty_email) ?></div>
+                                </div>
+                            </div>
+
+                            <!-- Department & Subjects -->
+                            <div class="info-card mt-3">
+                                <div class="info-card-header">
+                                    <h3 class="bold mb-0">Department &amp; Subjects</h3>
+                                </div>
+                                <div class="info-field">
+                                    <span class="label">Department</span>
+                                    <div class="field-value">
+                                        <?php if (!empty($departments)): ?>
+                                            <?= htmlspecialchars(implode(', ', $departments)) ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">Not assigned</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="info-field">
+                                    <span class="label">Subjects Handled</span>
+                                    <div class="field-value">
+                                        <?php if (!empty($subjects)): ?>
+                                            <?= htmlspecialchars(implode(', ', $subjects)) ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">None</span>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
 
@@ -137,6 +216,106 @@ $conn->close();
                                     </button>
                                 </form>
                             </div>
+
+                            <!-- PIN Settings -->
+                            <div class="info-card mt-3">
+                                <div class="info-card-header">
+                                    <h3 class="bold mb-3">PIN Settings</h3>
+                                </div>
+                                <div id="pinFeedback" class="d-none"></div>
+                                <div id="pinForm">
+                                    <div class="mb-2">
+                                        <?php if ($has_pin): ?>
+                                            <label class="form-label">Current PIN</label>
+                                            <input type="password" class="form-control" id="oldPinInput"
+                                                maxlength="4" pattern="\d*" inputmode="numeric" placeholder="Current 4-digit PIN">
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label"><?= $has_pin ? 'New' : 'Set' ?> PIN</label>
+                                        <input type="password" class="form-control" id="newPinInput"
+                                            maxlength="4" pattern="\d*" inputmode="numeric" placeholder="4-digit PIN">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Confirm PIN</label>
+                                        <input type="password" class="form-control" id="confirmPinInput"
+                                            maxlength="4" pattern="\d*" inputmode="numeric" placeholder="Repeat PIN">
+                                    </div>
+                                    <button type="button" class="light info-action-btn w-100" id="savePinBtn">
+                                        <?= $has_pin ? 'Change PIN' : 'Set PIN' ?>
+                                    </button>
+                                </div>
+                            </div>
+                            <script>
+                            (function() {
+                                var feedback = document.getElementById('pinFeedback');
+                                var form = document.getElementById('pinForm');
+                                var newPin = document.getElementById('newPinInput');
+                                var confirmPin = document.getElementById('confirmPinInput');
+                                var btn = document.getElementById('savePinBtn');
+                                var hasPin = <?= json_encode($has_pin) ?>;
+                                var oldPin = hasPin ? document.getElementById('oldPinInput') : null;
+
+                                function showMsg(msg, isError) {
+                                    feedback.className = isError ? 'alert alert-danger' : 'alert alert-success';
+                                    feedback.textContent = msg;
+                                }
+
+                                btn.addEventListener('click', function() {
+                                    var pin = newPin.value;
+                                    if (!/^\d{4}$/.test(pin)) {
+                                        showMsg('PIN must be exactly 4 digits.', true);
+                                        return;
+                                    }
+                                    if (pin !== confirmPin.value) {
+                                        showMsg('PINs do not match.', true);
+                                        return;
+                                    }
+                                    btn.disabled = true;
+                                    btn.textContent = 'Saving…';
+                                    var body = hasPin
+                                        ? JSON.stringify({action: 'change', pin: pin, old_pin: oldPin.value})
+                                        : JSON.stringify({action: 'save', pin: pin});
+                                    fetch('../../api/pin.php', {
+                                        method: 'POST',
+                                        headers: {'Content-Type': 'application/json'},
+                                        body: body
+                                    }).then(function(r){ return r.json(); }).then(function(d){
+                                        if (d.success) {
+                                            showMsg(d.message, false);
+                                            if (!hasPin) {
+                                                btn.textContent = 'Change PIN';
+                                                hasPin = true;
+                                                var lbl = document.querySelector('#pinForm .mb-2');
+                                                if (lbl && !oldPin) {
+                                                    var html = '<label class="form-label">Current PIN</label>' +
+                                                        '<input type="password" class="form-control" id="oldPinInput" ' +
+                                                        'maxlength="4" pattern="\\d*" inputmode="numeric" placeholder="Current 4-digit PIN">';
+                                                    var div = document.createElement('div');
+                                                    div.className = 'mb-2';
+                                                    div.innerHTML = html;
+                                                    lbl.parentNode.insertBefore(div, lbl);
+                                                    oldPin = document.getElementById('oldPinInput');
+                                                }
+                                            }
+                                            btn.disabled = false;
+                                            btn.textContent = 'Change PIN';
+                                            newPin.value = '';
+                                            confirmPin.value = '';
+                                            if (oldPin) oldPin.value = '';
+                                        } else {
+                                            showMsg(d.message, true);
+                                            btn.disabled = false;
+                                            btn.textContent = hasPin ? 'Change PIN' : 'Set PIN';
+                                        }
+                                    }).catch(function(){
+                                        showMsg('Network error.', true);
+                                        btn.disabled = false;
+                                        btn.textContent = hasPin ? 'Change PIN' : 'Set PIN';
+                                    });
+                                });
+                            })();
+                            </script>
                         </div>
 
                         <!-- Schedule -->

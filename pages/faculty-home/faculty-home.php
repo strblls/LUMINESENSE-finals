@@ -27,7 +27,7 @@ $today_e  = $conn->real_escape_string($today);
 $now_e    = $conn->real_escape_string($now);
 
 $r = $conn->query("
-    SELECT s.id, s.start_time, s.end_time, s.extended_until, c.room_name
+    SELECT s.id, s.classroom_id, s.start_time, s.end_time, s.extended_until, c.room_name
     FROM schedules s
     JOIN classrooms c ON c.id = s.classroom_id
     WHERE s.faculty_id = $fid
@@ -44,6 +44,36 @@ $active_schedule = ($r && $r->num_rows > 0) ? $r->fetch_assoc() : null;
 // if ($row = $r->fetch_assoc())
 //     $active_schedule = $row;
 // $stmt->close();
+
+// Handle end early POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_early'])) {
+    $sched_id = (int)$_POST['end_early'];
+
+    $stmt = $conn->prepare("
+        SELECT s.classroom_id, c.room_name
+        FROM schedules s
+        JOIN classrooms c ON c.id = s.classroom_id
+        WHERE s.id = ? AND s.faculty_id = ?
+    ");
+    $stmt->bind_param('ii', $sched_id, $faculty_id);
+    $stmt->execute();
+    $stmt->bind_result($cid, $room_name);
+    $has_row = $stmt->fetch();
+    $stmt->close();
+
+    if ($has_row && $cid) {
+        $conn->query("UPDATE schedules SET extended_until = CURTIME() WHERE id = $sched_id");
+        $conn->query("UPDATE classrooms SET light_status = 'off', row1_status = 'off', row2_status = 'off', row3_status = 'off', schedule_dirty = 1 WHERE id = $cid");
+        $conn->query("INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by) VALUES ($cid, $faculty_id, 'off', 'faculty_end_early')");
+
+        $_SESSION['timetable_success'] = "Class in {$room_name} ended early.";
+    } else {
+        $_SESSION['timetable_error'] = 'Schedule not found or access denied.';
+    }
+
+    header('Location: faculty-home.php');
+    exit;
+}
 
 // ── Classroom light_status ────────────────────────────────────────────────────
 $light_status = 'off';
@@ -97,6 +127,19 @@ $conn->close();
 <body class="contrast-bg">
     <div class="parent-container">
 
+        <?php
+// ── Overlay hierarchy helper ─────────────────────────────────────
+function get_overlay_reason($has_sched, $permitted, $active) {
+    if (!$has_sched) return 'no_schedule';
+    if (!$permitted) return 'admin_restricted';
+    if (!$active)    return 'schedule_ended';
+    return null;
+}
+$gesture_reason   = get_overlay_reason($has_any_schedule, $permissions['gesture_control'],  $active_schedule);
+$lighting_reason  = get_overlay_reason($has_any_schedule, $permissions['lighting_control'], $active_schedule);
+$gesture_blocked  = $gesture_reason !== null;
+$lighting_blocked = $lighting_reason !== null;
+?>
         <?php include '../../php/includes/faculty-topbar.php'; ?>
         <?php include '../../php/includes/faculty-sidebar.php'; ?>
 
@@ -115,48 +158,86 @@ $conn->close();
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">Gesture Detection</h2>
                             </div>
-                            <div class="d-flex mx-2 align-items-end">
-                                <button class="light mx-2" id="refreshBtn">Refresh</button>
-                            </div>
                         </div>
 
-                        <!-- Camera feed -->
-                        <div class="gesture-camera d-flex flex-row align-items-center justify-content-center"
-                            style="position: relative;">
-                            <button id="enableCameraBtn" class="btn btn-primary btn-sm" style="z-index: 10;" <?= !$active_schedule ? 'disabled title="No active schedule"' : '' ?>>
-                                <i class="bi bi-camera-video me-1"></i>Enable Camera
-                            </button>
-                            <button id="disableCameraBtn" class="btn btn-secondary btn-sm"
-                                style="display:none; position: absolute; bottom: 8px; right: 8px; z-index: 10;">
-                                <i class="bi bi-camera-video-off me-1"></i>Disable Camera
-                            </button>
-                            <video id="webcamVideo" autoplay playsinline
-                                style="display:none; width:100%; height:100%; object-fit:cover; border-radius:8px; transform: scaleX(-1);"></video>
-                            <canvas id="webcamCanvas"
-                                style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:8px; pointer-events:none; transform: scaleX(-1);"></canvas>
-                        </div>
+                        <div id="gestureControlsWrapper" style="position: relative;">
+                            <div id="gestureControlsContent"
+                                <?= $gesture_blocked ? 'style="filter:blur(6px);pointer-events:none;"' : '' ?>>
 
-                        <!-- Row selector pills + result + accuracy -->
-                        <div class="gesture-response d-flex px-2 flex-column align-items-start justify-content-start gap-2">
+                                <!-- Camera feed -->
+                                <div class="gesture-camera d-flex flex-row align-items-center justify-content-center"
+                                    style="position: relative;">
+                                    <button id="enableCameraBtn" class="btn btn-primary btn-sm" style="z-index: 10;" <?= $gesture_blocked ? 'disabled title="No active schedule"' : '' ?>>
+                                        <i class="bi bi-camera-video me-1"></i>Enable Camera
+                                    </button>
+                                    <button id="disableCameraBtn" class="btn btn-secondary btn-sm"
+                                        style="display:none; position: absolute; bottom: 8px; right: 8px; z-index: 10;">
+                                        <i class="bi bi-camera-video-off me-1"></i>Disable Camera
+                                    </button>
+                                    <video id="webcamVideo" autoplay playsinline
+                                        style="display:none; width:100%; height:100%; object-fit:cover; border-radius:8px; transform: scaleX(-1);"></video>
+                                    <canvas id="webcamCanvas"
+                                        style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:8px; pointer-events:none; transform: scaleX(-1);"></canvas>
+                                </div>
 
-                            <!-- Row indicator pills -->
-                            <div class="gesture-row-pills w-100 d-flex justify-content-center gap-2 mt-1">
-                                <span class="gesture-row-pill" id="rowPill1" data-row="1">Row 1</span>
-                                <span class="gesture-row-pill" id="rowPill2" data-row="2">Row 2</span>
-                                <span class="gesture-row-pill" id="rowPill3" data-row="3">Row 3</span>
+                                <!-- Row selector pills + result + accuracy -->
+                                <div class="gesture-response d-flex px-2 flex-column align-items-start justify-content-start gap-2">
+
+                                    <!-- Row indicator pills -->
+                                    <div class="gesture-row-pills w-100 d-flex justify-content-center gap-2 mt-1">
+                                        <span class="gesture-row-pill" id="rowPill1" data-row="1">Row 1</span>
+                                        <span class="gesture-row-pill" id="rowPill2" data-row="2">Row 2</span>
+                                        <span class="gesture-row-pill" id="rowPill3" data-row="3">Row 3</span>
+                                    </div>
+
+                                    <!-- Result label -->
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="text-muted" style="font-size:0.85rem;">Detected:</span>
+                                        <span class="bold mx-1" id="gestureResult">—</span>
+                                    </div>
+
+                                    <!-- Action buttons -->
+                                    <div class="w-100 d-flex justify-content-center gap-2">
+                                        <button class="light" id="refreshBtn">
+                                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                                        </button>
+                                        <button class="light" data-bs-toggle="modal" data-bs-target="#gestureHelpModal">
+                                            <i class="bi bi-question-circle me-1"></i> View Gestures
+                                        </button>
+                                    </div>
+                                </div>
+
                             </div>
-
-                            <!-- Result label -->
-                            <div class="d-flex align-items-center gap-1">
-                                <span class="text-muted" style="font-size:0.85rem;">Detected:</span>
-                                <span class="bold mx-1" id="gestureResult">—</span>
+                            <!-- Gesture overlay (hierarchy: no_schedule > admin_restricted > schedule_ended) -->
+                            <div id="gestureScheduleOverlay" class="schedule-ended-overlay" <?= $gesture_reason ? '' : 'style="display:none;"' ?>>
+                                <div class="schedule-ended-modal" id="gestNoSched" style="display:<?= $gesture_reason === 'no_schedule' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-calendar-x schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">No Schedule Assigned</h5>
+                                    <p class="schedule-ended-text">You don't have a schedule yet. Please contact your Faculty Head to get assigned.</p>
+                                </div>
+                                <div class="schedule-ended-modal" id="gestAdminRestr" style="display:<?= $gesture_reason === 'admin_restricted' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-shield-lock schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">Access Restricted</h5>
+                                    <p class="schedule-ended-text">Your access has been restricted by the administrator.</p>
+                                </div>
+                                <div class="schedule-ended-modal" id="gestSchedEnded" style="display:<?= $gesture_reason === 'schedule_ended' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-lock-fill schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">Access Locked</h5>
+                                    <p class="schedule-ended-text">Your schedule has ended. Controls are now locked.</p>
+                                </div>
                             </div>
-
-                            <!-- View Gestures button – matches .light style -->
-                            <div class="w-100 d-flex justify-content-center">
-                                <button class="light" data-bs-toggle="modal" data-bs-target="#gestureHelpModal">
-                                    <i class="bi bi-question-circle me-1"></i> View Gestures
-                                </button>
+                            <!-- Gesture PIN overlay (when active + PIN set + not yet verified) -->
+                            <div id="gesturePinOverlay" class="schedule-ended-overlay" style="display:none;">
+                                <div class="schedule-ended-modal">
+                                    <i class="bi bi-shield-lock schedule-ended-icon" style="color:var(--secondary-color-4);"></i>
+                                    <h5 class="schedule-ended-title">PIN Required</h5>
+                                    <p class="schedule-ended-text">Enter your PIN to access Gesture Control.</p>
+                                    <div class="mt-2 d-flex flex-column align-items-center gap-1">
+                                        <input type="password" class="form-control text-center pin-input" maxlength="4" pattern="\d*" inputmode="numeric" placeholder="••••">
+                                        <span class="text-danger small pin-error"></span>
+                                        <button class="light pin-submit-btn">Unlock</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -197,7 +278,7 @@ $conn->close();
 
 
                 <!-- ══════════════════════════════
-                     COLUMN 2 – TIMER + LIGHTING
+                     COLUMN 2 – LIGHTING
                 ══════════════════════════════ -->
                 <div class="group-container gap-3">
 
@@ -208,19 +289,15 @@ $conn->close();
                                 <h2 class="bold">Lighting Grid</h2>
                             </div>
                         </div>
-                        <!-- Schedule ended notice -->
-                        <div id="scheduleEndNotice" class="alert alert-warning d-flex align-items-center gap-2 mx-2 mb-2 py-2"
-                            style="font-size:0.82rem; <?= !$active_schedule ? '' : 'display:none;' ?>">
-                            <i class="bi bi-lock-fill"></i>
-                            Controls are locked — no active class schedule.
-                        </div>
-
                         <?php
                         $b1 = ($row1_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
                         $b2 = ($row2_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
                         $b3 = ($row3_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
                         ?>
-                        <div class="d-flex flex-row align-items-center justify-content-center">
+                        <!-- Lighting controls container -->
+                        <div id="lightingControlsWrapper" style="position: relative;">
+                            <div class="d-flex flex-row align-items-center justify-content-center" id="lightingControlsContent"
+                                <?= $lighting_blocked ? 'style="filter:blur(6px);pointer-events:none;"' : '' ?>>
                             <div class="lighting-grid">
                                 <img src="<?= $b1 ?>" class="bulb-img" data-row="1">
                                 <img src="<?= $b1 ?>" class="bulb-img" data-row="1">
@@ -241,7 +318,7 @@ $conn->close();
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" role="switch" id="row-1-switch"
                                             <?= ($row1_status === 'on' && $active_schedule) ? 'checked' : '' ?>
-                                            <?= !$active_schedule ? 'disabled' : '' ?>>
+                                            <?= $lighting_blocked ? 'disabled' : '' ?>>
                                     </div>
                                 </div>
                                 <div class="d-flex flex-column align-items-center gap-1">
@@ -249,7 +326,7 @@ $conn->close();
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" role="switch" id="row-2-switch"
                                             <?= ($row2_status === 'on' && $active_schedule) ? 'checked' : '' ?>
-                                            <?= !$active_schedule ? 'disabled' : '' ?>>
+                                            <?= $lighting_blocked ? 'disabled' : '' ?>>
                                     </div>
                                 </div>
                                 <div class="d-flex flex-column align-items-center gap-1">
@@ -257,7 +334,7 @@ $conn->close();
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" role="switch" id="row-3-switch"
                                             <?= ($row3_status === 'on' && $active_schedule) ? 'checked' : '' ?>
-                                            <?= !$active_schedule ? 'disabled' : '' ?>>
+                                            <?= $lighting_blocked ? 'disabled' : '' ?>>
                                     </div>
                                 </div>
                                 <br>
@@ -269,19 +346,50 @@ $conn->close();
                                     </h4>
                                     <div id="allLightsContainer"
                                         class="all-lights-<?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?> ..."
-                                        style="display:flex; align-items:center; justify-content:center; <?= !$active_schedule ? 'pointer-events:none; opacity:0.4;' : '' ?>">
+                                        style="display:flex; align-items:center; justify-content:center; <?= $lighting_blocked ? 'pointer-events:none; opacity:0.4;' : '' ?>">
                                         <i class="bi bi-power" id="all-lights" style="line-height:1; display:flex; align-items:center; justify-content:center;"></i>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                            <!-- Lighting overlay (hierarchy: no_schedule > admin_restricted > schedule_ended) -->
+                            <div id="scheduleEndOverlay" class="schedule-ended-overlay" <?= $lighting_reason ? '' : 'style="display:none;"' ?>>
+                                <div class="schedule-ended-modal" id="lightNoSched" style="display:<?= $lighting_reason === 'no_schedule' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-calendar-x schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">No Schedule Assigned</h5>
+                                    <p class="schedule-ended-text">You don't have a schedule yet. Please contact your Faculty Head to get assigned.</p>
+                                </div>
+                                <div class="schedule-ended-modal" id="lightAdminRestr" style="display:<?= $lighting_reason === 'admin_restricted' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-shield-lock schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">Access Restricted</h5>
+                                    <p class="schedule-ended-text">Your access has been restricted by the administrator.</p>
+                                </div>
+                                <div class="schedule-ended-modal" id="lightSchedEnded" style="display:<?= $lighting_reason === 'schedule_ended' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-lock-fill schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">Access Locked</h5>
+                                    <p class="schedule-ended-text">Your schedule has ended. Controls are now locked.</p>
+                                </div>
+                            </div>
+                            <!-- Lighting PIN overlay (when active + PIN set + not yet verified) -->
+                            <div id="lightingPinOverlay" class="schedule-ended-overlay" style="display:none;">
+                                <div class="schedule-ended-modal">
+                                    <i class="bi bi-shield-lock schedule-ended-icon" style="color:var(--secondary-color-4);"></i>
+                                    <h5 class="schedule-ended-title">PIN Required</h5>
+                                    <p class="schedule-ended-text">Enter your PIN to access Lighting Control.</p>
+                                    <div class="mt-2 d-flex flex-column align-items-center gap-1">
+                                        <input type="password" class="form-control text-center pin-input" maxlength="4" pattern="\d*" inputmode="numeric" placeholder="••••">
+                                        <span class="text-danger small pin-error"></span>
+                                        <button class="light pin-submit-btn">Unlock</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                </div><!-- /col 2 -->
+                    </div><!-- /col 2 -->
 
 
                 <!-- ══════════════════════════════
-                     COLUMN 3 – RECENT ACTIVITIES
+                     COLUMN 3 – TIME LEFT + RECENT ACTIVITIES
                 ══════════════════════════════ -->
                 <div class="group-container recent-activities gap-3">
 
@@ -293,28 +401,31 @@ $conn->close();
                                     <h2 class="bold">Time Left</h2>
                                     <h2 class="medium fs-6">until end of class</h2>
                                 </div>
-                                <div class="d-flex mx-2 align-items-center justify-content-end">
-                                    <button class="light h-50 w-auto" data-bs-toggle="modal" onclick="dissolve('faculty-timetable.php')">View Schedule</button>
-                                </div>
+                               
                             </div>
-                            <div class="d-flex flex-column mx-1 align-items-center justify-content-center">
+                            <div class="subsection-container d-flex flex-column mx-1 align-items-center justify-content-center">
                                 <?php if ($active_schedule): ?>
                                     <?php
                                     $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
                                     ?>
-                                    <h1 class="bold display-1" id="timerDisplay" data-end="<?= htmlspecialchars($end) ?>">
+                                    <h1 class="bold display-1 p-2" id="timerDisplay" style="color: var(--muted-white);" data-end="<?= htmlspecialchars($end) ?>" >
                                         --:--:--
                                     </h1>
                                 <?php else: ?>
-                                    <h1 class="bold display-1 text-muted" id="timerDisplay">00:00:00</h1>
+                                    <h1 class="bold display-1 p-2" id="timerDisplay" style="color: var(--muted-white);">00:00:00</h1>
                                 <?php endif; ?>
                             </div>
-                            <div class="d-flex flex-column mx-2 align-items-end justify-content-center">
+                            <div class="d-flex flex-row mx-2 align-items-center justify-content-center gap-2">
                                 <?php if ($active_schedule): ?>
-                                    <button class="light mt-2" data-bs-toggle="modal" data-bs-target="#extendModal">
+                                    <button class="light" data-bs-toggle="modal" data-bs-target="#extendModal">
                                         <i class="bi bi-clock-history me-1"></i> Extend
                                     </button>
+                                    <button class="danger" onclick="openEndEarlyModal(<?= $active_schedule['id'] ?>, '<?= htmlspecialchars($active_schedule['room_name']) ?>')">
+                                        <i class="bi bi-stop-circle me-1"></i> End Early
+                                    </button>
                                 <?php endif; ?>
+                                    <button class="light h-50 w-auto" data-bs-toggle="modal" onclick="dissolve('faculty-timetable.php')">View Schedule</button>
+                            
                             </div>
                         </div>
 
@@ -509,6 +620,8 @@ $conn->close();
         const CLASSROOM_ID = <?= (int) $classroom_id ?>;
         const FACULTY_ID = <?= (int) $faculty_id ?>;
         const HAS_ACTIVE_SCHEDULE = <?= $active_schedule ? 'true' : 'false' ?>;
+        var HAS_PIN = <?= json_encode((bool)$has_pin) ?>;
+        var PIN_VERIFIED = false;
 
         // Sidebar trigger is handled by Bootstrap offcanvas attributes in the topbar.
 
@@ -533,8 +646,13 @@ $conn->close();
             document.getElementById('gestureResult').textContent = label;
         }
 
+        // ── Overlay reasons (from PHP) ───────────────────────────────────────
+        const GESTURE_REASON = '<?= $gesture_reason ?>';   // null | no_schedule | admin_restricted | schedule_ended
+        const LIGHTING_REASON = '<?= $lighting_reason ?>';
+
         // ── Lock / Unlock controls ────────────────────────────────────────────
         function lockControls() {
+            hidePinOverlays();
             ['row-1-switch', 'row-2-switch', 'row-3-switch'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -556,8 +674,29 @@ $conn->close();
             if (disBtn) {
                 disBtn.disabled = true;
             }
-            const notice = document.getElementById('scheduleEndNotice');
-            if (notice) notice.style.display = 'block';
+            const lightContent = document.getElementById('lightingControlsContent');
+            if (lightContent) {
+                lightContent.style.filter = 'blur(6px)';
+                lightContent.style.pointerEvents = 'none';
+            }
+            const gestureContent = document.getElementById('gestureControlsContent');
+            if (gestureContent) {
+                gestureContent.style.filter = 'blur(6px)';
+                gestureContent.style.pointerEvents = 'none';
+            }
+            // Show overlay only if it's a timer-toggleable reason (schedule_ended or null → schedule_ended after timer)
+            if (!LIGHTING_REASON || LIGHTING_REASON === 'schedule_ended') {
+                const lo = document.getElementById('scheduleEndOverlay');
+                if (lo) { lo.style.display = '';
+                    const m = document.getElementById('lightSchedEnded');
+                    if (m) m.style.display = 'block'; }
+            }
+            if (!GESTURE_REASON || GESTURE_REASON === 'schedule_ended') {
+                const go = document.getElementById('gestureScheduleOverlay');
+                if (go) { go.style.display = '';
+                    const m = document.getElementById('gestSchedEnded');
+                    if (m) m.style.display = 'block'; }
+            }
         }
 
         function unlockControls() {
@@ -582,8 +721,25 @@ $conn->close();
             if (disBtn) {
                 disBtn.disabled = false;
             }
-            const notice = document.getElementById('scheduleEndNotice');
-            if (notice) notice.style.display = 'none';
+            const lightContent = document.getElementById('lightingControlsContent');
+            if (lightContent) {
+                lightContent.style.filter = '';
+                lightContent.style.pointerEvents = '';
+            }
+            const gestureContent = document.getElementById('gestureControlsContent');
+            if (gestureContent) {
+                gestureContent.style.filter = '';
+                gestureContent.style.pointerEvents = '';
+            }
+            // Hide overlay only for timer-toggleable reason (schedule_ended)
+            if (LIGHTING_REASON === 'schedule_ended' || !LIGHTING_REASON) {
+                const lo = document.getElementById('scheduleEndOverlay');
+                if (lo) lo.style.display = 'none';
+            }
+            if (GESTURE_REASON === 'schedule_ended' || !GESTURE_REASON) {
+                const go = document.getElementById('gestureScheduleOverlay');
+                if (go) go.style.display = 'none';
+            }
         }
 
         // ── Countdown timer ───────────────────────────────────────────────────
@@ -597,11 +753,23 @@ $conn->close();
                 return String(n).padStart(2, '0');
             }
 
+            function setTimerColor(diff) {
+                if (diff === 0) {
+                    display.style.color = '#dc3545';
+                } else if (diff <= 900) {
+                    display.style.color = '#dc3545';
+                } else if (diff <= 1800) {
+                    display.style.color = '#ff8c00';
+                } else {
+                    display.style.color = '#ffffff';
+                }
+            }
+
             window._tickTimer = function() {
                 if (!display) return;
                 if (!_scheduleEnd) {
                     display.textContent = '00:00:00';
-                    display.classList.remove('text-danger');
+                    display.style.color = '#6c757d';
                     if (!HAS_ACTIVE_SCHEDULE) {
                         lockControls();
                     }
@@ -613,11 +781,10 @@ $conn->close();
                 end.setHours(h, m, s, 0);
                 let diff = Math.max(0, Math.floor((end - now) / 1000));
                 display.textContent = `${pad(Math.floor(diff / 3600))}:${pad(Math.floor((diff % 3600) / 60))}:${pad(diff % 60)}`;
+                setTimerColor(diff);
                 if (diff === 0) {
-                    display.classList.add('text-danger');
                     lockControls();
                 } else {
-                    display.classList.remove('text-danger');
                     unlockControls();
                 }
             };
@@ -646,131 +813,297 @@ $conn->close();
             setInterval(window._tickUptime, 1000);
         })();
 
-        // ── Live dashboard poll (every 3 s) ───────────────────────────────────
-        const BULB_ON = '../../images/bulb-on.png';
-        const BULB_OFF = '../../images/bulb-off.png';
-        let _lastLightStatus = '<?= $light_status ?>';
+        // ── Activity icon mapping (mirrors faculty_activity_icon() in PHP) ──
+        function getIconData(eventType) {
+            var map = {
+                'on'             : ['bi-lightbulb-fill',            '#198754', '#d1e7dd'],
+                'off'            : ['bi-lightbulb',                 '#842029', '#f8d7da'],
+                'light_on'       : ['bi-lightbulb-fill',            '#198754', '#d1e7dd'],
+                'light_off'      : ['bi-lightbulb',                 '#842029', '#f8d7da'],
+                'motion_detect'  : ['bi-person-bounding-box',       '#084298', '#cfe2ff'],
+                'gesture'        : ['bi-hand-index',                '#084298', '#cfe2ff'],
+                'schedule'       : ['bi-calendar-check',            '#198754', '#d1e7dd'],
+                'security_alert' : ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+                'class_start'    : ['bi-play-circle-fill',          '#198754', '#d1e7dd'],
+                'class_end'      : ['bi-stop-circle',               '#664d03', '#fff3cd'],
+                'door_open'      : ['bi-door-open-fill',            '#664d03', '#fff3cd'],
+                'door_close'     : ['bi-door-closed-fill',          '#5a3a00', '#ffe5b4'],
+                'issue_raised'   : ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+                'issue_resolved' : ['bi-check-circle-fill',         '#198754', '#d1e7dd']
+            };
+            return map[eventType] || ['bi-clock-history', '#5a5a5a', '#e9ecef'];
+        }
 
-        async function pollDashboard() {
+        // ── Poll Recent Activities (every 3 s) ───────────────────────────
+        async function pollRecentActivities() {
             try {
                 const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
                 if (!res.ok) return;
                 const data = await res.json();
-                if (!data.success) return;
+                if (!data.success || !data.logs || !data.logs.length) return;
 
-                const r1 = data.row1_status || 'off';
-                const r2 = data.row2_status || 'off';
-                const r3 = data.row3_status || 'off';
+                var list = document.getElementById('activityTimeline');
+                if (!list) return;
 
-                document.querySelectorAll('.bulb-img[data-row="1"]').forEach(img => img.src = r1 === 'on' ? BULB_ON : BULB_OFF);
-                document.querySelectorAll('.bulb-img[data-row="2"]').forEach(img => img.src = r2 === 'on' ? BULB_ON : BULB_OFF);
-                document.querySelectorAll('.bulb-img[data-row="3"]').forEach(img => img.src = r3 === 'on' ? BULB_ON : BULB_OFF);
-
-                const sw1 = document.getElementById('row-1-switch');
-                if (sw1) sw1.checked = (r1 === 'on');
-                const sw2 = document.getElementById('row-2-switch');
-                if (sw2) sw2.checked = (r2 === 'on');
-                const sw3 = document.getElementById('row-3-switch');
-                if (sw3) sw3.checked = (r3 === 'on');
-
-                const overallBadgeOn = (r1 === 'on' || r2 === 'on' || r3 === 'on');
-
-                if (overallBadgeOn !== _lastLightStatus) {
-                    _lastLightStatus = overallBadgeOn;
-
-                    const badge = document.getElementById('allLightsStatus');
-                    const btnCont = document.getElementById('allLightsContainer');
-                    if (badge) {
-                        badge.textContent = overallBadgeOn ? 'ON' : 'OFF';
-                        badge.className = `bold ${overallBadgeOn ? 'on' : 'off'}`;
-                    }
-                    if (btnCont) {
-                        btnCont.className = btnCont.className
-                            .replace(/all-lights-(on|off)/, `all-lights-${overallBadgeOn ? 'on' : 'off'}`);
-                    }
-
-                    const sLight = document.getElementById('statusLighting');
-                    if (sLight) {
-                        sLight.textContent = overallBadgeOn ? 'ON' : 'OFF';
-                        sLight.className = overallBadgeOn ? 'text-success' : 'text-danger';
-                    }
-                }
-
-                _scheduleEnd = data.schedule_end || null;
-                if (data.schedule_active || HAS_ACTIVE_SCHEDULE) {
-                    unlockControls();
-                } else {
-                    lockControls();
-                }
-
-                const pirEl = document.getElementById('statusPir');
-                if (data.pir_occupied && data.pir_since) {
-                    _uptimeStart = new Date(data.pir_since.replace(' ', 'T')).getTime();
-                    if (pirEl) {
-                        pirEl.textContent = 'Occupied';
-                        pirEl.className = 'text-success';
-                    }
-                } else {
-                    _uptimeStart = null;
-                    if (pirEl) {
-                        pirEl.textContent = 'Empty';
-                        pirEl.className = 'text-muted';
-                    }
-                }
-
+                list.innerHTML = data.logs.map(function(log) {
+                    var icon = getIconData(log.event_type || '');
+                    var label = (log.event_type || '').replace(/_/g, ' ');
+                    label = label.charAt(0).toUpperCase() + label.slice(1);
+                    var time = new Date(log.event_time.replace(' ', 'T'));
+                    var timeStr = time.toLocaleString('en-US', {
+                        hour: 'numeric', minute: '2-digit', hour12: true,
+                        month: 'short', day: 'numeric'
+                    });
+                    var room = log.room_name || '';
+                    var triggered = (log.triggered_by || '').toLowerCase().trim();
+                    return '<div class="timeline-item">' +
+                        '<div class="tl-icon" style="background:' + icon[2] + ';color:' + icon[1] + ';">' +
+                            '<i class="bi ' + icon[0] + '"></i>' +
+                        '</div>' +
+                        '<div class="tl-body">' +
+                            '<p class="tl-action">' + label +
+                                (room ? ' &mdash; <span style="color:var(--secondary-color-3);">' + room + '</span>' : '') +
+                            '</p>' +
+                            '<div class="tl-meta" style="flex-wrap:wrap;row-gap:2px;">' +
+                                '<span><i class="bi bi-clock"></i> ' + timeStr + '</span>' +
+                                (triggered ? '<span><i class="bi bi-toggle-on"></i> ' + triggered.charAt(0).toUpperCase() + triggered.slice(1) + '</span>' : '') +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
             } catch (e) {
-                console.warn('pollDashboard error:', e);
-            }
-
-            // ── Update Recent Activities ──────────────────────────────
-            if (data.logs && data.logs.length > 0) {
-                const activityList = document.querySelector('.activity-list.px-2');
-                if (activityList) {
-                    activityList.innerHTML = data.logs.map(log => {
-                        const type = log.event_type || '';
-                        const badgeClass = type.includes('on') ? 'bg-success' :
-                            type.includes('off') ? 'bg-danger' :
-                            type.includes('gesture') ? 'bg-primary' : 'bg-secondary';
-                        const by = (log.triggered_by || 'manual').toLowerCase().trim();
-                        const byBadge = (by === 'gesture' || by === 'pir') ? ['bg-primary', 'bi-hand-index-thumb', 'Gesture'] : ['bg-secondary', 'bi-toggle-on', by.charAt(0).toUpperCase() + by.slice(1)];
-                        const time = new Date(log.event_time.replace(' ', 'T'));
-                        const timeStr = time.toLocaleString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                            month: 'short',
-                            day: 'numeric'
-                        });
-                        return `
-                <div class="d-flex align-items-start gap-2" style="font-size:0.78rem; padding: 6px 0;">
-                    <div class="flex-shrink-0">
-                        <span class="badge ${badgeClass} rounded-pill">
-                            ${type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' ')}
-                        </span>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div><strong>${log.room_name || '—'}</strong></div>
-                        <div class="text-muted" style="font-size:0.72rem; margin-top:4px;">
-                            <span class="badge ${byBadge[0]} rounded-pill">
-                                <i class="bi ${byBadge[1]} me-1"></i>${byBadge[2]}
-                            </span>
-                            <span class="ms-2">${timeStr}</span>
-                        </div>
-                    </div>
-                </div>
-                <hr>
-            `;
-                    }).join('');
-                }
+                console.warn('pollRecentActivities error:', e);
             }
         }
 
-        pollDashboard();
-        setInterval(pollDashboard, 3000);
+        pollRecentActivities();
+        setInterval(pollRecentActivities, 3000);
+
+        // ── PIN utilities ─────────────────────────────────────────────────────
+        var _timeoutTimer = null;
+
+        async function verifyPin(pin) {
+            var r = await fetch('../../api/pin.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'verify', pin: pin})
+            });
+            return await r.json();
+        }
+
+        function showPinOverlaysFor(which) {
+            var overlayId = which + 'PinOverlay';
+            var contentId = which === 'gesture' ? 'gestureControlsContent' : 'lightingControlsContent';
+            var ov = document.getElementById(overlayId);
+            var ct = document.getElementById(contentId);
+            if (ov) ov.style.display = '';
+            if (ct) { ct.style.filter = 'blur(6px)'; ct.style.pointerEvents = 'none'; }
+        }
+
+        function hidePinOverlaysFor(which) {
+            var overlayId = which + 'PinOverlay';
+            var contentId = which === 'gesture' ? 'gestureControlsContent' : 'lightingControlsContent';
+            var ov = document.getElementById(overlayId);
+            var ct = document.getElementById(contentId);
+            if (ov) ov.style.display = 'none';
+            if (ct) { ct.style.filter = ''; ct.style.pointerEvents = ''; }
+        }
+
+        function showPinOverlays() { showPinOverlaysFor('gesture'); showPinOverlaysFor('lighting'); }
+        function hidePinOverlays() { hidePinOverlaysFor('gesture'); hidePinOverlaysFor('lighting'); }
+
+        // ── PIN submit handler (reused by both gesture & lighting overlays) ──
+        function handlePinSubmit(inputEl, errorEl) {
+            var pin = inputEl.value;
+            if (!/^\d{4}$/.test(pin)) {
+                errorEl.textContent = 'Enter exactly 4 digits.';
+                return;
+            }
+            inputEl.disabled = true;
+            verifyPin(pin).then(function(data) {
+                if (data.success) {
+                    PIN_VERIFIED = true;
+                    hidePinOverlays();
+                    if (document.getElementById('pageTimeoutOverlay').style.display !== 'none') {
+                        hidePageTimeout();
+                    } else {
+                        resetPageTimeout();
+                    }
+                    errorEl.textContent = '';
+                } else {
+                    errorEl.textContent = data.message || 'Incorrect PIN.';
+                    inputEl.value = '';
+                    inputEl.disabled = false;
+                    inputEl.focus();
+                }
+            }).catch(function() {
+                errorEl.textContent = 'Network error.';
+                inputEl.disabled = false;
+            });
+        }
+
+        // ── Page timeout ──────────────────────────────────────────────────────
+        function resetPageTimeout() {
+            if (_timeoutTimer) clearTimeout(_timeoutTimer);
+            _timeoutTimer = setTimeout(showPageTimeout, 600000); // 10 min
+        }
+
+        function showPageTimeout() {
+            var ov = document.getElementById('pageTimeoutOverlay');
+            if (ov) ov.style.display = 'flex';
+            PIN_VERIFIED = false;
+            showPinOverlays();
+        }
+
+        function hidePageTimeout() {
+            var ov = document.getElementById('pageTimeoutOverlay');
+            if (ov) ov.style.display = 'none';
+            PIN_VERIFIED = true;
+            hidePinOverlays();
+            resetPageTimeout();
+        }
+
+        // ── Wire up PIN overlay submit buttons ────────────────────────────────
+        document.querySelectorAll('#gesturePinOverlay .pin-submit-btn, #lightingPinOverlay .pin-submit-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var modal = btn.closest('.schedule-ended-modal');
+                var input = modal.querySelector('.pin-input');
+                var error = modal.querySelector('.pin-error');
+                handlePinSubmit(input, error);
+            });
+        });
+        document.querySelectorAll('#gesturePinOverlay .pin-input, #lightingPinOverlay .pin-input').forEach(function(inp) {
+            inp.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    var modal = inp.closest('.schedule-ended-modal');
+                    var error = modal.querySelector('.pin-error');
+                    handlePinSubmit(inp, error);
+                }
+            });
+        });
+
+        // ── Wire up page-timeout PIN submit ───────────────────────────────────
+        (function() {
+            var inp = document.getElementById('timeoutPinInput');
+            var err = document.getElementById('timeoutPinError');
+            var btn = document.getElementById('timeoutPinSubmit');
+            function submitTimeoutPin() {
+                var pin = inp.value;
+                if (!/^\d{4}$/.test(pin)) { err.textContent = 'Enter exactly 4 digits.'; return; }
+                inp.disabled = true;
+                verifyPin(pin).then(function(data) {
+                    if (data.success) {
+                        hidePageTimeout();
+                        err.textContent = '';
+                        inp.value = '';
+                        inp.disabled = false;
+                    } else {
+                        err.textContent = data.message || 'Incorrect PIN.';
+                        inp.value = '';
+                        inp.disabled = false;
+                        inp.focus();
+                    }
+                }).catch(function() {
+                    err.textContent = 'Network error.';
+                    inp.disabled = false;
+                });
+            }
+            btn.addEventListener('click', submitTimeoutPin);
+            inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') submitTimeoutPin(); });
+        })();
+
+        // ── Initial PIN check on page load ────────────────────────────────────
+        if (HAS_PIN) {
+            if (HAS_ACTIVE_SCHEDULE) {
+                if (!GESTURE_REASON) showPinOverlaysFor('gesture');
+                if (!LIGHTING_REASON) showPinOverlaysFor('lighting');
+            }
+            resetPageTimeout();
+        }
+
+        // ── Auto-approve pending extensions (grace period) ──────────────────
+        fetch('../../api/auto-approve-extensions.php').catch(function(){});
     </script>
 
     <!-- Gesture detection script -->
     <script type="module" src="../../script/initialize-gesture.js?v=<?= time() ?>"></script>
+
+    <!-- ══════════════════════════════
+         PIN SETUP MODAL (first login)
+    ══════════════════════════════ -->
+    <?php if (!$has_pin): ?>
+    <div id="pinSetupOverlay" class="page-timeout-overlay">
+        <div class="page-timeout-modal">
+            <i class="bi bi-shield-lock" style="font-size:2.5rem;color:var(--secondary-color-4);margin-bottom:0.75rem;"></i>
+            <h5 class="schedule-ended-title">Set Your PIN</h5>
+            <p class="schedule-ended-text">Set a 4-digit personal PIN for quick access to controls.</p>
+            <div class="mt-3 d-flex flex-column align-items-center gap-2">
+                <input type="password" id="pinSetupInput" maxlength="4" pattern="\d*" inputmode="numeric"
+                       class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="••••">
+                <input type="password" id="pinSetupConfirm" maxlength="4" pattern="\d*" inputmode="numeric"
+                       class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="Confirm">
+                <style>#pinSetupConfirm::placeholder{font-size:.75rem}</style>
+                <div><span id="pinSetupError" class="text-danger small"></span></div>
+                <button class="light" id="pinSetupSubmit">Save PIN</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function() {
+        var input = document.getElementById('pinSetupInput');
+        var confirm = document.getElementById('pinSetupConfirm');
+        var error = document.getElementById('pinSetupError');
+        var btn = document.getElementById('pinSetupSubmit');
+        function submitPin() {
+            var pin = input.value;
+            if (!/^\d{4}$/.test(pin)) { error.textContent = 'Enter exactly 4 digits.'; return; }
+            if (pin !== confirm.value) { error.textContent = 'PINs do not match.'; return; }
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+            fetch('../../api/pin.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'save', pin: pin})
+            }).then(function(r){ return r.json(); }).then(function(d){
+                if (d.success) {
+                    var ov = document.getElementById('pinSetupOverlay');
+                    if (ov) ov.style.display = 'none';
+                    HAS_PIN = true;
+                    location.reload();
+                } else {
+                    error.textContent = d.message;
+                    btn.disabled = false;
+                    btn.textContent = 'Save PIN';
+                }
+            }).catch(function(){
+                error.textContent = 'Network error.';
+                btn.disabled = false;
+                btn.textContent = 'Save PIN';
+            });
+        }
+        btn.addEventListener('click', submitPin);
+        input.addEventListener('keydown', function(e){ if (e.key === 'Enter') submitPin(); });
+        confirm.addEventListener('keydown', function(e){ if (e.key === 'Enter') submitPin(); });
+    })();
+    </script>
+    <?php endif; ?>
+
+    <!-- ══════════════════════════════
+         PAGE TIMEOUT OVERLAY (every 10 min)
+    ══════════════════════════════ -->
+    <div id="pageTimeoutOverlay" class="page-timeout-overlay" style="display:none;">
+        <div class="page-timeout-modal">
+            <i class="bi bi-clock-history" style="font-size:2.5rem;color:var(--secondary-color-4);margin-bottom:0.75rem;"></i>
+            <h5 class="schedule-ended-title">Session Timeout</h5>
+            <p class="schedule-ended-text">Enter your PIN to continue using controls.</p>
+            <div class="mt-3 d-flex flex-column align-items-center gap-2">
+                <input type="password" id="timeoutPinInput" maxlength="4" pattern="\d*" inputmode="numeric"
+                       class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="••••">
+                <div><span id="timeoutPinError" class="text-danger small"></span></div>
+                <button class="light" id="timeoutPinSubmit">Unlock</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ══════════════════════════════
          GESTURE HELP MODAL – 2-column grid, modal-xl, centered
@@ -996,7 +1329,7 @@ $conn->close();
                     <?php endif; ?>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="light" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -1165,6 +1498,38 @@ $conn->close();
             </div>
         </div>
     </div>
+
+    <!-- End Early Confirm Modal -->
+    <div class="modal fade" id="endEarlyModal" tabindex="-1" aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#dc3545;">
+                    <h5 class="modal-title bold"><i class="bi bi-stop-circle me-2"></i>End Class Early</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;color:#dc3545;"></i>
+                    <p class="mt-3 mb-1">End your current class in <strong id="endEarlyRoom"></strong> early?</p>
+                    <p class="text-muted small">Lights in this room will be turned off and the schedule will be marked as finished.</p>
+                </div>
+                <div class="modal-footer d-flex flex-row flex-nowrap justify-content-between gap-2">
+                    <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Cancel</button>
+                    <form method="POST" style="display:contents;">
+                        <input type="hidden" name="end_early" id="endEarlySchedId" value="">
+                        <button type="submit" class="btn btn-danger w-100">Confirm</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function openEndEarlyModal(schedId, roomName) {
+        document.getElementById('endEarlyRoom').textContent = roomName;
+        document.getElementById('endEarlySchedId').value = schedId;
+        new bootstrap.Modal(document.getElementById('endEarlyModal')).show();
+    }
+    </script>
 
 </body>
 

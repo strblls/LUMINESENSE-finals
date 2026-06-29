@@ -12,6 +12,69 @@ require_once '../../php/includes/admin-head.php';
 /** @var array $approval_logs */
 /** @var array $classrooms */
 /** @var string $schedules_json */
+
+// ── Faculty hierarchy data ──────────────────────────────────────────────
+$hierarchy = [];
+$dept_res = $conn->query("
+    SELECT d.id, d.name, d.head_faculty_id, d.status,
+           CONCAT(h.first_name,' ',h.last_name) AS head_name
+    FROM departments d
+    LEFT JOIN faculty h ON h.id = d.head_faculty_id
+    WHERE d.status IN ('active','pending')
+    ORDER BY d.name
+");
+while ($dept = $dept_res->fetch_assoc()) {
+    $dept_id = (int)$dept['id'];
+
+    // Faculty members in this department (excluding the head)
+    $members = [];
+    $mem_res = $conn->query("
+        SELECT f.id, f.first_name, f.last_name
+        FROM faculty f
+        JOIN junction_faculty_department jfd ON f.id = jfd.faculty_id
+        WHERE jfd.department_id = $dept_id
+          AND f.id != " . ($dept['head_faculty_id'] ? (int)$dept['head_faculty_id'] : 0) . "
+        ORDER BY f.last_name, f.first_name
+    ");
+    while ($m = $mem_res->fetch_assoc()) $members[] = $m;
+    $mem_res->free();
+
+    // Departments where the head is ALSO the head of another dept, OR a member
+    $cross_depts = [];
+    if ($dept['head_faculty_id']) {
+        $hid = (int)$dept['head_faculty_id'];
+        // Also a head elsewhere
+        $h_res = $conn->query("
+            SELECT name FROM departments
+            WHERE head_faculty_id = $hid AND id != $dept_id AND status IN ('active','pending')
+            ORDER BY name
+        ");
+        while ($cd = $h_res->fetch_assoc()) $cross_depts[] = ['name' => $cd['name'], 'type' => 'head_of'];
+        $h_res->free();
+        // A regular member (via junction, excluding departments where they are already head)
+        $m_res = $conn->query("
+            SELECT d.name FROM departments d
+            JOIN junction_faculty_department jfd ON d.id = jfd.department_id
+            WHERE jfd.faculty_id = $hid AND d.id != $dept_id
+              AND d.status IN ('active','pending')
+              AND (d.head_faculty_id IS NULL OR d.head_faculty_id != $hid)
+            ORDER BY d.name
+        ");
+        while ($cd = $m_res->fetch_assoc()) $cross_depts[] = ['name' => $cd['name'], 'type' => 'member_of'];
+        $m_res->free();
+    }
+
+    $hierarchy[] = [
+        'id'           => $dept_id,
+        'name'         => $dept['name'],
+        'status'       => $dept['status'],
+        'head_id'      => $dept['head_faculty_id'] ? (int)$dept['head_faculty_id'] : null,
+        'head_name'    => $dept['head_name'],
+        'cross_depts'  => $cross_depts,
+        'members'      => $members,
+    ];
+}
+$dept_res->free();
 ?>
 
 <!DOCTYPE html>
@@ -133,7 +196,7 @@ require_once '../../php/includes/admin-head.php';
 
                     <!-- System Status -->
                     <div style="background-color:#f8f9fa;" class="section-container system-status">
-                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                        <div class="section-topbar d-flex gap-1 align-items-center justify-content-between">
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">System Status</h2>
                             </div>
@@ -169,19 +232,283 @@ require_once '../../php/includes/admin-head.php';
                 <div class="group-container gap-3">
 
                     <!-- Faculty Hierarchy -->
-                    <div style="background-color:#f8f9fa;" class="section-container recents">
+                    <div id="hierarchySection" style="background-color:#f8f9fa;" class="section-container recents">
                         <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">Faculty Hierarchy</h2>
                             </div>
                             <div class="d-flex mx-2 align-items-end">
-                                <button class="light mx-2" onclick="dissolve('admin-reports.php?tab=activity')">Details</button>
+                                <button class="light mx-2" onclick="dissolve('admin-faculty-management.php')">Details</button>
+                                <button class="light mx-2" id="hierarchyToggleBtn" onclick="toggleHierarchyMaximize()"><i class="bi bi-arrows-expand"></i></button>
                             </div>
                         </div>
-                        <div style="overflow:visible; flex:1;">
-                            <!--Insert Faculty Hierarchy Tree API-->
+                        <div class="hierarchy-canvas-wrap">
+                            <?php if (empty($hierarchy)): ?>
+                                <p class="text-muted small text-center py-3">No departments configured yet.</p>
+                            <?php else: ?>
+                                <div class="hierarchy-canvas" id="hierarchyCanvas">
+                                    <?php foreach ($hierarchy as $i => $dept):
+                                        $head_initial = $dept['head_name'] ? strtoupper(substr($dept['head_name'], 0, 1)) : '';
+                                    ?>
+                                        <div class="hierarchy-dept<?= $dept['status'] !== 'active' ? ' hierarchy-dept-pending' : '' ?>" data-dept-id="<?= $dept['id'] ?>" data-head-id="<?= $dept['head_id'] ?? 0 ?>" data-cross='<?= json_encode($dept['cross_depts']) ?>' data-name="<?= htmlspecialchars($dept['name']) ?>" data-status="<?= $dept['status'] ?>">
+                                            <div class="hierarchy-dept-node">
+                                                <span class="hierarchy-dept-node-row">
+                                                    <i class="bi bi-diagram-3"></i>
+                                                    <?= htmlspecialchars($dept['name']) ?>
+                                                </span>
+                                                <?php if ($dept['status'] !== 'active'): ?>
+                                                    <span class="hierarchy-status-badge"><?= ucfirst($dept['status']) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <?php if ($dept['head_id']): ?>
+                                                <div class="hierarchy-connector-v"></div>
+                                                <div class="hierarchy-head-node">
+                                                    <div class="hierarchy-head-avatar"><?= $head_initial ?></div>
+                                                    <div>
+                                                        <div class="hierarchy-head-name"><?= htmlspecialchars($dept['head_name']) ?></div>
+                                                        <div class="hierarchy-head-title">Faculty Head</div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <?php if (!empty($dept['members'])): ?>
+                                                <div class="hierarchy-connector-v"></div>
+                                                <div class="hierarchy-members-row">
+                                                    <?php foreach ($dept['members'] as $member): ?>
+                                                        <div class="hierarchy-member-node">
+                                                            <div class="hierarchy-member-avatar"><?= strtoupper(substr($member['first_name'], 0, 1) . substr($member['last_name'], 0, 1)) ?></div>
+                                                            <div class="hierarchy-member-name"><?= htmlspecialchars($member['first_name'] . ' ' . $member['last_name']) ?></div>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php elseif ($dept['head_id']): ?>
+                                                <div class="hierarchy-connector-v"></div>
+                                                <div class="hierarchy-empty">No faculty members assigned</div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <svg class="hierarchy-lines" id="hierarchyLines">
+                                    <defs>
+                                        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                                            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--secondary-color-4)"/>
+                                        </marker>
+                                    </defs>
+                                </svg>
+                            <?php endif; ?>
                         </div>
                     </div>
+                    <style>
+                        .hierarchy-canvas-wrap { position:relative; overflow:auto; flex:1; padding:0 12px 12px; min-height:320px; cursor:grab; user-select:none; }
+                        .hierarchy-canvas-wrap:active { cursor:grabbing; }
+                        .hierarchy-canvas { display:flex; flex-flow:column wrap; gap:24px; padding:16px; position:relative; height:100%; align-content:flex-start; min-width:100%; }
+                        .hierarchy-lines { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+                        .hierarchy-dept { flex-shrink:0; width:200px; cursor:grab; position:relative; z-index:2; background:#fff; border-radius:12px; padding:14px; box-shadow:0 2px 8px rgba(47,0,79,.1); display:flex; flex-direction:column; align-items:center; gap:0; }
+                        .hierarchy-dept-pending { opacity:.75; border:1px dashed var(--secondary-color-3); }
+                        .hierarchy-status-badge { font-size:9px; font-weight:600; background:var(--secondary-color-3); color:#fff; border-radius:4px; padding:1px 6px; text-transform:uppercase; margin-left:4px; }
+                        .hierarchy-dept:active { cursor:grabbing; }
+                        .hierarchy-dept-node { background:var(--secondary-color-1); color:#fff; font-weight:700; font-size:13px; padding:8px 18px; border-radius:8px; display:flex; flex-direction:column; align-items:center; gap:4px; white-space:normal; width:100%; word-break:break-word; hyphens:auto; text-align:center; }
+                        .hierarchy-dept-node-row { display:inline-flex; align-items:center; gap:6px; }
+                        .hierarchy-connector-v { width:2px; height:12px; background:var(--secondary-color-3); flex-shrink:0; }
+                        .hierarchy-head-node { display:flex; align-items:center; gap:8px; background:#f9edfa; border:1.5px solid var(--secondary-color-2); border-radius:8px; padding:8px 12px; width:100%; }
+                        .hierarchy-head-avatar { width:32px; height:32px; border-radius:50%; background:var(--secondary-color-3); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; }
+                        .hierarchy-head-name { font-size:12px; font-weight:700; color:var(--secondary-color-1); line-height:1.2; }
+                        .hierarchy-head-title { font-size:9px; font-weight:600; color:var(--secondary-color-3); text-transform:uppercase; letter-spacing:.04em; }
+                        .hierarchy-members-row { display:flex; flex-direction:column; gap:6px; width:100%; }
+                        .hierarchy-member-node { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#fff; border:1px solid #e0d6f0; border-radius:6px; }
+                        .hierarchy-member-avatar { width:26px; height:26px; border-radius:50%; background:#e9d5ff; color:var(--secondary-color-1); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:10px; flex-shrink:0; }
+                        .hierarchy-member-name { font-size:11px; font-weight:600; color:var(--secondary-color-1); line-height:1.2; }
+                        .hierarchy-empty { font-size:11px; color:var(--muted); padding:4px 0; }
+                        .hierarchy-line-label { font-size:9px; fill:var(--secondary-color-3); font-weight:600; }
+                        #hierarchySection { transition:transform .25s ease, opacity .25s ease; transform-origin:top center; }
+                        .hierarchy-maximized { position:fixed !important; inset:0 !important; z-index:1050 !important; border-radius:0 !important; display:flex; flex-direction:column; background-color:#f8f9fa !important; animation:hierarchyFadeIn .25s ease forwards; }
+                        .hierarchy-maximized .hierarchy-canvas-wrap { flex:1; min-height:0 !important; }
+                        @keyframes hierarchyFadeIn { from { transform:scale(0.96); opacity:0.92; } to { transform:scale(1); opacity:1; } }
+                    </style>
+
+                    <script>
+                        (function() {
+                            const canvas = document.getElementById('hierarchyCanvas');
+                            const wrap = canvas?.closest('.hierarchy-canvas-wrap');
+                            const linesSvg = document.getElementById('hierarchyLines');
+                            if (!canvas || !wrap || !linesSvg) return;
+
+                            // ── Restore saved positions ──
+                            canvas.querySelectorAll('.hierarchy-dept').forEach(dept => {
+                                const saved = localStorage.getItem('hierarchy_pos_' + dept.dataset.deptId);
+                                if (saved) {
+                                    const pos = JSON.parse(saved);
+                                    dept.style.position = 'absolute';
+                                    dept.style.left = pos.left + 'px';
+                                    dept.style.top = pos.top + 'px';
+                                    dept.style.margin = '0';
+                                }
+                            });
+
+                            // ── Drag-to-pan ──
+                            let isPanning = false, startX, startY, scrollLeft, scrollTop;
+                            wrap.addEventListener('mousedown', e => {
+                                if (e.target.closest('.hierarchy-dept')) return;
+                                isPanning = true;
+                                startX = e.pageX - wrap.offsetLeft;
+                                startY = e.pageY - wrap.offsetTop;
+                                scrollLeft = wrap.scrollLeft;
+                                scrollTop = wrap.scrollTop;
+                            });
+                            wrap.addEventListener('mousemove', e => {
+                                if (!isPanning) return;
+                                e.preventDefault();
+                                const x = e.pageX - wrap.offsetLeft;
+                                const y = e.pageY - wrap.offsetTop;
+                                wrap.scrollLeft = scrollLeft - (x - startX);
+                                wrap.scrollTop = scrollTop - (y - startY);
+                            });
+                            ['mouseup','mouseleave'].forEach(ev => wrap.addEventListener(ev, () => { isPanning = false; }));
+
+                            // ── Drag individual department ──
+                            let dragDept = null, offX, offY;
+                            canvas.querySelectorAll('.hierarchy-dept').forEach(dept => {
+                                dept.addEventListener('mousedown', e => {
+                                    dragDept = dept;
+                                    const rect = dept.getBoundingClientRect();
+                                    offX = e.clientX - rect.left;
+                                    offY = e.clientY - rect.top;
+                                    dept.style.position = 'absolute';
+                                    dept.style.left = (dept.offsetLeft) + 'px';
+                                    dept.style.top = (dept.offsetTop) + 'px';
+                                    dept.style.margin = '0';
+                                    dept.style.transition = 'none';
+                                    dept.style.zIndex = '10';
+                                });
+                            });
+
+                            document.addEventListener('mousemove', e => {
+                                if (!dragDept) return;
+                                const wrapRect = wrap.getBoundingClientRect();
+                                const left = e.clientX - wrapRect.left - offX + wrap.scrollLeft;
+                                const top = e.clientY - wrapRect.top - offY + wrap.scrollTop;
+                                dragDept.style.left = Math.max(0, left) + 'px';
+                                dragDept.style.top = Math.max(0, top) + 'px';
+                                drawLines();
+                            });
+
+                            document.addEventListener('mouseup', () => {
+                                if (dragDept) {
+                                    const id = dragDept.dataset.deptId;
+                                    const left = parseInt(dragDept.style.left) || 0;
+                                    const top = parseInt(dragDept.style.top) || 0;
+                                    localStorage.setItem('hierarchy_pos_' + id, JSON.stringify({ left, top }));
+                                }
+                                dragDept = null;
+                            });
+
+                            // ── Draw SVG lines between cross-department connections ──
+                            function drawLines() {
+                                const depts = canvas.querySelectorAll('.hierarchy-dept');
+                                const deptMap = {};
+                                depts.forEach(d => { deptMap[d.dataset.deptId] = d; });
+
+                                let svgContent = '';
+                                const crossData = [];
+
+                                depts.forEach(d => {
+                                    const cross = d.dataset.cross;
+                                    if (!cross || cross === '[]') return;
+                                    const entries = JSON.parse(cross);
+                                    entries.forEach(entry => {
+                                        const name = typeof entry === 'string' ? entry : entry.name;
+                                        const type = typeof entry === 'string' ? 'member_of' : (entry.type || 'member_of');
+                                        for (const el of Object.values(deptMap)) {
+                                            if (el.dataset.name === name) {
+                                                crossData.push({ from: d, to: el, type });
+                                                break;
+                                            }
+                                        }
+                                    });
+                                });
+
+                                const wrapRect = wrap.getBoundingClientRect();
+
+                                // Group by unordered dept pair for bidirectional detection
+                                const pairMap = {};
+                                crossData.forEach(item => {
+                                    const key = [item.from.dataset.deptId, item.to.dataset.deptId].sort().join('-');
+                                    if (!pairMap[key]) pairMap[key] = [];
+                                    pairMap[key].push(item);
+                                });
+
+                                Object.values(pairMap).forEach(pairs => {
+                                    const isBi = pairs.length === 2;
+                                    // For bidirectional pairs, draw one line with a consolidated label
+                                    const items = isBi ? [pairs[0]] : pairs;
+                                    items.forEach(({ from, to, type }, idx) => {
+                                        const fromRect = from.getBoundingClientRect();
+                                        const toRect = to.getBoundingClientRect();
+
+                                        const x1 = fromRect.left - wrapRect.left + fromRect.width / 2 + wrap.scrollLeft;
+                                        const y1 = fromRect.top - wrapRect.top + fromRect.height / 2 + wrap.scrollTop;
+                                        const x2 = toRect.left - wrapRect.left + toRect.width / 2 + wrap.scrollLeft;
+                                        const y2 = toRect.top - wrapRect.top + toRect.height / 2 + wrap.scrollTop;
+
+                                        const dx = x2 - x1;
+                                        const dy = y2 - y1;
+
+                                        let cx1 = x1 + dx * 0.4;
+                                        let cy1 = y1;
+                                        let cx2 = x2 - dx * 0.4;
+                                        let cy2 = y2;
+
+                                        // Solid line with arrow
+                                        const pathId = 'p' + from.dataset.deptId + '_' + to.dataset.deptId + '_' + idx;
+                                        svgContent += `<path id="${pathId}" d="M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}" fill="none" stroke="var(--secondary-color-4)" stroke-width="2" opacity="0.7" marker-end="url(#arrow)"/>`;
+
+                                        // Relationship label at bezier midpoint (t=0.5)
+                                        const mx = 0.125*x1 + 0.375*cx1 + 0.375*cx2 + 0.125*x2;
+                                        const my = 0.125*y1 + 0.375*cy1 + 0.375*cy2 + 0.125*y2;
+                                        let label;
+                                        if (isBi) {
+                                            const t1 = pairs[0].type, t2 = pairs[1].type;
+                                            if (t1 === t2) {
+                                                label = t1 === 'head_of' ? 'mutual Faculty Heads' : 'mutual Faculty Members';
+                                            } else {
+                                                label = 'Faculty Head / Member';
+                                            }
+                                        } else {
+                                            label = type === 'head_of' ? '\u2192 is also Faculty Head' : '\u2192 is a Faculty Member';
+                                        }
+
+                                        const lw = Math.max(140, label.length * 7 + 20);
+                                        const lh = 20;
+                                        svgContent += `<rect x="${mx - lw/2}" y="${my - lh/2}" width="${lw}" height="${lh}" rx="4" fill="#f9edfa" opacity="0.92" pointer-events="none"/>`;
+                                        svgContent += `<text x="${mx}" y="${my + 4}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--secondary-color-1)" pointer-events="none">${label}</text>`;
+                                    });
+                                });
+
+                                linesSvg.innerHTML = svgContent;
+                                linesSvg.style.width = canvas.scrollWidth + 'px';
+                                linesSvg.style.height = canvas.scrollHeight + 'px';
+                            }
+
+                            // Initial draw after layout settles
+                            setTimeout(drawLines, 100);
+                            window.addEventListener('resize', drawLines);
+                            wrap.addEventListener('scroll', drawLines);
+                            // Redraw after any drag
+                            const origMouseUp = document.addEventListener('mouseup', function redraw() {
+                                setTimeout(drawLines, 50);
+                            });
+                        })();
+
+                        function toggleHierarchyMaximize() {
+                            const section = document.getElementById('hierarchySection');
+                            const btn = document.getElementById('hierarchyToggleBtn');
+                            if (!section || !btn) return;
+                            const isMax = section.classList.toggle('hierarchy-maximized');
+                            btn.innerHTML = isMax ? '<i class="bi bi-arrows-collapse"></i>' : '<i class="bi bi-arrows-expand"></i>';
+                            setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+                        }
+                    </script>
 
 
 
@@ -190,8 +517,8 @@ require_once '../../php/includes/admin-head.php';
                 <!-- ─── RIGHT COLUMN ─────────────────────────────────── -->
                 <div class="group-container gap-3">
                     <!-- Rooms list -->
-                    <div style="background-color:#f8f9fa;" class="fit-width section-container">
-                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                    <div style="background-color:#f8f9fa;" class="section-container">
+                        <div class="section-topbar d-flex gap-1 align-items-center justify-content-between">
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">Rooms</h2>
                             </div>

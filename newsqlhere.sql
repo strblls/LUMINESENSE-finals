@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 25, 2026 at 04:59 PM
+-- Generation Time: Jun 27, 2026 at 11:11 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -116,7 +116,26 @@ INSERT INTO `admin_login_logs` (`id`, `admin_id`, `login_at`) VALUES
 (39, 2, '2026-06-24 17:24:45'),
 (40, 2, '2026-06-24 17:53:09'),
 (41, 2, '2026-06-24 19:42:15'),
-(42, 2, '2026-06-25 02:00:59');
+(42, 2, '2026-06-25 02:00:59'),
+(43, 2, '2026-06-25 15:10:23'),
+(44, 2, '2026-06-25 23:30:45'),
+(45, 2, '2026-06-25 23:32:14'),
+(46, 2, '2026-06-26 02:09:37'),
+(47, 2, '2026-06-26 03:30:42'),
+(48, 2, '2026-06-26 03:59:47'),
+(49, 2, '2026-06-26 05:17:33'),
+(50, 2, '2026-06-26 08:07:26'),
+(51, 2, '2026-06-26 08:08:27'),
+(52, 2, '2026-06-26 09:57:31'),
+(53, 2, '2026-06-26 10:43:28'),
+(54, 2, '2026-06-26 10:50:03'),
+(55, 2, '2026-06-26 11:22:59'),
+(56, 2, '2026-06-26 11:26:51'),
+(57, 2, '2026-06-26 11:28:17'),
+(58, 2, '2026-06-26 13:07:32'),
+(59, 2, '2026-06-26 13:09:43'),
+(60, 2, '2026-06-26 17:16:55'),
+(61, 2, '2026-06-26 17:23:16');
 
 -- --------------------------------------------------------
 
@@ -251,7 +270,38 @@ INSERT INTO `admin_logs` (`id`, `admin_id`, `action`, `target_name`, `performed_
 (110, 2, 'faculty_rejected', 'Carl Xander Ballesteros', '', 'Record deleted', '2026-06-24 03:57:24'),
 (111, 2, 'faculty_rejected', 'Yves Saint Laurent', '', 'Rejected on review', '2026-06-24 06:21:47'),
 (112, 2, 'faculty_approved', 'Jimar Intapa', '', 'Faculty ID: F-015-2026', '2026-06-24 19:42:32'),
-(113, 2, 'faculty_approved', 'August Uno', '', 'Faculty ID: F-016-2026', '2026-06-24 19:43:18');
+(113, 2, 'faculty_approved', 'August Uno', '', 'Faculty ID: F-016-2026', '2026-06-24 19:43:18'),
+(114, 2, 'department_edited', 'TLE', '', '', '2026-06-25 23:38:16'),
+(115, 2, 'department_edited', 'TLE', '', '', '2026-06-25 23:39:58'),
+(116, 2, 'department_edited', 'TLE', '', '', '2026-06-25 23:40:08'),
+(117, 2, 'department_edited', 'Filipino', '', '', '2026-06-25 23:42:32'),
+(118, 2, 'department_edited', 'Science', '', '', '2026-06-25 23:43:54'),
+(119, 2, 'department_edited', 'Filipino', '', '', '2026-06-26 03:31:06'),
+(120, 2, 'department_edited', 'Science', '', '', '2026-06-26 03:36:21'),
+(121, 2, 'department_edited', 'Filipino', '', '', '2026-06-26 03:39:12'),
+(122, 2, 'department_edited', 'Filipino', '', '', '2026-06-26 03:39:34'),
+(123, 2, 'department_edited', 'Filipino', '', '', '2026-06-26 03:56:56'),
+(124, 2, 'department_edited', 'Filipino', '', '', '2026-06-26 03:57:11'),
+(125, 2, 'department_edited', 'Filipino', '', '', '2026-06-26 03:57:28'),
+(126, 2, 'department_edited', 'Filipino', '', '', '2026-06-26 03:57:51'),
+(127, 2, 'department_added', 'Defense Against the Dark Arts', '', '', '2026-06-26 04:35:11'),
+(128, 2, 'department_edited', 'Mathematics', '', '', '2026-06-26 05:02:39'),
+(129, 2, 'department_edited', 'Mathematics', '', '', '2026-06-26 05:03:34'),
+(130, 2, 'department_edited', 'Mathematics', '', '', '2026-06-26 05:03:44'),
+(131, 2, 'department_edited', 'TLE', '', '', '2026-06-26 05:04:02'),
+(132, 2, 'department_edited', 'TLE', '', '', '2026-06-26 05:04:19'),
+(133, 2, 'department_edited', 'TLE', '', '', '2026-06-26 05:04:31'),
+(134, 2, 'department_edited', 'TLE', '', '', '2026-06-26 05:04:37'),
+(135, 2, 'department_deleted', 'Defense Against the Dark Arts', '', '', '2026-06-26 05:10:36'),
+(136, 2, 'department_edited', 'Mathematics', '', '', '2026-06-26 05:17:52'),
+(137, 2, 'department_edited', 'Science', '', '', '2026-06-26 05:18:07'),
+(138, 2, 'department_edited', 'Science', '', '', '2026-06-26 13:07:57'),
+(139, 2, 'department_edited', 'Science', '', '', '2026-06-26 13:10:05'),
+(140, 2, 'department_edited', 'English', '', '', '2026-06-26 13:10:12'),
+(141, 2, 'department_edited', 'English', '', '', '2026-06-26 17:18:03'),
+(142, 2, 'department_edited', 'English', '', '', '2026-06-26 17:18:11'),
+(143, 2, 'department_edited', 'English', '', '', '2026-06-26 17:18:22'),
+(144, 2, 'department_edited', 'TLE', '', '', '2026-06-26 17:23:29');
 
 -- --------------------------------------------------------
 
@@ -308,10 +358,10 @@ CREATE TABLE `departments` (
 
 INSERT INTO `departments` (`id`, `name`, `description`, `created_at`, `status`, `head_faculty_id`) VALUES
 (1, 'Science', '7th Floor — Physics, Chemistry, Biology labs', '2026-06-14 08:11:43', 'active', 2),
-(2, 'Mathematics', '5th Floor — Advanced computation labs', '2026-06-14 08:11:43', 'active', NULL),
-(3, 'English', '3rd Floor — Language & Literature', '2026-06-14 08:11:43', 'active', NULL),
-(4, 'TLE', 'Technical-Livelihood Education', '2026-06-14 08:11:43', 'pending', NULL),
-(5, 'Filipino', 'Filipino Language & Culture', '2026-06-14 08:11:43', 'pending', NULL);
+(2, 'Mathematics', '5th Floor — Advanced computation labs', '2026-06-14 08:11:43', 'active', 2),
+(3, 'English', '3rd Floor — Language & Literature', '2026-06-14 08:11:43', 'active', 2),
+(4, 'TLE', 'Technical-Livelihood Education', '2026-06-14 08:11:43', 'active', 2),
+(5, 'Filipino', 'Filipino Language & Culture', '2026-06-14 08:11:43', 'active', 15);
 
 -- --------------------------------------------------------
 
@@ -360,19 +410,18 @@ CREATE TABLE `faculty` (
   `ai_match_status` enum('matched','mismatched','unreadable') DEFAULT NULL,
   `ai_extracted_name` varchar(100) DEFAULT NULL,
   `ai_confidence_note` text DEFAULT NULL,
-  `faculty_id` varchar(20) DEFAULT NULL,
-  `subject_area_id` int(11) DEFAULT NULL
+  `faculty_id` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `faculty`
 --
 
-INSERT INTO `faculty` (`id`, `last_name`, `first_name`, `middle_initial`, `email`, `password`, `is_verified`, `approved_by`, `approved_at`, `otp_code`, `otp_expires_at`, `created_at`, `id_image`, `ai_match_status`, `ai_extracted_name`, `ai_confidence_note`, `faculty_id`, `subject_area_id`) VALUES
-(2, 'Entapa', 'Jaz', 'E', 'johngemare@gmail.com', '$2y$10$7dPWtA5ztjzHviPku4sWgugYEM0UJSiAsqtUo/j7W6tP8K0E5mZp.', 1, 2, '2026-05-22 03:43:59', NULL, NULL, '2026-05-19 10:12:27', NULL, NULL, NULL, NULL, NULL, NULL),
-(13, 'dfgdf', 'dfgfdg', 'DFGDG', 'johngemareff@gmail.com', '$2y$10$KtTWe0ba95KurYF6LeY12uPoLVOl92YLTTU18aBr4kRBJoX0Ga/8q', 0, NULL, NULL, '776412', '2026-06-24 06:57:40', '2026-06-24 04:42:41', 'uploads/faculty_ids/id_517787a251b99842.png', 'unreadable', NULL, 'AI could not read the ID clearly.', NULL, NULL),
-(15, 'Intapa', 'Jimar', 'E', 'johngemarentapa@gmail.com', '$2y$10$nQnz2xN.7lowOkphpOaey.RkFDQ.En027F3yn3Lq9wCymQ8Kza8J2', 1, 2, '2026-06-24 19:42:28', NULL, NULL, '2026-06-24 19:36:01', 'uploads/faculty_ids/id_a65abc0b7d8ac73b.png', 'unreadable', NULL, 'AI could not read the ID clearly.', 'F-015-2026', 1),
-(16, 'Uno', 'August', 'T', 'june.j.august04@gmail.com', '$2y$10$GdEYJdB1UXtLTSV3mWrI/OZoXdiZ2Kn7YmUSW29NuNnQVD/5/DnHW', 1, 2, '2026-06-24 19:43:15', NULL, NULL, '2026-06-24 19:39:30', 'uploads/faculty_ids/id_c2f2ca766ca0dc5f.png', 'unreadable', NULL, 'AI could not read the ID clearly.', 'F-016-2026', 2);
+INSERT INTO `faculty` (`id`, `last_name`, `first_name`, `middle_initial`, `email`, `password`, `is_verified`, `approved_by`, `approved_at`, `otp_code`, `otp_expires_at`, `created_at`, `id_image`, `ai_match_status`, `ai_extracted_name`, `ai_confidence_note`, `faculty_id`) VALUES
+(2, 'Entapa', 'Jaz', 'E', 'johngemare@gmail.com', '$2y$10$7dPWtA5ztjzHviPku4sWgugYEM0UJSiAsqtUo/j7W6tP8K0E5mZp.', 1, 2, '2026-05-22 03:43:59', NULL, NULL, '2026-05-19 10:12:27', NULL, NULL, NULL, NULL, NULL),
+(13, 'dfgdf', 'dfgfdg', 'DFGDG', 'johngemareff@gmail.com', '$2y$10$KtTWe0ba95KurYF6LeY12uPoLVOl92YLTTU18aBr4kRBJoX0Ga/8q', 0, NULL, NULL, '776412', '2026-06-24 06:57:40', '2026-06-24 04:42:41', 'uploads/faculty_ids/id_517787a251b99842.png', 'unreadable', NULL, 'AI could not read the ID clearly.', NULL),
+(15, 'Intapa', 'Jimar', 'E', 'johngemarentapa@gmail.com', '$2y$10$nQnz2xN.7lowOkphpOaey.RkFDQ.En027F3yn3Lq9wCymQ8Kza8J2', 1, 2, '2026-06-24 19:42:28', NULL, NULL, '2026-06-24 19:36:01', 'uploads/faculty_ids/id_a65abc0b7d8ac73b.png', 'unreadable', NULL, 'AI could not read the ID clearly.', 'F-015-2026'),
+(16, 'Uno', 'August', 'T', 'june.j.august04@gmail.com', '$2y$10$GdEYJdB1UXtLTSV3mWrI/OZoXdiZ2Kn7YmUSW29NuNnQVD/5/DnHW', 1, 2, '2026-06-24 19:43:15', NULL, NULL, '2026-06-24 19:39:30', 'uploads/faculty_ids/id_c2f2ca766ca0dc5f.png', 'unreadable', NULL, 'AI could not read the ID clearly.', 'F-016-2026');
 
 -- --------------------------------------------------------
 
@@ -442,6 +491,23 @@ CREATE TABLE `junction_faculty_department` (
   `department_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `junction_faculty_department`
+--
+
+INSERT INTO `junction_faculty_department` (`faculty_id`, `department_id`) VALUES
+(2, 1),
+(2, 2),
+(2, 3),
+(2, 4),
+(15, 1),
+(15, 3),
+(15, 4),
+(15, 5),
+(16, 2),
+(16, 3),
+(16, 5);
+
 -- --------------------------------------------------------
 
 --
@@ -451,6 +517,17 @@ CREATE TABLE `junction_faculty_department` (
 CREATE TABLE `junction_faculty_subject` (
   `faculty_id` int(11) NOT NULL,
   `subject_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `junction_faculty_subjectarea`
+--
+
+CREATE TABLE `junction_faculty_subjectarea` (
+  `faculty_id` int(11) NOT NULL,
+  `subject_area_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -4114,16 +4191,25 @@ INSERT INTO `schedules` (`id`, `classroom_id`, `faculty_id`, `day_of_week`, `sta
 CREATE TABLE `subjects` (
   `id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
-  `subject_area_id` int(11) DEFAULT NULL
+  `subject_area_id` int(11) DEFAULT NULL,
+  `department_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `subjects`
 --
 
-INSERT INTO `subjects` (`id`, `name`, `subject_area_id`) VALUES
-(1, 'Geology and Rock Forms           ', NULL),
-(2, 'Stoic Teaching I', NULL);
+INSERT INTO `subjects` (`id`, `name`, `subject_area_id`, `department_id`) VALUES
+(1, 'Geology and Rock Forms           ', NULL, NULL),
+(2, 'Stoic Teaching I', NULL, NULL),
+(3, 'Linguistics', 4, 3),
+(4, 'Linguistics II', 4, 3),
+(5, 'History of Text', 4, 3),
+(6, 'Linguistics III', 4, 3),
+(8, 'WWW History and Basic HTML', 12, 4),
+(9, 'Data and Information: Basic Database', 12, 4),
+(10, 'Basic Concepts of Objects and Classes (BCOC)', 12, 4),
+(11, 'BCOC Extension: Basic Programming (BCOC-BP)', 12, 4);
 
 -- --------------------------------------------------------
 
@@ -4142,8 +4228,14 @@ CREATE TABLE `subject_area` (
 --
 
 INSERT INTO `subject_area` (`id`, `name`, `department_id`) VALUES
-(1, 'Biology', NULL),
-(2, 'Stoicism', NULL);
+(4, 'Grammar', 3),
+(6, 'Literature', 3),
+(7, 'Plays: Romeo and Juliet I', 3),
+(9, 'Parallelism Structures', 3),
+(10, 'English 10', 3),
+(11, 'Home Economics (HE)', 4),
+(12, 'Empowerment Technologies (E-Tech)', 4),
+(14, 'Seam and Sewing I (SSI)', 4);
 
 --
 -- Indexes for dumped tables
@@ -4244,6 +4336,13 @@ ALTER TABLE `junction_faculty_subject`
   ADD KEY `subject_id` (`subject_id`);
 
 --
+-- Indexes for table `junction_faculty_subjectarea`
+--
+ALTER TABLE `junction_faculty_subjectarea`
+  ADD PRIMARY KEY (`faculty_id`,`subject_area_id`),
+  ADD KEY `fk_jfsa_subjectarea` (`subject_area_id`);
+
+--
 -- Indexes for table `lighting_logs`
 --
 ALTER TABLE `lighting_logs`
@@ -4293,7 +4392,8 @@ ALTER TABLE `schedules`
 --
 ALTER TABLE `subjects`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_subject_area` (`subject_area_id`);
+  ADD KEY `fk_subject_area` (`subject_area_id`),
+  ADD KEY `fk_department_id` (`department_id`);
 
 --
 -- Indexes for table `subject_area`
@@ -4316,13 +4416,13 @@ ALTER TABLE `admins`
 -- AUTO_INCREMENT for table `admin_login_logs`
 --
 ALTER TABLE `admin_login_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
 
 --
 -- AUTO_INCREMENT for table `admin_logs`
 --
 ALTER TABLE `admin_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=114;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=145;
 
 --
 -- AUTO_INCREMENT for table `classrooms`
@@ -4334,7 +4434,7 @@ ALTER TABLE `classrooms`
 -- AUTO_INCREMENT for table `departments`
 --
 ALTER TABLE `departments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `extension_requests`
@@ -4394,13 +4494,13 @@ ALTER TABLE `schedules`
 -- AUTO_INCREMENT for table `subjects`
 --
 ALTER TABLE `subjects`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `subject_area`
 --
 ALTER TABLE `subject_area`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- Constraints for dumped tables
@@ -4478,6 +4578,13 @@ ALTER TABLE `junction_faculty_subject`
   ADD CONSTRAINT `fk_bridge_subject` FOREIGN KEY (`subject_id`) REFERENCES `subjects` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
+-- Constraints for table `junction_faculty_subjectarea`
+--
+ALTER TABLE `junction_faculty_subjectarea`
+  ADD CONSTRAINT `fk_jfsa_faculty` FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_jfsa_subjectarea` FOREIGN KEY (`subject_area_id`) REFERENCES `subject_area` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `lighting_logs`
 --
 ALTER TABLE `lighting_logs`
@@ -4514,6 +4621,7 @@ ALTER TABLE `schedules`
 -- Constraints for table `subjects`
 --
 ALTER TABLE `subjects`
+  ADD CONSTRAINT `fk_department_id` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_subject_area` FOREIGN KEY (`subject_area_id`) REFERENCES `subject_area` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
