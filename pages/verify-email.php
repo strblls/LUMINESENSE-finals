@@ -218,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <!-- OTP form -->
         <div class="form-container">
-            <form method="POST" action="" id="otp-form" class="d-flex flex-row justify-content-center align-item-center">
+            <form method="POST" action="" id="otp-form" class="d-flex flex-column align-items-center">                
                 <!-- Hidden field holds the combined OTP value -->
                 <input type="hidden" name="otp_code" id="otp-hidden">
 

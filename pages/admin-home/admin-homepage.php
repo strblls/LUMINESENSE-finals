@@ -96,6 +96,7 @@ $dept_res->free();
     <link rel="icon" href="../../images/logo.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../../css/admin-common.css">
     <link rel="stylesheet" href="../../css/admin-home.css?v=<?= time() ?>">
 </head>
 
