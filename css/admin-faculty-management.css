@@ -337,9 +337,20 @@
 }
 
 .subject-area-tag {
-    font-size: 13px;
+    border-radius: 9999px;
+    background-color: var(--secondary-color-1);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    font-size: 12px;
+    font-weight: bolder;
+    white-space: nowrap;
+    transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), box-shadow .22s ease;
     cursor: default;
     user-select: none;
+}
+
+.subject-area-tag:hover {
+    transform: scale(1.08);
 }
 
 .subject-area-tag .bi-x:hover {

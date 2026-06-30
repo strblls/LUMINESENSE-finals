@@ -874,7 +874,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
             const container = document.getElementById(context + 'SubjectAreaTags');
             const tags = subjectAreaState[context];
             container.innerHTML = tags.map((tag, i) =>
-                `<span class="subject-area-tag badge bg-primary me-1 mb-1 ps-2 pe-1 py-1 d-inline-flex align-items-center">
+                `<span class="subject-area-tag me-1 mb-1 d-inline-flex align-items-center">
                     ${escapeHtml(tag)}
                     <i class="bi bi-x ms-1 subject-area-remove" style="cursor:pointer;font-size:1.1em" data-context="${context}" data-index="${i}"></i>
                 </span>`
