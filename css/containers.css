@@ -211,8 +211,9 @@
 .main-container.homepage {
     display: flex;
     flex-direction: row;
-    padding: 2rem;
+    padding: 1rem;
     gap: 3rem;
+    background-color: var(--secondary-color-2);
 
     .group-container:first-child {
         flex: 2;
@@ -224,7 +225,7 @@
 }
 
 .main-container.faculty-timetable {
-    background-color: #440074;
+    background-color: var(--secondary-color-2);
     display: flex;
     padding: 1rem;
     gap: 2rem;
@@ -323,7 +324,7 @@
 
 .main-container {
     background-color: #ffffff;
-    border-radius: 15px;
+    border-radius: 5px;
     /*NOTE: Do not change for CONSISTENCY*/
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.17);
     padding: 2rem;
@@ -489,7 +490,7 @@
 }
 
 .subsection-container {
-    background-color: var(--secondary-color-1);
+    background-color: var(#3d005bd0);
     border-radius: 8px;
 }
 

@@ -371,7 +371,7 @@ $er_q = $conn->query("
     JOIN schedules s ON s.id = er.schedule_id
     JOIN classrooms c ON c.id = s.classroom_id
     LEFT JOIN subjects sub ON sub.id = s.subject_id
-    WHERE er.faculty_id = $faculty_id
+    WHERE er.faculty_id = $faculty_id AND s.day_of_week = '$today'
     ORDER BY er.requested_at DESC
 ");
 if ($er_q) {
@@ -429,12 +429,12 @@ $conn->close();
 
     <!--Relative links-->
     <link type="icon" href="../../logo.png">
-    
+
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/tooltip.css">
     <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/faculty-timetable.css">
+    <link rel="stylesheet" href="../../css/faculty-timetable.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../../css/faculty-head-timetable.css">
     <link rel="stylesheet" href="../../css/faculty-common.css">
     <link rel="stylesheet" href="../../css/faculty-settings.css">
@@ -447,373 +447,389 @@ $conn->close();
 
         <?php include '../../php/includes/faculty-topbar.php'; ?>
 
-        <div class="child-container mb-3">
+        <div class="d-flex flex-row" style="width:100%;flex:1;position:relative;">
 
 
-            <div class="main-container faculty-timetable w-auto">
-                <!-- Time Left -->
-                <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
-                    <div class="section-topbar mx-2 justify-content-between">
-                        <div>
-                            <h2 class="bold"><i class="bi bi-clock me-1"></i>Time Left <span class="medium text-muted fs-6">until end of class</span></h2>
-                            <!-- <h2 class="medium text-muted fs-6" style="font-size: 14px;"><i class="bi bi-info-circle me-1"></i>Today is <span class="bold">Monday, October 2nd, 2023</span></h2> -->
-                        </div>
-                        <div class="d-flex mx-2 align-items-center justify-content-end">
-                            <!-- <button class="light h-50 w-auto" data-bs-toggle="modal" data-bs-target="#viewScheduleModal">View Schedule</button> -->
-                        </div>
+            <div class="child-container gap-3" style="flex:1;min-width:0;">
+
+                <!-- Intro Heading -->
+                <div class="main-container faculty-timetable-heading d-flex flex-column align-items-center justify-content-center w-auto" style="position:relative; background-color: var(--secondary-color-2);">
+                    <div class="d-flex gap-2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);">
+                        <button type="button" class="timetable-btn" data-panel="panelTimeLeft" title="Time Left">
+                            <span class="timetable-btn-title bold">Time Left</span>
+                            <i class="bi bi-clock me-2"></i>
+                            <span class="notif-dot"></span>
+                        </button>
+                        <button type="button" class="timetable-btn" data-panel="panelClassDetails" title="Class Details">
+                            <span class="timetable-btn-title bold">Class<br>Details</span>
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span class="notif-dot"></span>
+                        </button>
+                        <button type="button" class="timetable-btn" data-panel="panelExtRequests" title="Extension Requests">
+                            <span class="timetable-btn-title bold">Extensions<br>Today</span>
+                            <i class="bi bi-clock-history me-2"></i>
+                            <span class="notif-dot"></span>
+                        </button>
                     </div>
-                    <div class="gap-1 align-items-center  d-flex flex-column">
-
-                        <div class="subsection-container d-flex flex-column mx-1 align-items-center justify-content-center">
-                            <?php if ($active_schedule): ?>
-                                <?php
-                                $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
-                                ?>
-                                <h1 class="bold display-1 p-2" style="color: var(--muted-white);" id="timerDisplay" data-end="<?= htmlspecialchars($end) ?>">
-                                    --:--:--
-                                </h1>
-                            <?php else: ?>
-                                <h1 class="bold display-1 p-2" style="font-size: 5rem; color: var(--muted-white);" id="timerDisplay">00:00:00</h1>
-                            <?php endif; ?>
-                        </div>
-                        <div class="d-flex flex-row mx-2 align-items-end justify-content-center">
-                            <?php if ($active_schedule): ?>
-                                <?php
-                                $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
-                                $start_12h = date('g:i A', strtotime($active_schedule['start_time']));
-                                $end_12h = date('g:i A', strtotime($end));
-                                ?>
-                                <button class="light" style="width:auto;" onclick="requestExtend(<?= $active_schedule['id'] ?>, '<?= htmlspecialchars($active_schedule['room_name']) ?>', '<?= $start_12h ?>', '<?= $end_12h ?>')">
-                                    <i class="bi bi-clock-history me-1"></i> Extend
-                                </button>
-                                <button class="danger px-2" style="width:auto;" onclick="openEndEarlyModal(<?= $active_schedule['id'] ?>, '<?= htmlspecialchars($active_schedule['room_name']) ?>')">
-                                    <i class="bi bi-stop-circle me-1"></i> End Early
-                                </button>
-                            <?php endif; ?>
-
-                            <?php if (!$active_schedule): ?>
-                                <p class="text-muted text-center mt-2 mb-1">No active class schedule right now.</p>
-                            <?php endif; ?>
-                        </div>
+                    <div class="d-flex gap-2" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);">
+                        <button type="button" class="timetable-btn" data-panel="panelCoverage" title="Coverage Details">
+                            <span class="timetable-btn-title bold">Your<br>Coverage</span>
+                            <i class="bi bi-layout-three-columns me-2"></i>
+                            <span class="notif-dot"></span>
+                        </button>
+                        <button type="button" class="timetable-btn" id="exportPdfBtn" title="Export PDF" data-bs-toggle="tooltip" data-bs-placement="auto">
+                            <span class="timetable-btn-title bold">Export<br>PDF</span>
+                            <i class="bi bi-filetype-pdf me-2"></i>
+                        </button>
                     </div>
-                </div>
-
-                <!-- Current and Next Class | Dynamic -->
-                <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
-                    <div class="section-topbar d-flex flex-column mx-2 justify-content-between">
-                        <div>
-                            <h2 class="bold"><i class="bi bi-info-circle me-1"></i>Class Details</h2>
-                        </div>
-                        <div class="d-flex mx-2 align-items-center justify-content-end">
-                        </div>
-                    </div>
-                    <div class="d-flex flex-row mx-1 gap-3 align-items-center justify-content-center mb-3">
-                        <?php if ($current_class):
-                            $cc_end = $current_class['extended_until'] ?? $current_class['end_time'];
-                        ?>
-                            <div class="subsection-container p-3">
-                                <h2 class="bold text-uppercase" style="color: #fff;">Current</h2>
-                                <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($current_class['start_time'])) ?> – <?= date('g:i A', strtotime($cc_end)) ?></h2>
-                                <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($current_class['room_name']) ?></h2>
-                                <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($current_class['subject_name'] ?? 'N/A') ?></h2>
-                            </div>
-                        <?php elseif (!$current_class && !$next_class): ?>
-                            <div class="d-flex align-items-center justify-content-center w-100">
-                                <p class="text-muted text-center my-2">No classes scheduled for today.</p>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ($next_class):
-                            $nc_end = $next_class['extended_until'] ?? $next_class['end_time'];
-                        ?>
-                            <div>
-                                <h2 class="bold text-uppercase" style="font-size: 14px;">Next</h2>
-                                <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($next_class['start_time'])) ?> – <?= date('g:i A', strtotime($nc_end)) ?></h2>
-                                <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($next_class['room_name']) ?></h2>
-                                <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($next_class['subject_name'] ?? 'N/A') ?></h2>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <!-- Extension Requests List -->
-                <div style="background-color: #f8f9fa;" class="section-container timetable overflow-hidden d-flex flex-column">
-                    <div class="section-topbar flex-shrink-0 d-flex flex-column mx-2 justify-content-between">
-                        <div>
-                            <h2 class="bold"><i class="bi bi-clock-history me-1"></i>Extension Requests</h2>
-                        </div>
-                        <div>
-                            <span class="badge bg-info text-dark fs-6 px-3 py-2">Time Extensions Left for Today: <?= max(0, $extensions_left_today) ?></span>
-                        </div>
-                    </div>
-                    <?php if (empty($extension_requests)): ?>
-                        <div class="d-flex flex-column align-items-center justify-content-center h-100">
-                            <p class="text-muted text-center">No extension requests yet.</p>
-                        </div>
-                    <?php else: ?>
-                        <div class="d-flex flex-column gap-2 p-2 overflow-auto flex-grow-1" style="max-height:25vh;">
-                            <?php foreach ($extension_requests as $er): ?>
-                                <div class="dept-info-card d-flex flex-row align-items-center justify-content-between gap-2 p-2">
-                                    <div class="d-flex flex-column small flex-grow-1">
-                                        <span><strong><?= htmlspecialchars($er['room_name']) ?></strong> · <?= htmlspecialchars($er['subject_name'] ?? 'No subject') ?></span>
-                                        <span class="text-muted"><?= htmlspecialchars($er['day_of_week']) ?> · <?= date('g:i A', strtotime($er['start_time'])) ?> - <?= date('g:i A', strtotime($er['extended_until'] ?? $er['end_time'])) ?></span>
-                                        <span class="text-muted">+<?= (int)$er['extend_mins'] ?> min · Status:
-                                            <span class="fw-bold <?= $er['status'] === 'approved' ? 'text-success' : ($er['status'] === 'rejected' ? 'text-danger' : 'text-warning') ?>">
-                                                <?= ucfirst($er['status']) ?>
-                                            </span>
-                                        </span>
-                                    </div>
-                                    <?php if ($er['status'] === 'pending'): ?>
-                                        <div class="d-flex gap-1 flex-shrink-0">
-                                            <button class="btn-icon btn-icon-view" style="width:auto;padding:4px 10px;font-size:12px;"
-                                                onclick="editExtensionRequest(<?= $er['schedule_id'] ?>, '<?= htmlspecialchars($er['room_name']) ?>', '<?= date('g:i A', strtotime($er['start_time'])) ?>', '<?= date('g:i A', strtotime($er['end_time'])) ?>', <?= (int)$er['extend_mins'] ?>, <?= (int)$er['id'] ?>)"
-                                                title="Edit" data-bs-toggle="tooltip">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button class="btn-icon btn-icon-del" style="width:auto;padding:4px 10px;font-size:12px;"
-                                                onclick="openDeleteModal(<?= (int)$er['id'] ?>)"
-                                                title="Delete" data-bs-toggle="tooltip">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-            </div>
-
-        </div>
-
-
-
-        <div class="child-container">
-            <!-- intro heading -->
-            <div class="main-container faculty-timetable-heading d-flex flex-column align-items-center justify-content-center w-auto mb-3">
-                <h2 class="bold">Class Timetable for <?= $faculty_name ?></h2>
-                <div class="d-flex flex-row align-items-stretch gap-3" style="width:100%;flex-wrap:nowrap;">
-
-                    <!-- Assigned Coverage -->
-                    <div class="d-flex flex-column justify-content-center flex-grow-1" style="flex:1 1 0;"> <!--info container-->
-                        <h4 class="bold me-1"><i class="bi bi-folder2 mx-1"></i>Assigned Coverage</h4>
-
-
-                        <?php if (!empty($coverage)): ?>
-                            <div class="coverage-grid">
-                                <?php foreach ($coverage as $sa): ?>
-
-                                    <div class="dept-info-card mb-2">
-                                        <div class="small bold" style="color: var(--secondary-color-1);"><i class="bi bi-diagram-3"></i> <?= htmlspecialchars($sa['department_name']) ?></div>
-                                        <div class="mt-1">
-                                            <i class="bi bi-briefcase"></i><span class="dept-subject-area bold dept-emphases"><?= htmlspecialchars($sa['name']) ?></span>
-                                        </div>
-                                        <?php if (!empty($sa['subjects'])): ?>
-                                            <div class="d-flex flex-wrap gap-1 mt-1">
-                                                <i class="bi bi-book"></i>
-                                                <?php foreach ($sa['subjects'] as $subj_name): ?>
-                                                    <span class="subarea-subject bold dept-emphases"><?= htmlspecialchars($subj_name) ?></span>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        <?php else: ?>
-                                            <div class="small text-muted mt-1">No subjects under this area.</div>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <span class="text-muted">No subject areas assigned.</span>
-                        <?php endif; ?>
-                        <?php if (!$has_any_subject): ?>
-                            <p style="text-align:justify;" class="small mb-2"><br>
-                                <strong>Attention:</strong> You currently <strong>don't have any subjects assigned for teaching</strong>.
-                                Please contact the <span class="status-badge faculty-head bold">Faculty Head</span> to have subjects assigned.
-                            </p>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="d-flex flex-column justify-content-center flex-grow-1" style="flex:1 1 0;"> <!--info container-->
-
-                        <h4 class="bold me-1"><i class="bi bi-info-circle mx-1"></i>Info</h4>
-                        <div class="dept-info-card">
-                            Prepared by: <span class="status-badge faculty-head bold">Faculty Head</span> <strong><?= htmlspecialchars($head_name) ?></strong><br>
-                            Last Edited: <strong><?= $last_edited ? date('F j, Y (g:i A)', strtotime($last_edited)) : 'No schedules yet' ?></strong><strong> <?= htmlspecialchars($edited_by_name) ?></strong><br>
-                        </div>
-                        <h4 class="bold me-1"><i class="bi bi-info-circle mx-1"></i>Date Today</h4>
-
+                    <div class="p-2" style="color: #fff; background-color: var(--secondary-color-1); border-radius: 5px;">
+                        <h2 class="bold">Class Timetable for <?= $faculty_name ?></h2>
                         <?php
                         $today_num = date('j');
                         $today_month_name = date('F');
                         $today_year = date('Y');
                         ?>
-                        <div class="dept-info-card">
+                        <p class="text-uppercase text-center mb-0 " style="font-size: 14px; color: var(--muted-white); ">
                             Today is the <span class="bold"><?= ordinal((int)$today_num) ?> </span>
                             day of <span class="bold"><?= $today_month_name ?></span>,
                             of school year <span class="bold"><?= $today_year ?></span>
-                        </div>
-
-                        <p style="text-align:justify;" class="small mb-2"><br>
-                            <strong>Note:</strong> Your class schedule is managed by the <span class="status-badge faculty-head bold">Faculty Head</span>.
-                            For any concerns regarding your schedule, please contact your department head or the administration.
                         </p>
                     </div>
 
-
-                </div>
-            </div>
-
-            <div class="main-container homepage gap-3" style="flex-direction:column;">
-                <!-- Flash messages -->
-                <?php if (!empty($_SESSION['timetable_success'])): ?>
-                    <div class="alert alert-success flash-dismiss">
-                        ✅ <?= htmlspecialchars($_SESSION['timetable_success']) ?>
-                    </div>
-                    <?php unset($_SESSION['timetable_success']); ?>
-                <?php endif; ?>
-                <?php if (!empty($_SESSION['timetable_error'])): ?>
-                    <div class="alert alert-warning flash-dismiss">
-                        ⚠️ <?= htmlspecialchars($_SESSION['timetable_error']) ?>
-                    </div>
-                    <?php unset($_SESSION['timetable_error']); ?>
-                <?php endif; ?>
-
-                <!-- Weekly schedule -->
-                <?php
-                $dow_map = ['Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6];
-                $today_dow_num = $dow_map[$today];
-                $day_date_map = [];
-                foreach ($days as $day) {
-                    $diff = $dow_map[$day] - $today_dow_num;
-                    $dt = new DateTime("$diff days");
-                    $day_date_map[$day] = strtoupper($dt->format('M j'));
-                }
-                ?>
-                <div class="weekly-schedule-grid">
-                    <?php foreach ($days as $day):
-                        $is_today = ($day === $today);
-                        $slots    = $schedule_by_day[$day];
-                    ?>
-                        <div class="day-card <?= $is_today ? 'today' : '' ?>">
-                            <div class="day-label">
-                                <div class="text-uppercase small fw-bold mb-1" style="font-size:11px;letter-spacing:0.5px;color:<?= $is_today ? '#fff' : '#6c757d' ?>;"><?= $day_date_map[$day] ?? '' ?></div>
-                                <?= $day ?> <?= $is_today ? '· Today' : '' ?>
+                    <!-- Time Left panel -->
+                    <div id="panelTimeLeft" class="timetable-panel p-3 m-3">
+                        <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
+                            <div class="section-topbar mx-2 justify-content-between">
+                                <div>
+                                    <h2 class="bold"><i class="bi bi-clock me-1"></i>Time Left <span class="medium text-muted fs-6">until end of class</span></h2>
+                                </div>
+                                <div class="d-flex mx-2 align-items-center justify-content-end">
+                                </div>
                             </div>
+                            <div class="gap-1 align-items-center  d-flex flex-column">
+                                <div class="subsection-container d-flex flex-column mx-1 align-items-center justify-content-center">
+                                    <?php if ($active_schedule): ?>
+                                        <?php
+                                        $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
+                                        ?>
+                                        <h1 class="bold display-1 p-2" style="color: var(--muted-white);" id="timerDisplay" data-end="<?= htmlspecialchars($end) ?>">
+                                            --:--:--
+                                        </h1>
+                                    <?php else: ?>
+                                        <h1 class="bold display-1 p-2" style="font-size: 5rem; color: var(--muted-white);" id="timerDisplay">00:00:00</h1>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="d-flex flex-row mx-2 align-items-end justify-content-center">
+                                    <?php if ($active_schedule): ?>
+                                        <?php
+                                        $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
+                                        $start_12h = date('g:i A', strtotime($active_schedule['start_time']));
+                                        $end_12h = date('g:i A', strtotime($end));
+                                        ?>
+                                        <button class="light" style="width:auto;" onclick="requestExtend(<?= $active_schedule['id'] ?>, '<?= htmlspecialchars($active_schedule['room_name']) ?>', '<?= $start_12h ?>', '<?= $end_12h ?>')">
+                                            <i class="bi bi-clock-history me-1"></i> Extend
+                                        </button>
+                                        <button class="danger px-2" style="width:auto;" onclick="openEndEarlyModal(<?= $active_schedule['id'] ?>, '<?= htmlspecialchars($active_schedule['room_name']) ?>')">
+                                            <i class="bi bi-stop-circle me-1"></i> End Early
+                                        </button>
+                                    <?php endif; ?>
+                                    <?php if (!$active_schedule): ?>
+                                        <p class="text-muted text-center mt-2 mb-1">No active class schedule right now.</p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                            <?php if (empty($slots)): ?>
-                                <p class="no-sched">No classes scheduled.</p>
-                                <?php else: foreach ($slots as $slot):
-                                    $start    = date('g:i A', strtotime($slot['start_time']));
-                                    $end_time = $slot['extended_until'] ?? $slot['end_time'];
-                                    $end      = date('g:i A', strtotime($end_time));
-                                    $ext      = $slot['extended_until']
-                                        ? date('g:i A', strtotime($slot['extended_until']))
-                                        : null;
-                                    $ext_status = $slot['ext_status'];
+                    <!-- Class Details panel -->
+                    <div id="panelClassDetails" class="timetable-panel p-3 m-3">
+                        <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
+                            <div class="section-topbar d-flex flex-column mx-2 justify-content-between">
+                                <div>
+                                    <h2 class="bold"><i class="bi bi-info-circle me-1"></i>Class Details</h2>
+                                </div>
+                                <div class="d-flex mx-2 align-items-center justify-content-end">
+                                </div>
+                            </div>
+                            <div class="d-flex flex-row mx-1 gap-3 align-items-center justify-content-center mb-3">
+                                <?php if ($current_class):
+                                    $cc_end = $current_class['extended_until'] ?? $current_class['end_time'];
                                 ?>
-                                    <div class="slot-row">
-                                        <div class="slot-time">
-                                            <?php
-                                            $start_parts = explode(' ', $start);
-                                            $start_time_part = $start_parts[0];
-                                            $start_ampm = $start_parts[1] ?? 'AM';
-                                            $end_parts = explode(' ', $end);
-                                            $end_time_part = $end_parts[0];
-                                            $end_ampm = $end_parts[1] ?? 'AM';
-                                            ?>
-                                            <span class="slot-time-start"><?= $start_time_part ?></span>
-                                            <span class="slot-time-separator">TO</span>
-                                            <span class="slot-time-end"><?= $end_time_part ?></span>
-                                            <span class="slot-time-ampm"><?= $end_ampm ?></span>
-                                        </div>
-                                        <div class="slot-content">
-                                            <div class="slot-room">
-                                                <i class="bi bi-door-open me-1"></i><?= htmlspecialchars($slot['room_name']) ?>
-                                            </div>
-                                            <div class="slot-subject d-flex flex-row">
-                                                <i class="bi bi-book me-1"></i>
-                                                <h5><?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?></h5>
-                                            </div>
-                                        </div>
-                                        <div class="slot-actions">
-                                            <?php if ($ext_status === 'pending'): ?>
-                                                <button class="btn-icon btn-icon-view"
-                                                    title="View Details"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto"
-                                                    onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                                <span class="badge-ext-pending"
-                                                    title="Extension request pending"
-                                                    data-bs-toggle="tooltip">
-                                                    <i class="bi bi-hourglass-bottom"></i>
+                                    <div class="subsection-container p-3">
+                                        <h2 class="bold text-uppercase" style="color: #fff;">Current</h2>
+                                        <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($current_class['start_time'])) ?> – <?= date('g:i A', strtotime($cc_end)) ?></h2>
+                                        <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($current_class['room_name']) ?></h2>
+                                        <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($current_class['subject_name'] ?? 'N/A') ?></h2>
+                                    </div>
+                                <?php elseif (!$current_class && !$next_class): ?>
+                                    <div class="d-flex align-items-center justify-content-center w-100">
+                                        <p class="text-muted text-center my-2">No classes scheduled for today.</p>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($next_class):
+                                    $nc_end = $next_class['extended_until'] ?? $next_class['end_time'];
+                                ?>
+                                    <div>
+                                        <h2 class="bold text-uppercase" style="font-size: 14px;">Next</h2>
+                                        <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($next_class['start_time'])) ?> – <?= date('g:i A', strtotime($nc_end)) ?></h2>
+                                        <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($next_class['room_name']) ?></h2>
+                                        <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($next_class['subject_name'] ?? 'N/A') ?></h2>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extension Requests panel -->
+                    <div id="panelExtRequests" class="timetable-panel p-3 m-3">
+                        <div style="background-color: #f8f9fa;" class="section-container timetable overflow-hidden d-flex flex-column">
+                            <div class="section-topbar flex-shrink-0 d-flex flex-column mx-2 justify-content-between">
+                                <div>
+                                    <h2 class="bold"><i class="bi bi-clock-history me-1"></i>Extension Requests for Today</h2>
+                                </div>
+                                <div>
+                                    <span class="badge text-dark fs-6 px-3 py-2" style="background-color: var(--accent-yellow);">Time Extensions Left for Today: <?= max(0, $extensions_left_today) ?></span>
+                                </div>
+                            </div>
+                            <?php if (empty($extension_requests)): ?>
+                                <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                                    <p class="text-muted text-center">No extension requests yet.</p>
+                                </div>
+                            <?php else: ?>
+                                <div class="d-flex flex-column gap-2 p-2 overflow-auto flex-grow-1" style="max-height:25vh;">
+                                    <?php foreach ($extension_requests as $er): ?>
+                                        <div class="dept-info-card d-flex flex-row align-items-center justify-content-between gap-2 p-2">
+                                            <div class="d-flex flex-column small flex-grow-1">
+                                                <span><strong><?= htmlspecialchars($er['room_name']) ?></strong> · <?= htmlspecialchars($er['subject_name'] ?? 'No subject') ?></span>
+                                                <span class="text-muted"><?= htmlspecialchars($er['day_of_week']) ?> · <?= date('g:i A', strtotime($er['start_time'])) ?> - <?= date('g:i A', strtotime($er['extended_until'] ?? $er['end_time'])) ?></span>
+                                                <span class="text-muted">+<?= (int)$er['extend_mins'] ?> min · Status:
+                                                    <span class="fw-bold <?= $er['status'] === 'approved' ? 'text-success' : ($er['status'] === 'rejected' ? 'text-danger' : 'text-warning') ?>">
+                                                        <?= ucfirst($er['status']) ?>
+                                                    </span>
                                                 </span>
-                                            <?php elseif ($ext_status === 'approved'): ?>
-                                                <button class="btn-icon btn-icon-view"
-                                                    title="View Details"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto"
-                                                    onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                                <?php if ($is_today): ?>
+                                            </div>
+                                            <?php if ($er['status'] === 'pending'): ?>
+                                                <div class="d-flex gap-1 flex-shrink-0">
+                                                    <button class="btn-icon btn-icon-view" style="width:auto;padding:4px 10px;font-size:12px;"
+                                                        onclick="editExtensionRequest(<?= $er['schedule_id'] ?>, '<?= htmlspecialchars($er['room_name']) ?>', '<?= date('g:i A', strtotime($er['start_time'])) ?>', '<?= date('g:i A', strtotime($er['end_time'])) ?>', <?= (int)$er['extend_mins'] ?>, <?= (int)$er['id'] ?>)"
+                                                        title="Edit" data-bs-toggle="tooltip">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button class="btn-icon btn-icon-del" style="width:auto;padding:4px 10px;font-size:12px;"
+                                                        onclick="openDeleteModal(<?= (int)$er['id'] ?>)"
+                                                        title="Delete" data-bs-toggle="tooltip">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+
+
+                    <!-- Coverage panel -->
+                    <div id="panelCoverage" class="timetable-panel panel-from-right p-3 m-3">
+                        <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
+                            <div class="section-topbar mx-2 justify-content-between">
+                                <div>
+                                    <h2 class="bold"><i class="bi bi-layout-three-columns me-1"></i>Assigned Coverage</h2>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column p-2 gap-2" style="max-height:25vh;overflow-y:auto;">
+                                <?php if (!empty($coverage)): ?>
+                                    <?php foreach ($coverage as $sa): ?>
+                                        <div class="dept-info-card mb-0 p-2">
+                                            <div class="small bold" style="color: var(--secondary-color-1);">
+                                                <i class="bi bi-diagram-3"></i> <?= htmlspecialchars($sa['department_name']) ?>
+                                            </div>
+                                            <div class="mt-1">
+                                                <i class="bi bi-briefcase"></i>
+                                                <span class="dept-subject-area bold dept-emphases"><?= htmlspecialchars($sa['name']) ?></span>
+                                            </div>
+                                            <?php if (!empty($sa['subjects'])): ?>
+                                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                                    <i class="bi bi-book"></i>
+                                                    <?php foreach ($sa['subjects'] as $subj_name): ?>
+                                                        <span class="subarea-subject bold dept-emphases"><?= htmlspecialchars($subj_name) ?></span>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="small text-muted mt-1">No subjects under this area.</div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <span class="text-muted">No subject areas assigned.</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timetable Itself -->
+                <div class="main-container homepage gap-3" style="flex-direction:column;">
+                    <!-- Flash messages -->
+                    <?php if (!empty($_SESSION['timetable_success'])): ?>
+                        <div class="alert alert-success flash-dismiss">
+                            ✅ <?= htmlspecialchars($_SESSION['timetable_success']) ?>
+                        </div>
+                        <?php unset($_SESSION['timetable_success']); ?>
+                    <?php endif; ?>
+                    <?php if (!empty($_SESSION['timetable_error'])): ?>
+                        <div class="alert alert-warning flash-dismiss">
+                            ⚠️ <?= htmlspecialchars($_SESSION['timetable_error']) ?>
+                        </div>
+                        <?php unset($_SESSION['timetable_error']); ?>
+                    <?php endif; ?>
+
+                    <!-- Weekly schedule -->
+                    <?php
+                    $dow_map = ['Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6];
+                    $today_dow_num = $dow_map[$today];
+                    $day_date_map = [];
+                    foreach ($days as $day) {
+                        $diff = $dow_map[$day] - $today_dow_num;
+                        $dt = new DateTime("$diff days");
+                        $day_date_map[$day] = strtoupper($dt->format('M j'));
+                    }
+                    ?>
+                    <div class="weekly-schedule-grid">
+                        <?php foreach ($days as $day):
+                            $is_today = ($day === $today);
+                            $slots    = $schedule_by_day[$day];
+                        ?>
+                            <div class="day-card <?= $is_today ? 'today' : '' ?>">
+                                <div class="day-label">
+                                    <div class="text-uppercase small fw-bold mb-1" style="font-size:11px;letter-spacing:0.5px;color:<?= $is_today ? '#fff' : '#6c757d' ?>;"><?= $day_date_map[$day] ?? '' ?></div>
+                                    <?= $day ?> <?= $is_today ? '· Today' : '' ?>
+                                </div>
+
+                                <?php if (empty($slots)): ?>
+                                    <p class="no-sched">No classes scheduled.</p>
+                                    <?php else: foreach ($slots as $slot):
+                                        $start    = date('g:i A', strtotime($slot['start_time']));
+                                        $end_time = $slot['extended_until'] ?? $slot['end_time'];
+                                        $end      = date('g:i A', strtotime($end_time));
+                                        $ext      = $slot['extended_until']
+                                            ? date('g:i A', strtotime($slot['extended_until']))
+                                            : null;
+                                        $ext_status = $slot['ext_status'];
+                                    ?>
+                                        <div class="slot-row">
+                                            <div class="slot-time">
+                                                <?php
+                                                $start_parts = explode(' ', $start);
+                                                $start_time_part = $start_parts[0];
+                                                $start_ampm = $start_parts[1] ?? 'AM';
+                                                $end_parts = explode(' ', $end);
+                                                $end_time_part = $end_parts[0];
+                                                $end_ampm = $end_parts[1] ?? 'AM';
+                                                ?>
+                                                <span class="slot-time-start"><?= $start_time_part ?></span>
+                                                <span class="slot-time-separator">TO</span>
+                                                <span class="slot-time-end"><?= $end_time_part ?></span>
+                                                <span class="slot-time-ampm"><?= $end_ampm ?></span>
+                                            </div>
+                                            <div class="slot-content">
+                                                <div class="slot-room">
+                                                    <i class="bi bi-door-open me-1"></i><?= htmlspecialchars($slot['room_name']) ?>
+                                                </div>
+                                                <div class="slot-subject d-flex flex-row">
+                                                    <i class="bi bi-book me-1"></i>
+                                                    <h5><?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?></h5>
+                                                </div>
+                                            </div>
+                                            <div class="slot-actions">
+                                                <?php if ($ext_status === 'pending'): ?>
+                                                    <button class="btn-icon btn-icon-view"
+                                                        title="View Details"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="auto"
+                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <span class="badge-ext-pending"
+                                                        title="Extension request pending"
+                                                        data-bs-toggle="tooltip">
+                                                        <i class="bi bi-hourglass-bottom"></i>
+                                                    </span>
+                                                <?php elseif ($ext_status === 'approved'): ?>
+                                                    <button class="btn-icon btn-icon-view"
+                                                        title="View Details"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="auto"
+                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <?php if ($is_today): ?>
+                                                        <button class="extend-icon-btn"
+                                                            onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
+                                                            title="Request Another Extension"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-placement="auto">
+                                                            <i class="bi bi-clock-history"></i>
+                                                        </button>
+                                                    <?php endif; ?>
+                                                    <span class="badge-ext-approved"
+                                                        title="Extension approved"
+                                                        data-bs-toggle="tooltip">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </span>
+                                                <?php elseif ($ext_status === 'rejected'): ?>
+                                                    <button class="btn-icon btn-icon-view"
+                                                        title="View Details"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="auto"
+                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
                                                     <button class="extend-icon-btn"
                                                         onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
-                                                        title="Request Another Extension"
+                                                        title="Re-request Extension"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="auto">
+                                                        <i class="bi bi-clock-history"></i>
+                                                    </button>
+                                                    <span class="badge-ext-rejected"
+                                                        title="Extension rejected"
+                                                        data-bs-toggle="tooltip">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <button class="btn-icon btn-icon-view"
+                                                        title="View Details"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="auto"
+                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <button class="extend-icon-btn"
+                                                        onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
+                                                        title="Request Extension"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-placement="auto">
                                                         <i class="bi bi-clock-history"></i>
                                                     </button>
                                                 <?php endif; ?>
-                                                <span class="badge-ext-approved"
-                                                    title="Extension approved"
-                                                    data-bs-toggle="tooltip">
-                                                    <i class="bi bi-check-circle"></i>
-                                                </span>
-                                            <?php elseif ($ext_status === 'rejected'): ?>
-                                                <button class="btn-icon btn-icon-view"
-                                                    title="View Details"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto"
-                                                    onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                                <button class="extend-icon-btn"
-                                                    onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
-                                                    title="Re-request Extension"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto">
-                                                    <i class="bi bi-clock-history"></i>
-                                                </button>
-                                                <span class="badge-ext-rejected"
-                                                    title="Extension rejected"
-                                                    data-bs-toggle="tooltip">
-                                                    <i class="bi bi-x-circle"></i>
-                                                </span>
-                                            <?php else: ?>
-                                                <button class="btn-icon btn-icon-view"
-                                                    title="View Details"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto"
-                                                    onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                                <button class="extend-icon-btn"
-                                                    onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
-                                                    title="Request Extension"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto">
-                                                    <i class="bi bi-clock-history"></i>
-                                                </button>
-                                            <?php endif; ?>
+                                            </div>
                                         </div>
-                                    </div>
-                            <?php endforeach;
-                            endif; ?>
-                        </div>
-                    <?php endforeach; ?>
+                                <?php endforeach;
+                                endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
                 </div>
 
+
+                <div class="main-container faculty-timetable-heading d-flex flex-column align-items-center justify-content-center w-auto mb-3" style="background-color:var(--secondary-color-2);">
+                    <div class="d-flex flex-row align-items-stretch gap-3" style="width:100%;flex-wrap:nowrap;">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1550,6 +1566,63 @@ $conn->close();
 
     <script>
         fetch('../../api/auto-approve-extensions.php').catch(function() {});
+    </script>
+
+    <script>
+        (function() {
+            const panels = ['panelTimeLeft', 'panelClassDetails', 'panelExtRequests', 'panelCoverage'];
+            const timers = {};
+
+            panels.forEach(id => {
+                const btn = document.querySelector(`[data-panel="${id}"]`);
+                const panel = document.getElementById(id);
+                if (!btn || !panel) return;
+
+                timers[id] = null;
+
+                const open = () => {
+                    if (timers[id]) {
+                        clearTimeout(timers[id]);
+                        timers[id] = null;
+                    }
+                    panel.classList.add('show');
+                    btn.classList.remove('has-update');
+                };
+
+                const close = () => {
+                    if (timers[id]) clearTimeout(timers[id]);
+                    timers[id] = setTimeout(() => panel.classList.remove('show'), 150);
+                };
+
+                btn.addEventListener('mouseenter', open);
+                btn.addEventListener('focus', open);
+                panel.addEventListener('mouseenter', open);
+                panel.addEventListener('mouseleave', close);
+                btn.addEventListener('mouseleave', close);
+
+                // Watch for content changes to show notification dot
+                const observer = new MutationObserver(() => {
+                    btn.classList.add('has-update');
+                });
+                observer.observe(panel, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true
+                });
+            });
+        })();
+    </script>
+
+    <script>
+        document.getElementById('exportPdfBtn').addEventListener('click', function () {
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '../../php/handlers/export-pdf-handler.php';
+            form.style.display = 'none';
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        });
     </script>
 
 </body>

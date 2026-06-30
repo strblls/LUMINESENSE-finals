@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once '../../php/session_guard.php';
 check_faculty();
 require_once '../../php/db_connect.php';
@@ -53,7 +53,7 @@ $r = $conn->query("
 while ($row = $r->fetch_assoc())
     $schedules[] = $row;
 
-// ── PIN status ────────────────────────────────────────────────
+// â”€â”€ PIN status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 $has_pin = false;
 $stmt = $conn->prepare("SELECT 1 FROM faculty_permissions WHERE faculty_id = ? AND pin_hash IS NOT NULL");
 $stmt->bind_param('i', $faculty_id);
@@ -62,7 +62,7 @@ $stmt->bind_result($pin_exists);
 $has_pin = (bool)$stmt->fetch();
 $stmt->close();
 
-// ── Active schedule end time (with extension) for audio notifications ──
+// â”€â”€ Active schedule end time (with extension) for audio notifications â”€â”€
 $now = date('H:i:s');
 $active_schedule_end = '';
 $stmt = $conn->prepare("
@@ -106,7 +106,7 @@ $conn->close();
     <link rel="stylesheet" href="../../css/faculty-common.css">
     <link rel="stylesheet" href="../../css/faculty-settings.css">
 
-    <title>Profile Settings – LumineSense</title>
+    <title>Profile Settings â€“ LumineSense</title>
 </head>
 
 <body class="contrast-bg">
@@ -127,228 +127,256 @@ $conn->close();
         <div class="child-container homepage-modal">
             <div class="profile-wrapper">
                 <div class="profile-main-card">
-
-                    <!-- Profile Header -->
-                    <div class="profile-header">
-                        <div class="profile-avatar avatar-icon"><?= $initials ?></div>
-                        <div class="profile-user">
-                            <h2 class="bold mb-1"><?= $faculty_name ?></h2>
-                            <?php if ($is_head): ?>
-                                <span class="bold status-badge faculty-head">Faculty Head</span>
-                            <?php else: ?>
-                                <span class="bold status-badge faculty-member">Faculty Member</span>
-                            <?php endif; ?>
+                    <div class="profile-layout">
+                        <!-- Sidebar -->
+                        <div class="profile-sidebar">
+                            <div class="sidebar-item active" data-section="contact">
+                                <i class="bi bi-person-lines-fill"></i> Contact Information
+                            </div>
+                            <div class="sidebar-item" data-section="teaching">
+                                <i class="bi bi-book"></i> Teaching Coverage
+                            </div>
+                            <div class="sidebar-item" data-section="credentials">
+                                <i class="bi bi-shield-lock"></i> Change Credentials
+                            </div>
+                            <div class="sidebar-item" data-section="about">
+                                <i class="bi bi-info-circle"></i> About System
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="profile-content row gx-4 gy-4">
+                        <!-- Content Area -->
+                        <div class="profile-content-area">
 
-                        <!-- Contact Info -->
-                        <div class="col-xl-5 col-lg-6">
-                            <div class="info-card">
-                                <div class="info-card-header d-flex align-items-start justify-content-between">
-                                    <h3 class="bold mb-0">Contact Information</h3>
-                                </div>
-                                <div class="info-field">
-                                    <span class="label">Email</span>
-                                    <div class="field-value"><?= htmlspecialchars($faculty_email) ?></div>
-                                </div>
-                            </div>
-
-                            <!-- Department & Subjects -->
-                            <div class="info-card mt-3">
-                                <div class="info-card-header">
-                                    <h3 class="bold mb-0">Department &amp; Subjects</h3>
-                                </div>
-                                <div class="info-field">
-                                    <span class="label">Department</span>
-                                    <div class="field-value">
-                                        <?php if (!empty($departments)): ?>
-                                            <?= htmlspecialchars(implode(', ', $departments)) ?>
+                            <!-- Contact Section (default) -->
+                            <div id="section-contact" class="section-content active">
+                                <div class="profile-header">
+                                    <div class="profile-avatar avatar-icon"><?= $initials ?></div>
+                                    <div class="profile-user">
+                                        <h2 class="bold mb-1"><?= $faculty_name ?></h2>
+                                        <?php if ($is_head): ?>
+                                            <span class="bold status-badge faculty-head">Faculty Head</span>
                                         <?php else: ?>
-                                            <span class="text-muted">Not assigned</span>
+                                            <span class="bold status-badge faculty-member">Faculty Member</span>
                                         <?php endif; ?>
                                     </div>
                                 </div>
-                                <div class="info-field">
-                                    <span class="label">Subjects Handled</span>
-                                    <div class="field-value">
-                                        <?php if (!empty($subjects)): ?>
-                                            <?= htmlspecialchars(implode(', ', $subjects)) ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">None</span>
-                                        <?php endif; ?>
+                                <hr>
+                                <div class="info-card">
+                                    <div class="info-card-header d-flex align-items-start justify-content-between">
+                                        <h3 class="bold mb-0">Contact Information</h3>
+                                    </div>
+                                    <div class="info-field">
+                                        <span class="label">Email</span>
+                                        <div class="field-value"><?= htmlspecialchars($faculty_email) ?></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Change Password -->
-                            <div class="info-card mt-3">
-                                <div class="info-card-header">
-                                    <h3 class="bold mb-3">Change Password</h3>
+                            <!-- Teaching Coverage Section -->
+                            <div id="section-teaching" class="section-content">
+                                <div class="info-card">
+                                    <div class="info-card-header">
+                                        <h3 class="bold mb-0">Department &amp; Subjects</h3>
+                                    </div>
+                                    <div class="info-field">
+                                        <span class="label">Department</span>
+                                        <div class="field-value">
+                                            <?php if (!empty($departments)): ?>
+                                                <?= htmlspecialchars(implode(', ', $departments)) ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">Not assigned</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="info-field">
+                                        <span class="label">Subjects Handled</span>
+                                        <div class="field-value">
+                                            <?php if (!empty($subjects)): ?>
+                                                <?= htmlspecialchars(implode(', ', $subjects)) ?>
+                                            <?php else: ?>
+                                                <span class="text-muted">None</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
                                 </div>
-                                <?php if (!empty($_SESSION['pw_success'])): ?>
-                                    <div class="alert alert-success">✅ <?= htmlspecialchars($_SESSION['pw_success']) ?>
-                                    </div>
-                                    <?php unset($_SESSION['pw_success']); ?>
-                                <?php endif; ?>
-                                <?php if (!empty($_SESSION['pw_error'])): ?>
-                                    <div class="alert alert-danger">⚠️ <?= htmlspecialchars($_SESSION['pw_error']) ?></div>
-                                    <?php unset($_SESSION['pw_error']); ?>
-                                <?php endif; ?>
-                                <form method="POST" action="../../php/change-password.php">
-                                    <div class="mb-2">
-                                        <label class="form-label">Current Password</label>
-                                        <input type="password" class="form-control" name="current_password"
-                                            placeholder="Current password" required>
-                                    </div>
-                                    <div class="mb-2">
-                                        <label class="form-label">New Password</label>
-                                        <input type="password" class="form-control" name="new_password"
-                                            placeholder="Min 8 characters" minlength="8" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Confirm New Password</label>
-                                        <input type="password" class="form-control" name="confirm_password"
-                                            placeholder="Repeat new password" required>
-                                    </div>
-                                    <button type="submit" class="light info-action-btn w-100">
-                                        Save Password
-                                    </button>
-                                </form>
-                            </div>
 
-                            <!-- PIN Settings -->
-                            <div class="info-card mt-3">
-                                <div class="info-card-header">
-                                    <h3 class="bold mb-3">PIN Settings</h3>
-                                </div>
-                                <div id="pinFeedback" class="d-none"></div>
-                                <div id="pinForm">
-                                    <div class="mb-2">
-                                        <?php if ($has_pin): ?>
-                                            <label class="form-label">Current PIN</label>
-                                            <input type="password" class="form-control" id="oldPinInput"
-                                                maxlength="4" pattern="\d*" inputmode="numeric" placeholder="Current 4-digit PIN">
-                                        <?php endif; ?>
+                                <div class="info-card mt-3">
+                                    <div class="info-card-header d-flex align-items-start justify-content-between">
+                                        <h3 class="bold mb-0">Today's Schedule</h3>
+                                        <button class="light info-action-btn" onclick="dissolve('faculty-timetable.php')">
+                                            See All
+                                        </button>
                                     </div>
-                                    <div class="mb-2">
-                                        <label class="form-label"><?= $has_pin ? 'New' : 'Set' ?> PIN</label>
-                                        <input type="password" class="form-control" id="newPinInput"
-                                            maxlength="4" pattern="\d*" inputmode="numeric" placeholder="4-digit PIN">
+                                    <div class="schedule-list mt-4">
+                                        <?php if (empty($schedules)): ?>
+                                            <p class="text-muted">No classes today.</p>
+                                        <?php else:
+                                            foreach ($schedules as $s): ?>
+                                                <div class="schedule-item">
+                                                    <div>
+                                                        <p class="subject mb-1">
+                                                            <?= htmlspecialchars($s['room_name']) ?>
+                                                        </p>
+                                                        <p class="light mb-0">
+                                                            <?= date('g:i A', strtotime($s['start_time'])) ?>
+                                                            &ndash; <?= date('g:i A', strtotime($s['end_time'])) ?>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; endif; ?>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Confirm PIN</label>
-                                        <input type="password" class="form-control" id="confirmPinInput"
-                                            maxlength="4" pattern="\d*" inputmode="numeric" placeholder="Repeat PIN">
-                                    </div>
-                                    <button type="button" class="light info-action-btn w-100" id="savePinBtn">
-                                        <?= $has_pin ? 'Change PIN' : 'Set PIN' ?>
-                                    </button>
                                 </div>
                             </div>
-                            <script>
-                            (function() {
-                                var feedback = document.getElementById('pinFeedback');
-                                var form = document.getElementById('pinForm');
-                                var newPin = document.getElementById('newPinInput');
-                                var confirmPin = document.getElementById('confirmPinInput');
-                                var btn = document.getElementById('savePinBtn');
-                                var hasPin = <?= json_encode($has_pin) ?>;
-                                var oldPin = hasPin ? document.getElementById('oldPinInput') : null;
 
-                                function showMsg(msg, isError) {
-                                    feedback.className = isError ? 'alert alert-danger' : 'alert alert-success';
-                                    feedback.textContent = msg;
-                                }
+                            <!-- Change Credentials Section -->
+                            <div id="section-credentials" class="section-content">
+                                <div class="info-card">
+                                    <div class="info-card-header">
+                                        <h3 class="bold mb-3">Change Password</h3>
+                                    </div>
+                                    <?php if (!empty($_SESSION['pw_success'])): ?>
+                                        <div class="alert alert-success">&#9989; <?= htmlspecialchars($_SESSION['pw_success']) ?>
+                                        </div>
+                                        <?php unset($_SESSION['pw_success']); ?>
+                                    <?php endif; ?>
+                                    <?php if (!empty($_SESSION['pw_error'])): ?>
+                                        <div class="alert alert-danger">&#9888;&#65039; <?= htmlspecialchars($_SESSION['pw_error']) ?></div>
+                                        <?php unset($_SESSION['pw_error']); ?>
+                                    <?php endif; ?>
+                                    <form method="POST" action="../../php/change-password.php">
+                                        <div class="mb-2">
+                                            <label class="form-label">Current Password</label>
+                                            <input type="password" class="form-control" name="current_password"
+                                                placeholder="Current password" required>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label">New Password</label>
+                                            <input type="password" class="form-control" name="new_password"
+                                                placeholder="Min 8 characters" minlength="8" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Confirm New Password</label>
+                                            <input type="password" class="form-control" name="confirm_password"
+                                                placeholder="Repeat new password" required>
+                                        </div>
+                                        <button type="submit" class="light info-action-btn w-100">
+                                            Save Password
+                                        </button>
+                                    </form>
+                                </div>
 
-                                btn.addEventListener('click', function() {
-                                    var pin = newPin.value;
-                                    if (!/^\d{4}$/.test(pin)) {
-                                        showMsg('PIN must be exactly 4 digits.', true);
-                                        return;
+                                <div class="info-card mt-3">
+                                    <div class="info-card-header">
+                                        <h3 class="bold mb-3">PIN Settings</h3>
+                                    </div>
+                                    <div id="pinFeedback" class="d-none"></div>
+                                    <div id="pinForm">
+                                        <div class="mb-2">
+                                            <?php if ($has_pin): ?>
+                                                <label class="form-label">Current PIN</label>
+                                                <input type="password" class="form-control" id="oldPinInput"
+                                                    maxlength="4" pattern="\d*" inputmode="numeric" placeholder="Current 4-digit PIN">
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label"><?= $has_pin ? 'New' : 'Set' ?> PIN</label>
+                                            <input type="password" class="form-control" id="newPinInput"
+                                                maxlength="4" pattern="\d*" inputmode="numeric" placeholder="4-digit PIN">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Confirm PIN</label>
+                                            <input type="password" class="form-control" id="confirmPinInput"
+                                                maxlength="4" pattern="\d*" inputmode="numeric" placeholder="Repeat PIN">
+                                        </div>
+                                        <button type="button" class="light info-action-btn w-100" id="savePinBtn">
+                                            <?= $has_pin ? 'Change PIN' : 'Set PIN' ?>
+                                        </button>
+                                    </div>
+                                </div>
+                                <script>
+                                (function() {
+                                    var feedback = document.getElementById('pinFeedback');
+                                    var form = document.getElementById('pinForm');
+                                    var newPin = document.getElementById('newPinInput');
+                                    var confirmPin = document.getElementById('confirmPinInput');
+                                    var btn = document.getElementById('savePinBtn');
+                                    var hasPin = <?= json_encode($has_pin) ?>;
+                                    var oldPin = hasPin ? document.getElementById('oldPinInput') : null;
+
+                                    function showMsg(msg, isError) {
+                                        feedback.className = isError ? 'alert alert-danger' : 'alert alert-success';
+                                        feedback.textContent = msg;
                                     }
-                                    if (pin !== confirmPin.value) {
-                                        showMsg('PINs do not match.', true);
-                                        return;
-                                    }
-                                    btn.disabled = true;
-                                    btn.textContent = 'Saving…';
-                                    var body = hasPin
-                                        ? JSON.stringify({action: 'change', pin: pin, old_pin: oldPin.value})
-                                        : JSON.stringify({action: 'save', pin: pin});
-                                    fetch('../../api/pin.php', {
-                                        method: 'POST',
-                                        headers: {'Content-Type': 'application/json'},
-                                        body: body
-                                    }).then(function(r){ return r.json(); }).then(function(d){
-                                        if (d.success) {
-                                            showMsg(d.message, false);
-                                            if (!hasPin) {
-                                                btn.textContent = 'Change PIN';
-                                                hasPin = true;
-                                                var lbl = document.querySelector('#pinForm .mb-2');
-                                                if (lbl && !oldPin) {
-                                                    var html = '<label class="form-label">Current PIN</label>' +
-                                                        '<input type="password" class="form-control" id="oldPinInput" ' +
-                                                        'maxlength="4" pattern="\\d*" inputmode="numeric" placeholder="Current 4-digit PIN">';
-                                                    var div = document.createElement('div');
-                                                    div.className = 'mb-2';
-                                                    div.innerHTML = html;
-                                                    lbl.parentNode.insertBefore(div, lbl);
-                                                    oldPin = document.getElementById('oldPinInput');
+
+                                    btn.addEventListener('click', function() {
+                                        var pin = newPin.value;
+                                        if (!/^\d{4}$/.test(pin)) {
+                                            showMsg('PIN must be exactly 4 digits.', true);
+                                            return;
+                                        }
+                                        if (pin !== confirmPin.value) {
+                                            showMsg('PINs do not match.', true);
+                                            return;
+                                        }
+                                        btn.disabled = true;
+                                        btn.textContent = 'Saving\u2026';
+                                        var body = hasPin
+                                            ? JSON.stringify({action: 'change', pin: pin, old_pin: oldPin.value})
+                                            : JSON.stringify({action: 'save', pin: pin});
+                                        fetch('../../api/pin.php', {
+                                            method: 'POST',
+                                            headers: {'Content-Type': 'application/json'},
+                                            body: body
+                                        }).then(function(r){ return r.json(); }).then(function(d){
+                                            if (d.success) {
+                                                showMsg(d.message, false);
+                                                if (!hasPin) {
+                                                    btn.textContent = 'Change PIN';
+                                                    hasPin = true;
+                                                    var lbl = document.querySelector('#pinForm .mb-2');
+                                                    if (lbl && !oldPin) {
+                                                        var html = '<label class="form-label">Current PIN</label>' +
+                                                            '<input type="password" class="form-control" id="oldPinInput" ' +
+                                                            'maxlength="4" pattern="\\d*" inputmode="numeric" placeholder="Current 4-digit PIN">';
+                                                        var div = document.createElement('div');
+                                                        div.className = 'mb-2';
+                                                        div.innerHTML = html;
+                                                        lbl.parentNode.insertBefore(div, lbl);
+                                                        oldPin = document.getElementById('oldPinInput');
+                                                    }
                                                 }
+                                                btn.disabled = false;
+                                                btn.textContent = 'Change PIN';
+                                                newPin.value = '';
+                                                confirmPin.value = '';
+                                                if (oldPin) oldPin.value = '';
+                                            } else {
+                                                showMsg(d.message, true);
+                                                btn.disabled = false;
+                                                btn.textContent = hasPin ? 'Change PIN' : 'Set PIN';
                                             }
-                                            btn.disabled = false;
-                                            btn.textContent = 'Change PIN';
-                                            newPin.value = '';
-                                            confirmPin.value = '';
-                                            if (oldPin) oldPin.value = '';
-                                        } else {
-                                            showMsg(d.message, true);
+                                        }).catch(function(){
+                                            showMsg('Network error.', true);
                                             btn.disabled = false;
                                             btn.textContent = hasPin ? 'Change PIN' : 'Set PIN';
-                                        }
-                                    }).catch(function(){
-                                        showMsg('Network error.', true);
-                                        btn.disabled = false;
-                                        btn.textContent = hasPin ? 'Change PIN' : 'Set PIN';
+                                        });
                                     });
-                                });
-                            })();
-                            </script>
-                        </div>
+                                })();
+                                </script>
+                            </div>
 
-                        <!-- Schedule -->
-                        <div class="col-xl-7 col-lg-6">
-                            <div class="info-card schedule-card">
-                                <div class="info-card-header d-flex align-items-start justify-content-between">
-                                    <h3 class="bold mb-0">Today's Schedule</h3>
-                                    <button class="light info-action-btn" onclick="dissolve('faculty-timetable.php')">
-                                        See All
-                                    </button>
-                                </div>
-                                <div class="schedule-list mt-4">
-                                    <?php if (empty($schedules)): ?>
-                                        <p class="text-muted">No classes today.</p>
-                                    <?php else:
-                                        foreach ($schedules as $s): ?>
-                                            <div class="schedule-item">
-                                                <div>
-                                                    <p class="subject mb-1">
-                                                        <?= htmlspecialchars($s['room_name']) ?>
-                                                    </p>
-                                                    <p class="light mb-0">
-                                                        <?= date('g:i A', strtotime($s['start_time'])) ?>
-                                                        – <?= date('g:i A', strtotime($s['end_time'])) ?>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; endif; ?>
+                            <!-- About System Section -->
+                            <div id="section-about" class="section-content">
+                                <div class="info-card d-flex flex-column align-items-center text-center py-5">
+                                    <img src="../../images/logo.png" alt="LumineSense Logo" style="max-width:200px;margin-bottom:1.5rem;">
+                                    <h3 class="bold mb-1">LumineSense</h3>
+                                    <p class="text-muted mb-4" style="font-size:14px;">Smart Room Management System</p>
+                                    <img src="../../images/team-logo.png" alt="Team Logo" style="max-width:120px;margin-bottom:0.75rem;">
+                                    <p class="text-muted mb-0" style="font-size:12px;">All Rights Reserved &copy; <?= date('Y') ?></p>
                                 </div>
                             </div>
-                        </div>
 
+                        </div>
                     </div>
                 </div>
             </div>
@@ -360,6 +388,33 @@ $conn->close();
         <script src="../../script/animations.js"></script>
         <script src="../../script/toggles.js"></script>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var sidebarItems = document.querySelectorAll('.profile-sidebar .sidebar-item');
+        var sections = {
+            contact: document.getElementById('section-contact'),
+            teaching: document.getElementById('section-teaching'),
+            credentials: document.getElementById('section-credentials'),
+            about: document.getElementById('section-about')
+        };
+
+        sidebarItems.forEach(function(item) {
+            item.addEventListener('click', function() {
+                var section = this.getAttribute('data-section');
+                if (!section || !sections[section]) return;
+
+                sidebarItems.forEach(function(si) { si.classList.remove('active'); });
+                this.classList.add('active');
+
+                Object.keys(sections).forEach(function(key) {
+                    sections[key].classList.remove('active');
+                });
+                sections[section].classList.add('active');
+            });
+        });
+    });
+    </script>
 
 </body>
 

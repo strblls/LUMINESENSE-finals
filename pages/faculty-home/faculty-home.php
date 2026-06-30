@@ -259,8 +259,8 @@ $lighting_blocked = $lighting_reason !== null;
                             ];
                             foreach ($statuses as $s):
                                 $is_pir_no_motion = ($s['label'] === 'PIR Sensor' && !$s['ok']);
-                                $bg_color = $is_pir_no_motion ? '#6c757d' : ($s['ok'] ? '#d1e7dd' : '#f8d7da');
-                                $text_color = $is_pir_no_motion ? '#ffffff' : ($s['ok'] ? '#0f5132' : '#842029');
+                                $bg_color = $is_pir_no_motion ? '#2f004f' : ($s['ok'] ? '#f9edfa' : '#f9edfa');
+                                $text_color = $is_pir_no_motion ? '#ffffff' : ($s['ok'] ? '#2f004f' : '#2f004f');
                             ?>
                                 <div class="d-flex justify-content-between align-items-center py-1" style="border-bottom:1px solid #eee;">
                                     <h5 class="mb-0" style="font-size:13px;"><?= $s['label'] ?></h5>
@@ -394,7 +394,7 @@ $lighting_blocked = $lighting_reason !== null;
                 <div class="group-container recent-activities gap-3">
 
                     <!-- Time Left (moved from Column 2) -->
-                    <div style="background-color: #f8f9fa;" class="section-container mb-3">
+                    <div style="background-color: #f8f9fa;" class="section-container">
                         <div class="gap-1 align-items-center">
                             <div class="section-topbar mx-2 justify-content-between">
                                 <div>

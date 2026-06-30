@@ -262,3 +262,23 @@
 .add-icon:hover {
     opacity: 1;
 }
+
+.filter-option {
+    color: var(--secondary-color-1);
+    font-weight: 700;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.filter-option:hover {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+}
+
+.filter-option.active {
+    background: var(--secondary-color-1);
+    color: #fff;
+    font-weight: 600;
+}

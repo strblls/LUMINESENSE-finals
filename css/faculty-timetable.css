@@ -7,7 +7,7 @@
 
 .day-card {
     background: #f8f9fa;
-    border-radius: 10px;
+    border-radius: 5px;
     padding: 1rem;
     min-height: 200px;
 }
@@ -160,14 +160,14 @@
     font-size: 14px;
     cursor: pointer;
     border-radius: 8px;
-    background: #e9d5ff;
+    background: var(--secondary-color-5);
     color: var(--secondary-color-1);
     transition: background 0.5s, color 0.2s;
 }
 
 .extend-icon-btn:hover {
-    background: var(--secondary-color-1);
-    color: white;
+    background: var(--accent-yellow);
+    color: var(--accent-black);
     transform: scale(1.08);
 }
 
@@ -185,24 +185,24 @@
 }
 
 .btn-icon-view {
-    background: #599bf1;
-    color: var(--primary-color);
+    background: var(--secondary-color-5);
+    color: var(--secondary-color-1);
 }
 
 .btn-icon-view:hover {
-    background: #b0d2ff;
-    color: #599bf1;
+    background: var(--accent-yellow);
+    color: var(--accent-black);
     transform: scale(1.08);
 }
 
 .btn-icon-del {
-    background: #ffe4ec;
-    color: #c0004e;
+    background: var(--secondary-color-5);
+    color: var(--secondary-color-1);
 }
 
 .btn-icon-del:hover {
-    background: #c0004e;
-    color: #fff;
+    background: var(--accent-yellow);
+    color: var(--accent-black);
     transform: scale(1.08);
 }
 
@@ -389,6 +389,109 @@
 
 #extendPills .extend-pill.active {
     box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+}
+
+/* Scale-reveal panels */
+.timetable-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    z-index: 1040;
+    width: 360px;
+    transform: scale(0);
+    transform-origin: top left;
+    transition: transform 0.3s cubic-bezier(.4, 0, .2, 1), opacity 0.25s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.timetable-panel.show {
+    transform: scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.timetable-panel.panel-from-right {
+    left: auto;
+    right: 0;
+    transform-origin: top right;
+}
+
+.timetable-panel .section-container.timetable {
+    height: auto;
+    min-height: 0;
+    width: fit-content;
+    min-width: 260px;
+    padding: 1rem !important;
+    box-shadow: 0 8px 32px rgba(47, 0, 79, 0.25);
+}
+
+.timetable-btn {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 5px;
+    background: var(--secondary-color-5);
+    color: var(--secondary-color-1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: width 0.25s ease, background 0.3s, color 0.2s, transform 0.2s;
+    gap: 4px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.578);
+}
+
+.timetable-btn i {
+    font-size: 20px;
+}
+
+.timetable-btn-title {
+    font-size: 13px;
+    white-space: nowrap;
+    max-width: 0;
+    opacity: 0;
+    transition: max-width 0.25s ease, opacity 0.2s ease;
+}
+
+.timetable-btn:hover {
+    width: auto;
+    margin-block: 0.25rem;
+    padding-inline-start: 15px;
+    padding-inline-end: 15px;
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+    transform: scale(1.12);
+
+    i {
+        font-size: 24px;
+    }
+}
+
+.timetable-btn:hover .timetable-btn-title {
+    max-width: 100px;
+    opacity: 1;
+}
+
+.notif-dot {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-yellow);
+    border: 2px solid var(--secondary-color-1);
+    display: none;
+    box-shadow: 0 0 6px rgba(255, 193, 7, 0.6);
+}
+
+.timetable-btn.has-update .notif-dot {
+    display: block;
 }
 
 @media (max-width: 576px) {

@@ -164,6 +164,24 @@ foreach ($all_subject_areas as $dept_id => $sas) {
     }
 }
 
+// Collect unique subject areas and subjects for filter dropdowns
+$filter_sa_names = [];
+$filter_subject_names = [];
+$filter_subject_to_sa = []; // subject name => [subject area names]
+foreach ($all_subject_areas as $dept_id => $sas) {
+    foreach ($sas as $sa) {
+        $sa_name = $sa['name'];
+        $filter_sa_names[$sa_name] = $sa_name;
+        foreach ($sa['subjects'] as $sub) {
+            $sub_name = $sub['name'];
+            $filter_subject_names[$sub_name] = $sub_name;
+            $filter_subject_to_sa[$sub_name][] = $sa_name;
+        }
+    }
+}
+sort($filter_sa_names);
+sort($filter_subject_names);
+
 $current_sched = 'No class right now';
 $conn->close();
 ?>
@@ -200,15 +218,61 @@ $conn->close();
         <!-- ====== DEPARTMENTS ====== -->
         <div class="child-container mb-3">
             <!-- Department Overview -->
+            <div class="main-container faculty-timetable-heading d-flex align-items-center w-auto" style="background-color: var(--secondary-color-2);">
+                <div class="d-flex align-items-center flex-grow-1" style="position:relative;">
+                    <button type="button" class="timetable-btn ms-2" data-panel="panelInfoSteps" title="Guide">
+                        <i class="bi bi-info-lg"></i>
+                        <span class="timetable-btn-title bold">Guide</span>
+                    </button>
+                    <div id="panelInfoSteps" class="timetable-panel p-3 m-3">
+                        <div class="section-container timetable" style="background-color:#f8f9fa;width:320px;">
+                            <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Adding a Schedule for a New Faculty Member</h6>
+                            <ol class="ps-3 mb-0" style="font-size:13px;line-height:1.7;">
+                                <li>Ensure the faculty member is assigned to a department with coverage (subject areas &amp; subjects).</li>
+                                <li>Adding coverages to department/s can be done by clicking the <strong>Assign Coverage</strong> button next to the department coverage.</li>
+                                <li>Click the <strong>Edit Assignment</strong> button (briefcase icon) next to their name to assign subject areas and subjects.</li>
+                                <li>Once coverage is set, the <strong>calendar icon</strong> button becomes available to view or add their schedule.</li>
+                                <li>Click the calendar icon to go to the schedule page and assign time slots.</li>
+                            </ol>
+                        </div>
+                    </div>
+                    <input type="text" id="deptSearch" class="form-control" placeholder="Search departments..." style="max-width:500px;margin-left:16px;">
+                </div>
+                <div class="d-flex align-items-center pe-2" style="position:relative;">
+                    <button type="button" class="timetable-btn" data-panel="panelCoverageFilter" title="Filter by Coverage">
+                        <i class="bi bi-funnel"></i>
+                        <span class="timetable-btn-title bold">Coverage</span>
+                    </button>
+                    <div id="panelCoverageFilter" class="timetable-panel panel-from-right p-3 m-3">
+                        <div class="section-container timetable" style="background-color:#f8f9fa;">
+                            <ul class="list-unstyled mb-0" id="coverageFilterMenu" style="max-height:300px;overflow-y:auto;">
+                                <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Coverages</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <button type="button" class="timetable-btn" data-panel="panelSubjectFilter" title="Filter by Subject">
+                        <i class="bi bi-funnel"></i>
+                        <span class="timetable-btn-title bold">Subject</span>
+                    </button>
+                    <div id="panelSubjectFilter" class="timetable-panel panel-from-right p-3 m-3">
+                        <div class="section-container timetable" style="background-color:#f8f9fa;">
+                            <ul class="list-unstyled mb-0" id="subjectFilterMenu" style="max-height:300px;overflow-y:auto;">
+                                <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subjects</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="section-heading">All Assigned Departments</div>
 
-            <div class="main-container faculty-timetable  w-auto mb-3">
-                <div class="dept-grid">
+            <div class="main-container faculty-timetable w-auto mb-3">
+                <div class="dept-grid" id="deptGrid">
                     <?php foreach ($dept_data as $dept_id => $data):
                         $dept = $data['department'];
                         $dept_members = $data['members'];
                     ?>
-                        <div class="section-container head-timetable p-2 mb-3">
+                        <div class="section-container head-timetable p-2 mb-3" data-dept-id="<?= $dept_id ?>">
                             <div class="dept-accent accent-active"></div>
                             <div class="dept-body">
 
@@ -263,8 +327,8 @@ $conn->close();
                                                 data-bs-placement="auto">
                                                 <i class="bi bi-eye"></i>
                                             </button>
-                                            <button class="btn-icon btn-icon-edit"
-                                                title="Edit Coverage"
+                                            <button class="btn-icon btn-icon-view"
+                                                title="Assign Coverage"
                                                 onclick='openEditSubjectAreaModal(<?= $dept_id ?>, "<?= htmlspecialchars($dept['name'], ENT_QUOTES) ?>")'
                                                 data-bs-toggle="tooltip"
                                                 data-bs-placement="auto">
@@ -289,7 +353,7 @@ $conn->close();
                                                 data-bs-placement="auto">
                                                 <i class="bi bi-eye"></i>
                                             </button>
-                                            <button class="btn-icon btn-icon-edit"
+                                            <button class="btn-icon btn-icon-view"
                                                 title="Edit Assignment"
                                                 onclick="openSubjectAreaModal(<?= (int)$faculty_id ?>, '<?= addslashes($faculty_name) ?>', '<?= $h_sa_json ?>', <?= (int)$dept_id ?>, '<?= $h_subj_json ?>')"
                                                 data-bs-toggle="tooltip"
@@ -340,20 +404,20 @@ $conn->close();
                                                                 data-bs-placement="auto">
                                                                 <i class="bi bi-eye"></i>
                                                             </button>
-                                                            <button class="btn-icon btn-icon-edit"
+                                                            <button class="btn-icon btn-icon-view"
                                                                 title="Edit Assignment"
                                                                 onclick="openSubjectAreaModal(<?= (int)$member['id'] ?>, '<?= addslashes($member['full_name']) ?>', '<?= $sa_json ?>', <?= (int)$dept_id ?>, '<?= $assigned_subj_json ?>')"
                                                                 data-bs-toggle="tooltip"
                                                                 data-bs-placement="auto">
                                                                 <i class="bi bi-briefcase"></i>
                                                             </button>
-                                                             <button class="btn-icon btn-icon-edit"
-                                                                 title="Edit Faculty Schedule"
-                                                                 onclick="checkDeptCoverage(<?= (int)$dept_id ?>, <?= (int)$member['id'] ?>)"
-                                                                 data-bs-toggle="tooltip"
-                                                                 data-bs-placement="auto">
-                                                                 <i class="bi bi-calendar-event"></i>
-                                                             </button>
+                                                            <button class="btn-icon btn-icon-view"
+                                                                title="View Faculty Schedule"
+                                                                onclick="checkDeptCoverage(<?= (int)$dept_id ?>, <?= (int)$member['id'] ?>)"
+                                                                data-bs-toggle="tooltip"
+                                                                data-bs-placement="auto">
+                                                                <i class="bi bi-calendar-event"></i>
+                                                            </button>
 
 
                                                         </div>
@@ -373,6 +437,13 @@ $conn->close();
 
         <?php include '../../php/includes/faculty-sidebar.php'; ?>
 
+    </div>
+
+
+
+    <script src="../../script/animations.js"></script>
+    <script src="../../script/toggles.js"></script>
+    <script src="../../script/tooltip.js"></script>
     </div>
 
     <!-- View Faculty Coverage Modal -->
@@ -405,11 +476,6 @@ $conn->close();
                 </div>
             </div>
         </div>
-    </div>
-
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/toggles.js"></script>
-    <script src="../../script/tooltip.js"></script>
     </div>
 
     <!-- View Subject Area Modal for Department-->
@@ -1605,6 +1671,149 @@ $conn->close();
                 alert('An error occurred while saving.');
             }
         }
+    </script>
+
+    <style>
+        .timetable-btn.active-filter {
+            background: var(--accent-yellow);
+            color: var(--accent-black);
+        }
+        .timetable-btn.active-filter i {
+            font-size: 24px;
+        }
+    </style>
+
+    <script>
+        var filterData = <?= json_encode([
+            'sa_names' => array_values($filter_sa_names),
+            'subject_names' => array_values($filter_subject_names),
+            'subject_to_sa' => $filter_subject_to_sa,
+        ]) ?>;
+
+        var activeCoverage = '';
+        var activeSubject = '';
+
+        function applyFilters() {
+            var q = document.getElementById('deptSearch').value.toLowerCase().trim();
+            document.querySelectorAll('#deptGrid > .section-container').forEach(function(card) {
+                var name = card.querySelector('h2.bold').textContent.toLowerCase();
+                var show = name.includes(q);
+
+                if (show && activeCoverage) {
+                    var saSpans = card.querySelectorAll('.dept-subject-area');
+                    var hasSa = Array.from(saSpans).some(function(sp) {
+                        return sp.textContent.trim().toLowerCase() === activeCoverage.toLowerCase();
+                    });
+                    show = hasSa;
+                }
+
+                if (show && activeSubject) {
+                    var relatedSas = filterData.subject_to_sa[activeSubject] || [];
+                    var saSpans = card.querySelectorAll('.dept-subject-area');
+                    var hasSubject = Array.from(saSpans).some(function(sp) {
+                        return relatedSas.some(function(rsa) {
+                            return sp.textContent.trim().toLowerCase() === rsa.toLowerCase();
+                        });
+                    });
+                    show = hasSubject;
+                }
+
+                card.style.display = show ? '' : 'none';
+            });
+
+            document.getElementById('panelCoverageFilter').classList.remove('show');
+            document.getElementById('panelSubjectFilter').classList.remove('show');
+        }
+
+        document.getElementById('deptSearch').addEventListener('input', applyFilters);
+
+        // Build coverage filter panel
+        (function() {
+            var menu = document.getElementById('coverageFilterMenu');
+            filterData.sa_names.forEach(function(name) {
+                var li = document.createElement('li');
+                var a = document.createElement('a');
+                a.className = 'filter-option d-block px-2 py-1';
+                a.href = '#';
+                a.textContent = name;
+                a.dataset.value = name;
+                li.appendChild(a);
+                menu.appendChild(li);
+            });
+            menu.addEventListener('click', function(e) {
+                var a = e.target.closest('.filter-option');
+                if (!a) return;
+                menu.querySelectorAll('.filter-option').forEach(function(el) { el.classList.remove('active'); });
+                a.classList.add('active');
+                activeCoverage = a.dataset.value;
+                activeSubject = '';
+                document.querySelectorAll('#subjectFilterMenu .filter-option').forEach(function(el) { el.classList.remove('active'); });
+                var allSubj = document.querySelector('#subjectFilterMenu .filter-option[data-value=""]');
+                if (allSubj) allSubj.classList.add('active');
+                document.querySelector('[data-panel="panelCoverageFilter"]').classList.toggle('active-filter', !!activeCoverage);
+                document.querySelector('[data-panel="panelSubjectFilter"]').classList.remove('active-filter');
+                applyFilters();
+            });
+        })();
+
+        // Build subject filter panel
+        (function() {
+            var menu = document.getElementById('subjectFilterMenu');
+            filterData.subject_names.forEach(function(name) {
+                var li = document.createElement('li');
+                var a = document.createElement('a');
+                a.className = 'filter-option d-block px-2 py-1';
+                a.href = '#';
+                a.textContent = name;
+                a.dataset.value = name;
+                li.appendChild(a);
+                menu.appendChild(li);
+            });
+            menu.addEventListener('click', function(e) {
+                var a = e.target.closest('.filter-option');
+                if (!a) return;
+                menu.querySelectorAll('.filter-option').forEach(function(el) { el.classList.remove('active'); });
+                a.classList.add('active');
+                activeSubject = a.dataset.value;
+                activeCoverage = '';
+                document.querySelectorAll('#coverageFilterMenu .filter-option').forEach(function(el) { el.classList.remove('active'); });
+                var allCov = document.querySelector('#coverageFilterMenu .filter-option[data-value=""]');
+                if (allCov) allCov.classList.add('active');
+                document.querySelector('[data-panel="panelSubjectFilter"]').classList.toggle('active-filter', !!activeSubject);
+                document.querySelector('[data-panel="panelCoverageFilter"]').classList.remove('active-filter');
+                applyFilters();
+            });
+        })();
+
+        // Timetable-panel toggle (hover/focus open, mouseleave close with delay)
+        (function() {
+            var panels = ['panelInfoSteps', 'panelCoverageFilter', 'panelSubjectFilter'];
+            var timers = {};
+
+            panels.forEach(function(id) {
+                var btn = document.querySelector('[data-panel="' + id + '"]');
+                var panel = document.getElementById(id);
+                if (!btn || !panel) return;
+
+                timers[id] = null;
+
+                function open() {
+                    if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
+                    panel.classList.add('show');
+                }
+
+                function close() {
+                    if (timers[id]) clearTimeout(timers[id]);
+                    timers[id] = setTimeout(function() { panel.classList.remove('show'); }, 150);
+                }
+
+                btn.addEventListener('mouseenter', open);
+                btn.addEventListener('focus', open);
+                panel.addEventListener('mouseenter', open);
+                panel.addEventListener('mouseleave', close);
+                btn.addEventListener('mouseleave', close);
+            });
+        })();
     </script>
 </body>
 

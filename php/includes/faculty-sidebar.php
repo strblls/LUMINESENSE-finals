@@ -1,5 +1,8 @@
 <?php
 
+/** @var string $initials */
+/** @var string $faculty_name */
+/** @var string $faculty_email */
 // Check if the logged-in faculty member is a Department Head
 $is_head = $_SESSION['is_head'] ?? false;
 ?>
@@ -16,12 +19,6 @@ $is_head = $_SESSION['is_head'] ?? false;
             </button>
             <h3 class="bold mb-0 sidebar-label">Home</h3>
         </div>
-        <!-- <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
-            <button class="nav-btn" title="Readings" onclick="dissolve('faculty-readings.php')">
-                <i class="bi bi-broadcast"></i>
-            </button>
-            <h3 class="bold mb-0 sidebar-label">Readings</h3>
-        </div> -->
         <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
             <button class="nav-btn" title="Timetable" onclick="dissolve('faculty-timetable.php')">
                 <i class="bi bi-calendar-event"></i>
@@ -50,27 +47,28 @@ $is_head = $_SESSION['is_head'] ?? false;
 
 <script>
     (function() {
-        // 1. Get the current page filename
         const page = window.location.pathname.split('/').pop();
-        if (!page) return;
-
-        // 2. Find all sidebar items and loop through them
-        const sidebarItems = document.querySelectorAll('#sidebarOffcanvas .sidebar-item');
-        
-        sidebarItems.forEach(item => {
-            const btn = item.querySelector('.nav-btn');
-            if (!btn) return;
-
-            // 3. Extract the target page from the onclick attribute (e.g., dissolve('faculty-home.php'))
-            const onclickText = btn.getAttribute('onclick') || '';
-            
-            // Check if the current filename is referenced inside the button's click event
-            if (onclickText.includes(page)) {
-                // Apply the active styling seamlessly regardless of button order!
-                btn.style.backgroundColor = 'var(--secondary-color-4)';
-                btn.style.boxShadow = '0 0 0 3px rgba(155,0,233,0.3)';
+        const map = <?= json_encode($is_head
+            ? [
+                'faculty-home.php'           => 0,
+                'faculty-timetable.php'      => 1,
+                'faculty-head-timetable.php' => 2,
+                'faculty-profile-settings.php' => 3,
+            ]
+            : [
+                'faculty-home.php'           => 0,
+                'faculty-timetable.php'      => 1,
+                'faculty-profile-settings.php' => 2,
+            ]
+        ) ?>;
+        const index = map[page];
+        if (index !== null && index !== undefined) {
+            const btns = document.querySelectorAll('#sidebarOffcanvas .nav-btn');
+            if (btns[index]) {
+                btns[index].style.backgroundColor = 'var(--secondary-color-4)';
+                btns[index].style.boxShadow = '0 0 0 3px rgba(155,0,233,0.3)';
             }
-        });
+        }
     })();
 </script>
 
