@@ -2,10 +2,11 @@
 
 | Date | Modules Affected | Notes |
 | :--- | :---: | :--- |
-| June 4 | Admin consistency overhaul | <ul><li>Palettes stick to: (`--secondary-color-1`,`--secondary-color-2`,`--accent-yellow`, and less frequently: `--muted`,)</li><li>Faculty member's sched can be exported (PDF)</li><li>Lacking: faculty-head-membersched.php</li></ul> |
+| June 30 | Admin consistency overhaul | <ul><li>Palettes stick to: (`--secondary-color-1`,`--secondary-color-2`,`--accent-yellow`, and less frequently: `--muted`,)</li><li>Faculty member's sched can be exported (PDF)</li><li>Lacking: faculty-head-membersched.php</li></ul> |
 
 ## Backend Needs
 
+- Timezone in Recent Activities (faculty) inaccurate
 - API concerns in ID authentication
 - Seed 1 admin account as per policy
 - Time extension autoapprovals interconnect with front-ends (e.g: automatic approve after pressing) 
