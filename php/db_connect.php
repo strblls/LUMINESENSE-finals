@@ -238,6 +238,37 @@ $conn->query("
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
 
+// ── Junction tables (many-to-many relationships) ───────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS junction_faculty_department (
+        faculty_id    INT NOT NULL,
+        department_id INT NOT NULL,
+        PRIMARY KEY (faculty_id, department_id),
+        FOREIGN KEY (faculty_id)    REFERENCES faculty(id)     ON DELETE CASCADE,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+$conn->query("
+    CREATE TABLE IF NOT EXISTS junction_faculty_subject (
+        faculty_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        PRIMARY KEY (faculty_id, subject_id),
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id)  ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+$conn->query("
+    CREATE TABLE IF NOT EXISTS junction_faculty_subjectarea (
+        faculty_id      INT NOT NULL,
+        subject_area_id INT NOT NULL,
+        PRIMARY KEY (faculty_id, subject_area_id),
+        FOREIGN KEY (faculty_id)      REFERENCES faculty(id)        ON DELETE CASCADE,
+        FOREIGN KEY (subject_area_id) REFERENCES subject_area(id)   ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
 // ── System settings table ─────────────────────────────────────────────────
 $conn->query("
     CREATE TABLE IF NOT EXISTS system_settings (
@@ -248,3 +279,47 @@ $conn->query("
 ");
 // Ensure a row for grace_minutes exists
 $conn->query("INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('grace_minutes', '0')");
+
+// ── Fix missing FKs on junction tables from prior schema ───────────────────
+$junction_tables = [
+    'junction_faculty_department' => [
+        ['col' => 'faculty_id',    'ref' => 'faculty(id)'],
+        ['col' => 'department_id', 'ref' => 'departments(id)'],
+    ],
+    'junction_faculty_subject' => [
+        ['col' => 'faculty_id', 'ref' => 'faculty(id)'],
+        ['col' => 'subject_id', 'ref' => 'subjects(id)'],
+    ],
+    'junction_faculty_subjectarea' => [
+        ['col' => 'faculty_id',      'ref' => 'faculty(id)'],
+        ['col' => 'subject_area_id', 'ref' => 'subject_area(id)'],
+    ],
+];
+foreach ($junction_tables as $table => $fks) {
+    $table_exists = $conn->query("SHOW TABLES LIKE '$table'");
+    if (!$table_exists || $table_exists->num_rows === 0) continue;
+
+    foreach ($fks as $fk) {
+        $col = $fk['col'];
+        $ref = $fk['ref'];
+        $check = $conn->query("
+            SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = '$table'
+              AND COLUMN_NAME = '$col' AND REFERENCED_TABLE_NAME IS NOT NULL
+            LIMIT 1
+        ");
+        if ($check && $check->num_rows > 0) continue;
+
+        $bad_fks = $conn->query("
+            SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = '$table'
+              AND COLUMN_NAME = '$col' AND REFERENCED_TABLE_NAME IS NOT NULL
+        ");
+        if ($bad_fks) {
+            while ($bad = $bad_fks->fetch_assoc()) {
+                $conn->query("ALTER TABLE `$table` DROP FOREIGN KEY `{$bad['CONSTRAINT_NAME']}`");
+            }
+        }
+        $conn->query("ALTER TABLE `$table` ADD FOREIGN KEY (`$col`) REFERENCES $ref ON DELETE CASCADE");
+    }
+}

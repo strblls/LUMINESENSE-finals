@@ -89,11 +89,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'delete') {
+        // Clean up junction records (these tables may lack CASCADE FKs)
+        $conn->query("DELETE FROM junction_faculty_department WHERE faculty_id = $faculty_id");
+        $conn->query("DELETE FROM junction_faculty_subject      WHERE faculty_id = $faculty_id");
+        $conn->query("DELETE FROM junction_faculty_subjectarea   WHERE faculty_id = $faculty_id");
+        $conn->query("DELETE FROM id_review_queue WHERE account_type = 'faculty' AND account_id = $faculty_id");
+
+        // Delete uploaded ID image from disk
+        $stmt_img = $conn->prepare('SELECT id_image FROM faculty WHERE id = ?');
+        $stmt_img->bind_param('i', $faculty_id);
+        $stmt_img->execute();
+        $stmt_img->bind_result($id_image);
+        $stmt_img->fetch();
+        $stmt_img->close();
+        if (!empty($id_image)) {
+            $img_path = realpath(__DIR__ . '/../' . $id_image);
+            if ($img_path && file_exists($img_path)) unlink($img_path);
+        }
+
         $stmt = $conn->prepare('DELETE FROM faculty WHERE id=?');
         $stmt->bind_param('i', $faculty_id);
         $stmt->execute();
         $stmt->close();
-        echo json_encode(['success' => true, 'message' => 'Faculty account deleted.']); exit;
+        echo json_encode(['success' => true, 'message' => 'Faculty account deleted.']);
+        exit;
     }
 
     echo json_encode(['success' => false, 'message' => 'Unknown action.']); exit;

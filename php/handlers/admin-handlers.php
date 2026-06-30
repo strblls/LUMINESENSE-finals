@@ -21,6 +21,39 @@ function log_admin_action($conn, $admin_id, $action, $target_name = '', $notes =
     $stmt->close();
 }
 
+/**
+ * Clean up all related records before deleting a faculty member.
+ * Handles junction tables, review queue, and ID image file.
+ * Returns ['name' => '...', 'email' => '...'] or null if not found.
+ */
+function faculty_delete_cleanup($conn, $faculty_id) {
+    $stmt = $conn->prepare('SELECT first_name, last_name, email, id_image FROM faculty WHERE id = ?');
+    $stmt->bind_param('i', $faculty_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $faculty = $result->fetch_assoc();
+    $stmt->close();
+
+    if (!$faculty) return null;
+
+    $conn->query("DELETE FROM junction_faculty_department WHERE faculty_id = $faculty_id");
+    $conn->query("DELETE FROM junction_faculty_subject      WHERE faculty_id = $faculty_id");
+    $conn->query("DELETE FROM junction_faculty_subjectarea   WHERE faculty_id = $faculty_id");
+    $conn->query("DELETE FROM id_review_queue WHERE account_type = 'faculty' AND account_id = $faculty_id");
+
+    if (!empty($faculty['id_image'])) {
+        $img_path = realpath(__DIR__ . '/../../' . $faculty['id_image']);
+        if ($img_path && file_exists($img_path)) {
+            unlink($img_path);
+        }
+    }
+
+    return [
+        'name'  => $faculty['first_name'] . ' ' . $faculty['last_name'],
+        'email' => $faculty['email']
+    ];
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     $dept_id = (int)($_POST['department_id'] ?? 0);

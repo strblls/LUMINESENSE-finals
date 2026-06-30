@@ -55,17 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         log_admin_action($conn, $admin_id, 'faculty_approved', $f_name, 'Faculty ID: ' . $generated_faculty_id);
         $message = 'approved';
     } elseif ($action === 'reject') {
+        faculty_delete_cleanup($conn, $faculty_id);
         $stmt = $conn->prepare('DELETE FROM faculty WHERE id = ?');
         $stmt->bind_param('i', $faculty_id);
         $stmt->execute();
         $stmt->close();
-
-        // Delete uploaded ID image too
-        if (!empty($faculty['id_image'])) {
-            $img_path = realpath(__DIR__ . '/../../' . $faculty['id_image']);
-            if ($img_path && file_exists($img_path))
-                unlink($img_path);
-        }
 
         log_admin_action($conn, $admin_id, 'faculty_rejected', $f_name, 'Rejected on review');
         header('Location: admin-faculty-management.php');

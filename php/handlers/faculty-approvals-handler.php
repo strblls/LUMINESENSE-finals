@@ -75,13 +75,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             log_admin_action($conn, $_SESSION['admin_id'], 'faculty_rejected', $f_name, 'Access revoked');
 
         } elseif ($action === 'delete') {
+            $cleanup = faculty_delete_cleanup($conn, $faculty_id);
             $stmt = $conn->prepare('DELETE FROM faculty WHERE id = ?');
             $stmt->bind_param('i', $faculty_id);
             $stmt->execute();
             $stmt->close();
-
             $message = 'Faculty account removed successfully.';
-            log_admin_action($conn, $_SESSION['admin_id'], 'faculty_rejected', $f_name, 'Record deleted');
+            $log_name = ($cleanup['name'] ?? '') ?: $f_name;
+            log_admin_action($conn, $_SESSION['admin_id'], 'faculty_rejected', $log_name, 'Record deleted');
         }
     }
 
