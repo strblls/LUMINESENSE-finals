@@ -15,15 +15,17 @@ if (!isset($conn) || !isset($admin_id) || !isset($phpRoot)) {
     $isStandalone = true;
     session_start();
     require_once __DIR__ . '/../db_connect.php';
-    require_once __DIR__ . '/admin-handlers.php';
     
-    // Check admin is logged in
+    // Check admin is logged in BEFORE including admin-handlers.php
+    // so admin-handlers.php sees $admin_id and doesn't redirect prematurely.
     if (!isset($_SESSION['admin_id']) || !$_SESSION['admin_logged_in']) {
         header('Location: ../../pages/admin-login.php');
         exit;
     }
     
     $admin_id = $_SESSION['admin_id'];
+    require_once __DIR__ . '/admin-handlers.php';
+    
     $phpRoot = __DIR__ . '/..';
     $message = '';
 }
