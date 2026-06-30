@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $dept_desc = trim($_POST['dept_description'] ?? '');
         $head_id = isset($_POST['head_faculty_id']) ? (int)$_POST['head_faculty_id'] : null;
         $faculty_members = isset($_POST['faculty_members']) ? array_map('intval', $_POST['faculty_members']) : [];
-        $subject_area_text = trim($_POST['dept_subject_area'] ?? '');
+        $subject_areas_text = isset($_POST['dept_subject_areas']) ? array_map('trim', $_POST['dept_subject_areas']) : [];
         
         if (!empty($dept_name)) {
             $stmt = $conn->prepare('INSERT INTO departments (name, description, head_faculty_id) VALUES (?, ?, ?)');
@@ -106,25 +106,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $conn->query("INSERT INTO junction_faculty_department (faculty_id, department_id) VALUES ($head_id, $new_dept_id)");
             }
             
-            if (!empty($subject_area_text)) {
-                $stmt = $conn->prepare("SELECT id FROM subject_area WHERE name = ?");
-                $stmt->bind_param('s', $subject_area_text);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                if ($result && $result->num_rows > 0) {
-                    $subject_area_row = $result->fetch_assoc();
-                    $subject_area_id = $subject_area_row['id'];
-                    $stmt_update = $conn->prepare("UPDATE subject_area SET department_id = ? WHERE id = ?");
-                    $stmt_update->bind_param('ii', $new_dept_id, $subject_area_id);
-                    $stmt_update->execute();
-                    $stmt_update->close();
-                } else {
-                    $stmt_insert = $conn->prepare("INSERT INTO subject_area (name, department_id) VALUES (?, ?)");
-                    $stmt_insert->bind_param('si', $subject_area_text, $new_dept_id);
-                    $stmt_insert->execute();
-                    $stmt_insert->close();
+            foreach ($subject_areas_text as $sa_name) {
+                if (!empty($sa_name)) {
+                    $stmt = $conn->prepare("SELECT id FROM subject_area WHERE name = ?");
+                    $stmt->bind_param('s', $sa_name);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    if ($result && $result->num_rows > 0) {
+                        $subject_area_row = $result->fetch_assoc();
+                        $subject_area_id = $subject_area_row['id'];
+                        $stmt_update = $conn->prepare("UPDATE subject_area SET department_id = ? WHERE id = ?");
+                        $stmt_update->bind_param('ii', $new_dept_id, $subject_area_id);
+                        $stmt_update->execute();
+                        $stmt_update->close();
+                    } else {
+                        $stmt_insert = $conn->prepare("INSERT INTO subject_area (name, department_id) VALUES (?, ?)");
+                        $stmt_insert->bind_param('si', $sa_name, $new_dept_id);
+                        $stmt_insert->execute();
+                        $stmt_insert->close();
+                    }
+                    $stmt->close();
                 }
-                $stmt->close();
             }
             
             $message = 'Department added successfully.';
@@ -136,7 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $dept_desc = trim($_POST['dept_description'] ?? '');
         $head_id = !empty($_POST['head_faculty_id']) ? (int)$_POST['head_faculty_id'] : null;
         $faculty_members = isset($_POST['faculty_members']) ? array_map('intval', $_POST['faculty_members']) : [];
-        $subject_area_text = trim($_POST['dept_subject_area'] ?? '');
+        $subject_areas_text = isset($_POST['dept_subject_areas']) ? array_map('trim', $_POST['dept_subject_areas']) : [];
+        
+        // Remove empty entries
+        $subject_areas_text = array_values(array_filter($subject_areas_text));
         
         // Departments without a head are forced to 'pending'
         $status = empty($head_id) ? 'pending' : trim($_POST['dept_status'] ?? 'active');
@@ -167,25 +172,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             
             $conn->query("UPDATE subject_area SET department_id = NULL WHERE department_id = $dept_id");
-            if (!empty($subject_area_text)) {
-                $stmt = $conn->prepare("SELECT id FROM subject_area WHERE name = ?");
-                $stmt->bind_param('s', $subject_area_text);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                if ($result && $result->num_rows > 0) {
-                    $subject_area_row = $result->fetch_assoc();
-                    $subject_area_id = $subject_area_row['id'];
-                    $stmt_update = $conn->prepare("UPDATE subject_area SET department_id = ? WHERE id = ?");
-                    $stmt_update->bind_param('ii', $dept_id, $subject_area_id);
-                    $stmt_update->execute();
-                    $stmt_update->close();
-                } else {
-                    $stmt_insert = $conn->prepare("INSERT INTO subject_area (name, department_id) VALUES (?, ?)");
-                    $stmt_insert->bind_param('si', $subject_area_text, $dept_id);
-                    $stmt_insert->execute();
-                    $stmt_insert->close();
+            foreach ($subject_areas_text as $sa_name) {
+                if (!empty($sa_name)) {
+                    $stmt = $conn->prepare("SELECT id FROM subject_area WHERE name = ?");
+                    $stmt->bind_param('s', $sa_name);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    if ($result && $result->num_rows > 0) {
+                        $subject_area_row = $result->fetch_assoc();
+                        $subject_area_id = $subject_area_row['id'];
+                        $stmt_update = $conn->prepare("UPDATE subject_area SET department_id = ? WHERE id = ?");
+                        $stmt_update->bind_param('ii', $dept_id, $subject_area_id);
+                        $stmt_update->execute();
+                        $stmt_update->close();
+                    } else {
+                        $stmt_insert = $conn->prepare("INSERT INTO subject_area (name, department_id) VALUES (?, ?)");
+                        $stmt_insert->bind_param('si', $sa_name, $dept_id);
+                        $stmt_insert->execute();
+                        $stmt_insert->close();
+                    }
+                    $stmt->close();
                 }
-                $stmt->close();
             }
             
             $message = 'Department updated successfully.';
@@ -206,7 +213,6 @@ if ($isStandalone && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $departments = [];
-$subject_areas = [];
 if (!$isStandalone) {
     $checkTable = $conn->query("SHOW TABLES LIKE 'departments'");
     if ($checkTable && $checkTable->num_rows > 0) {
@@ -226,24 +232,16 @@ if (!$isStandalone) {
                     }
                 }
                 
-                $subject_area_res = $conn->query("SELECT sa.name FROM subject_area sa WHERE sa.department_id = " . $row['id'] . " LIMIT 1");
-                $row['subject_area'] = '';
+                $subject_area_res = $conn->query("SELECT sa.name FROM subject_area sa WHERE sa.department_id = " . $row['id']);
+                $row['subject_areas'] = [];
                 if ($subject_area_res) {
-                    $subject_area_row = $subject_area_res->fetch_assoc();
-                    if ($subject_area_row) {
-                        $row['subject_area'] = $subject_area_row['name'];
+                    while ($sa_row = $subject_area_res->fetch_assoc()) {
+                        $row['subject_areas'][] = $sa_row['name'];
                     }
                 }
                 
                 $departments[] = $row;
             }
-        }
-    }
-    
-    $subject_areas_res = $conn->query("SELECT name FROM subject_area");
-    if ($subject_areas_res) {
-        while ($row = $subject_areas_res->fetch_assoc()) {
-            $subject_areas[] = $row['name'];
         }
     }
 }

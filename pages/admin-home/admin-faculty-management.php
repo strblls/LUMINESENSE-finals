@@ -495,13 +495,11 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
 
                         <!-- Subject Area Field -->
                         <div class="mb-3">
-                            <label class="form-label bold">Subject Area</label>
-                            <input type="text" class="form-control" name="dept_subject_area" id="addDeptSubjectArea" placeholder="Enter or search subject area" list="subjectAreaList">
-                            <datalist id="subjectAreaList">
-                                <?php foreach ($subject_areas as $sa): ?>
-                                    <option value="<?= htmlspecialchars($sa) ?>">
-                                <?php endforeach; ?>
-                            </datalist>
+                            <label class="form-label bold">Subject Areas</label>
+                            <div class="subject-area-input-wrap">
+                                <input type="text" class="form-control" id="addSubjectAreaInput" placeholder="Type subject area and press Enter">
+                                <div class="subject-area-tags d-flex flex-wrap gap-1 mt-2" id="addSubjectAreaTags"></div>
+                            </div>
                         </div>
 
                         <!-- Head of Department Section -->
@@ -589,8 +587,11 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
 
                         <!-- Subject Area Field -->
                         <div class="mb-3">
-                            <label class="form-label bold">Subject Area</label>
-                            <input type="text" class="form-control" name="dept_subject_area" id="editDeptSubjectArea" placeholder="Enter or search subject area" list="subjectAreaList">
+                            <label class="form-label bold">Subject Areas</label>
+                            <div class="subject-area-input-wrap">
+                                <input type="text" class="form-control" id="editSubjectAreaInput" placeholder="Type subject area and press Enter">
+                                <div class="subject-area-tags d-flex flex-wrap gap-1 mt-2" id="editSubjectAreaTags"></div>
+                            </div>
                         </div>
 
                         <!-- Head of Department Section -->
@@ -705,6 +706,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
         function openAddDepartmentModal() {
             // Reset form
             document.getElementById('addDepartmentForm').reset();
+            initSubjectAreaTags('add', []);
             new bootstrap.Modal(document.getElementById('addDepartmentModal')).show();
         }
 
@@ -724,12 +726,8 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
             // Find the department in departmentsData
             const dept = departmentsData.find(d => d.id == deptId);
             
-            // Pre-select subject area
-            if (dept && dept.subject_area) {
-                document.getElementById('editDeptSubjectArea').value = dept.subject_area;
-            } else {
-                document.getElementById('editDeptSubjectArea').value = '';
-            }
+            // Pre-select subject areas
+            initSubjectAreaTags('edit', dept && dept.subject_areas ? dept.subject_areas : []);
             
             // Clear all previous selections
             document.querySelectorAll('.edit-hod-radio').forEach(r => r.checked = false);
@@ -868,6 +866,97 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                 }
             }
         });
+
+        // ═════ SUBJECT AREA TAG INPUT ═════
+        const subjectAreaState = { add: [], edit: [] };
+
+        function renderSubjectAreaTags(context) {
+            const container = document.getElementById(context + 'SubjectAreaTags');
+            const tags = subjectAreaState[context];
+            container.innerHTML = tags.map((tag, i) =>
+                `<span class="subject-area-tag badge bg-primary me-1 mb-1 ps-2 pe-1 py-1 d-inline-flex align-items-center">
+                    ${escapeHtml(tag)}
+                    <i class="bi bi-x ms-1 subject-area-remove" style="cursor:pointer;font-size:1.1em" data-context="${context}" data-index="${i}"></i>
+                </span>`
+            ).join('');
+        }
+
+        function initSubjectAreaTags(context, initialTags) {
+            const input = document.getElementById(context + 'SubjectAreaInput');
+            const container = document.getElementById(context + 'SubjectAreaTags');
+            subjectAreaState[context] = [...initialTags];
+            renderSubjectAreaTags(context);
+            input.value = '';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            ['add', 'edit'].forEach(function(ctx) {
+                const input = document.getElementById(ctx + 'SubjectAreaInput');
+                if (!input) return;
+
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addSubjectAreaTag(ctx);
+                    }
+                });
+                input.addEventListener('blur', function() {
+                    addSubjectAreaTag(ctx);
+                });
+            });
+
+            document.querySelectorAll('.subject-area-tags').forEach(function(container) {
+                container.addEventListener('click', function(e) {
+                    const removeBtn = e.target.closest('.subject-area-remove');
+                    if (removeBtn) {
+                        const ctx = removeBtn.dataset.context;
+                        const idx = parseInt(removeBtn.dataset.index);
+                        subjectAreaState[ctx].splice(idx, 1);
+                        renderSubjectAreaTags(ctx);
+                    }
+                });
+            });
+        });
+
+        function addSubjectAreaTag(context) {
+            const input = document.getElementById(context + 'SubjectAreaInput');
+            const val = input.value.trim();
+            if (!val) return;
+            if (subjectAreaState[context].includes(val)) {
+                input.value = '';
+                return;
+            }
+            subjectAreaState[context].push(val);
+            renderSubjectAreaTags(context);
+            input.value = '';
+        }
+
+        // Serialize subject area tags into hidden inputs before form submit
+        document.getElementById('addDepartmentForm').addEventListener('submit', function() {
+            serializeSubjectAreas('add', this);
+        });
+        document.getElementById('editDepartmentForm').addEventListener('submit', function() {
+            serializeSubjectAreas('edit', this);
+        });
+
+        function serializeSubjectAreas(context, form) {
+            form.querySelectorAll('input[name="dept_subject_areas[]"]').forEach(function(el) {
+                el.remove();
+            });
+            subjectAreaState[context].forEach(function(name) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'dept_subject_areas[]';
+                input.value = name;
+                form.appendChild(input);
+            });
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        }
     </script>
 </body>
 </html>

@@ -330,3 +330,23 @@
     top: 0;
     z-index: 2;
 }
+
+/* ── Subject Area Tags ── */
+.subject-area-tags {
+    min-height: 32px;
+}
+
+.subject-area-tag {
+    font-size: 13px;
+    cursor: default;
+    user-select: none;
+}
+
+.subject-area-tag .bi-x:hover {
+    opacity: 0.7;
+}
+
+.subject-area-input-wrap .form-control:focus {
+    box-shadow: 0 0 0 0.15rem rgba(47, 0, 79, 0.15);
+    border-color: var(--secondary-color-1);
+}

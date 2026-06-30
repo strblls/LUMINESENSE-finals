@@ -185,10 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // Redirect after POST to prevent re-submission (Post/Redirect/Get)
     $_SESSION['message'] = $message;
-    $redirect_url = $isStandalone
-        ? '../../pages/admin-home/admin-faculty-management.php'
-        : 'admin-faculty-management.php';
-    header('Location: ' . $redirect_url);
+    header('Location: ../../pages/admin-home/admin-faculty-management.php');
     exit;
 }
 
