@@ -16,6 +16,33 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require_once 'db_connect.php';
 require_once 'mailer.php';
 
+// ── Helper functions for name matching ────────────────────────────────────
+/**
+ * Cleans up a name string: uppercase, no commas, no extra spaces
+ */
+function normalizeName($name) {
+    $name = strtoupper($name);
+    $name = str_replace(',', ' ', $name);
+    $name = preg_replace('/\s+/', ' ', $name);
+    return trim($name);
+}
+
+/**
+ * Checks if two names match, regardless of word order or commas
+ * (handles "Dela Cruz, Juan" vs "Juan Dela Cruz")
+ */
+function nameWordsMatch($nameA, $nameB, $threshold = 80) {
+    $wordsA = array_filter(explode(' ', normalizeName($nameA)));
+    $wordsB = array_filter(explode(' ', normalizeName($nameB)));
+
+    if (empty($wordsA) || empty($wordsB)) return false;
+
+    $matched = array_intersect($wordsA, $wordsB);
+    $percent = (count($matched) / count($wordsB)) * 100;
+
+    return $percent >= $threshold;
+}
+
 // ── 1. Only accept POST ────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/faculty-signup.php');
@@ -66,7 +93,6 @@ if (empty($_FILES['id_image']['name'])) {
 // ── 7. If there are errors, go back ───────────────────────────────────────
 if (!empty($errors)) {
     $_SESSION['signup_errors'] = $errors;
-    // Remember form values so they're not wiped on redirect
     $_SESSION['signup_form'] = [
         'last_name'      => $last_name,
         'first_name'     => $first_name,
@@ -91,21 +117,21 @@ if ($stmt->num_rows > 0) {
 }
 $stmt->close();
 
-// ── 8. Hash password & generate OTP ──────────────────────────────────────
+// ── 9. Hash password & generate OTP ──────────────────────────────────────
 $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 $otp_code        = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 $otp_expires_at  = date('Y-m-d H:i:s', strtotime('+15 minutes'));
 
-// ── 8.1 Handle ID image upload ────────────────────────────────────────────
+// ── 9.1 Handle ID image upload ────────────────────────────────────────────
 $upload_dir = __DIR__ . '/../uploads/faculty_ids/';
 if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0755, true);
 }
 
-$ext          = pathinfo($_FILES['id_image']['name'], PATHINFO_EXTENSION);
+$ext            = pathinfo($_FILES['id_image']['name'], PATHINFO_EXTENSION);
 $image_filename = 'id_' . bin2hex(random_bytes(8)) . '.' . $ext;
-$image_path   = $upload_dir . $image_filename;
-$image_db_path = 'uploads/faculty_ids/' . $image_filename;
+$image_path     = $upload_dir . $image_filename;
+$image_db_path  = 'uploads/faculty_ids/' . $image_filename;
 
 if (!move_uploaded_file($_FILES['id_image']['tmp_name'], $image_path)) {
     $_SESSION['signup_errors'] = ['Failed to upload ID image. Please try again.'];
@@ -114,15 +140,15 @@ if (!move_uploaded_file($_FILES['id_image']['tmp_name'], $image_path)) {
     exit;
 }
 
-// ── 8.2 Call Anthropic AI to read the ID ─────────────────────────────────
+// ── 9.2 Call Anthropic AI to validate + read the ID ───────────────────────
 $ai_match_status     = 'unreadable';
 $ai_extracted_name   = null;
 $ai_confidence_note  = null;
-$full_name_typed     = strtolower(trim("$first_name $last_name"));
+$full_name_typed      = trim("$first_name $last_name");
 
 try {
-    $image_data    = base64_encode(file_get_contents($image_path));
-    $image_mime    = mime_content_type($image_path);
+    $image_data = base64_encode(file_get_contents($image_path));
+    $image_mime = mime_content_type($image_path);
 
     $ai_payload = [
         'model'      => 'claude-sonnet-4-20250514',
@@ -140,9 +166,14 @@ try {
                 ],
                 [
                     'type' => 'text',
-                    'text' => 'This is a faculty ID image. Extract the full name of the person on the ID. 
-                               Reply in JSON only, no markdown, no explanation. 
-                               Format: {"extracted_name": "First Last", "readable": true/false, "note": "short note"}'
+                    'text' => 'This is supposed to be a photo of a school or faculty ID card. 
+                                First, check if it actually looks like a real ID card — meaning 
+                                it should have a photo of a person, a printed name field, and 
+                                card-like borders. A plain piece of paper with handwriting is NOT 
+                                a valid ID, even if a name is visible on it. 
+                                If it is a valid ID, extract the full name exactly as printed. 
+                                Reply in JSON only, no markdown, no explanation. 
+                                Format: {"is_valid_id": true/false, "extracted_name": "Name as printed", "readable": true/false, "note": "short note"}'
                 ]
             ]
         ]]
@@ -162,24 +193,27 @@ try {
     $ai_response = curl_exec($ch);
     curl_close($ch);
 
-    $ai_data = json_decode($ai_response, true);
-    $ai_text = $ai_data['content'][0]['text'] ?? '{}';
+    $ai_data   = json_decode($ai_response, true);
+    $ai_text   = $ai_data['content'][0]['text'] ?? '{}';
     $ai_result = json_decode($ai_text, true);
 
-    if (!empty($ai_result['readable']) && $ai_result['readable'] === true) {
+    // Step 1: is this even a real ID card?
+    if (empty($ai_result['is_valid_id']) || $ai_result['is_valid_id'] !== true) {
+        $ai_match_status    = 'unreadable';
+        $ai_confidence_note = $ai_result['note'] ?? 'Image does not appear to be a valid ID card.';
+
+    // Step 2: is the text on it readable?
+    } elseif (!empty($ai_result['readable']) && $ai_result['readable'] === true) {
         $ai_extracted_name  = $ai_result['extracted_name'] ?? null;
         $ai_confidence_note = $ai_result['note'] ?? null;
 
-        // Compare extracted name vs typed name
-        $extracted_clean = strtolower(trim($ai_extracted_name ?? ''));
-        if (
-            $extracted_clean === $full_name_typed ||
-            similar_text($extracted_clean, $full_name_typed, $pct) && $pct >= 80
-        ) {
+        // Step 3: does the extracted name match what the user typed?
+        if (nameWordsMatch($ai_extracted_name ?? '', $full_name_typed)) {
             $ai_match_status = 'matched';
         } else {
             $ai_match_status = 'mismatched';
         }
+
     } else {
         $ai_match_status    = 'unreadable';
         $ai_confidence_note = $ai_result['note'] ?? 'AI could not read the ID clearly.';
@@ -190,9 +224,7 @@ try {
     $ai_confidence_note = 'AI processing failed. Manual review required.';
 }
 
-// ── 9. Insert new faculty (is_verified = 0, approved_by = NULL) ──────────
-//  Flow: is_verified=0 → email confirmed → is_verified=1, approved_by=NULL
-//        → admin approves → approved_by=admin_id, approved_at=now
+// ── 10. Insert new faculty (is_verified = 0, approved_by = NULL) ─────────
 $stmt = $conn->prepare("
     INSERT INTO faculty
         (last_name, first_name, middle_initial, email, password, is_verified, 
@@ -200,7 +232,7 @@ $stmt = $conn->prepare("
     VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
 ");
 $stmt->bind_param(
-    'sssssssssss',  // 11 s's not 12
+    'sssssssssss',
     $last_name, $first_name, $middle_initial,
     $email, $hashed_password,
     $otp_code, $otp_expires_at,
@@ -216,14 +248,14 @@ if (!$stmt->execute()) {
 }
 $stmt->close();
 
-// ── 10. Send OTP email ────────────────────────────────────────────────────
+// ── 11. Send OTP email ────────────────────────────────────────────────────
 $mail_sent = sendVerificationEmail($email, $otp_code, $first_name);
 
 if (!$mail_sent) {
     $_SESSION['email_warning'] = 'We could not send the verification email. Please use the Resend button.';
 }
 
-// ── 11. Pass data to verify page via session ──────────────────────────────
+// ── 12. Pass data to verify page via session ──────────────────────────────
 $_SESSION['pending_verification'] = [
     'email' => $email,
     'role'  => 'faculty',
