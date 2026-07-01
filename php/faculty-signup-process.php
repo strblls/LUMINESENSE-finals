@@ -14,8 +14,8 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 require_once 'db_connect.php';
 require_once 'mailer.php';
-require_once 'IdVerifier.php';
-require_once 'IdQuarantine.php';
+require_once 'id-verifier.php';
+require_once 'id-quarantine.php';
 
 // ── 1. Only accept POST ────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

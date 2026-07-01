@@ -1,4 +1,6 @@
-```
+#config
+config.php 
+
 # Logs and temp files
 *.log
 *.tmp
