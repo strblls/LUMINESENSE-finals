@@ -1,63 +1,49 @@
 <?php
 /**
- * php/handlers/faculty-signup-process.php
+ * LumineSense – Faculty Sign-Up Process
+ * --------------------------------------
+ * 1. Validates that the email ends in @gmail.com
+ * 2. Saves new faculty (is_verified = 0) to the DB
+ * 3. Sends a 6-digit OTP to the provided Gmail
+ * 4. Redirects to verify-email.php
  *
- * Handles new Teacher registration.
- *
- * THE FULL FLOW after this file runs:
- *   Teacher fills form
- *       -> This file validates everything
- *       -> Saves to DB with is_verified = 0
- *       -> Sends OTP to their email
- *       -> Redirects to verify-email.php
- *           -> Teacher enters OTP -> is_verified = 1
- *               -> Head Teacher sees them in "Pending Registrations"
- *                   -> Head Teacher approves -> approved_by = admin_id
- *                       -> Teacher can now log in
- *
- * PROTOTYPE NOTE on AI ID verification:
- * The AI check (Anthropic API call) is wrapped in a PROTOTYPE_MODE flag.
- * During your panel demo, set PROTOTYPE_MODE = true in config.php to
- * skip the AI call entirely. This avoids failures if there is no internet.
- * The id_image is still saved to disk — only the AI analysis is skipped.
+ * After email is verified → is_verified = 1, approved_by = NULL (waiting for admin)
+ * After Admin approves   → approved_by = admin id, approved_at = now
  */
 
 if (session_status() === PHP_SESSION_NONE) session_start();
-require_once __DIR__ . '/../db_connect.php';
-require_once __DIR__ . '/../mailer.php';
 
-date_default_timezone_set('Asia/Manila');
+require_once 'db_connect.php';
+require_once 'mailer.php';
 
+// ── 1. Only accept POST ────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../../pages/faculty-signup.php');
+    header('Location: ../pages/faculty-signup.php');
     exit;
 }
 
-// Collect and sanitize inputs
-$last_name       = trim($_POST['last_name']        ?? '');
-$first_name      = trim($_POST['first_name']       ?? '');
+// ── 2. Collect & sanitize inputs ──────────────────────────────────────────
+$last_name       = trim($_POST['last_name']       ?? '');
+$first_name      = trim($_POST['first_name']      ?? '');
 $middle_initial  = strtoupper(trim($_POST['middle_initial'] ?? ''));
 $email           = strtolower(trim($_POST['email'] ?? ''));
-$employee_id     = trim($_POST['employee_id']      ?? '');
-$department_id   = (int)($_POST['department_id']   ?? 0);
-$password        = $_POST['password']              ?? '';
-$confirm_password = $_POST['confirm_password']     ?? '';
+$password        = $_POST['password']         ?? '';
+$confirm_password = $_POST['confirm_password'] ?? '';
 
 $errors = [];
 
-// Basic field checks
-if (empty($last_name))    $errors[] = 'Last name is required.';
-if (empty($first_name))   $errors[] = 'First name is required.';
-if (empty($email))        $errors[] = 'Email is required.';
-if (empty($password))     $errors[] = 'Password is required.';
-if (!$department_id)      $errors[] = 'Please select your department.';
+// ── 3. Basic field checks ─────────────────────────────────────────────────
+if (empty($last_name))   $errors[] = 'Last name is required.';
+if (empty($first_name))  $errors[] = 'First name is required.';
+if (empty($email))       $errors[] = 'Email is required.';
+if (empty($password))    $errors[] = 'Password is required.';
 
-// Gmail only
+// ── 4. Gmail-only rule ────────────────────────────────────────────────────
 if (!empty($email) && !preg_match('/@gmail\.com$/i', $email)) {
     $errors[] = 'Only @gmail.com addresses are accepted.';
 }
 
-// Password rules
+// ── 5. Password rules ─────────────────────────────────────────────────────
 if (strlen($password) < 8) {
     $errors[] = 'Password must be at least 8 characters.';
 }
@@ -65,207 +51,184 @@ if ($password !== $confirm_password) {
     $errors[] = 'Passwords do not match.';
 }
 
-// ID image validation
+// ── 6. ID Image validation ────────────────────────────────────────────────
 $allowed_types = ['image/jpeg', 'image/png', 'image/webp'];
 $max_size      = 5 * 1024 * 1024; // 5MB
 
-$has_image = !empty($_FILES['id_image']['name']) && $_FILES['id_image']['error'] === UPLOAD_ERR_OK;
-
-if (!$has_image) {
-    $errors[] = 'Please upload a photo of your school ID.';
+if (empty($_FILES['id_image']['name'])) {
+    $errors[] = 'Please upload a photo of your ID.';
 } elseif (!in_array($_FILES['id_image']['type'], $allowed_types)) {
     $errors[] = 'ID image must be a JPG, PNG, or WEBP file.';
 } elseif ($_FILES['id_image']['size'] > $max_size) {
     $errors[] = 'ID image must be under 5MB.';
 }
 
-// Validate that the selected department actually exists
-if ($department_id) {
-    $chk = $conn->prepare('SELECT id FROM departments WHERE id = ? LIMIT 1');
-    $chk->bind_param('i', $department_id);
-    $chk->execute();
-    $chk->store_result();
-    if ($chk->num_rows === 0) {
-        $errors[] = 'Invalid department selected.';
-    }
-    $chk->close();
-}
-
-// If any errors, go back to the form
+// ── 7. If there are errors, go back ───────────────────────────────────────
 if (!empty($errors)) {
     $_SESSION['signup_errors'] = $errors;
-    $_SESSION['signup_form']   = compact(
-        'last_name', 'first_name', 'middle_initial', 'email', 'employee_id', 'department_id'
-    );
-    header('Location: ../../pages/faculty-signup.php');
+    // Remember form values so they're not wiped on redirect
+    $_SESSION['signup_form'] = [
+        'last_name'      => $last_name,
+        'first_name'     => $first_name,
+        'middle_initial' => $middle_initial,
+        'email'          => $email,
+    ];
+    header('Location: ../pages/faculty-signup.php');
     exit;
 }
 
-// Check for duplicate email
-$stmt = $conn->prepare('SELECT id FROM faculty WHERE email = ? LIMIT 1');
+// ── 8. Check if email already exists ─────────────────────────────────────
+$stmt = $conn->prepare("SELECT id FROM faculty WHERE email = ?");
 $stmt->bind_param('s', $email);
 $stmt->execute();
 $stmt->store_result();
 if ($stmt->num_rows > 0) {
     $_SESSION['signup_errors'] = ['This email is already registered.'];
-    $_SESSION['signup_form']   = compact(
-        'last_name', 'first_name', 'middle_initial', 'email', 'employee_id', 'department_id'
-    );
+    $_SESSION['signup_form']   = compact('last_name', 'first_name', 'middle_initial', 'email');
     $stmt->close();
-    header('Location: ../../pages/faculty-signup.php');
+    header('Location: ../pages/faculty-signup.php');
     exit;
 }
 $stmt->close();
 
-// Hash password and generate OTP
+// ── 8. Hash password & generate OTP ──────────────────────────────────────
 $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 $otp_code        = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 $otp_expires_at  = date('Y-m-d H:i:s', strtotime('+15 minutes'));
 
-// Save the ID image to disk
-$upload_dir = __DIR__ . '/../../uploads/faculty_ids/';
+// ── 8.1 Handle ID image upload ────────────────────────────────────────────
+$upload_dir = __DIR__ . '/../uploads/faculty_ids/';
 if (!is_dir($upload_dir)) {
     mkdir($upload_dir, 0755, true);
 }
 
-$ext            = pathinfo($_FILES['id_image']['name'], PATHINFO_EXTENSION);
-$image_filename = 'id_' . bin2hex(random_bytes(8)) . '.' . strtolower($ext);
-$image_path     = $upload_dir . $image_filename;
-$image_db_path  = 'uploads/faculty_ids/' . $image_filename;
+$ext          = pathinfo($_FILES['id_image']['name'], PATHINFO_EXTENSION);
+$image_filename = 'id_' . bin2hex(random_bytes(8)) . '.' . $ext;
+$image_path   = $upload_dir . $image_filename;
+$image_db_path = 'uploads/faculty_ids/' . $image_filename;
 
 if (!move_uploaded_file($_FILES['id_image']['tmp_name'], $image_path)) {
     $_SESSION['signup_errors'] = ['Failed to upload ID image. Please try again.'];
-    header('Location: ../../pages/faculty-signup.php');
+    $_SESSION['signup_form']   = compact('last_name', 'first_name', 'middle_initial', 'email');
+    header('Location: ../pages/faculty-signup.php');
     exit;
 }
 
-// AI ID verification
-// In PROTOTYPE_MODE this is skipped entirely to avoid API dependency during the demo.
-$ai_match_status    = 'unreadable';
-$ai_extracted_name  = null;
-$ai_confidence_note = null;
+// ── 8.2 Call Anthropic AI to read the ID ─────────────────────────────────
+$ai_match_status     = 'unreadable';
+$ai_extracted_name   = null;
+$ai_confidence_note  = null;
+$full_name_typed     = strtolower(trim("$first_name $last_name"));
 
-if (!defined('PROTOTYPE_MODE') || !PROTOTYPE_MODE) {
-    try {
-        $image_data = base64_encode(file_get_contents($image_path));
-        $image_mime = mime_content_type($image_path);
-        $full_name  = strtolower(trim("$first_name $last_name"));
+try {
+    $image_data    = base64_encode(file_get_contents($image_path));
+    $image_mime    = mime_content_type($image_path);
 
-        $ai_payload = [
-            'model'      => 'claude-sonnet-4-6',
-            'max_tokens' => 300,
-            'messages'   => [[
-                'role'    => 'user',
-                'content' => [
-                    [
-                        'type'   => 'image',
-                        'source' => [
-                            'type'       => 'base64',
-                            'media_type' => $image_mime,
-                            'data'       => $image_data,
-                        ],
-                    ],
-                    [
-                        'type' => 'text',
-                        'text' => 'This is a faculty ID image from a Philippine school. '
-                                . 'Extract the full name printed on the ID. '
-                                . 'Reply in JSON only, no markdown, no explanation. '
-                                . 'Format: {"extracted_name":"First Last","readable":true,"note":"short note"}',
-                    ],
+    $ai_payload = [
+        'model'      => 'claude-sonnet-4-20250514',
+        'max_tokens' => 300,
+        'messages'   => [[
+            'role'    => 'user',
+            'content' => [
+                [
+                    'type'   => 'image',
+                    'source' => [
+                        'type'       => 'base64',
+                        'media_type' => $image_mime,
+                        'data'       => $image_data,
+                    ]
                 ],
-            ]],
-        ];
+                [
+                    'type' => 'text',
+                    'text' => 'This is a faculty ID image. Extract the full name of the person on the ID. 
+                               Reply in JSON only, no markdown, no explanation. 
+                               Format: {"extracted_name": "First Last", "readable": true/false, "note": "short note"}'
+                ]
+            ]
+        ]]
+    ];
 
-        $ch = curl_init('https://api.anthropic.com/v1/messages');
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_HTTPHEADER     => [
-                'Content-Type: application/json',
-                'anthropic-version: 2023-06-01',
-            ],
-            CURLOPT_POSTFIELDS     => json_encode($ai_payload),
-            CURLOPT_TIMEOUT        => 15,
-        ]);
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => [
+            'Content-Type: application/json',
+            'anthropic-version: 2023-06-01',
+        ],
+        CURLOPT_POSTFIELDS => json_encode($ai_payload),
+    ]);
 
-        $ai_response = curl_exec($ch);
-        curl_close($ch);
+    $ai_response = curl_exec($ch);
+    curl_close($ch);
 
-        $ai_data   = json_decode($ai_response, true);
-        $ai_text   = $ai_data['content'][0]['text'] ?? '{}';
-        $ai_result = json_decode($ai_text, true);
+    $ai_data = json_decode($ai_response, true);
+    $ai_text = $ai_data['content'][0]['text'] ?? '{}';
+    $ai_result = json_decode($ai_text, true);
 
-        if (!empty($ai_result['readable'])) {
-            $ai_extracted_name  = $ai_result['extracted_name'] ?? null;
-            $ai_confidence_note = $ai_result['note']           ?? null;
-            $extracted_clean    = strtolower(trim($ai_extracted_name ?? ''));
+    if (!empty($ai_result['readable']) && $ai_result['readable'] === true) {
+        $ai_extracted_name  = $ai_result['extracted_name'] ?? null;
+        $ai_confidence_note = $ai_result['note'] ?? null;
 
-            similar_text($extracted_clean, $full_name, $pct);
-            $ai_match_status = ($extracted_clean === $full_name || $pct >= 80)
-                ? 'matched'
-                : 'mismatched';
+        // Compare extracted name vs typed name
+        $extracted_clean = strtolower(trim($ai_extracted_name ?? ''));
+        if (
+            $extracted_clean === $full_name_typed ||
+            similar_text($extracted_clean, $full_name_typed, $pct) && $pct >= 80
+        ) {
+            $ai_match_status = 'matched';
         } else {
-            $ai_match_status    = 'unreadable';
-            $ai_confidence_note = $ai_result['note'] ?? 'AI could not read the ID clearly.';
+            $ai_match_status = 'mismatched';
         }
-    } catch (\Throwable $e) {
+    } else {
         $ai_match_status    = 'unreadable';
-        $ai_confidence_note = 'AI processing failed. Manual review required.';
-        error_log('[faculty-signup] AI error: ' . $e->getMessage());
+        $ai_confidence_note = $ai_result['note'] ?? 'AI could not read the ID clearly.';
     }
-} else {
-    // Prototype mode — skip AI, flag for manual review
-    $ai_confidence_note = 'Prototype mode: AI verification skipped. Manual review required.';
+
+} catch (Exception $e) {
+    $ai_match_status    = 'unreadable';
+    $ai_confidence_note = 'AI processing failed. Manual review required.';
 }
 
-// Insert the new faculty record
-// is_verified = 0 until they confirm their email
-// approved_by = NULL until the Head Teacher approves them
+// ── 9. Insert new faculty (is_verified = 0, approved_by = NULL) ──────────
+//  Flow: is_verified=0 → email confirmed → is_verified=1, approved_by=NULL
+//        → admin approves → approved_by=admin_id, approved_at=now
 $stmt = $conn->prepare("
     INSERT INTO faculty
-        (last_name, first_name, middle_initial, email, password,
-         employee_id, department_id,
-         is_verified, otp_code, otp_expires_at,
-         id_image, ai_match_status, ai_extracted_name, ai_confidence_note)
-    VALUES (?, ?, ?, ?, ?,
-            ?, ?,
-            0, ?, ?,
-            ?, ?, ?, ?)
+        (last_name, first_name, middle_initial, email, password, is_verified, 
+         otp_code, otp_expires_at, id_image, ai_match_status, ai_extracted_name, ai_confidence_note)
+    VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
 ");
 $stmt->bind_param(
-    'ssssssiissss s',
-    $last_name, $first_name, $middle_initial, $email, $hashed_password,
-    $employee_id, $department_id,
+    'sssssssssss',  // 11 s's not 12
+    $last_name, $first_name, $middle_initial,
+    $email, $hashed_password,
     $otp_code, $otp_expires_at,
     $image_db_path, $ai_match_status, $ai_extracted_name, $ai_confidence_note
 );
 
 if (!$stmt->execute()) {
-    error_log('[faculty-signup] DB error: ' . $stmt->error);
     $_SESSION['signup_errors'] = ['Database error. Please try again later.'];
+    $_SESSION['signup_form']   = compact('last_name', 'first_name', 'middle_initial', 'email');
     $stmt->close();
-    header('Location: ../../pages/faculty-signup.php');
+    header('Location: ../pages/faculty-signup.php');
     exit;
 }
 $stmt->close();
 
-// Send OTP email
-try {
-    $mail_sent = sendVerificationEmail($email, $otp_code, $first_name);
-    if (!$mail_sent) {
-        $_SESSION['email_warning'] = 'We could not send your verification email. Use the Resend button on the next page.';
-    }
-} catch (\Throwable $e) {
-    $_SESSION['email_warning'] = 'Email sending failed. Use the Resend button on the next page.';
-    error_log('[faculty-signup] Mailer error: ' . $e->getMessage());
+// ── 10. Send OTP email ────────────────────────────────────────────────────
+$mail_sent = sendVerificationEmail($email, $otp_code, $first_name);
+
+if (!$mail_sent) {
+    $_SESSION['email_warning'] = 'We could not send the verification email. Please use the Resend button.';
 }
 
-// Pass info to the verify-email page via session
+// ── 11. Pass data to verify page via session ──────────────────────────────
 $_SESSION['pending_verification'] = [
     'email' => $email,
     'role'  => 'faculty',
     'name'  => $first_name,
 ];
 
-header('Location: ../../pages/verify-email.php');
+header('Location: ../pages/verify-email.php');
 exit;

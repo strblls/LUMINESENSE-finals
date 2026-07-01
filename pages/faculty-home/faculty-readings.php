@@ -70,6 +70,8 @@ $conn->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
+    <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/faculty-common.css">
     <title>Sensor Readings – LumineSense</title>
 </head>
 <body class="contrast-bg">

@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
           crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
 
+    <!--Relative links-->
+    <link rel="icon" href="../images/logo.png">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/containers.css">
     <link rel="stylesheet" href="../css/registration.css">
@@ -26,8 +29,8 @@
             box-shadow: 0 4px 24px rgba(0,0,0,.08);
         }
         .icon-ring {
-            width: 80px;
-            height: 80px;
+            width: 10rem;
+            height: 10rem;
             border-radius: 50%;
             background: #fff8e1;
             display: flex;
@@ -50,13 +53,10 @@
     </style>
 </head>
 <body>
-<div class="parent-container">
+<div class="parent-container justify-content-center align-items-center">
     <div class="pending-card">
-        <div class="image-background faculty" style="margin-bottom:16px;">
-            <img src="../images/logo.png" alt="LumineSense Logo" style="height:60px;">
-        </div>
 
-        <div class="icon-ring">⏳</div>
+        <div class="icon-ring image-background faculty"><img src="../images/logo.png" alt="LumineSense Logo" style="height:60px;"></div>
 
         <h4>Email Verified!</h4>
         <p>
@@ -74,11 +74,13 @@
             Please reach out to your school's facility manager or information officer and let them know your registered email so they can approve your account.
         </p>
 
-        <a class="medium mt-3 d-inline-block" href="faculty-login.php"
-           style="padding:10px 28px; border-radius:8px; text-decoration:none;">
+        <button class="medium mt-3 d-inline-block" href="faculty-login.php"
+                onclick="dissolve('faculty-login.php')">
             Back to Login
-        </a>
+        </button>
     </div>
 </div>
+
+<script src="../script/animations.js"></script>
 </body>
 </html>

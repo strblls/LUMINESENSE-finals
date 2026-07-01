@@ -72,8 +72,55 @@ foreach ($schedules as $s) {
     }
 }
 
-// ── Recent logs for this faculty's classroom only ─────────────
-// FIX: was showing all rooms, now filters by classroom_id
+// ── Active schedule end time (with extension) for audio notifications ─────────
+$active_schedule_end = '';
+$active_schedule_room = '';
+$stmt = $conn->prepare("
+    SELECT COALESCE(s.extended_until, s.end_time) AS end_time, c.room_name
+    FROM schedules s
+    JOIN classrooms c ON c.id = s.classroom_id
+    WHERE s.faculty_id = ?
+      AND s.day_of_week = ?
+      AND s.start_time <= ?
+      AND (s.extended_until >= ? OR (s.extended_until IS NULL AND s.end_time >= ?))
+    ORDER BY s.start_time
+    LIMIT 1
+");
+$stmt->bind_param('issss', $faculty_id, $today, $now, $now, $now);
+$stmt->execute();
+$stmt->bind_result($active_schedule_end, $active_schedule_room);
+$stmt->fetch();
+$stmt->close();
+
+// ── Has any schedule at all? ──────────────────────────────────────
+$has_any_schedule = false;
+$stmt = $conn->prepare("SELECT 1 FROM schedules WHERE faculty_id = ? LIMIT 1");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$stmt->bind_result($dummy);
+$has_any_schedule = (bool)$stmt->fetch();
+$stmt->close();
+
+// ── Faculty permissions ───────────────────────────────────────────
+$permissions = ['lighting_control' => 1, 'gesture_control' => 1];
+$stmt = $conn->prepare("SELECT lighting_control, gesture_control FROM faculty_permissions WHERE faculty_id = ?");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$stmt->bind_result($pc_lc, $pc_gc);
+if ($stmt->fetch()) {
+    $permissions = ['lighting_control' => $pc_lc, 'gesture_control' => $pc_gc];
+}
+$stmt->close();
+
+// ── Has PIN set? ──────────────────────────────────────────────
+$has_pin = false;
+$stmt = $conn->prepare("SELECT pin_hash FROM faculty_permissions WHERE faculty_id = ? AND pin_hash IS NOT NULL");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$stmt->bind_result($pin_hash_val);
+$has_pin = (bool)$stmt->fetch();
+$stmt->close();
+
 $logs = [];
 $r = $conn->query("
     SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
@@ -101,4 +148,64 @@ $stmt->execute();
 $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $gesture_logs[] = $row;
 $stmt->close();
-?>
+
+
+/**
+ * Returns icon/color data for a faculty activity log entry.
+ * Mirrors the admin activity_icon() function for consistent styling.
+ *
+ * Keys: icon, color, bg, label, typeBg, typeClr, typeLabel, notes
+ */
+function faculty_activity_icon(array $log): array
+{
+    // Determine the "event type" key
+    $evt = $log['event_type'] ?? '';
+
+    // ── Icon / colour maps ────────────────────────────────────────
+    $iconMap = [
+        // Room / lighting events
+        'on'             => ['bi-lightbulb-fill',     '#198754', '#d1e7dd'],
+        'off'            => ['bi-lightbulb',           '#842029', '#f8d7da'],
+        'light_on'       => ['bi-lightbulb-fill',     '#198754', '#d1e7dd'],
+        'light_off'      => ['bi-lightbulb',           '#842029', '#f8d7da'],
+        'motion_detect'  => ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+        'gesture'        => ['bi-hand-index',          '#084298', '#cfe2ff'],
+        'schedule'       => ['bi-calendar-check',     '#198754', '#d1e7dd'],
+        'security_alert' => ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+        'class_start'    => ['bi-play-circle-fill',   '#198754', '#d1e7dd'],
+        'class_end'      => ['bi-stop-circle',        '#664d03', '#fff3cd'],
+        'door_open'      => ['bi-door-open-fill',     '#664d03', '#fff3cd'],
+        'door_close'     => ['bi-door-closed-fill',   '#5a3a00', '#ffe5b4'],
+
+        // Misc
+        'issue_raised'   => ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+        'issue_resolved' => ['bi-check-circle-fill',   '#198754', '#d1e7dd'],
+    ];
+
+    $default = ['bi-clock-history', '#5a5a5a', '#e9ecef'];
+
+    [$icon, $iconColor, $iconBg] = $iconMap[$evt] ?? $default;
+
+    // ── Type badge ────────────────────────────────────────────────
+    $typeMap = [
+        'room'        => ['#cfe2ff', '#084298', 'Room'],
+    ];
+    [$typeBg, $typeClr, $typeLabel] = $typeMap['room'];
+
+    // ── Human-readable label ──────────────────────────────────────
+    $label = ucwords(str_replace('_', ' ', $evt));
+
+    // ── Notes (optional) ─────────────────────────────────────────
+    $notes = $log['notes'] ?? '';
+
+    return [
+        'icon'      => $icon,
+        'color'     => $iconColor,
+        'bg'        => $iconBg,
+        'label'     => $label,
+        'typeBg'    => $typeBg,
+        'typeClr'   => $typeClr,
+        'typeLabel' => $typeLabel,
+        'notes'     => $notes,
+    ];
+}

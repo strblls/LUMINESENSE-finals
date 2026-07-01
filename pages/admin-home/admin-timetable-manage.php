@@ -11,7 +11,9 @@ require_once '../../php/handlers/admin-handlers.php';
 // Fetch rooms
 $rooms = [];
 $r = $conn->query('SELECT id, room_name FROM classrooms ORDER BY room_name');
-if ($r) { while ($row = $r->fetch_assoc()) $rooms[] = $row; }
+if ($r) {
+    while ($row = $r->fetch_assoc()) $rooms[] = $row;
+}
 
 // Fetch approved faculty for dropdowns
 $faculty_list = [];
@@ -21,7 +23,9 @@ $f = $conn->query("
     WHERE is_verified = 1 AND approved_by IS NOT NULL
     ORDER BY last_name, first_name
 ");
-if ($f) { while ($row = $f->fetch_assoc()) $faculty_list[] = $row; }
+if ($f) {
+    while ($row = $f->fetch_assoc()) $faculty_list[] = $row;
+}
 
 // Selected room
 $selected_room_id   = 0;
@@ -33,7 +37,8 @@ if (!empty($_GET['room_id'])) {
     $rn = $_GET['room'];
     foreach ($rooms as $rm) {
         if (strtolower($rm['room_name']) === strtolower($rn)) {
-            $selected_room_id = $rm['id']; break;
+            $selected_room_id = $rm['id'];
+            break;
         }
     }
 }
@@ -42,7 +47,8 @@ if (!$selected_room_id && !empty($rooms)) {
 }
 foreach ($rooms as $rm) {
     if ($rm['id'] == $selected_room_id) {
-        $selected_room_name = $rm['room_name']; break;
+        $selected_room_name = $rm['room_name'];
+        break;
     }
 }
 
@@ -69,70 +75,75 @@ if ($selected_room_id) {
     }
 }
 
-$days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+$days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 $conn->close();
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Schedule Management – LumineSense</title>
 
+    <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-            crossorigin="anonymous"></script>
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
+    <!--Relative links-->
+    <link rel="icon" href="../../images/logo.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/admin-timetable.css">                        
+    <link rel="stylesheet" href="../../css/admin-common.css">
+    <link rel="stylesheet" href="../../css/admin-timetable.css">
 </head>
 
 <body class="contrast-bg">
     <?php include '../../php/includes/admin-topbar.php'; ?>
 
-    <div class="px-4 pt-3">
-        <button class="light info-action-btn" 
-                onclick="dissolve('admin-room-manage.php')"
-                style="padding:6px 14px; border-radius:8px; font-size:13px;">
-            <i class="bi bi-arrow-left me-1"></i> Back to Room Management
-        </button>
-    </div>
-    
+
     <!-- ═══ PAGE CONTENT ═══ -->
-    <div class="page-content">
-        <div class="section-heading">Room Schedule</div>
+    <div class="profile-wrapper page-content flex-column">
+        <div class="px-4 pt-3">
+            <button class="light mb-3"
+                onclick="dissolve('admin-room-manage.php')" >
+                <i class="bi bi-arrow-left me-1"></i> Back to Room Management
+            </button>
+        </div>
 
         <div class="schedule-card">
 
             <!-- Card header -->
             <div class="schedule-card-header">
-                <h4><i class="bi bi-calendar3 me-2"></i>Schedule Management</h4>
-                <div class="room-pill" id="headerRoomPill">
+                <h4><i class="bi bi-calendar3 me-2"></i>Schedule Details for <?= htmlspecialchars($selected_room_name ?: 'Select a Room') ?></h4>
+                <!-- <div class="room-pill" id="headerRoomPill">
                     <i class="bi bi-door-open"></i>
-                    <span id="headerRoomName"><?= htmlspecialchars($selected_room_name ?: 'Select a Room') ?></span>
-                </div>
+                    <span id="headerRoomName"></span>
+                </div> -->
             </div>
 
             <!-- Room selector + Add button -->
-            <div class="room-selector-row">
-                <span class="room-selector-label">Room</span>
-                <select class="room-select-dropdown" id="roomDropdown" onchange="changeRoom(this.value)">
-                    <?php foreach ($rooms as $rm): ?>
-                        <option value="<?= $rm['id'] ?>"
-                            <?= $rm['id'] == $selected_room_id ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($rm['room_name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button class="btn-add-slot" data-bs-toggle="modal" data-bs-target="#schedModal"
-                        onclick="openAddModal()">
+            <div class="room-selector-row d-flex justify-content-between">
+                <div>
+                    <span class="room-selector-label">Room</span>
+                    <select class="room-select-dropdown" id="roomDropdown" onchange="changeRoom(this.value)">
+                        <?php foreach ($rooms as $rm): ?>
+                            <option value="<?= $rm['id'] ?>"
+                                <?= $rm['id'] == $selected_room_id ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($rm['room_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button class="medium w-auto p-2" data-bs-toggle="modal" data-bs-target="#schedModal"
+                    onclick="openAddModal()">
                     <i class="bi bi-plus-lg"></i> Add Schedule Slot
                 </button>
             </div>
@@ -155,53 +166,55 @@ $conn->close();
                         }
                         if (empty($by_day)):
                         ?>
-                        <tr>
-                            <td colspan="3">
-                                <div class="empty-state">
-                                    <i class="bi bi-calendar-x"></i>
-                                    <p>No schedule slots for this room yet.<br>
-                                       Click <strong>Add Schedule Slot</strong> to get started.</p>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php else:
+                            <tr>
+                                <td colspan="3">
+                                    <div class="empty-state">
+                                        <i class="bi bi-calendar-x"></i>
+                                        <p>No schedule slots for this room yet.<br>
+                                            Click <strong>Add Schedule Slot</strong> to get started.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php else:
                             foreach ($days as $day):
                                 if (!isset($by_day[$day])) continue;
-                        ?>
-                        <tr class="day-header">
-                            <td colspan="3"><?= $day ?></td>
-                        </tr>
-                        <?php foreach ($by_day[$day] as $s): ?>
-                        <tr class="sched-row" data-id="<?= $s['id'] ?>">
-                            <td class="sched-time">
-                                <?= date('g:i A', strtotime($s['start_time'])) ?>
-                                &ndash;
-                                <?= date('g:i A', strtotime($s['end_time'])) ?>
-                            </td>
-                            <td>
-                                <div class="sched-faculty"><?= htmlspecialchars($s['faculty_name']) ?></div>
-                            </td>
-                            <td>
-                                <div class="d-flex gap-2">
-                                    <button class="btn-icon btn-icon-edit"
-                                        onclick="openEditModal(
-                                            <?= $s['id'] ?>,
-                                            '<?= addslashes($s['faculty_name']) ?>',
-                                            '<?= $s['day_of_week'] ?>',
-                                            '<?= $s['start_time'] ?>',
-                                            '<?= $s['end_time'] ?>'
-                                        )" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn-icon btn-icon-del"
-                                        onclick="confirmDelete(<?= $s['id'] ?>)"
-                                        title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; endforeach; endif; ?>
+                            ?>
+                                <tr class="day-header">
+                                    <td colspan="3"><?= $day ?></td>
+                                </tr>
+                                <?php foreach ($by_day[$day] as $s): ?>
+                                    <tr class="sched-row" data-id="<?= $s['id'] ?>">
+                                        <td class="sched-time">
+                                            <?= date('g:i A', strtotime($s['start_time'])) ?>
+                                            &ndash;
+                                            <?= date('g:i A', strtotime($s['end_time'])) ?>
+                                        </td>
+                                        <td>
+                                            <div class="sched-faculty"><?= htmlspecialchars($s['faculty_name']) ?></div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn-icon btn-icon-edit"
+                                                    onclick="openEditModal(
+                                                     <?= $s['id'] ?>,
+                                                    '<?= addslashes($s['faculty_name']) ?>',
+                                                    '<?= $s['day_of_week'] ?>',
+                                                    '<?= $s['start_time'] ?>',
+                                                    '<?= $s['end_time'] ?>'
+                                                    )" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn-icon btn-icon-del"
+                                                    onclick="confirmDelete(<?= $s['id'] ?>)"
+                                                    title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                        <?php endforeach;
+                            endforeach;
+                        endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -220,9 +233,9 @@ $conn->close();
 
     <!-- ═══ ADD / EDIT MODAL ═══ -->
     <div class="sched-modal modal fade" id="schedModal" tabindex="-1"
-         aria-labelledby="schedModalLabel" aria-hidden="true">
+        aria-labelledby="schedModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius:16px;overflow:hidden;border:none;">
+            <div class="modal-content" style="overflow:hidden;border:none;">
                 <div class="modal-header">
                     <h5 class="modal-title" id="schedModalLabel">Add Schedule Slot</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -276,21 +289,21 @@ $conn->close();
 
     <!-- ═══ DELETE CONFIRM MODAL ═══ -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content" style="border-radius:16px;overflow:hidden;border:none;">
+        <div class="room-details-modal modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content" style="overflow:hidden;border:none;">
                 <div class="modal-header" style="background:linear-gradient(135deg,#c0004e,#e05580);color:#fff;">
-                    <h5 class="modal-title" style="font-weight:700;">Delete Slot?</h5>
+                    <h5 class="modal-title" style="font-weight:700;">Delete Slot</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center p-4">
                     <i class="bi bi-trash" style="font-size:2.5rem;color:#c0004e;"></i>
                     <p class="mt-3 mb-0" style="font-size:15px;">
-                        This schedule slot will be permanently removed. Are you sure?
+                        This schedule slot will be <strong>permanently removed.</strong> Are you sure?
                     </p>
                 </div>
-                <div class="modal-footer border-0 justify-content-center gap-2">
-                    <button class="btn-modal-cancel" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn-modal-save" style="background:#c0004e;" onclick="executeDelete()">
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button class="light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="medium" style="background:#c0004e;" onclick="executeDelete()">
                         <i class="bi bi-trash me-1"></i> Delete
                     </button>
                 </div>
@@ -304,7 +317,8 @@ $conn->close();
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
     <script src="../../script/admin-timetable.js"></script>
-    
+
 
 </body>
+
 </html>

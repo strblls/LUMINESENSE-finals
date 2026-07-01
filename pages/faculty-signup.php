@@ -11,7 +11,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!--Bootstrap and JS CDN-->
+    <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -19,7 +19,8 @@
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 
-    <!--CSS files-->
+    <!--Relative links-->
+    <link rel="icon" href="../images/logo.png">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/containers.css">
     <link rel="stylesheet" href="../css/registration.css">
@@ -35,7 +36,7 @@
         </a>
     </div>
 
-    <div class="parent-container-index">
+    <div class="parent-container-index faculty-signup">
         <div class="registration-container">
             <div class="image-background faculty">
                 <img src="../images/logo.png" alt="LumineSense Logo">

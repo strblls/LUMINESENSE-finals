@@ -11,7 +11,7 @@ function getRoomSchedules($conn, $room_id)
         SELECT s.start_time, s.end_time,
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name
         FROM schedules s
-        JOIN faculty f ON f.id = s.created_by
+        JOIN faculty f ON f.id = s.faculty_id
         WHERE s.classroom_id = ? 
           AND s.day_of_week = ?
           AND s.end_time >= ?
@@ -56,7 +56,7 @@ function getCurrentSchedule($conn, $room_id)
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
                f.first_name, f.last_name
         FROM schedules s
-        JOIN faculty f ON f.id = s.created_by
+        JOIN faculty f ON f.id = s.faculty_id
         WHERE s.classroom_id = ?
           AND s.day_of_week  = ?
           AND s.start_time  <= ?
@@ -101,6 +101,9 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/tooltip.css">
+    <link rel="stylesheet" href="../../css/admin-common.css">
+    <link rel="stylesheet" href="../../css/admin-timetable.css">
     <link rel="stylesheet" href="../../css/admin-room-manage.css">
 </head>
 
@@ -157,7 +160,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                             if ($next) $nextSched = date('g:i A', strtotime($next['start_time']));
                         }
                     ?>
-                        <div class="room-card" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>">
+                        <div class="room-card" data-room-id="<?= $c['id'] ?>" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>">
                             <div class="room-card-accent <?= $accentClass ?>"></div>
                             <div class="room-card-body">
                                 <div class="room-card-header">
@@ -171,15 +174,26 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                         </div>
                                     </div>
                                     <div class="d-flex align-items-center room-icons gap-1">
-                                        <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
+                                        <button class="btn-icon btn-icon-edit"
                                             title="Edit"
-                                            onclick="openEditModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
+                                            onclick="openEditModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')"
+                                            data-bs-toggle="tooltip" 
+                                            data-bs-placement="auto">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <button style="background:none;border:none;cursor:pointer;color:#aaa;font-size:14px;padding:2px 5px;"
+                                        <button class="btn-icon btn-icon-del"
                                             title="Delete"
-                                            onclick="openDeleteModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>')">
+                                            onclick="openDeleteModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>')"
+                                            data-bs-toggle="tooltip" 
+                                            data-bs-placement="auto">
                                             <i class="bi bi-trash"></i>
+                                        </button>
+                                        <button class="btn-icon btn-icon-view"
+                                            title="Open Dummy Room"
+                                            onclick="window.open('room-light-view.php?room_id=<?= $c['id'] ?>','lightView_<?= $c['id'] ?>_'+Date.now(),'width=500,height=600,scrollbars=0')"
+                                            data-bs-toggle="tooltip" 
+                                            data-bs-placement="auto">
+                                            <i class="bi bi-box-arrow-up-right"></i>
                                         </button>
                                         <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
                                     </div>
@@ -218,10 +232,10 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                     onclick="openRoomModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
                                     View
                                 </button>
-                                <button class="light"
+                                <!-- <button class="light"
                                     onclick="dissolve('admin-timetable-manage.php?room=<?= urlencode($c['room_name']) ?>')">
                                     Timetable
-                                </button>
+                                </button> -->
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -270,14 +284,14 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                             <input type="text" name="description" class="form-control" placeholder="e.g. Near library, 2nd floor">
                         </div>
                     </div>
-                        <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
-                            <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="medium">Add Room</button>
-                        </div>
+                    <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                        <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="medium">Add Room</button>
                     </div>
-                </form>
             </div>
+            </form>
         </div>
+    </div>
     </div>
 
     <!-- ═══ EDIT ROOM MODAL ═══ -->
@@ -322,13 +336,16 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
     <div class="modal fade" id="deleteRoomModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Warning!</h5>
+                <div class="modal-header modal-header-warning">
+                    <h5 class="modal-title">Delete Room</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" >
-                    Are you sure you want to delete <strong id="deleteRoomName"></strong>?
-                    This will also remove all schedules and logs for this room.
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-trash" style="font-size:2.5rem;color:#c0004e;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;">
+                        Are you sure you want to delete <strong id="deleteRoomName"></strong>?
+                        This will also remove all schedules and logs for this room.
+                    </p>
                 </div>
                 <form method="POST" action="../../php/handlers/room-handler.php">
                     <input type="hidden" name="action" value="delete_room">
@@ -362,20 +379,9 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                     <em class="text-muted">Loading…</em>
                                 </div>
                                 <div class="collapse mt-2" id="timetableCollapse">
-                                    <table class="table table-sm mt-1" style="font-size:.82rem;">
-                                        <thead>
-                                            <tr>
-                                                <th style="background:var(--secondary-color-1);color:#fff;">Day</th>
-                                                <th style="background:var(--secondary-color-1);color:#fff;">Time</th>
-                                                <th style="background:var(--secondary-color-1);color:#fff;">Faculty</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="modalTimetableBody">
-                                            <tr>
-                                                <td colspan="3" class="text-muted text-center">Loading…</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                    <div id="modalTimetableBody" style="max-height:320px;overflow-y:auto;">
+                                        <div class="modal-slot-empty">Loading…</div>
+                                    </div>
                                 </div>
 
                                 <!-- ── Admin Light Override Panel ── -->
@@ -461,6 +467,8 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
+    <script src="../../script/tooltip.js"></script>
+
 
     <script>
         function openEditModal(id, name, size, desc) {
@@ -485,9 +493,9 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             currentRoomId = parseInt(id, 10);
             document.getElementById('roomModalLabel').textContent = name;
             document.getElementById('modalCurrentSched').innerHTML = '<p class="text-muted" style="font-size:.85rem;">Loading…</p>';
-            document.getElementById('modalTodaySched').innerHTML = '<em class="text-muted">Loading…</em>';
-            document.getElementById('modalTimetableBody').innerHTML = '<tr><td colspan="3" class="text-muted text-center">Loading…</td></tr>';
-            document.getElementById('modalAlertsPreview').innerHTML = '<em class="text-muted">Loading…</em>';
+            document.getElementById('modalTodaySched').innerHTML = '<div class="modal-slot-empty">Loading…</div>';
+            document.getElementById('modalTimetableBody').innerHTML = '<div class="modal-slot-empty">Loading…</div>';
+            document.getElementById('modalAlertsPreview').innerHTML = '<div class="modal-slot-empty">Loading…</div>';
 
             new bootstrap.Modal(document.getElementById('roomModal')).show();
 
@@ -508,29 +516,107 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
         // Updates the lighting dot + text on the card without page refresh
         function updateCardLighting(roomId, isOn) {
-            // Find the card — match by the onclick attribute containing the room id
-            const cards = document.querySelectorAll('.room-card');
-            cards.forEach(card => {
-                const btn = card.querySelector('.btn-room-view');
-                if (!btn) return;
-                const match = btn.getAttribute('onclick').match(/openRoomModal\((\d+)/);
-                if (!match || parseInt(match[1]) !== roomId) return;
-
-                const dot = card.querySelector('.light-dot');
-                const label = card.querySelector('.room-info-row .room-info-val:last-child');
-
-                if (dot) {
-                    dot.className = 'light-dot ' + (isOn ? 'on' : 'off');
+            const card = document.querySelector(`.room-card[data-room-id="${roomId}"]`);
+            if (!card) return;
+            const dot = card.querySelector('.light-dot');
+            if (dot) dot.className = 'light-dot ' + (isOn ? 'on' : 'off');
+            card.querySelectorAll('.room-info-row').forEach(row => {
+                if (row.querySelector('.bi-lightbulb-fill')) {
+                    const val = row.querySelector('.room-info-val');
+                    if (val) val.textContent = isOn ? 'ON' : 'OFF';
                 }
-                // Find the lighting value span specifically
-                card.querySelectorAll('.room-info-row').forEach(row => {
-                    if (row.querySelector('.bi-lightbulb-fill')) {
-                        const val = row.querySelector('.room-info-val');
-                        if (val) val.textContent = isOn ? 'ON' : 'OFF';
-                    }
-                });
             });
         }
+
+        // Poll all rooms' data (lighting + schedule) every 15 seconds
+        function pollAllRoomData() {
+            fetch('../../api/classrooms.php')
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success || !res.data) return;
+                    res.data.forEach(room => {
+                        const card = document.querySelector(`.room-card[data-room-id="${room.id}"]`);
+                        if (!card) return;
+
+                        // ── Lighting ──
+                        const isOn = room.light_status === 'on';
+                        const dot = card.querySelector('.light-dot');
+                        if (dot) {
+                            dot.className = 'light-dot ' + (isOn ? 'on' : 'off');
+                            card.querySelectorAll('.room-info-row').forEach(row => {
+                                if (row.querySelector('.bi-lightbulb-fill')) {
+                                    const val = row.querySelector('.room-info-val');
+                                    if (val) val.textContent = isOn ? 'ON' : 'OFF';
+                                }
+                            });
+                        }
+
+                        // ── Schedule status ──
+                        const cur = room.current_schedule;
+                        const next = room.next_schedule;
+                        const isOccupied = cur && cur.faculty_name;
+                        let badgeClass, badgeLabel;
+                        if (isOccupied) {
+                            badgeClass = 'badge-occupied';  badgeLabel = 'Occupied';
+                        } else if (next && next.faculty_name) {
+                            badgeClass = 'badge-scheduled'; badgeLabel = 'Scheduled';
+                        } else {
+                            badgeClass = 'badge-vacant';    badgeLabel = 'Vacant';
+                        }
+                        const accent = card.querySelector('.room-card-accent');
+                        if (accent) {
+                            accent.className = 'room-card-accent accent-' + badgeLabel.toLowerCase();
+                        }
+                        const statusBadge = card.querySelector('.room-status-badge');
+                        if (statusBadge) {
+                            statusBadge.className = 'room-status-badge ' + badgeClass;
+                            statusBadge.textContent = badgeLabel;
+                        }
+
+                        // ── Faculty name ──
+                        const facultyVal = card.querySelector('.room-info-row .bi-person-fill')?.closest('.room-info-row')?.querySelector('.room-info-val');
+                        if (facultyVal) facultyVal.textContent = isOccupied ? cur.faculty_name : '\u2014';
+
+                        // ── Time / Next class ──
+                        const timeLabel = card.querySelector('.room-info-row .bi-clock-fill')?.closest('.room-info-row')?.querySelector('.room-info-label');
+                        const timeVal = card.querySelector('.room-info-row .bi-clock-fill')?.closest('.room-info-row')?.querySelector('.room-info-val');
+                        if (timeLabel && timeVal) {
+                            if (isOccupied) {
+                                timeLabel.textContent = 'Time:';
+                                const st = cur.start_time ? new Date('2000-01-01T' + cur.start_time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : '';
+                                const et = cur.end_time ? new Date('2000-01-01T' + cur.end_time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : '';
+                                timeVal.textContent = st && et ? st + ' \u2013 ' + et : '\u2014';
+                            } else {
+                                timeLabel.textContent = 'Next class:';
+                                timeVal.textContent = next && next.start_time
+                                    ? new Date('2000-01-01T' + next.start_time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})
+                                    : 'None today';
+                            }
+                        }
+                    });
+                })
+                .catch(() => {});
+        }
+
+        const alertIconMap = (type) => {
+            const m = {
+                'on': ['bi-lightbulb-fill', '#198754', '#d1e7dd'],
+                'off': ['bi-lightbulb', '#842029', '#f8d7da'],
+                'light_on': ['bi-lightbulb-fill', '#198754', '#d1e7dd'],
+                'light_off': ['bi-lightbulb', '#842029', '#f8d7da'],
+                'motion_detect': ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+                'gesture': ['bi-hand-index', '#084298', '#cfe2ff'],
+                'schedule': ['bi-calendar-check', '#198754', '#d1e7dd'],
+                'security_alert': ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+                'class_start': ['bi-play-circle-fill', '#198754', '#d1e7dd'],
+                'class_end': ['bi-stop-circle', '#664d03', '#fff3cd'],
+                'door_open': ['bi-door-open-fill', '#664d03', '#fff3cd'],
+                'door_close': ['bi-door-closed-fill', '#5a3a00', '#ffe5b4'],
+                'issue_raised': ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+                'issue_resolved': ['bi-check-circle-fill', '#198754', '#d1e7dd']
+            };
+            return m[type] || ['bi-info-circle', '#6c757d', '#f8f9fa'];
+        };
 
         function renderRoomModal(data) {
             // ── Current Schedule ──
@@ -596,48 +682,73 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             }
             syncAllLightsLabel();
 
-            // ── Today's Timetable — use today_schedules directly ──
+            // ── Today's Timetable — slot-row style ──
             const todayEl = document.getElementById('modalTodaySched');
             if (data.today_schedules && data.today_schedules.length > 0) {
-                todayEl.innerHTML = data.today_schedules.map(s =>
-                    `<div class="sched-block">
-                <div style="font-weight:600;">${s.start_time} – ${s.end_time}</div>
-                <small>${s.faculty_name}</small>
-            </div>`
-                ).join('');
+                todayEl.innerHTML = data.today_schedules.map(s => {
+                    const sp = s.start_time.split(' ');
+                    const ep = s.end_time.split(' ');
+                    return `<div class="modal-slot-row">
+                <div class="modal-slot-time">
+                    <span class="modal-slot-start">${sp[0]}</span>
+                    <span class="modal-slot-sep">TO</span>
+                    <span class="modal-slot-end">${ep[0]}</span>
+                    <span class="modal-slot-ampm">${ep[1]}</span>
+                </div>
+                <div class="modal-slot-content">
+                    <div class="modal-slot-faculty">${s.faculty_name}</div>
+                </div>
+            </div>`;
+                }).join('');
             } else {
-                todayEl.innerHTML = '<p class="text-muted mb-0" style="font-size:.82rem;">No classes scheduled today.</p>';
+                todayEl.innerHTML = '<div class="modal-slot-empty">No classes scheduled today.</div>';
             }
 
-            // ── Full timetable ──
+            // ── Full timetable — slot-row style ──
             const tBody = document.getElementById('modalTimetableBody');
             if (data.all_schedules && data.all_schedules.length > 0) {
-                tBody.innerHTML = data.all_schedules.map(s =>
-                    `<tr>
-                <td>${s.day_of_week}</td>
-                <td>${s.start_time} – ${s.end_time}</td>
-                <td>${s.faculty_name}</td>
-            </tr>`
-                ).join('');
+                tBody.innerHTML = data.all_schedules.map(s => {
+                    const sp = s.start_time.split(' ');
+                    const ep = s.end_time.split(' ');
+                    return `<div class="modal-slot-row">
+                <div class="modal-slot-time">
+                    <span class="modal-slot-start">${sp[0]}</span>
+                    <span class="modal-slot-sep">TO</span>
+                    <span class="modal-slot-end">${ep[0]}</span>
+                    <span class="modal-slot-ampm">${ep[1]}</span>
+                </div>
+                <div class="modal-slot-content">
+                    <div class="modal-slot-faculty">${s.faculty_name}</div>
+                    <div class="modal-slot-day">${s.day_of_week}</div>
+                </div>
+            </div>`;
+                }).join('');
             } else {
-                tBody.innerHTML = '<tr><td colspan="3" class="text-muted text-center">No schedules yet.</td></tr>';
+                tBody.innerHTML = '<div class="modal-slot-empty">No schedules yet.</div>';
             }
 
-            // ── Alerts — scrollable, no slice ──
+            // ── Alerts — timeline style ──
             const previewEl = document.getElementById('modalAlertsPreview');
             if (data.alerts && data.alerts.length > 0) {
-                const renderAlert = a => `
-            <div class="alert-log-item">
-                <span class="status-pill ${a.event_type === 'security_alert' ? 'pill-warn' : 'pill-ok'}"
-                      style="margin-right:.4rem;">
-                    ${a.event_type.replace('_', ' ')}
-                </span>
-                ${a.triggered_by ? '<span style="color:#555;">' + a.triggered_by + '</span>' : ''}
-                <span class="text-muted ms-1">${a.event_time}</span>
+                const renderAlert = a => {
+                    const icon = alertIconMap(a.event_type);
+                    return `<div class="modal-timeline-item">
+                <div class="modal-tl-icon" style="background:${icon[2]};color:${icon[1]};">
+                    <i class="bi ${icon[0]}"></i>
+                </div>
+                <div class="modal-tl-body">
+                    <p class="modal-tl-action">${a.event_type.replace(/_/g, ' ')}</p>
+                    <div class="modal-tl-meta">
+                        <span><i class="bi bi-clock"></i> ${a.event_time}</span>
+                        ${a.triggered_by ? '<span><i class="bi bi-person"></i> ' + a.triggered_by + '</span>' : ''}
+                        <span class="modal-tl-badge" style="background:${icon[2]};color:${icon[1]};">${a.event_type.replace(/_/g, ' ')}</span>
+                    </div>
+                </div>
             </div>`;
+                };
                 previewEl.innerHTML = data.alerts.map(renderAlert).join('');
             } else {
-                previewEl.innerHTML = '<p class="text-muted mb-0" style="font-size:.82rem;">No activity today.</p>';
+                previewEl.innerHTML = '<div class="modal-slot-empty">No activity today.</div>';
             }
         }
 
@@ -734,6 +845,10 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                     });
                 });
             }
+
+            // Poll all rooms' data (lighting + schedule) every 15 seconds
+            pollAllRoomData();
+            setInterval(pollAllRoomData, 15000);
         });
     </script>
 </body>

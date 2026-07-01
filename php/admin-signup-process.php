@@ -1,100 +1,122 @@
 <?php
 /**
- * php/handlers/admin-login-process.php
- *
- * Admins self-register via the signup form. New admin accounts
- * land with is_verified = 0 and need approval from an EXISTING
- * admin before they can log in (same pattern as faculty approval,
- * just admin-approving-admin instead of admin-approving-faculty).
- *
- * No principal / head_teacher tiers — removed per DepEd memo:
- * teachers cannot hold administrative duties. All admins have
- * equal access once approved.
- *
- * All admins can:
- *   - View every department
- *   - Approve/reject/revoke faculty accounts
- *   - Approve/reject other pending admin accounts
- *   - Review quarantined ID images (mismatched/unreadable OCR)
- *   - Designate a Head Faculty per department
+ * LumineSense – Admin Sign-Up Process
+ * ------------------------------------
+ * 1. Validates that the email ends in @gmail.com
+ * 2. Checks the admin code
+ * 3. Saves the new admin (is_verified = 0) to the DB
+ * 4. Sends a 6-digit OTP to the provided Gmail
+ * 5. Redirects to verify-email.php
  */
 
-session_start();
+if (session_status() === PHP_SESSION_NONE) session_start();
+
 require_once 'db_connect.php';
+require_once 'mailer.php';
 
+// ── 1. Only accept POST ────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../pages/admin-login.php');
+    header('Location: ../pages/admin-signup.php');
     exit;
 }
 
-$email    = trim(strtolower($_POST['email'] ?? ''));
-$password = $_POST['password'] ?? '';
+// ── 2. Collect & sanitize inputs ──────────────────────────────────────────
+$last_name       = trim($_POST['last_name']       ?? '');
+$first_name      = trim($_POST['first_name']      ?? '');
+$middle_initial  = strtoupper(trim($_POST['middle_initial'] ?? ''));
+$admin_code      = trim($_POST['admin_code']      ?? '');
+$email           = strtolower(trim($_POST['email'] ?? ''));
+$password        = $_POST['password']        ?? '';
+$confirm_password = $_POST['confirm_password'] ?? '';
 
-if (!$email || !$password) {
-    $_SESSION['login_error'] = 'Please enter your email and password.';
-    header('Location: ../pages/admin-login.php');
+$errors = [];
+
+// ── 3. Basic field checks ─────────────────────────────────────────────────
+if (empty($last_name))   $errors[] = 'Last name is required.';
+if (empty($first_name))  $errors[] = 'First name is required.';
+if (empty($email))       $errors[] = 'Email is required.';
+if (empty($password))    $errors[] = 'Password is required.';
+
+// ── 4. Gmail-only rule ────────────────────────────────────────────────────
+if (!empty($email) && !preg_match('/@gmail\.com$/i', $email)) {
+    $errors[] = 'Only @gmail.com addresses are accepted.';
+}
+
+// ── 5. Password rules ─────────────────────────────────────────────────────
+if (strlen($password) < 8) {
+    $errors[] = 'Password must be at least 8 characters.';
+}
+if ($password !== $confirm_password) {
+    $errors[] = 'Passwords do not match.';
+}
+
+// ── 6. Admin code validation ──────────────────────────────────────────────
+require_once __DIR__ . '/config.php';
+if ($admin_code !== VALID_ADMIN_CODE) {
+    $errors[] = 'Invalid admin code.';
+}
+
+// ── 7. If there are errors, go back ───────────────────────────────────────
+if (!empty($errors)) {
+    $_SESSION['signup_errors'] = $errors;
+    header('Location: ../pages/admin-signup.php');
     exit;
 }
 
-// Rate limiting
-$_SESSION['admin_attempts'] = $_SESSION['admin_attempts'] ?? 0;
-$_SESSION['admin_attempt_time'] = $_SESSION['admin_attempt_time'] ?? time();
-if (time() - $_SESSION['admin_attempt_time'] > 900) {
-    $_SESSION['admin_attempts'] = 0;
-    $_SESSION['admin_attempt_time'] = time();
-}
-if ($_SESSION['admin_attempts'] >= 3) {
-    $wait = ceil((900 - (time() - $_SESSION['admin_attempt_time'])) / 60);
-    $_SESSION['login_error'] = "Too many attempts. Wait {$wait} minute(s).";
-    header('Location: ../pages/admin-login.php');
-    exit;
-}
-
-// No more admin_role / department_id lookups — every admin is equal
-// and can see every department.
-$stmt = $conn->prepare('
-    SELECT id, first_name, last_name, password, is_verified
-    FROM admins
-    WHERE email = ?
-');
+// ── 8. Check if email already exists ─────────────────────────────────────
+$stmt = $conn->prepare("SELECT id FROM admins WHERE email = ?");
 $stmt->bind_param('s', $email);
 $stmt->execute();
-$row = $stmt->get_result()->fetch_assoc();
+$stmt->store_result();
+if ($stmt->num_rows > 0) {
+    $_SESSION['signup_errors'] = ['This email is already registered.'];
+    $stmt->close();
+    header('Location: ../pages/admin-signup.php');
+    exit;
+}
 $stmt->close();
 
-if (!$row) {
-    $_SESSION['admin_attempts']++;
-    $_SESSION['login_error'] = 'No account found with this email address.';
-    header('Location: ../pages/admin-login.php');
+// ── 9. Hash password & generate OTP ──────────────────────────────────────
+$hashed_password = password_hash($password, PASSWORD_BCRYPT);
+$otp_code        = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+$otp_expires_at  = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+
+// ── 10. Insert new admin (is_verified = 0 until email confirmed) ──────────
+//  is_verified: 0 = email not yet confirmed, 1 = active
+$stmt = $conn->prepare("
+    INSERT INTO admins
+        (last_name, first_name, middle_initial, email, password, is_verified, otp_code, otp_expires_at)
+    VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+");
+$stmt->bind_param(
+    'sssssss',
+    $last_name, $first_name, $middle_initial,
+    $email, $hashed_password,
+    $otp_code, $otp_expires_at
+);
+
+if (!$stmt->execute()) {
+    $_SESSION['signup_errors'] = ['Database error. Please try again later.'];
+    $stmt->close();
+    header('Location: ../pages/admin-signup.php');
     exit;
 }
-
-if (!password_verify($password, $row['password'])) {
-    $_SESSION['admin_attempts']++;
-    $_SESSION['login_error'] = 'Incorrect password.';
-    header('Location: ../pages/admin-login.php');
-    exit;
-}
-
-if (!$row['is_verified']) {
-    $_SESSION['login_error'] = 'Your account is pending approval from an existing Administrator.';
-    header('Location: ../pages/admin-login.php');
-    exit;
-}
-
-session_regenerate_id(true);
-$_SESSION['admin_id']        = $row['id'];
-$_SESSION['admin_name']      = $row['first_name'] . ' ' . $row['last_name'];
-$_SESSION['admin_logged_in'] = true;
-$_SESSION['role']            = 'admin';
-$_SESSION['admin_attempts']  = 0;
-
-// Log admin login
-$stmt = $conn->prepare('INSERT INTO admin_login_logs (admin_id) VALUES (?)');
-$stmt->bind_param('i', $_SESSION['admin_id']);
-$stmt->execute();
 $stmt->close();
 
-// One role, one homepage — no more match() routing by tier.
-header('Location: ../pages/admin-home/admin-homepage.php');
+// ── 11. Send OTP email ────────────────────────────────────────────────────
+$mail_sent = sendVerificationEmail($email, $otp_code, $first_name);
+
+if (!$mail_sent) {
+    // Not fatal – user can request resend on the verify page
+    $_SESSION['email_warning'] = 'We could not send the verification email. Please use the Resend button.';
+}
+
+// ── 12. Pass data to verify page via session ──────────────────────────────
+$_SESSION['pending_verification'] = [
+    'email'    => $email,
+    'role'     => 'admin',
+    'name'     => $first_name,
+];
+
+header('Location: ../pages/verify-email.php');
 exit;

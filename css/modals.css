@@ -168,7 +168,7 @@
     }
 }
 
-.profile-details-modal {
+.profile-details-modal,.modal-wrapper {
 
     .modal-header {
         background: linear-gradient(135deg, #2d0d5f 0%, #4a1d8f 100%);
@@ -287,4 +287,21 @@
     }
 
 
+}
+
+/* Bootstrap Form Overwrite Styles */
+.form-label {
+    font-size: .85rem;
+    font-weight: 600;
+}
+
+.form-control:hover, .form-select:hover {
+    border-color: var(--secondary-color-1);
+    box-shadow: 0 0 5px var(--secondary-color-1);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--secondary-color-1);
+    box-shadow: 0 0 5px var(--secondary-color-1);
+    outline: none;
 }

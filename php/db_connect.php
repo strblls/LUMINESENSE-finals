@@ -1,10 +1,19 @@
 <?php
+error_reporting(0);
+ini_set('display_errors', 0);
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'luminesense_db');
+if ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1') {
+    define('DB_HOST', 'localhost');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');
+    define('DB_NAME', 'luminesense_db');
+} else {
+    define('DB_HOST', 'localhost');
+    define('DB_USER', 'u805324966_luminesense');
+    define('DB_PASS', 'E=P9p4KJc2ksX9T');
+    define('DB_NAME', 'u805324966_luminesense_db');
+}
 
 $conn = new mysqli(DB_HOST, DB_USER, DB_PASS);
 if ($conn->connect_error) {
@@ -101,6 +110,15 @@ $conn->query("
     )
 ");
 
+$conn->query("
+    CREATE TABLE IF NOT EXISTS faculty_permissions (
+        faculty_id       INT PRIMARY KEY,
+        lighting_control TINYINT(1) DEFAULT 1,
+        gesture_control  TINYINT(1) DEFAULT 1,
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
 $conn->set_charset('utf8mb4');
 
 // ── Runtime column migrations (safe – only adds if missing) ──────────────────
@@ -130,7 +148,59 @@ $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS faculty_id VARCHAR(20
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL");
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_extracted_name VARCHAR(100) DEFAULT NULL");
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_confidence_note TEXT DEFAULT NULL");
+$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS department_id INT DEFAULT NULL");
+$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS subject_area_id INT DEFAULT NULL");
+$conn->query("ALTER TABLE subject_area ADD COLUMN IF NOT EXISTS subject_id INT DEFAULT NULL");
 
+// pin_hash on faculty_permissions (4-digit PIN, bcrypt hashed)
+$conn->query("ALTER TABLE faculty_permissions ADD COLUMN IF NOT EXISTS pin_hash VARCHAR(255) DEFAULT NULL");
+
+$conn->query("
+    CREATE TABLE IF NOT EXISTS subjects (
+        id   INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+$conn->query("
+    CREATE TABLE IF NOT EXISTS subject_area (
+        id         INT AUTO_INCREMENT PRIMARY KEY,
+        name       VARCHAR(255) DEFAULT NULL,
+        subject_id INT NOT NULL,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS subject_id INT DEFAULT NULL");
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS faculty_id INT DEFAULT NULL");
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NULL DEFAULT NULL");
+$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL");
+
+
+// ── Fix FK on schedules.created_by: should point to faculty, not admins ──
+$db_name = DB_NAME;
+$fk_bad = $conn->query("
+    SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = 'schedules'
+      AND COLUMN_NAME = 'created_by' AND REFERENCED_TABLE_NAME = 'admins'
+    LIMIT 1
+");
+$fk_good = $conn->query("
+    SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+    WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = 'schedules'
+      AND COLUMN_NAME = 'created_by' AND REFERENCED_TABLE_NAME = 'faculty'
+    LIMIT 1
+");
+if (($fk_bad && $fk_bad->num_rows > 0) || !($fk_good && $fk_good->num_rows > 0)) {
+    if ($fk_bad && $row = $fk_bad->fetch_assoc()) {
+        $conn->query("ALTER TABLE schedules DROP FOREIGN KEY `{$row['CONSTRAINT_NAME']}`");
+    }
+    // Fix orphaned created_by values that reference admins instead of faculty
+    $conn->query("UPDATE schedules s LEFT JOIN faculty f ON f.id = s.created_by SET s.created_by = s.faculty_id WHERE f.id IS NULL AND s.faculty_id IS NOT NULL");
+    // Delete orphaned schedules with no faculty owner
+    $conn->query("DELETE s FROM schedules s LEFT JOIN faculty f ON f.id = s.created_by WHERE f.id IS NULL");
+    $conn->query("ALTER TABLE schedules ADD FOREIGN KEY (created_by) REFERENCES faculty(id) ON DELETE CASCADE");
+}
 
 // ── Admin logs table ──────────────────────────────────────────────────────
 $conn->query("
@@ -154,3 +224,102 @@ $conn->query("
         FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE
     )
 ");
+
+// ── Departments table ──────────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS departments (
+        id              INT AUTO_INCREMENT PRIMARY KEY,
+        name            VARCHAR(255) NOT NULL,
+        description     TEXT DEFAULT '',
+        status          ENUM('active','inactive') DEFAULT 'active',
+        head_faculty_id INT DEFAULT NULL,
+        created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (head_faculty_id) REFERENCES faculty(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+// ── Junction tables (many-to-many relationships) ───────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS junction_faculty_department (
+        faculty_id    INT NOT NULL,
+        department_id INT NOT NULL,
+        PRIMARY KEY (faculty_id, department_id),
+        FOREIGN KEY (faculty_id)    REFERENCES faculty(id)     ON DELETE CASCADE,
+        FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+$conn->query("
+    CREATE TABLE IF NOT EXISTS junction_faculty_subject (
+        faculty_id INT NOT NULL,
+        subject_id INT NOT NULL,
+        PRIMARY KEY (faculty_id, subject_id),
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id)  ON DELETE CASCADE,
+        FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+$conn->query("
+    CREATE TABLE IF NOT EXISTS junction_faculty_subjectarea (
+        faculty_id      INT NOT NULL,
+        subject_area_id INT NOT NULL,
+        PRIMARY KEY (faculty_id, subject_area_id),
+        FOREIGN KEY (faculty_id)      REFERENCES faculty(id)        ON DELETE CASCADE,
+        FOREIGN KEY (subject_area_id) REFERENCES subject_area(id)   ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+// ── System settings table ─────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS system_settings (
+        setting_key   VARCHAR(64) PRIMARY KEY,
+        setting_value TEXT DEFAULT NULL,
+        updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+");
+// Ensure a row for grace_minutes exists
+$conn->query("INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('grace_minutes', '0')");
+
+// ── Fix missing FKs on junction tables from prior schema ───────────────────
+$junction_tables = [
+    'junction_faculty_department' => [
+        ['col' => 'faculty_id',    'ref' => 'faculty(id)'],
+        ['col' => 'department_id', 'ref' => 'departments(id)'],
+    ],
+    'junction_faculty_subject' => [
+        ['col' => 'faculty_id', 'ref' => 'faculty(id)'],
+        ['col' => 'subject_id', 'ref' => 'subjects(id)'],
+    ],
+    'junction_faculty_subjectarea' => [
+        ['col' => 'faculty_id',      'ref' => 'faculty(id)'],
+        ['col' => 'subject_area_id', 'ref' => 'subject_area(id)'],
+    ],
+];
+foreach ($junction_tables as $table => $fks) {
+    $table_exists = $conn->query("SHOW TABLES LIKE '$table'");
+    if (!$table_exists || $table_exists->num_rows === 0) continue;
+
+    foreach ($fks as $fk) {
+        $col = $fk['col'];
+        $ref = $fk['ref'];
+        $check = $conn->query("
+            SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = '$table'
+              AND COLUMN_NAME = '$col' AND REFERENCED_TABLE_NAME IS NOT NULL
+            LIMIT 1
+        ");
+        if ($check && $check->num_rows > 0) continue;
+
+        $bad_fks = $conn->query("
+            SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+            WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME = '$table'
+              AND COLUMN_NAME = '$col' AND REFERENCED_TABLE_NAME IS NOT NULL
+        ");
+        if ($bad_fks) {
+            while ($bad = $bad_fks->fetch_assoc()) {
+                $conn->query("ALTER TABLE `$table` DROP FOREIGN KEY `{$bad['CONSTRAINT_NAME']}`");
+            }
+        }
+        $conn->query("ALTER TABLE `$table` ADD FOREIGN KEY (`$col`) REFERENCES $ref ON DELETE CASCADE");
+    }
+}

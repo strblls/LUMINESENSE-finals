@@ -1,4 +1,5 @@
 <?php
+$page_title = 'Report Management';
 require_once '../../php/includes/admin-head.php';
 require_once '../../php/handlers/admin-handlers.php';
 
@@ -115,6 +116,7 @@ function event_icon(string $type): array
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reports – LumineSense Admin</title>
 
+    <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -122,536 +124,58 @@ function event_icon(string $type): array
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!--Relative links-->
+    <link rel="icon" href="../../images/logo.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
-
-    <style>
-        :root {
-            --primary-color: #f9edfa;
-            --secondary-color-1: #2f004f;
-            --secondary-color-2: #58078f;
-            --secondary-color-3: #790faf;
-            --secondary-color-4: #9b00e9;
-            --muted: #9f9f9f;
-            --font-primary: 'Poppins', sans-serif;
-            --card-bg: #fff;
-            --border: #ece3f0;
-        }
-
-        /* ── Layout ── */
-        .reports-layout {
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-            padding: 1.25rem 1rem 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* ── Tab Nav ── */
-        .tab-nav {
-            display: flex;
-            gap: 0.5rem;
-            background: #ede6f2;
-            border-radius: 12px;
-            padding: 5px;
-            width: fit-content;
-        }
-
-        .tab-btn {
-            padding: 0.45rem 1.2rem;
-            border-radius: 9px;
-            border: none;
-            background: transparent;
-            font-family: var(--font-primary);
-            font-size: 0.82rem;
-            font-weight: 500;
-            color: var(--secondary-color-2);
-            cursor: pointer;
-            transition: background 0.18s, color 0.18s;
-        }
-
-        .tab-btn.active {
-            background: var(--secondary-color-1);
-            color: #fff;
-        }
-
-        .tab-btn:not(.active):hover {
-            background: #d8c9e8;
-        }
-
-        /* ── Section card ── */
-        .reports-card {
-            background: var(--card-bg);
-            border-radius: 14px;
-            border: 1px solid var(--border);
-            overflow: hidden;
-        }
-
-        .reports-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 1.25rem 0.75rem;
-            border-bottom: 1px solid var(--border);
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .reports-card-header h2 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--secondary-color-1);
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .reports-card-header h2 i {
-            font-size: 1.1rem;
-            color: var(--secondary-color-3);
-        }
-
-        /* ── Filters ── */
-        .filter-bar {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .filter-bar input,
-        .filter-bar select {
-            font-family: var(--font-primary);
-            font-size: 0.78rem;
-            padding: 0.35rem 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            outline: none;
-            color: var(--secondary-color-1);
-        }
-
-        .filter-bar input:focus,
-        .filter-bar select:focus {
-            border-color: var(--secondary-color-3);
-        }
-
-        /* ── Export btn ── */
-        .export-btn {
-            padding: 0.35rem 0.9rem;
-            border-radius: 8px;
-            border: 1.5px solid var(--secondary-color-1);
-            background: transparent;
-            font-family: var(--font-primary);
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--secondary-color-1);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: background 0.15s, color 0.15s;
-        }
-
-        .export-btn:hover {
-            background: var(--secondary-color-1);
-            color: #fff;
-        }
-
-        /* ── Timeline (Activity Log) ── */
-        .timeline {
-            padding: 1rem 1.25rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-            max-height: 60vh;
-            overflow-y: auto;
-        }
-
-        .timeline-item {
-            display: flex;
-            gap: 1rem;
-            padding: 0.7rem 0;
-            border-bottom: 1px solid #f3edf7;
-            animation: fadeSlide 0.3s ease both;
-        }
-
-        .timeline-item:last-child {
-            border-bottom: none;
-        }
-
-        @keyframes fadeSlide {
-            from {
-                opacity: 0;
-                transform: translateY(6px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .tl-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-size: 0.9rem;
-        }
-
-        .tl-body {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .tl-action {
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--secondary-color-1);
-            margin: 0 0 2px;
-        }
-
-        .tl-meta {
-            font-size: 0.72rem;
-            color: var(--muted);
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .tl-meta span {
-            display: flex;
-            align-items: center;
-            gap: 3px;
-        }
-
-        .tl-notes {
-            font-size: 0.72rem;
-            color: #666;
-            background: #f9f3fc;
-            border-radius: 6px;
-            padding: 3px 8px;
-            margin-top: 4px;
-            display: inline-block;
-        }
-
-        .tl-type-badge {
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 2px 7px;
-            border-radius: 20px;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        /* ── Room Activity Table ── */
-        .room-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.82rem;
-        }
-
-        .room-table thead tr {
-            background: #f6f0fb;
-        }
-
-        .room-table th {
-            padding: 0.65rem 1rem;
-            font-weight: 600;
-            color: var(--secondary-color-2);
-            text-align: left;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        .room-table td {
-            padding: 0.7rem 1rem;
-            border-bottom: 1px solid #f3edf7;
-            vertical-align: middle;
-            color: var(--secondary-color-1);
-        }
-
-        .room-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .room-table tbody tr:hover {
-            background: #faf5ff;
-        }
-
-        .light-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 20px;
-        }
-
-        .light-on {
-            background: #d1e7dd;
-            color: #0f5132;
-        }
-
-        .light-off {
-            background: #f8d7da;
-            color: #842029;
-        }
-
-        .light-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .dot-on {
-            background: #198754;
-        }
-
-        .dot-off {
-            background: #dc3545;
-        }
-
-        .event-count-badge {
-            background: #ede6f2;
-            color: var(--secondary-color-2);
-            font-size: 0.72rem;
-            font-weight: 700;
-            padding: 2px 9px;
-            border-radius: 20px;
-        }
-
-        .last-event-text {
-            font-size: 0.72rem;
-            color: var(--muted);
-        }
-
-        /* ── Empty state ── */
-        .empty-state {
-            padding: 2.5rem 1rem;
-            text-align: center;
-            color: var(--muted);
-        }
-
-        .empty-state i {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-
-        .empty-state p {
-            font-size: 0.82rem;
-            margin: 0;
-        }
-
-        /* ── Summary pills (top) ── */
-        .summary-row {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-        }
-
-        .summary-pill {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: #f6f0fb;
-            border-radius: 10px;
-            padding: 0.55rem 0.9rem;
-            min-width: 130px;
-        }
-
-        .summary-pill .pill-val {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--secondary-color-1);
-            line-height: 1;
-        }
-
-        .summary-pill .pill-label {
-            font-size: 0.68rem;
-            color: var(--muted);
-            line-height: 1.3;
-        }
-
-        .summary-pill i {
-            font-size: 1.3rem;
-            color: var(--secondary-color-3);
-        }
-
-        /* ── Topbar adaptations ── */
-        .topbar h1 {
-            font-size: 1.2rem !important;
-        }
-
-        /* ── Tab panels ── */
-        .tab-panel {
-            display: none;
-        }
-
-        .tab-panel.active {
-            display: block;
-        }
-
-        /* ── Sidebar/offcanvas (same as other admin pages) ── */
-        .nav-btn {
-            width: 52px;
-            height: 52px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: var(--secondary-color-1);
-            color: var(--primary-color);
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.15s;
-        }
-
-        .nav-btn i {
-            font-size: 22px;
-        }
-
-        .nav-btn:hover {
-            background-color: var(--secondary-color-4);
-            transform: scale(1.06);
-        }
-
-        #sidebarOffcanvas {
-            width: auto !important;
-            background-color: var(--primary-color);
-            transition: transform 0.3s ease-in-out, min-width 0.18s ease;
-        }
-
-        #sidebarOffcanvas .offcanvas-header {
-            justify-content: center;
-            padding: 1rem 0.5rem;
-        }
-
-        #sidebarOffcanvas .logo {
-            width: 75px;
-            height: 75px;
-            object-fit: contain;
-            cursor: pointer;
-        }
-
-        #sidebarOffcanvas .offcanvas-body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            padding-top: 0.5rem;
-        }
-
-        #sidebarOffcanvas .offcanvas-footer {
-            display: flex;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        #profileOffcanvas {
-            width: 240px !important;
-            background-color: var(--primary-color);
-        }
-
-        .profile-btn {
-            width: 100%;
-            padding: 8px;
-            margin: 3px 0;
-            border-radius: 8px;
-            background-color: var(--secondary-color-1);
-            color: var(--primary-color);
-            border: none;
-            font-size: 14px;
-            cursor: pointer;
-            font-family: var(--font-primary);
-            transition: background-color 0.2s, transform 0.15s;
-        }
-
-        .profile-btn:hover {
-            background-color: var(--secondary-color-4);
-            transform: scale(1.02);
-        }
-
-        .avatar-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: var(--secondary-color-1);
-            color: #fff;
-        }
-
-        @media (max-width: 600px) {
-            .summary-row {
-                gap: 0.5rem;
-            }
-
-            .summary-pill {
-                min-width: 100px;
-            }
-
-            .room-table th,
-            .room-table td {
-                padding: 0.5rem 0.6rem;
-            }
-
-            .timeline {
-                max-height: 55vh;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="../../css/admin-home-reports.css">
+    <link rel="stylesheet" href="../../css/admin-common.css">
 </head>
 
 <body class="contrast-bg">
     <?php include '../../php/includes/admin-topbar.php'; ?>
+    <?php include '../../php/includes/admin-sidebar.php'; ?>
+    <?php include '../../php/includes/profile-offcanvas.php'; ?>
 
     <!-- ═══ MAIN CONTENT ═══ -->
     <div class="child-container">
         <div class="reports-layout">
 
-            <!-- Summary pills -->
-            <div class="summary-row">
-                <div class="summary-pill">
-                    <i class="bi bi-journal-text"></i>
-                    <div>
-                        <div class="pill-val"><?= count($activity_logs) ?></div>
-                        <div class="pill-label">Total<br>Log Entries</div>
+            <div class="section-container">
+                <div class="stat-row">
+                    <div class="stat-card">
+                        <span class="stat-icon"><i class="bi bi-journal-text" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                        <div>
+                            <div class="stat-value"><?= count($activity_logs) ?></div>
+                            <p class="stat-label">Total Log<br>Entries</p>
+                        </div>
                     </div>
-                </div>
-                <div class="summary-pill">
-                    <i class="bi bi-building"></i>
-                    <div>
-                        <div class="pill-val"><?= count($rooms) ?></div>
-                        <div class="pill-label">Tracked<br>Rooms</div>
+                    <div class="stat-card">
+                        <span class="stat-icon"><i class="bi bi-door-open" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                        <div>
+                            <div class="stat-value"><?= count($rooms) ?></div>
+                            <p class="stat-label">Tracked<br>Rooms</p>
+                        </div>
                     </div>
-                </div>
-                <div class="summary-pill">
-                    <i class="bi bi-lightbulb-fill" style="color:#198754;"></i>
-                    <div>
-                        <div class="pill-val"><?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?></div>
-                        <div class="pill-label">Lights<br>Currently On</div>
+                    <div class="stat-card">
+                        <span class="stat-icon"><i class="bi bi-lightbulb-fill" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                        <div>
+                            <div class="stat-value"><?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?></div>
+                            <p class="stat-label">Lights Currently<br>On</p>
+                        </div>
                     </div>
-                </div>
-                <div class="summary-pill">
-                    <i class="bi bi-exclamation-triangle-fill" style="color:#dc3545;"></i>
-                    <div>
-                        <div class="pill-val"><?= count(array_filter($activity_logs, fn($l) => str_contains(strtolower($l['action']), 'issue'))) ?></div>
-                        <div class="pill-label">Issues<br>Logged</div>
+                    <div class="stat-card">
+                        <span class="stat-icon"><i class="bi bi-exclamation-triangle-fill" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                        <div>
+                            <div class="stat-value"><?= count(array_filter($activity_logs, fn($l) => str_contains(strtolower($l['action']), 'issue'))) ?></div>
+                            <p class="stat-label">Issues<br>Logged</p>
+                        </div>
                     </div>
                 </div>
             </div>
+
 
             <!-- Tab Navigation -->
             <div class="tab-nav" id="tabNav">
@@ -667,9 +191,9 @@ function event_icon(string $type): array
             <div class="tab-panel active" id="tab-activity">
                 <div class="reports-card">
                     <div class="reports-card-header">
-                        <h2><i class="bi bi-clock-history"></i> Activity Log</h2>
+                        <h2 class="bold"><i class="bi bi-clock-history"></i> Activity Log</h2>
                         <div class="filter-bar">
-                            <input type="text" id="activitySearch" placeholder="Filter by room or actor…" style="width:180px;">
+                            <input type="text" id="activitySearch" placeholder="Search by room or actor…" style="width:180px;">
                             <select id="activityType">
                                 <option value="">All Types</option>
                                 <option value="room">Room Events</option>
@@ -681,7 +205,7 @@ function event_icon(string $type): array
                                 <option value="week">This Week</option>
                                 <option value="month">This Month</option>
                             </select>
-                            <button class="export-btn" onclick="exportCSV()">
+                            <button class="light" onclick="exportCSV()">
                                 <i class="bi bi-download"></i> Export CSV
                             </button>
                         </div>
@@ -740,7 +264,7 @@ function event_icon(string $type): array
             <div class="tab-panel" id="tab-rooms">
                 <div class="reports-card">
                     <div class="reports-card-header">
-                        <h2><i class="bi bi-building"></i> Room Activity Summary</h2>
+                        <h2><i class="bi bi-door-open"></i> Room Activity Summary</h2>
                         <div class="filter-bar">
                             <input type="text" id="roomSearch" placeholder="Search rooms…" style="width:180px;">
                             <select id="roomLightFilter">
@@ -908,6 +432,93 @@ function event_icon(string $type): array
                 a.click();
             };
 
+            /* ── Icon map (mirrors PHP event_icon) ── */
+            const EVENT_ICONS = {
+                light_on:       ['bi-lightbulb-fill',      '#0f5132', '#d1e7dd'],
+                light_off:      ['bi-lightbulb',            '#842029', '#f8d7da'],
+                motion_detect:  ['bi-person-bounding-box',  '#084298', '#cfe2ff'],
+                door_open:      ['bi-door-open-fill',       '#664d03', '#fff3cd'],
+                door_close:     ['bi-door-closed-fill',     '#5a3a00', '#ffe5b4'],
+                class_start:    ['bi-play-circle-fill',     '#0d6e3b', '#d1e7dd'],
+                class_end:      ['bi-stop-circle',          '#6c4c00', '#fff3cd'],
+                faculty_approved: ['bi-person-check-fill',  '#0f5132', '#d1e7dd'],
+                faculty_pending:  ['bi-person-plus',        '#664d03', '#fff3cd'],
+                issue_raised:   ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+                issue_resolved: ['bi-check-circle-fill',   '#0f5132', '#d1e7dd'],
+                admin_action:   ['bi-shield-check',        '#084298', '#cfe2ff'],
+            };
+            const DEFAULT_ICON = ['bi-clock-history', '#5a5a5a', '#e9ecef'];
+
+            function getEventIcon(action) {
+                const key = action.toLowerCase().replace(/\s+/g, '_');
+                return EVENT_ICONS[key] || DEFAULT_ICON;
+            }
+
+            function renderActivityLog(logs) {
+                const container = document.getElementById('activityTimeline');
+                if (!logs.length) {
+                    container.innerHTML = '<div class="empty-state"><i class="bi bi-journal-x"></i><p>No activity logs found. Events will appear here as they are recorded.</p></div>';
+                    return;
+                }
+                container.innerHTML = logs.map(log => {
+                    const [icon, iconColor, iconBg] = getEventIcon(log.action);
+                    const isRoom = log.log_type === 'room';
+                    const typeBg = isRoom ? '#cfe2ff' : '#ede6f2';
+                    const typeClr = isRoom ? '#084298' : '#4a0078';
+                    const typeLabel = isRoom ? 'Room' : 'Admin';
+                    const d = new Date(log.log_time);
+                    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    const dateVal = d.toISOString().slice(0, 10);
+                    const searchVal = (log.target + ' ' + log.actor + ' ' + log.action).toLowerCase().replace(/"/g, '&quot;');
+                    const actionLabel = log.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                    return `<div class="timeline-item" data-type="${log.log_type}" data-date="${dateVal}" data-search="${searchVal}">
+                        <div class="tl-icon" style="background:${iconBg}; color:${iconColor};"><i class="bi ${icon}"></i></div>
+                        <div class="tl-body">
+                            <p class="tl-action">${actionLabel}${log.target ? ' &mdash; <span style="color:var(--secondary-color-3);">' + log.target.replace(/"/g, '&quot;') + '</span>' : ''}</p>
+                            <div class="tl-meta">
+                                <span><i class="bi bi-clock"></i> ${timeStr}, ${dateStr}</span>
+                                ${log.actor ? '<span><i class="bi bi-person"></i> ' + log.actor.replace(/"/g, '&quot;') + '</span>' : ''}
+                                <span class="tl-type-badge" style="background:${typeBg}; color:${typeClr};">${typeLabel}</span>
+                            </div>
+                            ${log.notes ? '<span class="tl-notes"><i class="bi bi-chat-left-text me-1"></i>' + log.notes.replace(/"/g, '&quot;') + '</span>' : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            function updateStats(stats) {
+                const cards = document.querySelectorAll('.stat-card');
+                if (cards.length >= 4) {
+                    cards[0].querySelector('.stat-value').textContent = stats.total_logs;
+                    cards[1].querySelector('.stat-value').textContent = stats.total_rooms;
+                    cards[2].querySelector('.stat-value').textContent = stats.lights_on;
+                    cards[3].querySelector('.stat-value').textContent = stats.issues;
+                }
+            }
+
+            function reapplyFilters() {
+                const active = document.querySelector('.tab-btn.active');
+                if (active && active.dataset.tab === 'activity') {
+                    filterActivity();
+                } else {
+                    filterRooms();
+                }
+            }
+
+            function pollActivityLog() {
+                fetch('../../api/activity-logs.php')
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            renderActivityLog(res.data);
+                            if (res.stats) updateStats(res.stats);
+                            reapplyFilters();
+                        }
+                    })
+                    .catch(() => {});
+            }
+            setInterval(pollActivityLog, 30000);
         });
     </script>
 </body>

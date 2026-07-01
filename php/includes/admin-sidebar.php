@@ -29,18 +29,24 @@
             </button>
             <h3 class="bold mb-0 sidebar-label">Analytics</h3>
         </div>
-        <!-- <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.php')">
-            <i class="bi bi-exclamation-triangle"></i>
-        </button> -->
+        <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
+            <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.php')">
+                <i class="bi bi-exclamation-triangle"></i>
+            </button>
+            <h3 class="bold mb-0 sidebar-label">Reports</h3>
+        </div>
         <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
             <button class="nav-btn" title="Faculty" onclick="dissolve('admin-faculty-management.php')">
                 <i class="bi bi-people"></i>
             </button>
             <h3 class="bold mb-0 sidebar-label">Faculty</h3>
         </div>
-        <!-- <button class="nav-btn" title="Profile Settings" onclick="dissolve('admin-profile-settings.php')">
-            <i class="bi bi-gear"></i>
-        </button> -->
+        <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
+            <button class="nav-btn" title="Settings" onclick="dissolve('admin-profile-settings.php')">
+                <i class="bi bi-gear"></i>
+            </button>
+            <h3 class="bold mb-0 sidebar-label">Settings</h3>
+        </div>
     </div>
     <div class="offcanvas-footer align-items-start justify-content-start d-flex">
         <img src="../../images/team-logo.png" alt="Team Logo" style="width:4rem;">
@@ -54,10 +60,9 @@
             'admin-homepage.php': 0,
             'admin-room-manage.php': 1,
             'admin-analytics.php': 2,
-            'admin-faculty-management.php': 3,
-            'admin-faculty-card.php': 3,
-            'admin-profile-settings.php': 4,
-            'admin-reports.php': null,
+            'admin-reports.php': 3,
+            'admin-faculty-management.php': 4,
+            'admin-profile-settings.php': 5
         };
         const index = map[page];
         if (index !== null && index !== undefined) {
@@ -106,23 +111,33 @@
             }
 
             item.addEventListener('mouseenter', () => {
-                if (collapseTimer) { clearTimeout(collapseTimer); collapseTimer = null; }
+                if (collapseTimer) {
+                    clearTimeout(collapseTimer);
+                    collapseTimer = null;
+                }
                 expandForLabel();
             });
 
             item.addEventListener('mouseleave', () => {
                 if (collapseTimer) clearTimeout(collapseTimer);
-                collapseTimer = setTimeout(() => { sidebar.style.minWidth = baseMin + 'px'; }, 150);
+                collapseTimer = setTimeout(() => {
+                    sidebar.style.minWidth = baseMin + 'px';
+                }, 150);
             });
 
             if (btn) {
                 btn.addEventListener('focus', () => {
-                    if (collapseTimer) { clearTimeout(collapseTimer); collapseTimer = null; }
+                    if (collapseTimer) {
+                        clearTimeout(collapseTimer);
+                        collapseTimer = null;
+                    }
                     expandForLabel();
                 });
                 btn.addEventListener('blur', () => {
                     if (collapseTimer) clearTimeout(collapseTimer);
-                    collapseTimer = setTimeout(() => { sidebar.style.minWidth = baseMin + 'px'; }, 150);
+                    collapseTimer = setTimeout(() => {
+                        sidebar.style.minWidth = baseMin + 'px';
+                    }, 150);
                 });
             }
         });

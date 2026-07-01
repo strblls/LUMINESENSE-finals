@@ -19,17 +19,21 @@ unset($_SESSION['flash']);
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Profile Settings</title>
 
+    <!-- External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Relative links -->
+    <link rel="icon" href="../../images/logo.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
     <link rel="stylesheet" href="../../css/admin-profile-settings.css">
     <link rel="stylesheet" href="../../css/admin-common.css">
+    <link rel="stylesheet" href="../../css/admin-settings.css">
 </head>
 
 <body class="contrast-bg">
@@ -55,7 +59,7 @@ unset($_SESSION['flash']);
                         <div class="profile-avatar"><?= htmlspecialchars($initials) ?></div>
                         <div class="profile-user">
                             <h2 class="bold mb-1"><?= htmlspecialchars($admin_name) ?></h2>
-                            <p class="mb-0 text-muted">Administrator</p>
+                            <span class="bold status-badge admin">Administrator</span>
                         </div>
                     </div>
 

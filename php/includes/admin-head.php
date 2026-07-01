@@ -143,4 +143,78 @@ if ($r) {
     }
 }
 $schedules_json = json_encode($schedules_by_day);
+
+/**
+ * Return icon data array for a given log row compatible with both
+ * admin-homepage.php (log_type, event_type) and admin-reports.php (action).
+ *
+ * Keys: icon, color, bg, label, typeBg, typeClr, typeLabel, notes
+ */
+function activity_icon(array $log): array
+{
+    // Determine the "event type" key — reports uses 'action', dashboard uses 'event_type'
+    $evt = $log['event_type'] ?? $log['action'] ?? '';
+    $type = $log['log_type'] ?? 'room';
+
+    // ── Icon / colour maps ────────────────────────────────────────
+    $iconMap = [
+        // Room / lighting events
+        'on'             => ['bi-lightbulb-fill',     '#198754', '#d1e7dd'],
+        'off'            => ['bi-lightbulb',           '#842029', '#f8d7da'],
+        'light_on'       => ['bi-lightbulb-fill',     '#198754', '#d1e7dd'],
+        'light_off'      => ['bi-lightbulb',           '#842029', '#f8d7da'],
+        'motion_detect'  => ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+        'gesture'        => ['bi-hand-index',          '#084298', '#cfe2ff'],
+        'schedule'       => ['bi-calendar-check',     '#198754', '#d1e7dd'],
+        'security_alert' => ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+        'class_start'    => ['bi-play-circle-fill',   '#198754', '#d1e7dd'],
+        'class_end'      => ['bi-stop-circle',        '#664d03', '#fff3cd'],
+        'door_open'      => ['bi-door-open-fill',     '#664d03', '#fff3cd'],
+        'door_close'     => ['bi-door-closed-fill',   '#5a3a00', '#ffe5b4'],
+
+        // Admin approval actions
+        'faculty_approved'   => ['bi-person-check-fill',  '#198754', '#d1e7dd'],
+        'faculty_rejected'   => ['bi-person-x-fill',      '#842029', '#f8d7da'],
+        'faculty_pending'    => ['bi-person-plus',        '#664d03', '#fff3cd'],
+        'extension_approved' => ['bi-clock-history',      '#084298', '#cfe2ff'],
+        'extension_rejected' => ['bi-clock-fill',         '#842029', '#f8d7da'],
+
+        // Admin login
+        'admin_login'    => ['bi-box-arrow-in-right',  '#055160', '#cff4fc'],
+
+        // Misc
+        'issue_raised'   => ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
+        'issue_resolved' => ['bi-check-circle-fill',   '#198754', '#d1e7dd'],
+        'admin_action'   => ['bi-shield-check',        '#084298', '#cfe2ff'],
+    ];
+
+    $default = ['bi-clock-history', '#5a5a5a', '#e9ecef'];
+
+    [$icon, $iconColor, $iconBg] = $iconMap[$evt] ?? $default;
+
+    // ── Type badge ────────────────────────────────────────────────
+    $typeMap = [
+        'room'        => ['#cfe2ff', '#084298', 'Room'],
+        'admin'       => ['#ede6f2', '#4a0078', 'Admin'],
+        'admin_login' => ['#cff4fc', '#055160', 'Login'],
+    ];
+    [$typeBg, $typeClr, $typeLabel] = $typeMap[$type] ?? $typeMap['room'];
+
+    // ── Human-readable label ──────────────────────────────────────
+    $label = ucwords(str_replace('_', ' ', $evt));
+
+    // ── Notes (optional) ─────────────────────────────────────────
+    $notes = $log['notes'] ?? '';
+
+    return [
+        'icon'      => $icon,
+        'color'     => $iconColor,
+        'bg'        => $iconBg,
+        'label'     => $label,
+        'typeBg'    => $typeBg,
+        'typeClr'   => $typeClr,
+        'typeLabel' => $typeLabel,
+        'notes'     => $notes,
+    ];
+}
 ?>
