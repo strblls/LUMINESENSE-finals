@@ -76,11 +76,6 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="admin_code">Admin Code</label>
-                        <input type="text" class="form-control" id="admin_code" name="admin_code" placeholder="Enter admin code" required>
-                    </div>
-
-                    <div class="mb-3">
                         <label for="email">Admin E-mail</label>
                         <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" value="<?= htmlspecialchars($old['email'] ?? '') ?>" required>
                     </div>

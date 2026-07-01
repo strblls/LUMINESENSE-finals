@@ -54,13 +54,7 @@ if ($password !== $confirm_password) {
     $errors[] = 'Passwords do not match.';
 }
 
-// ── 6. Admin code validation ──────────────────────────────────────────────
-require_once __DIR__ . '/config.php';
-if ($admin_code !== VALID_ADMIN_CODE) {
-    $errors[] = 'Invalid admin code.';
-}
-
-// ── 7. ID Image validation ────────────────────────────────────────────────
+// ── 6. ID Image validation ────────────────────────────────────────────────
 $allowed_types = ['image/jpeg', 'image/png', 'image/webp'];
 $max_size      = 5 * 1024 * 1024; // 5MB
 
@@ -72,7 +66,7 @@ if (empty($_FILES['id_image']['name'])) {
     $errors[] = 'ID image must be under 5MB.';
 }
 
-// ── 8. If there are errors, go back ───────────────────────────────────────
+// ── 7. If there are errors, go back ───────────────────────────────────────
 if (!empty($errors)) {
     $_SESSION['signup_errors'] = $errors;
     $_SESSION['signup_form']   = compact('last_name', 'first_name', 'middle_initial', 'email');
@@ -80,7 +74,7 @@ if (!empty($errors)) {
     exit;
 }
 
-// ── 9. Check if email already exists ──────────────────────────────────────
+// ── 8. Check if email already exists ──────────────────────────────────────
 $stmt = $conn->prepare("SELECT id FROM admins WHERE email = ?");
 $stmt->bind_param('s', $email);
 $stmt->execute();
@@ -94,12 +88,12 @@ if ($stmt->num_rows > 0) {
 }
 $stmt->close();
 
-// ── 10. Hash password & generate OTP ──────────────────────────────────────
+// ── 9. Hash password & generate OTP ──────────────────────────────────────
 $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 $otp_code        = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 $otp_expires_at  = date('Y-m-d H:i:s', strtotime('+15 minutes'));
 
-// ── 10.1 Save the uploaded ID temporarily (needed before verification) ────
+// ── 9.1 Save the uploaded ID temporarily (needed before verification) ────
 $tmp_dir  = sys_get_temp_dir();
 $ext      = pathinfo($_FILES['id_image']['name'], PATHINFO_EXTENSION);
 $tmp_path = $tmp_dir . '/id_' . bin2hex(random_bytes(8)) . '.' . $ext;
@@ -114,12 +108,12 @@ if (!move_uploaded_file($_FILES['id_image']['tmp_name'], $tmp_path)) {
 // Grab raw bytes NOW — IdVerifier deletes the file once it's done checking.
 $raw_image_bytes = file_get_contents($tmp_path);
 
-// ── 10.2 Run the ID through IdVerifier (Google Vision) ────────────────────
+// ── 9.2 Run the ID through IdVerifier (Google Vision) ────────────────────
 $verifier = new IdVerifier(getenv('VISION_API_KEY'));
 $result   = $verifier->verify($tmp_path, $first_name, $last_name);
 // ^ verify() deletes $tmp_path internally once it's done, win or lose.
 
-// ── 11. Insert new admin (is_verified = 0 until email confirmed) ──────────
+// ── 10. Insert new admin (is_verified = 0 until email confirmed) ──────────
 $stmt = $conn->prepare("
     INSERT INTO admins
         (last_name, first_name, middle_initial, email, password, is_verified, otp_code, otp_expires_at)
@@ -142,7 +136,7 @@ if (!$stmt->execute()) {
 $admin_id = $conn->insert_id;
 $stmt->close();
 
-// ── 11.1 If the ID didn't clearly match, drop it in the review queue ──────
+// ── 10.1 If the ID didn't clearly match, drop it in the review queue ──────
 if (in_array($result['status'], ['mismatched', 'unreadable'], true)) {
 
     $encrypted_blob = IdQuarantine::encrypt($raw_image_bytes);
@@ -170,14 +164,14 @@ if (in_array($result['status'], ['mismatched', 'unreadable'], true)) {
 $raw_image_bytes = null;
 unset($raw_image_bytes);
 
-// ── 12. Send OTP email ─────────────────────────────────────────────────────
+// ── 11. Send OTP email ─────────────────────────────────────────────────────
 $mail_sent = sendVerificationEmail($email, $otp_code, $first_name);
 
 if (!$mail_sent) {
     $_SESSION['email_warning'] = 'We could not send the verification email. Please use the Resend button.';
 }
 
-// ── 13. Pass data to verify page via session ───────────────────────────────
+// ── 12. Pass data to verify page via session ───────────────────────────────
 $_SESSION['pending_verification'] = [
     'email' => $email,
     'role'  => 'admin',
