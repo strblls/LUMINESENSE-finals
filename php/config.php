@@ -14,3 +14,6 @@ define('VALID_ADMIN_CODE', 'LUMINESENSE_ADMIN_2025');
 
 // Device token
 define('DEVICE_TOKEN', 'luminesense-secret-token');
+
+// ID encryption key
+define('ID_ENCRYPTION_KEY', 'SL7iGyu1apH0jn8HZ3JS5Ax+QPtFbtmJJqqnk1VQbbE=');

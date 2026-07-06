@@ -167,7 +167,7 @@ LUMINESENSE-finals/
 │       └── faculty-profile-settings.php # Faculty profile
 │
 ├── php/                               # 30 PHP backend files
-│   ├── config.php                     # SMTP, tokens, admin code
+│   ├── config.php                     # SMTP, tokens
 │   ├── db_connect.php                 # DB connection + auto-schema
 │   ├── mailer.php                     # PHPMailer wrapper
 │   ├── logout.php                     # Session destroy

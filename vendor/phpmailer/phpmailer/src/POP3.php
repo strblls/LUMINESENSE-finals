@@ -47,7 +47,11 @@ class POP3
      * @var string
      * @deprecated This constant will be removed in PHPMailer 8.0. Use `PHPMailer::VERSION` instead.
      */
+<<<<<<< HEAD
+    const VERSION = '7.0.2';
+=======
     const VERSION = '7.1.1';
+>>>>>>> 82fc7e6feb7c3d27a07311d5dd54d5c6f0b056ab
 
     /**
      * Default POP3 port number.
@@ -212,9 +216,15 @@ class POP3
         } else {
             $this->tval = (int) $timeout;
         }
+<<<<<<< HEAD
+        $this->do_debug = $debug_level;
+        $this->username = $username;
+        $this->password = $password;
+=======
         $this->do_debug = (int) $debug_level;
         $this->username = self::stripControls($username);
         $this->password = self::stripControls($password);
+>>>>>>> 82fc7e6feb7c3d27a07311d5dd54d5c6f0b056ab
         //Reset the error log
         $this->errors = [];
         //Connect
@@ -319,8 +329,12 @@ class POP3
         if (empty($password)) {
             $password = $this->password;
         }
+<<<<<<< HEAD
+
+=======
         $username = self::stripControls($username);
         $password = self::stripControls($password);
+>>>>>>> 82fc7e6feb7c3d27a07311d5dd54d5c6f0b056ab
         //Send the Username
         $this->sendString("USER $username" . static::LE);
         $pop3_response = $this->getResponse();
@@ -408,7 +422,11 @@ class POP3
 
     /**
      * Checks the POP3 server response.
+<<<<<<< HEAD
+     * Looks for for +OK or -ERR.
+=======
      * Looks for +OK or -ERR.
+>>>>>>> 82fc7e6feb7c3d27a07311d5dd54d5c6f0b056ab
      *
      * @param string $string
      *
@@ -468,6 +486,8 @@ class POP3
             "errno: $errno errstr: $errstr; errfile: $errfile; errline: $errline"
         );
     }
+<<<<<<< HEAD
+=======
 
     /**
      * Strip all control chars from a string.
@@ -480,4 +500,5 @@ class POP3
     {
         return preg_replace('/[\x00-\x1F\x7F]/u', '', $string);
     }
+>>>>>>> 82fc7e6feb7c3d27a07311d5dd54d5c6f0b056ab
 }

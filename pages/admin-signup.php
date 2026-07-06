@@ -1,5 +1,8 @@
 <?php
     if (session_status() === PHP_SESSION_NONE) session_start();
+
+    $old = $_SESSION['signup_form'] ?? [];
+    unset($_SESSION['signup_form']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,34 +55,29 @@
             ?>
 
             <div class="form-container">
-                <form action="../php/admin-signup-process.php" method="POST">
+                <form action="../php/admin-signup-process.php" method="POST" enctype="multipart/form-data">
 
                     <!-- Full Name Row -->
                     <div class="mb-3">
                         <div class="d-flex gap-2">
                             <div class="d-flex flex-column flex-grow-1">
                                 <small class="text-muted mb-1">Last Name</small>
-                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Family Name" required>
+                                <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Family Name" value="<?= htmlspecialchars($old['last_name'] ?? '') ?>" required>
                             </div>
                             <div class="d-flex flex-column flex-grow-1">
                                 <small class="text-muted mb-1">First Name</small>
-                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First Name" required>
+                                <input type="text" class="form-control" id="first_name" name="first_name" placeholder="First Name" value="<?= htmlspecialchars($old['first_name'] ?? '') ?>" required>
                             </div>
                             <div class="d-flex flex-column" style="width: 70px;">
                                 <small class="text-muted mb-1">M.I.</small>
-                                <input type="text" class="form-control" id="middle_initial" name="middle_initial" placeholder="M.I." maxlength="1">
+                                <input type="text" class="form-control" id="middle_initial" name="middle_initial" placeholder="M.I." maxlength="1" value="<?= htmlspecialchars($old['middle_initial'] ?? '') ?>">
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="admin_code">Admin Code</label>
-                        <input type="text" class="form-control" id="admin_code" name="admin_code" placeholder="Enter admin code" required>
-                    </div>
-
-                    <div class="mb-3">
                         <label for="email">Admin E-mail</label>
-                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" value="<?= htmlspecialchars($old['email'] ?? '') ?>" required>
                     </div>
 
                     <div class="mb-3">
@@ -96,6 +94,21 @@
                             <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
                             <i class="bi bi-eye-slash" id="toggleConfirmPassword"></i>
                         </div>
+                    </div>
+
+                    <!-- ID Image Upload -->
+                    <div class="mb-3">
+                        <label for="id_image">Upload School/Government ID</label>
+                        <small class="text-muted d-block mb-1">
+                            Make sure your name is clearly visible on the ID.
+                        </small>
+                        <input
+                            type="file"
+                            class="form-control"
+                            id="id_image"
+                            name="id_image"
+                            accept="image/jpeg, image/png, image/webp"
+                            required>
                     </div>
 
                     <div class="submit-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; width:100%;">
