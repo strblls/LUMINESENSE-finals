@@ -46,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ");
         $row['current_schedule'] = $cs->fetch_assoc();
         $cs->free();
-        // Next upcoming schedule today
+        // Next upcoming schedule today or future day
+        $dayName = date('l');
         $ns = $conn->query("
             SELECT CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
                    s.start_time, s.subject
@@ -58,6 +59,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         ");
         $row['next_schedule'] = $ns->fetch_assoc();
         $ns->free();
+        if (!$row['next_schedule']) {
+            $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            $currentDayIndex = array_search($dayName, $dayOrder);
+            for ($i = 1; $i <= 7; $i++) {
+                $checkDay = $dayOrder[($currentDayIndex + $i) % 7];
+                $ns2 = $conn->query("
+                    SELECT CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
+                           s.start_time, s.subject, '$checkDay' AS day_name
+                    FROM schedules s
+                    JOIN faculty f ON f.id = s.faculty_id
+                    WHERE s.classroom_id = $rid AND s.day_of_week = '$checkDay'
+                    ORDER BY s.start_time LIMIT 1
+                ");
+                $row['next_schedule'] = $ns2->fetch_assoc();
+                $ns2->free();
+                if ($row['next_schedule']) break;
+            }
+        }
         $rows[] = $row;
     }
     echo json_encode(['success' => true, 'data' => $rows]); exit;

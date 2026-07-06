@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 require_once '../../php/session_guard.php';
 check_faculty();
 require_once '../../php/db_connect.php';
@@ -242,34 +243,51 @@ $conn->close();
 
         <div class="child-container mb-3">
 
-            <div class="main-container faculty-timetable align-items-center justify-content-center w-auto mb-3">
-                <button class="light w-auto px-3 mb-3" onclick="dissolve('faculty-head-timetable.php')">
-                    <i class="bi bi-arrow-left me-1"></i> Back to Department
-                </button>
-            </div>
-
-            <!---Timetable Info Header-->
-            <div class="main-container faculty-timetable-heading d-flex flex-column align-items-center justify-content-center w-auto mb-3">
-                <div class="d-flex justify-content-center align-items-center w-100 px-3">
-                    <h2 class="bold"><?= htmlspecialchars($member_name) ?>'s Schedule Effective A.Y. <?= date('Y') ?>-<?= date('Y', strtotime('+1 year')) ?></h2>
+            <div class="main-container faculty-timetable-heading d-flex flex-column align-items-center justify-content-center w-auto mb-2" style="position:relative; background-color: var(--secondary-color-2);">
+                <div class="d-flex gap-2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);">
+                    <button type="button" class="timetable-btn" onclick="dissolve('faculty-head-timetable.php')" title="Back to Department">
+                        <i class="bi bi-arrow-left"></i>
+                        <span class="timetable-btn-title bold">Back</span>
+                    </button>
+                    <button type="button" class="timetable-btn" data-bs-toggle="modal" data-bs-target="#editScheduleModal" onclick="openAddScheduleModal()" title="Add Schedule Slot">
+                        <i class="bi bi-plus-lg"></i>
+                        <span class="timetable-btn-title bold">Add Slot</span>
+                    </button>
                 </div>
-                <div>
-                    <!-- Additional Info -->
-                    <p class="text-center mb-0">
-                    <div class="d-flex flex-row align-items-stretch gap-3" style="width:100%;flex-wrap:nowrap;">
+                <div class="d-flex gap-2" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);">
+                    <button type="button" class="timetable-btn" data-panel="panelCoverage" title="Coverage Details">
+                        <span class="timetable-btn-title bold">Coverage</span>
+                        <i class="bi bi-layout-three-columns"></i>
+                    </button>
+                    <button type="button" class="timetable-btn" data-panel="panelInfo" title="Schedule Info">
+                        <span class="timetable-btn-title bold">Info</span>
+                        <i class="bi bi-info-circle"></i>
+                    </button>
+                </div>
+                <div class="p-2" style="color: #fff; background-color: var(--secondary-color-1); border-radius: 5px;">
+                    <h2 class="bold"><?= htmlspecialchars($member_name) ?>'s Schedule </h2>
+                    <p class="text-uppercase text-center mb-0 " style="font-size: 14px; color: var(--muted-white); ">
+                        Effective A.Y. <strong><?= date('Y') ?>-<?= date('Y', strtotime('+1 year')) ?></strong>
+                    </p>
+                </div>
 
-                        <div class="d-flex flex-column justify-content-center flex-grow-1" style="flex:1 1 0;"> <!--info container-->
-                            <h4 class="bold me-1"><i class="bi bi-folder2 mx-1"></i>Assigned Coverage</h4>
-
-
+                <!-- Coverage panel -->
+                <div id="panelCoverage" class="timetable-panel panel-from-right p-3 m-3">
+                    <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
+                        <div class="section-topbar mx-2 justify-content-between">
+                            <div>
+                                <h2 class="bold"><i class="bi bi-layout-three-columns me-1"></i>Assigned Coverage</h2>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column p-2 gap-2" style="max-height:25vh;overflow-y:auto;">
                             <?php if (!empty($coverage)): ?>
                                 <?php foreach ($coverage as $sa): ?>
-
-                                    <div class="dept-info-card mb-2">
-
-                                        <i class="bi bi-briefcase mx-1"></i><span class="dept-subject-area bold dept-emphases"><?= htmlspecialchars($sa['name']) ?></span>
+                                    <div class="dept-info-card mb-0 p-2">
+                                        <div class="mt-1">
+                                            <i class="bi bi-briefcase"></i>
+                                            <span class="dept-subject-area bold dept-emphases"><?= htmlspecialchars($sa['name']) ?></span>
+                                        </div>
                                         <?php if (!empty($sa['subjects'])): ?>
-                                            <label class="bold" style="font-size: 14px;"></label>
                                             <div class="d-flex flex-wrap gap-1 mt-1">
                                                 <i class="bi bi-book"></i>
                                                 <?php foreach ($sa['subjects'] as $subj_name): ?>
@@ -285,50 +303,46 @@ $conn->close();
                                 <span class="text-muted">No subject areas assigned.</span>
                             <?php endif; ?>
                             <?php if (!$has_any_subject): ?>
-                            <p style="text-align:justify;" class="small mb-2"><br>
-                                <strong>Attention:</strong> Currently, <?= htmlspecialchars($member_name) ?> <strong>doesn't have any subjects assigned for teaching</strong>.
-                                Please assign subjects to this faculty member <strong>in the previous page</strong> to ensure they have the necessary teaching responsibilities.
-                            </p>
+                                <p style="text-align:justify;" class="small mb-2"><br>
+                                    <strong>Attention:</strong> Currently, <?= htmlspecialchars($member_name) ?> <strong>doesn't have any subjects assigned for teaching</strong>.
+                                    Please assign subjects to this faculty member <strong>in the previous page</strong> to ensure they have the necessary teaching responsibilities.
+                                </p>
                             <?php endif; ?>
                         </div>
-
-                        <div class="d-flex flex-column justify-content-center flex-grow-1" style="flex:1 1 0;"> <!--info container-->
-                            
-                            <h4 class="bold me-1"><i class="bi bi-info-circle mx-1"></i>Info</h4>
-                            <div class="dept-info-card">
-                                Prepared by: <span class="status-badge faculty-head bold">Faculty Head</span> <strong><?= htmlspecialchars($head_name) ?></strong><br>
-                                Last Edited: <strong><?= $last_edited ? date('F j, Y (g:i A)', strtotime($last_edited)) : 'No schedules yet' ?></strong><strong> <?= htmlspecialchars($edited_by_name) ?></strong><br>
-                                Current Department: <strong><?= htmlspecialchars($dept_name) ?></strong>
-                            </div>
-                            <h4 class="bold me-1"><i class="bi bi-info-circle mx-1"></i>Date Today</h4>
-
-                            <?php
-                            $today_num = date('j');
-                            $today_month_name = date('F');
-                            $today_year = date('Y');
-                            ?>
-                            <div class="dept-info-card">
-                                Today is the <span class="bold"><?= ordinal((int)$today_num) ?> </span>
-                                day of <span class="bold"><?= $today_month_name ?></span>,
-                                of school year <span class="bold"><?= $today_year ?></span>
-                            </div>
-
-                            <p style="text-align:justify;" class="small mb-2"><br>
-                                <strong>Note:</strong> As a <span class="status-badge faculty-head bold">Faculty Head</span> of this department, you can manage the schedule of this faculty member.
-                                You can add, edit, or delete schedule slots as needed while abiding by the department's policies and guidelines.
-                                Please ensure that any changes made are communicated to the faculty member and relevant parties.
-                            </p>
-                        </div>
-
-         
                     </div>
-                    </p>
-
-
                 </div>
-                <button class="medium w-auto px-3" data-bs-toggle="modal" data-bs-target="#editScheduleModal" onclick="openAddScheduleModal()">
-                    <i class="bi bi-plus-lg me-1"></i> Add Schedule Slot
-                </button>
+
+                <!-- Info panel -->
+                <div id="panelInfo" class="timetable-panel panel-from-right p-3 m-3">
+                    <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
+                        <div class="section-topbar mx-2 justify-content-between">
+                            <div>
+                                <h2 class="bold"><i class="bi bi-info-circle me-1"></i>Schedule Info</h2>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column p-3 gap-2">
+                            <div class="dept-info-card mb-0 p-2">
+                                <div class="small text-muted">Prepared by</div>
+                                <div><span class="status-badge faculty-head bold">Faculty Head</span> <strong><?= htmlspecialchars($head_name) ?></strong></div>
+                            </div>
+                            <div class="dept-info-card mb-0 p-2">
+                                <div class="small text-muted">Last Edited</div>
+                                <div><strong><?= $last_edited ? date('F j, Y (g:i A)', strtotime($last_edited)) : 'No schedules yet' ?></strong><strong> <?= htmlspecialchars($edited_by_name) ?></strong></div>
+                            </div>
+                            <div class="dept-info-card mb-0 p-2">
+                                <div class="small text-muted">Current Department</div>
+                                <div><strong><?= htmlspecialchars($dept_name) ?></strong></div>
+                            </div>
+                            <div class="dept-info-card mb-0 p-2">
+                                <p style="text-align:justify;" class="small mb-0"><br>
+                                    <strong>Note:</strong> As a <span class="status-badge faculty-head bold">Faculty Head</span> of this department, you can manage the schedule of this faculty member.
+                                    You can add, edit, or delete schedule slots as needed while abiding by the department's policies and guidelines.
+                                    Please ensure that any changes made are communicated to the faculty member and relevant parties.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Weekly Calendar Type -->
@@ -383,9 +397,9 @@ $conn->close();
                                             <button class="btn-icon <?= $is_owner ? 'btn-icon-edit' : 'btn-icon-disabled' ?>"
                                                 title="<?= $is_owner ? 'Edit Schedule Details' : 'Restricted - assigned by another faculty head' ?>"
                                                 onclick="<?= $is_owner
-                                                    ? "openEditScheduleModal(" . (int)$slot['id'] . ",'" . $slot['day_of_week'] . "','" . substr($slot['start_time'], 0, 5) . "','" . substr($slot['end_time'], 0, 5) . "'," . (int)$slot['classroom_id'] . "," . (int)($slot['subject_id'] ?? 0) . ",'" . htmlspecialchars($subject_label, ENT_QUOTES) . "')"
-                                                    : "showRestrictedModal('" . htmlspecialchars($creator_name, ENT_QUOTES) . "')"
-                                                ?>"
+                                                                ? "openEditScheduleModal(" . (int)$slot['id'] . ",'" . $slot['day_of_week'] . "','" . substr($slot['start_time'], 0, 5) . "','" . substr($slot['end_time'], 0, 5) . "'," . (int)$slot['classroom_id'] . "," . (int)($slot['subject_id'] ?? 0) . ",'" . htmlspecialchars($subject_label, ENT_QUOTES) . "')"
+                                                                : "showRestrictedModal('" . htmlspecialchars($creator_name, ENT_QUOTES) . "')"
+                                                            ?>"
                                                 data-bs-toggle="tooltip"
                                                 data-bs-placement="auto">
                                                 <i class="bi bi-pencil"></i>
@@ -406,9 +420,9 @@ $conn->close();
                                             <button class="btn-icon <?= $is_owner ? 'btn-icon-del' : 'btn-icon-disabled' ?>"
                                                 title="<?= $is_owner ? 'Delete Schedule' : 'Restricted - assigned by another faculty head' ?>"
                                                 onclick="<?= $is_owner
-                                                    ? "confirmDeleteSchedule(" . (int)$slot['id'] . ")"
-                                                    : "showRestrictedModal('" . htmlspecialchars($creator_name, ENT_QUOTES) . "')"
-                                                ?>"
+                                                                ? "confirmDeleteSchedule(" . (int)$slot['id'] . ")"
+                                                                : "showRestrictedModal('" . htmlspecialchars($creator_name, ENT_QUOTES) . "')"
+                                                            ?>"
                                                 data-bs-toggle="tooltip"
                                                 data-bs-placement="auto">
                                                 <i class="bi bi-trash"></i>
@@ -665,6 +679,32 @@ $conn->close();
         }
 
         document.addEventListener('hidden.bs.modal', cleanupModalBackdrop);
+
+        // ── Timetable panel toggle (hover) ──
+        (function() {
+            const panels = ['panelCoverage', 'panelInfo'];
+            const timers = {};
+            panels.forEach(id => {
+                const btn = document.querySelector(`[data-panel="${id}"]`);
+                const panel = document.getElementById(id);
+                if (!btn || !panel) return;
+                timers[id] = null;
+                const open = () => {
+                    if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
+                    panel.classList.add('show');
+                    btn.classList.remove('has-update');
+                };
+                const close = () => {
+                    if (timers[id]) clearTimeout(timers[id]);
+                    timers[id] = setTimeout(() => panel.classList.remove('show'), 150);
+                };
+                btn.addEventListener('mouseenter', open);
+                btn.addEventListener('focus', open);
+                panel.addEventListener('mouseenter', open);
+                panel.addEventListener('mouseleave', close);
+                btn.addEventListener('mouseleave', close);
+            });
+        })();
 
         // ── Overlap warning modal ──
         function showOverlapModal(conflict) {

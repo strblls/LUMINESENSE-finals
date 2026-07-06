@@ -201,13 +201,14 @@ if ($grace_minutes <= 0) {
     $r = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'grace_minutes'");
     if ($r && $row = $r->fetch_assoc()) $grace_minutes = (int)$row['setting_value'];
 }
+// Sync session with DB so the admin dropdown displays correctly after re-login
+$_SESSION['ext_grace_minutes'] = $grace_minutes;
 if (!$isStandalone && $grace_minutes > 0 && $conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
-    $now_time = date('H:i:s');
     $today = date('l');
 
     $stmt = $conn->prepare("
         SELECT er.id, er.extend_mins, er.schedule_id,
-               COALESCE(s.extended_until, s.end_time) AS end_time,
+               COALESCE(s.extended_until, s.end_time) AS current_end,
                s.classroom_id, c.room_name,
                CONCAT(f.first_name, ' ', f.last_name) AS faculty_name
         FROM extension_requests er
@@ -216,42 +217,49 @@ if (!$isStandalone && $grace_minutes > 0 && $conn->query("SHOW TABLES LIKE 'exte
         JOIN faculty     f ON f.id = er.faculty_id
         WHERE er.status = 'pending'
           AND s.day_of_week = ?
-          AND s.start_time <= ?
-          AND COALESCE(s.extended_until, s.end_time) >= ?
-          AND TIME_TO_SEC(TIMEDIFF(COALESCE(s.extended_until, s.end_time), ?)) / 60 <= ?
     ");
-    $stmt->bind_param('ssssi', $today, $now_time, $now_time, $now_time, $grace_minutes);
+    $stmt->bind_param('s', $today);
     $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt->bind_result($ext_id, $ext_mins, $sched_id, $current_end, $classroom_id, $room_name, $faculty_name);
 
     $reviewer_id = !empty($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : null;
 
-    while ($row = $result->fetch_assoc()) {
-        $new_end = date('H:i:s', strtotime($row['end_time']) + ($row['extend_mins'] * 60));
+    // Fetch all pending extensions first to avoid "Commands out of sync"
+    $pending_extensions = [];
+    while ($stmt->fetch()) {
+        $pending_extensions[] = [
+            'ext_id'       => $ext_id,
+            'ext_mins'     => $ext_mins,
+            'sched_id'     => $sched_id,
+            'current_end'  => $current_end,
+            'classroom_id' => $classroom_id,
+            'room_name'    => $room_name,
+            'faculty_name' => $faculty_name,
+        ];
+    }
+    $stmt->close();
+
+    foreach ($pending_extensions as $ext) {
+        $new_end = date('H:i:s', strtotime($ext['current_end']) + ($ext['ext_mins'] * 60));
 
         if ($reviewer_id) {
             $upd = $conn->prepare("UPDATE extension_requests SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?");
-            $upd->bind_param('ii', $reviewer_id, $row['id']);
+            $upd->bind_param('ii', $reviewer_id, $ext['ext_id']);
         } else {
             $upd = $conn->prepare("UPDATE extension_requests SET status = 'approved', reviewed_at = NOW() WHERE id = ?");
-            $upd->bind_param('i', $row['id']);
+            $upd->bind_param('i', $ext['ext_id']);
         }
         $upd->execute();
         $upd->close();
 
         $upd = $conn->prepare('UPDATE schedules SET extended_until = ? WHERE id = ?');
-        $upd->bind_param('si', $new_end, $row['schedule_id']);
+        $upd->bind_param('si', $new_end, $ext['sched_id']);
         $upd->execute();
         $upd->close();
 
         $checkCol = $conn->query("SHOW COLUMNS FROM classrooms LIKE 'schedule_dirty'");
         if ($checkCol && $checkCol->num_rows > 0) {
-            $conn->query("
-                UPDATE classrooms c
-                JOIN schedules s ON s.classroom_id = c.id
-                SET c.schedule_dirty = 1
-                WHERE s.id = {$row['schedule_id']}
-            ");
+            $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = {$ext['classroom_id']}");
         }
 
         if ($reviewer_id) {
@@ -259,12 +267,11 @@ if (!$isStandalone && $grace_minutes > 0 && $conn->query("SHOW TABLES LIKE 'exte
                 $conn,
                 $reviewer_id,
                 'extension_approved',
-                $row['faculty_name'] . ' (' . $row['room_name'] . ')',
-                $row['extend_mins'] . ' min extension (auto-approved via grace period)'
+                $ext['faculty_name'] . ' (' . $ext['room_name'] . ')',
+                $ext['ext_mins'] . ' min extension (auto-approved via grace period)'
             );
         }
     }
-    $stmt->close();
 }
 
 // ── Data fetching (only for when included, not standalone) ─────────────────
@@ -284,7 +291,7 @@ if (!$isStandalone) {
     }
 
     $res = $conn->query("
-        SELECT id, first_name, last_name, email, department_id, is_verified, approved_by, approved_at,
+        SELECT id, first_name, last_name, email, department_id, is_verified, approved_by, approved_at, created_at,
                faculty_id, id_image, ai_match_status, ai_extracted_name, ai_confidence_note
         FROM faculty
         ORDER BY last_name ASC

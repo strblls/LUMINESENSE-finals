@@ -1,3 +1,17 @@
+.page-content {
+    padding: 0 24px 40px;
+}
+
+.section-heading {
+    color: var(--primary-color);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    margin: 24px 0 14px;
+    opacity: .75;
+}
+
 .main-container.faculty-management {
     display: grid !important;
     grid-template-columns: minmax(0, 2.5fr) minmax(0, 1fr) !important;
@@ -34,7 +48,7 @@
 
 .stat-card .stat-label {
     font-size: 0.80rem;
-    color: var(--muted);
+    color: #000;
     margin: 0;
     line-height: 1.3;
 }
@@ -360,4 +374,655 @@
 .subject-area-input-wrap .form-control:focus {
     box-shadow: 0 0 0 0.15rem rgba(47, 0, 79, 0.15);
     border-color: var(--secondary-color-1);
+}
+
+/* ══════════════════════════════════════
+   LANDING PAGE TAB LAYOUT
+   ══════════════════════════════════════ */
+.landing-layout {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    min-height: 400px;
+}
+
+.timetable-btn[data-tab].active {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+    transform: scale(1.08);
+    box-shadow: 0 0 12px rgba(255, 193, 7, 0.4);
+}
+
+.timetable-btn[data-tab].active i {
+    font-size: 24px;
+}
+
+.landing-panels {
+    flex: 1;
+    border-radius: 5px;
+    overflow: hidden;
+    min-height: 400px;
+}
+
+.landing-panel {
+    display: none;
+    height: 100%;
+}
+
+.landing-panel.active {
+    display: flex;
+    flex-direction: column;
+    background: #f8f9fa;
+}
+
+#defaultState.active {
+    background: var(--secondary-color-1);
+}
+
+.landing-panel-header {
+    display: flex;
+    align-items: center;
+    background-color: var(--accent-yellow);
+    padding: 0.75rem 1.5rem;
+    flex-shrink: 0;
+}
+
+.landing-panel-header h2 {
+    font-size: 1.35rem;
+    color: var(--secondary-color-1);
+    margin: 0;
+}
+
+.landing-panel-header h2 i {
+    margin-right: 0.5rem;
+    color: var(--secondary-color-2);
+}
+
+.landing-panel-body-wrapper {
+    display: flex;
+    flex: 1;
+    padding: 1rem 1.5rem;
+    gap: 1.25rem;
+    min-height: 0;
+}
+
+.landing-panel-col-left {
+    width: 15%;
+    min-width: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-right: 1rem;
+    border-right: 1.5px solid var(--secondary-color-4);
+}
+
+.landing-panel-col-center {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.landing-panel-col-center .landing-panel-body {
+    flex: 1;
+}
+
+.landing-panel-body {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.landing-panel-body .landing-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.5rem;
+    border-left: 5px solid var(--secondary-color-4);
+    border-radius: 5px;
+    box-shadow: 0 8px 10px rgba(47, 0, 79, 0.18);
+    background: #fff;
+    transition: background 0.2s;
+}
+
+.landing-panel-body .landing-item:hover {
+    background: #f8f9fa;
+}
+
+.landing-panel-body .landing-item .item-info h5 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    margin: 0 0 2px;
+}
+
+.landing-panel-body .landing-item .item-info span {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.landing-panel-body .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.landing-panel-body .empty-state i {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.75rem;
+    opacity: 0.4;
+}
+
+.landing-stat-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.9rem !important;
+    background: #ffffff !important;
+    border-left: 4px solid var(--secondary-color-2) !important;
+    border-radius: 10px !important;
+    padding: 1rem !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07) !important;
+    box-sizing: border-box !important;
+}
+
+.landing-stat-card > .stat-info {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.landing-stat-card .stat-info .stat-value {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--secondary-color-2);
+}
+
+.landing-stat-card .stat-info .stat-label {
+    font-size: 0.80rem;
+    color: #000;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.landing-panel-body .style-scrollbar {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.landing-panel-body .style-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.landing-panel-body .style-scrollbar::-webkit-scrollbar-track {
+    background: rgba(47, 0, 79, 0.05);
+    border-radius: 3px;
+}
+
+.landing-panel-body .style-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(47, 0, 79, 0.15);
+    border-radius: 3px;
+}
+
+.landing-panel-body .style-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(47, 0, 79, 0.25);
+}
+
+/* ── Tab text slide animations ── */
+.tab-text-slide {
+    will-change: transform, opacity;
+}
+
+@keyframes slideInFromLeft {
+    0% { transform: translateX(-30px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInFromRight {
+    0% { transform: translateX(30px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+/* ── Default state ── */
+.default-state-body {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 2rem;
+    gap: 2rem;
+    flex: 1;
+    background-color: transparent;
+}
+
+.default-state-container {
+    width: 100%;
+    max-width: 800px;
+}
+
+.default-state-container-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 0 0 5px 5px;
+}
+
+.default-state-info {
+    grid-column: 1 / -1;
+    font-size: 13px;
+    color: #495057;
+    background: #fff;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin: 0;
+    line-height: 1.5;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.default-state-info i {
+    font-size: 16px;
+    color: var(--secondary-color-2);
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.default-state-message {
+    text-align: center;
+    color: #6c757d;
+}
+
+/* .default-state-message i {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.75rem;
+    opacity: 0.4;
+} */
+
+.default-state-message p {
+    font-size: 14px;
+    margin: 0;
+}
+
+.default-state-message .bi-arrow-up-circle {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.75rem;
+    opacity: 0.4;
+	font-size: 2.5rem;
+	color: var(--secondary-color-3);
+	margin-bottom: 0.75rem;
+	animation: float-up 1.5s ease-in-out infinite;
+}
+
+.default-state-message .bi-box-arrow-up-right {
+    font-weight: 700;
+}
+
+
+/* ── Faculty grid ── */
+.faculty-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.faculty-side-filter {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1.5px solid var(--secondary-color-4);
+}
+
+/* ── Department search highlight ── */
+#panel-departments .room-card-name.search-highlight {
+    border: 2px solid var(--secondary-color-2);
+    box-shadow: 0 0 12px rgba(47, 0, 79, 0.35);
+    border-radius: 6px;
+    padding: 2px 6px;
+}
+
+#panel-departments .room-info-row.search-highlight {
+    border: 2px solid var(--secondary-color-2);
+    box-shadow: 0 0 12px rgba(47, 0, 79, 0.35);
+    border-radius: 6px;
+}
+
+/* ── Faculty directory search highlight ── */
+#panel-faculty-directory .room-card-name.search-highlight {
+    border: 2px solid var(--secondary-color-2);
+    box-shadow: 0 0 12px rgba(47, 0, 79, 0.35);
+    border-radius: 6px;
+    padding: 2px 6px;
+}
+
+#panel-faculty-directory .room-card-section.search-highlight {
+    border: 2px solid var(--secondary-color-2);
+    box-shadow: 0 0 12px rgba(47, 0, 79, 0.35);
+    border-radius: 6px;
+    padding: 2px 6px;
+    width: fit-content;
+}
+
+/* ── Department faculty member filter ── */
+.dept-member-filter {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1.5px solid var(--secondary-color-4);
+}
+
+.dept-member-filter-header {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--secondary-color-2);
+    margin-bottom: 0.5rem;
+}
+
+.dept-member-filter-list {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dept-member-filter-item {
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--secondary-color-1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.dept-member-filter-item:hover {
+    background: var(--secondary-color-4);
+}
+
+.dept-member-filter-item.active {
+    background: var(--secondary-color-1);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* ── Departments grid (room-card style) ── */
+.departments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.landing-panel-col-center .room-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 6px 28px rgba(47, 0, 79, .16);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 300px;
+    transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), box-shadow .22s ease;
+}
+
+.landing-panel-col-center .room-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 40px rgba(47, 0, 79, .28);
+}
+
+.landing-panel-col-center .room-card-accent {
+    height: 6px;
+    width: 100%;
+}
+
+.landing-panel-col-center .accent-occupied {
+    background: linear-gradient(90deg, #c0004e, #e05580);
+}
+
+.landing-panel-col-center .accent-vacant {
+    background: linear-gradient(90deg, #0a7a45, #27ae60);
+}
+
+.landing-panel-col-center .accent-scheduled {
+    background: linear-gradient(90deg, #a06800, #f0a500);
+}
+
+.landing-panel-col-center .room-card-body {
+    padding: 18px 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.landing-panel-col-center .room-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.landing-panel-col-center .room-card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 18px;
+}
+
+.landing-panel-col-center .room-card-actions .room-icons .btn-icon-edit,
+.landing-panel-col-center .room-card-actions .room-icons .btn-icon-del,
+.landing-panel-col-center .room-card-actions .room-icons .btn-icon-view,
+.landing-panel-col-center .room-card-actions .room-icons .room-icon-btn {
+    background: #e9d5ff;
+    color: var(--secondary-color-1);
+}
+
+.landing-panel-col-center .room-card-actions .room-icons .btn-icon-edit:hover,
+.landing-panel-col-center .room-card-actions .room-icons .btn-icon-del:hover,
+.landing-panel-col-center .room-card-actions .room-icons .btn-icon-view:hover,
+.landing-panel-col-center .room-card-actions .room-icons .room-icon-btn:hover {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+}
+
+/* Lower section department icons — match room-icons style */
+.department-icons .btn-icon-edit,
+.department-icons .btn-icon-del,
+.department-icons .btn-icon-view {
+    background: #e9d5ff;
+    color: var(--secondary-color-1);
+}
+
+.department-icons .btn-icon-edit:hover,
+.department-icons .btn-icon-del:hover,
+.department-icons .btn-icon-view:hover {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+}
+
+.landing-panel-col-center .room-card-name {
+    padding: 3px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1.25;
+    margin: 0;
+}
+
+.landing-panel-col-center .room-card-section {
+    font-size: 13.9px;
+    color: var(--muted-dark);
+    margin-top: 2px;
+}
+
+.landing-panel-col-center .room-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.landing-panel-col-center .badge-occupied {
+    background: #ffe4ec;
+    color: #c0004e;
+}
+
+.landing-panel-col-center .badge-vacant {
+    background: #d6fbe9;
+    color: #0a7a45;
+}
+
+.landing-panel-col-center .badge-scheduled {
+    background: #fff5d6;
+    color: #a06800;
+}
+
+.landing-panel-col-center .room-card-divider {
+    border: none;
+    border-top: 1px solid #f0eaf8;
+    margin: 2px 0;
+}
+
+.landing-panel-col-center .room-info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--secondary-color-1);
+    padding: 0.5rem;
+    border-left: 4px solid var(--secondary-color-2);
+    border-radius: 4px;
+    box-shadow: 0 8px 10px rgba(47, 0, 79, 0.18);
+}
+
+.landing-panel-col-center .room-info-row i {
+    font-size: 14px;
+    color: var(--secondary-color-3);
+    width: 16px;
+    flex-shrink: 0;
+}
+
+.landing-panel-col-center .room-info-label {
+    color: var(--secondary-color-2);
+    font-size: 12.36px;
+}
+
+.landing-panel-col-center .room-info-val {
+    font-weight: 600;
+}
+
+/* ── Panel slide animations ── */
+@keyframes panelSlideInFromLeft {
+    0% { transform: translateX(-30px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes panelSlideInFromRight {
+    0% { transform: translateX(30px); opacity: 0; }
+    100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes panelSlideOutToLeft {
+    0% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(-20px); opacity: 0; }
+}
+
+/* ── Pending Approvals panel body split ── */
+#panel-pending-approvals .pending-body-inner {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    gap: 1rem;
+    min-height: 0;
+}
+
+#panel-pending-approvals .pending-body-left {
+    flex: 1;
+    padding-right: 1rem;
+    border-right: 1.5px solid var(--secondary-color-4);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+#panel-pending-approvals .pending-body-right {
+    flex: 1;
+    padding-left: 1rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+#panel-pending-approvals .pending-body-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    margin: 0 0 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+#panel-pending-approvals .pending-body-heading i {
+    color: var(--secondary-color-2);
+}
+
+#panel-pending-approvals .pending-body-list {
+    flex: 1;
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+#panel-pending-approvals .pending-body-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#panel-pending-approvals .pending-body-list::-webkit-scrollbar-track {
+    background: rgba(47, 0, 79, 0.05);
+    border-radius: 3px;
+}
+
+#panel-pending-approvals .pending-body-list::-webkit-scrollbar-thumb {
+    background: rgba(47, 0, 79, 0.15);
+    border-radius: 3px;
+}
+
+#panel-pending-approvals .pending-body-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(47, 0, 79, 0.25);
+}
+
+/* ── Landing item buttons use same styling as other panel btn-icons ── */
+#panel-pending-approvals .pending-body-list .room-info-row {
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+#panel-pending-approvals .pending-body-list .room-info-row .btn-icon-view {
+    background: #e9d5ff;
+    color: var(--secondary-color-1);
+}
+
+#panel-pending-approvals .pending-body-list .room-info-row .btn-icon-view:hover {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+    transform: scale(1.08);
 }

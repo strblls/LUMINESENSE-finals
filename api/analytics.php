@@ -20,7 +20,7 @@ $days = match($range) {
     'month' => 30,
     default => (int)$range
 };
-if (!in_array($days, [7, 14, 30])) $days = 7;
+if (!in_array($days, [1, 7, 14, 30])) $days = 7;
 
 $cid_filter  = $cid ? "AND ps.classroom_id = $cid" : "";
 $cid_filter2 = $cid ? "AND ll.classroom_id = $cid" : "";

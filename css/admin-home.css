@@ -11,8 +11,10 @@
 /* ── Grid layout ─────────────────────────────────────────────── */
 .main-container.admin {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important;
     align-items: stretch !important;
+    padding: 1rem !important;
+    background-color: var(--secondary-color-2);
 }
 
 .main-container.admin .group-container {
@@ -24,9 +26,10 @@
 /* ── Stat cards ──────────────────────────────────────────────── */
 .stat-row {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(4, 1fr) !important;
     gap: 0.6rem !important;
     width: 100%;
+    background-color: var(--secondary-color-1) !important;
 }
 
 .stat-card {
@@ -47,14 +50,44 @@
     font-size: 3rem;
     font-weight: 700;
     line-height: 1;
-    color: var(--secondary-color-1);
+    color: var(--secondary-color-2);
 }
 
 .stat-card .stat-label {
     font-size: 0.80rem;
-    color: var(--muted-dark);
+    color: #000;
     margin: 0;
     line-height: 1.3;
+}
+
+.stat-card > div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* ── 3-divided row (Rooms / Departments / Faculty Members) ──── */
+.three-col-row {
+    display: flex !important;
+    gap: 0.6rem !important;
+    width: 100%;
+}
+
+.three-col-row .section-container {
+    flex: 1 !important;
+    min-width: 0;
+    display: flex !important;
+    flex-direction: column !important;
+    border-left: 5px solid var(--secondary-color-4);
+    border-radius: 8px;
+    box-shadow: 0 8px 10px rgba(47, 0, 79, 0.18);
+}
+
+.three-col-row .section-container .room-list {
+    flex: 1;
+    max-height: 30vh;
+    overflow-y: auto;
 }
 
 /* ── Room list ───────────────────────────────────────────────── */
@@ -255,7 +288,7 @@
 .cal-nav-btn {
     background: none !important;
     border: none !important;
-    font-size: 1.3rem !important;
+    font-size: 1.5rem !important;
     color: var(--secondary-color-2) !important;
     cursor: pointer !important;
     padding: 0 8px !important;
@@ -271,7 +304,7 @@
 }
 
 .cal-month-label {
-    font-size: 13px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
     color: var(--secondary-color-1) !important;
     text-align: center !important;
@@ -295,7 +328,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--muted);
     padding: 2px 0;
@@ -315,7 +348,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 11px;
+    font-size: 13px;
     border-radius: 50%;
     cursor: pointer;
     transition: background 0.15s;
@@ -360,47 +393,58 @@
     color: white;
 }
 
-/* ── Schedule popover ────────────────────────────────────────── */
-.cal-popover {
-    display: none !important;
-    margin-top: 10px;
-    background: white !important;
+/* ── Schedule day overlay (appears on the clicked day cell) ──── */
+.mini-calendar {
+    position: relative;
+}
+
+.cal-day-overlay {
+    position: fixed;
+    z-index: 9999;
+    background: white;
     border-radius: 10px;
     border: 1px solid #ede8f3;
+    border-left: 5px solid var(--secondary-color-4);
+    box-shadow: 0 8px 24px rgba(47, 0, 79, 0.18);
     overflow: hidden;
-    width: 100%;
-    box-sizing: border-box;
+    width: 220px;
+    pointer-events: auto;
+    transform: scale(0);
+    opacity: 0;
+    transform-origin: top left;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
 }
 
-.cal-popover.open {
-    display: block !important;
+.cal-day-overlay.open {
+    transform: scale(1);
+    opacity: 1;
 }
 
-.cal-popover-header {
-    background: var(--secondary-color-1) !important;
+.cal-day-overlay-header {
+    background: var(--secondary-color-2) !important;
     color: white !important;
-    font-size: 14px !important;
+    font-size: 13px !important;
     font-weight: 600 !important;
-    padding: 7px 12px !important;
+    padding: 6px 10px !important;
     display: block !important;
 }
 
-.cal-popover-body {
-    padding: 8px 12px !important;
-    max-height: 250px !important;
+.cal-day-overlay-body {
+    padding: 6px 10px !important;
+    max-height: 180px !important;
     overflow-y: auto !important;
     display: block !important;
 }
 
 .cal-no-sched {
-    font-size: 12.5px;
+    font-size: 12px;
     color: var(--muted);
     margin: 4px 0;
     text-align: center;
 }
 
 .cal-sched-item {
-    padding: 6px 0 !important;
+    padding: 5px 0 !important;
     border-bottom: 1px solid #f0f0f0 !important;
     display: block !important;
 }
@@ -410,27 +454,45 @@
 }
 
 .cal-sched-room {
-    font-size: 14px !important;
+    font-size: 13px !important;
     font-weight: 600 !important;
     color: var(--secondary-color-1) !important;
     display: block !important;
 }
 
 .cal-sched-time {
-    font-size: 13.5px !important;
+    font-size: 12px !important;
     color: #333 !important;
     margin: 1px 0 !important;
     display: block !important;
 }
 
 .cal-sched-faculty {
-    font-size: 13.5px !important;
+    font-size: 12px !important;
     color: var(--muted) !important;
     display: block !important;
 }
 
 .cal-sched-time span, .cal-sched-faculty span, .cal-sched-room span {
     font-weight: 600 !important;
+}
+
+/* ── Hierarchy overlay info rows ─────────────────────────────── */
+.h-info {
+    font-size: 12px;
+    color: #333;
+    padding: 3px 0;
+    border-bottom: 1px solid #f0f0f0;
+    line-height: 1.4;
+}
+
+.h-info:last-child {
+    border-bottom: none;
+}
+
+.h-info-label {
+    font-weight: 600;
+    color: var(--secondary-color-1);
 }
 
 /* ── Sidebar & offcanvas ─────────────────────────────────────── */
@@ -531,8 +593,8 @@
 }
 
 .ext-badge {
-    background: #cfe2ff;
-    color: #084298;
+    background: #f9edfa;
+    color: #2f004f;
     padding: 3px 10px;
     border-radius: 20px;
     font-size: 11px;
@@ -554,8 +616,14 @@
     position: relative;
 }
 
+.hierarchy-dept-node,
+.hierarchy-head-node,
+.hierarchy-member-node {
+    cursor: pointer;
+}
+
 .hierarchy-dept-node {
-    background: var(--secondary-color-1);
+    background-color: var(--secondary-color-2);
     color: #fff;
     font-weight: 700;
     font-size: 13px;
@@ -666,4 +734,25 @@
     font-size: 12px;
     color: var(--muted);
     padding: 8px 0;
+}
+
+/* ── Room / Dept / Faculty detail modal rows ─────────────────── */
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+    gap: 1rem;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    flex-shrink: 0;
 }

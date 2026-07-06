@@ -350,7 +350,7 @@ if ($action === 'update_schedule') {
         $stmt = $conn->prepare("
             UPDATE schedules
             SET classroom_id = ?, day_of_week = ?, start_time = ?, end_time = ?, subject_id = ?,
-                updated_at = NOW(), updated_by = ?
+                updated_at = NOW(), updated_by = ?, extended_until = NULL
             WHERE id = ?
         ");
         $stmt->bind_param('isssiii', $room_id, $day, $start, $end, $target_subject_id, $head_id, $slot_id);
@@ -358,10 +358,10 @@ if ($action === 'update_schedule') {
         $stmt = $conn->prepare("
             UPDATE schedules
             SET classroom_id = ?, day_of_week = ?, start_time = ?, end_time = ?, subject_id = NULL,
-                updated_at = NOW(), updated_by = ?
+                updated_at = NOW(), updated_by = ?, extended_until = NULL
             WHERE id = ?
         ");
-        $stmt->bind_param('isssii', $room_id, $day, $start, $end, $head_id, $slot_id);
+        $stmt->bind_param('isssiii', $room_id, $day, $start, $end, $head_id, $slot_id);
     }
 
     if ($stmt->execute()) {

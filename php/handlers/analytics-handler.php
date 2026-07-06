@@ -21,12 +21,49 @@ $lights_data = $conn->query(
     "SELECT COUNT(*) AS c FROM lighting_logs WHERE DATE(event_time)=CURDATE()"
 )->fetch_assoc()['c'];
 
-// ── Rooms list (passed to JS for dropdowns) ────────────────────────────────
+// ── Rooms list with schedule info ──────────────────────────────────────────
 $rooms = [];
-$r = $conn->query("SELECT id, room_name FROM classrooms ORDER BY room_name");
+$r = $conn->query("
+    SELECT id, room_name, room_size, description, light_status
+    FROM classrooms ORDER BY room_name
+");
 while ($row = $r->fetch_assoc()) {
     $rooms[] = $row;
 }
+
+// Build a lookup: room_id => current schedule info
+$day  = date('l');
+$time = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc()['t'];
+$schedSt = $conn->query("
+    SELECT s.classroom_id,
+           CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
+           s.start_time, s.end_time
+    FROM schedules s
+    JOIN faculty f ON f.id = s.faculty_id
+    WHERE s.day_of_week = '$day'
+      AND '$time' BETWEEN s.start_time AND s.end_time
+");
+$roomSchedule = [];
+while ($s = $schedSt->fetch_assoc()) {
+    $roomSchedule[(int)$s['classroom_id']] = $s;
+}
+
+// Attach schedule info to each room
+foreach ($rooms as &$room) {
+    $rid = (int)$room['id'];
+    if (isset($roomSchedule[$rid])) {
+        $room['faculty_name'] = $roomSchedule[$rid]['faculty_name'];
+        $room['start_time']   = $roomSchedule[$rid]['start_time'];
+        $room['end_time']     = $roomSchedule[$rid]['end_time'];
+        $room['is_occupied']  = true;
+    } else {
+        $room['faculty_name'] = '—';
+        $room['start_time']   = null;
+        $room['end_time']     = null;
+        $room['is_occupied']  = false;
+    }
+}
+unset($room);
 
 // ── Passed to JS ───────────────────────────────────────────────────────────
 // roomDataFromPHP is now just the rooms list — actual chart data is

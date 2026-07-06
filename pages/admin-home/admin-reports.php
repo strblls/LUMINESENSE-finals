@@ -130,6 +130,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/faculty-timetable.css">
     <link rel="stylesheet" href="../../css/admin-home-reports.css">
     <link rel="stylesheet" href="../../css/admin-common.css">
 </head>
@@ -143,57 +144,99 @@ function event_icon(string $type): array
     <div class="child-container">
         <div class="reports-layout">
 
-            <div class="section-container">
-                <div class="stat-row">
-                    <div class="stat-card">
+            <div class="main-container faculty-timetable-heading d-flex align-items-center w-auto" style="background-color: var(--secondary-color-2);">
+                <div class="d-flex align-items-center flex-grow-1" style="position:relative;">
+                    <button type="button" class="timetable-btn ms-2" data-panel="panelGuideInfo" title="Guide">
+                        <i class="bi bi-info-lg"></i>
+                        <span class="timetable-btn-title bold">Guide</span>
+                    </button>
+                    <div id="panelGuideInfo" class="timetable-panel p-3 m-3">
+                        <div class="section-container timetable" style="background-color:#f8f9fa;width:320px;">
+                            <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Reports Guide</h6>
+                            <ol class="ps-3 mb-0" style="font-size:13px;line-height:1.7;">
+                                <li>Press <strong>Recent Activity</strong> or <strong>Room Activity</strong> in the heading to load a report.</li>
+                                <li>Use the search bar to find entries by room, actor, or action keyword.</li>
+                                <li>Use the dropdown filters inside each tab to narrow by type or date.</li>
+                                <li>In <strong>Room Activity</strong>, click a room row to expand its recent event log.</li>
+                                <li>Click <strong>Export CSV</strong> or <strong>Export PDF</strong> to download the currently viewed report.</li>
+                            </ol>
+                        </div>
+                    </div>
+                    <input type="text" id="reportsSearch" class="form-control" placeholder="Search room name or faculty..." style="max-width:500px;margin-left:16px;">
+                </div>
+                <div class="d-flex align-items-center pe-2" style="position:relative; gap:6px;">
+                    <button type="button" class="timetable-btn" data-tab="activity" title="Recent Activity">
+                        <i class="bi bi-clock-history"></i>
+                        <span class="timetable-btn-title bold">Recent<br>Activity</span>
+                    </button>
+                    <button type="button" class="timetable-btn" data-tab="rooms" title="Room Activity">
+                        <i class="bi bi-door-open"></i>
+                        <span class="timetable-btn-title bold">Room<br>Activity</span>
+                    </button>
+                    <button type="button" class="timetable-btn" onclick="exportCSV()" title="Export CSV">
+                        <i class="bi bi-filetype-csv"></i>
+                        <span class="timetable-btn-title bold">Export<br>CSV</span>
+                    </button>
+                    <button type="button" class="timetable-btn" onclick="exportPDF()" title="Export PDF">
+                        <i class="bi bi-filetype-pdf"></i>
+                        <span class="timetable-btn-title bold">Export<br>PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <div style="background-color:#f8f9fa;" class="section-container">
+                <div class="stat-row" id="statRow">
+                    <div class="stat-card"
+                         data-a-icon="bi-journal-text" data-a-label="Total Log Entries" data-a-val="<?= count($activity_logs) ?>"
+                         data-r-icon="bi-building"      data-r-label="Total Rooms"        data-r-val="<?= count($rooms) ?>">
                         <span class="stat-icon"><i class="bi bi-journal-text" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                         <div>
                             <div class="stat-value"><?= count($activity_logs) ?></div>
-                            <p class="stat-label">Total Log<br>Entries</p>
+                            <p class="stat-label">Total Log Entries</p>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card"
+                         data-a-icon="bi-door-open"          data-a-label="Tracked Rooms"        data-a-val="<?= count($rooms) ?>"
+                         data-r-icon="bi-lightbulb-fill"     data-r-label="Lights On"            data-r-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?>">
                         <span class="stat-icon"><i class="bi bi-door-open" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                         <div>
                             <div class="stat-value"><?= count($rooms) ?></div>
-                            <p class="stat-label">Tracked<br>Rooms</p>
+                            <p class="stat-label">Tracked Rooms</p>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card"
+                         data-a-icon="bi-lightbulb-fill"         data-a-label="Lights Currently On"  data-a-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?>"
+                         data-r-icon="bi-lightbulb"             data-r-label="Lights Off"           data-r-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'off')) ?>">
                         <span class="stat-icon"><i class="bi bi-lightbulb-fill" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                         <div>
                             <div class="stat-value"><?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?></div>
-                            <p class="stat-label">Lights Currently<br>On</p>
+                            <p class="stat-label">Lights Currently On</p>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card"
+                         data-a-icon="bi-exclamation-triangle-fill" data-a-label="Issues Logged"                  data-a-val="<?= count(array_filter($activity_logs, fn($l) => str_contains(strtolower($l['action']), 'issue'))) ?>"
+                         data-r-icon="bi-activity"                 data-r-label="Rooms w/ Events"              data-r-val="<?= count(array_filter($rooms, fn($r) => $r['total_events'] > 0)) ?>">
                         <span class="stat-icon"><i class="bi bi-exclamation-triangle-fill" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                         <div>
                             <div class="stat-value"><?= count(array_filter($activity_logs, fn($l) => str_contains(strtolower($l['action']), 'issue'))) ?></div>
-                            <p class="stat-label">Issues<br>Logged</p>
+                            <p class="stat-label">Issues Logged</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-
-            <!-- Tab Navigation -->
-            <div class="tab-nav" id="tabNav">
-                <button class="tab-btn active" data-tab="activity">
-                    <i class="bi bi-clock-history me-1"></i> Recent Activity
-                </button>
-                <button class="tab-btn" data-tab="rooms">
-                    <i class="bi bi-building me-1"></i> Room Activity
-                </button>
+            <!-- ── Default state ── -->
+            <div class="default-state" id="defaultState">
+                <i class="bi bi-arrow-up-circle"></i>
+                <p>Select <strong>Recent Activity</strong> or <strong>Room Activity</strong> from the heading above to view reports.</p>
             </div>
 
             <!-- ══ TAB: Activity Log ══ -->
-            <div class="tab-panel active" id="tab-activity">
+            <div class="tab-panel" id="tab-activity">
                 <div class="reports-card">
                     <div class="reports-card-header">
-                        <h2 class="bold"><i class="bi bi-clock-history"></i> Activity Log</h2>
+                        <h2 class="bold"><i class="bi bi-clock-history"></i>Activity Logs</h2>
                         <div class="filter-bar">
-                            <input type="text" id="activitySearch" placeholder="Search by room or actor…" style="width:180px;">
                             <select id="activityType">
                                 <option value="">All Types</option>
                                 <option value="room">Room Events</option>
@@ -205,9 +248,6 @@ function event_icon(string $type): array
                                 <option value="week">This Week</option>
                                 <option value="month">This Month</option>
                             </select>
-                            <button class="light" onclick="exportCSV()">
-                                <i class="bi bi-download"></i> Export CSV
-                            </button>
                         </div>
                     </div>
 
@@ -221,8 +261,8 @@ function event_icon(string $type): array
                             <?php foreach ($activity_logs as $i => $log):
                                 [$icon, $iconColor, $iconBg] = event_icon($log['action']);
                                 $isRoom  = $log['log_type'] === 'room';
-                                $typeBg  = $isRoom  ? '#cfe2ff' : '#ede6f2';
-                                $typeClr = $isRoom  ? '#084298' : '#4a0078';
+                                $typeBg  = $isRoom  ? '#ede6f2' : '#4a0078';
+                                $typeClr = $isRoom  ? '#4a0078' : '#ede6f2';
                                 $typeLabel = $isRoom ? 'Room' : 'Admin';
                                 $logDate = strtotime($log['log_time']);
                                 $dateStr = date('M j, Y', $logDate);
@@ -233,7 +273,7 @@ function event_icon(string $type): array
                                     data-date="<?= date('Y-m-d', $logDate) ?>"
                                     data-search="<?= strtolower(htmlspecialchars($log['target'] . ' ' . $log['actor'] . ' ' . $log['action'])) ?>">
                                     <div class="tl-icon" style="background:<?= $iconBg ?>; color:<?= $iconColor ?>;">
-                                        <i class="bi <?= $icon ?>"></i>
+                                        <i class="bi <?= $isRoom ? 'bi-door-open' : $icon ?>"></i>
                                     </div>
                                     <div class="tl-body">
                                         <p class="tl-action">
@@ -266,7 +306,6 @@ function event_icon(string $type): array
                     <div class="reports-card-header">
                         <h2><i class="bi bi-door-open"></i> Room Activity Summary</h2>
                         <div class="filter-bar">
-                            <input type="text" id="roomSearch" placeholder="Search rooms…" style="width:180px;">
                             <select id="roomLightFilter">
                                 <option value="">All Lights</option>
                                 <option value="on">Lights On</option>
@@ -298,11 +337,14 @@ function event_icon(string $type): array
                                         $on       = $room['light_status'] === 'on';
                                         $hasLast  = !empty($room['last_event']);
                                         $lastStr  = $hasLast ? date('M j, g:i A', strtotime($room['last_event'])) : 'No events yet';
+                                        $roomName = htmlspecialchars($room['room_name']);
                                     ?>
-                                        <tr data-light="<?= $room['light_status'] ?>"
-                                            data-search="<?= strtolower(htmlspecialchars($room['room_name'] . ' ' . $room['description'])) ?>">
+                                        <tr class="room-main-row" data-room="<?= $roomName ?>"
+                                            data-light="<?= $room['light_status'] ?>"
+                                            data-search="<?= strtolower(htmlspecialchars($room['room_name'] . ' ' . $room['description'])) ?>"
+                                            onclick="toggleRoomAccordion(this)">
                                             <td>
-                                                <div style="font-weight:600;"><?= htmlspecialchars($room['room_name']) ?></div>
+                                                <div style="font-weight:600;"><i class="bi bi-chevron-right room-chevron me-1" style="font-size:11px;transition:transform .2s;"></i><?= $roomName ?></div>
                                             </td>
                                             <td>
                                                 <span class="light-pill <?= $on ? 'light-on' : 'light-off' ?>">
@@ -315,6 +357,11 @@ function event_icon(string $type): array
                                             <td class="last-event-text"><?= $lastStr ?></td>
                                             <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:0.75rem;">
                                                 <?= htmlspecialchars($room['description'] ?? '—') ?>
+                                            </td>
+                                        </tr>
+                                        <tr class="room-accordion-row" style="display:none;">
+                                            <td colspan="6">
+                                                <div class="room-accordion-content">Loading...</div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -340,41 +387,101 @@ function event_icon(string $type): array
         document.addEventListener('DOMContentLoaded', function() {
 
             /* ── Tab switching ── */
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                    btn.classList.add('active');
-                    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            function switchTab(tab) {
+                document.querySelectorAll('.timetable-btn[data-tab]').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('defaultState').style.display = 'none';
+                document.querySelector(`.timetable-btn[data-tab="${tab}"]`)?.classList.add('active');
+                document.getElementById('tab-' + tab).classList.add('active');
+
+                /* ── Apply filters for the activated tab ── */
+                if (tab === 'activity') {
+                    filterActivity();
+                } else {
+                    filterRooms();
+                }
+
+                /* ── Update stat cards per tab ── */
+                document.querySelectorAll('.stat-card').forEach(function(card) {
+                    var icon = card.querySelector('.stat-icon i');
+                    var valEl = card.querySelector('.stat-value');
+                    var labelEl = card.querySelector('.stat-label');
+                    if (tab === 'rooms') {
+                        if (icon) icon.className = 'bi ' + card.dataset.rIcon;
+                        if (valEl) valEl.textContent = card.dataset.rVal;
+                        if (labelEl) labelEl.textContent = card.dataset.rLabel;
+                    } else {
+                        if (icon) icon.className = 'bi ' + card.dataset.aIcon;
+                        if (valEl) valEl.textContent = card.dataset.aVal;
+                        if (labelEl) labelEl.textContent = card.dataset.aLabel;
+                    }
                 });
+            }
+
+            document.querySelectorAll('.timetable-btn[data-tab]').forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
             });
 
             /* ── Deep-link: ?tab=activity or ?tab=rooms ── */
             const urlParams = new URLSearchParams(window.location.search);
             const tabParam = urlParams.get('tab');
             if (tabParam) {
-                const target = document.querySelector(`.tab-btn[data-tab="${tabParam}"]`);
-                if (target) target.click();
+                const target = document.querySelector(`.timetable-btn[data-tab="${tabParam}"]`);
+                if (target) switchTab(tabParam);
+            }
+
+            /* ── Timetable-panel toggle for Guide ── */
+            (function() {
+                var panels = ['panelGuideInfo'];
+                var timers = {};
+                panels.forEach(function(id) {
+                    var btn = document.querySelector('[data-panel="' + id + '"]');
+                    var panel = document.getElementById(id);
+                    if (!btn || !panel) return;
+                    timers[id] = null;
+                    function open() {
+                        if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
+                        panel.classList.add('show');
+                    }
+                    function close() {
+                        if (timers[id]) clearTimeout(timers[id]);
+                        timers[id] = setTimeout(function() { panel.classList.remove('show'); }, 150);
+                    }
+                    btn.addEventListener('mouseenter', open);
+                    btn.addEventListener('focus', open);
+                    panel.addEventListener('mouseenter', open);
+                    panel.addEventListener('mouseleave', close);
+                    btn.addEventListener('mouseleave', close);
+                });
+            })();
+
+            /* ── Reports search bar ── */
+            const reportsSearch = document.getElementById('reportsSearch');
+            if (reportsSearch) {
+                reportsSearch.addEventListener('input', function() {
+                    var activeEl = document.querySelector('.timetable-btn[data-tab].active');
+                    if (!activeEl) return;
+                    if (activeEl.dataset.tab === 'activity') filterActivity();
+                    else filterRooms();
+                });
             }
 
             /* ── Global topbar search ── */
             const globalSearch = document.getElementById('globalSearch');
             if (globalSearch) {
                 globalSearch.addEventListener('input', function() {
-                    const active = document.querySelector('.tab-btn.active').dataset.tab;
-                    if (active === 'activity') {
-                        document.getElementById('activitySearch').value = this.value;
-                        filterActivity();
-                    } else {
-                        document.getElementById('roomSearch').value = this.value;
-                        filterRooms();
-                    }
+                    var reportsSearch = document.getElementById('reportsSearch');
+                    if (reportsSearch) reportsSearch.value = this.value;
+                    var activeEl = document.querySelector('.timetable-btn[data-tab].active');
+                    if (!activeEl) return;
+                    if (activeEl.dataset.tab === 'activity') filterActivity();
+                    else filterRooms();
                 });
             }
 
             /* ── Activity Log filters ── */
             function filterActivity() {
-                const q = document.getElementById('activitySearch').value.toLowerCase();
+                const q = (document.getElementById('reportsSearch')?.value || '').toLowerCase();
                 const type = document.getElementById('activityType').value;
                 const date = document.getElementById('activityDate').value;
                 const today = new Date().toISOString().slice(0, 10);
@@ -394,20 +501,18 @@ function event_icon(string $type): array
 
             /* ── Room filters ── */
             function filterRooms() {
-                const q = document.getElementById('roomSearch').value.toLowerCase();
+                const q = (document.getElementById('reportsSearch')?.value || '').toLowerCase();
                 const light = document.getElementById('roomLightFilter').value;
-                document.querySelectorAll('#roomTable tbody tr').forEach(row => {
-                    const matchQ = !q || row.dataset.search.includes(q);
+                document.querySelectorAll('#roomTable tbody .room-main-row').forEach(row => {
+                    const matchQ = !q || (row.dataset.search && row.dataset.search.includes(q));
                     const matchLight = !light || row.dataset.light === light;
                     row.style.display = (matchQ && matchLight) ? '' : 'none';
                 });
             }
 
             /* ── Attach listeners ── */
-            document.getElementById('activitySearch').addEventListener('input', filterActivity);
             document.getElementById('activityType').addEventListener('change', filterActivity);
             document.getElementById('activityDate').addEventListener('change', filterActivity);
-            document.getElementById('roomSearch').addEventListener('input', filterRooms);
             document.getElementById('roomLightFilter').addEventListener('change', filterRooms);
 
             /* ── CSV export ── */
@@ -430,6 +535,12 @@ function event_icon(string $type): array
                 a.href = URL.createObjectURL(blob);
                 a.download = `activity-log-${new Date().toISOString().slice(0, 10)}.csv`;
                 a.click();
+            };
+
+            window.exportPDF = function() {
+                var el = document.querySelector('.tab-btn.active, .timetable-btn[data-tab].active');
+                if (!el) return;
+                window.location.href = '../../api/export-report-pdf.php?tab=' + el.dataset.tab;
             };
 
             /* ── Icon map (mirrors PHP event_icon) ── */
@@ -463,8 +574,8 @@ function event_icon(string $type): array
                 container.innerHTML = logs.map(log => {
                     const [icon, iconColor, iconBg] = getEventIcon(log.action);
                     const isRoom = log.log_type === 'room';
-                    const typeBg = isRoom ? '#cfe2ff' : '#ede6f2';
-                    const typeClr = isRoom ? '#084298' : '#4a0078';
+                    const typeBg = isRoom ? '#ede6f2' : '#4a0078';
+                    const typeClr = isRoom ? '#4a0078' : '#ede6f2';
                     const typeLabel = isRoom ? 'Room' : 'Admin';
                     const d = new Date(log.log_time);
                     const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -473,7 +584,7 @@ function event_icon(string $type): array
                     const searchVal = (log.target + ' ' + log.actor + ' ' + log.action).toLowerCase().replace(/"/g, '&quot;');
                     const actionLabel = log.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                     return `<div class="timeline-item" data-type="${log.log_type}" data-date="${dateVal}" data-search="${searchVal}">
-                        <div class="tl-icon" style="background:${iconBg}; color:${iconColor};"><i class="bi ${icon}"></i></div>
+                        <div class="tl-icon" style="background:${iconBg}; color:${iconColor};"><i class="bi ${isRoom ? 'bi-door-open' : icon}"></i></div>
                         <div class="tl-body">
                             <p class="tl-action">${actionLabel}${log.target ? ' &mdash; <span style="color:var(--secondary-color-3);">' + log.target.replace(/"/g, '&quot;') + '</span>' : ''}</p>
                             <div class="tl-meta">
@@ -490,15 +601,28 @@ function event_icon(string $type): array
             function updateStats(stats) {
                 const cards = document.querySelectorAll('.stat-card');
                 if (cards.length >= 4) {
-                    cards[0].querySelector('.stat-value').textContent = stats.total_logs;
-                    cards[1].querySelector('.stat-value').textContent = stats.total_rooms;
-                    cards[2].querySelector('.stat-value').textContent = stats.lights_on;
-                    cards[3].querySelector('.stat-value').textContent = stats.issues;
+                    cards[0].dataset.aVal = stats.total_logs;
+                    cards[1].dataset.aVal = stats.total_rooms;
+                    cards[2].dataset.aVal = stats.lights_on;
+                    cards[3].dataset.aVal = stats.issues;
+                    var active = document.querySelector('.tab-btn.active, .timetable-btn[data-tab].active');
+                    var tab = active ? active.dataset.tab : 'activity';
+                    if (tab === 'rooms') {
+                        cards[0].querySelector('.stat-value').textContent = cards[0].dataset.rVal;
+                        cards[1].querySelector('.stat-value').textContent = cards[1].dataset.rVal;
+                        cards[2].querySelector('.stat-value').textContent = cards[2].dataset.rVal;
+                        cards[3].querySelector('.stat-value').textContent = cards[3].dataset.rVal;
+                    } else {
+                        cards[0].querySelector('.stat-value').textContent = stats.total_logs;
+                        cards[1].querySelector('.stat-value').textContent = stats.total_rooms;
+                        cards[2].querySelector('.stat-value').textContent = stats.lights_on;
+                        cards[3].querySelector('.stat-value').textContent = stats.issues;
+                    }
                 }
             }
 
             function reapplyFilters() {
-                const active = document.querySelector('.tab-btn.active');
+                var active = document.querySelector('.timetable-btn[data-tab].active');
                 if (active && active.dataset.tab === 'activity') {
                     filterActivity();
                 } else {
@@ -519,7 +643,58 @@ function event_icon(string $type): array
                     .catch(() => {});
             }
             setInterval(pollActivityLog, 30000);
+
         });
+
+        /* ── Room accordion toggle ── */
+        function toggleRoomAccordion(row) {
+            var chevron = row.querySelector('.room-chevron');
+            var accordionRow = row.nextElementSibling;
+            if (!accordionRow || !accordionRow.classList.contains('room-accordion-row')) return;
+            var isOpen = accordionRow.style.display !== 'none';
+            accordionRow.style.display = isOpen ? 'none' : 'table-row';
+            if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+            if (!isOpen && accordionRow.querySelector('.room-accordion-content').dataset.loaded !== '1') {
+                var room = row.dataset.room;
+                var content = accordionRow.querySelector('.room-accordion-content');
+                content.innerHTML = 'Loading...';
+                fetch('../../api/get-room-logs.php?room=' + encodeURIComponent(room))
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (res.success && res.data.length) {
+                            var html = '<div style="padding:8px 12px;">';
+                            res.data.forEach(function(log) {
+                                var d = new Date(log.event_time);
+                                var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                var iconMap = {
+                                    light_on: 'bi-lightbulb-fill', light_off: 'bi-lightbulb',
+                                    motion_detect: 'bi-person-bounding-box', door_open: 'bi-door-open-fill',
+                                    door_close: 'bi-door-closed-fill', class_start: 'bi-play-circle-fill',
+                                    class_end: 'bi-stop-circle', issue_raised: 'bi-exclamation-triangle-fill',
+                                    issue_resolved: 'bi-check-circle-fill'
+                                };
+                                var icon = iconMap[log.event_type] || 'bi-clock-history';
+                                html += '<div class="accordion-log-item">';
+                                html += '<span class="accordion-log-icon"><i class="bi ' + icon + '"></i></span>';
+                                html += '<span class="accordion-log-action">' + log.event_type.replace(/_/g, ' ') + '</span>';
+                                html += '<span class="accordion-log-time">' + timeStr + ', ' + dateStr + '</span>';
+                                if (log.triggered_by) html += '<span class="accordion-log-actor">by ' + log.triggered_by + '</span>';
+                                if (log.notes) html += '<span class="accordion-log-notes">' + log.notes + '</span>';
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                            content.innerHTML = html;
+                        } else {
+                            content.innerHTML = '<div style="padding:12px;text-align:center;color:#999;font-size:13px;">No recent activity for this room.</div>';
+                        }
+                        content.dataset.loaded = '1';
+                    })
+                    .catch(function() {
+                        content.innerHTML = '<div style="padding:12px;text-align:center;color:#c00;font-size:13px;">Failed to load activities.</div>';
+                    });
+            }
+        }
     </script>
 </body>
 

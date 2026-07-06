@@ -34,6 +34,11 @@
     max-height: 300px;
     object-fit: contain;
     cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.id-image-box img:active {
+    transform: scale(0.95);
 }
 
 .ai-badge {

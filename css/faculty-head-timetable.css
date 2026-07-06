@@ -78,7 +78,7 @@
     font-weight: bolder;
     display: inline-block;
     white-space: nowrap;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.2rem;
     transition: transform .22s cubic-bezier(.34, 1.56, .64, 1), box-shadow .22s ease;
 }
 

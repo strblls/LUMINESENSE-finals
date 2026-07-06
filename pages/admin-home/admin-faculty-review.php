@@ -110,8 +110,8 @@ $conn->close();
         <div class="child-container px-4 py-4">
 
             <!-- Back button -->
-            <div class="mb-3">
-                <button onclick="dissolve('admin-faculty-management.php')" class="light w-auto">
+            <div class="mb-3 text-center">
+                <button onclick="dissolve('admin-faculty-management.php?tab=pending-approvals')" class="light w-auto">
                     <i class="bi bi-arrow-left me-1"></i> Back to Faculty Management
                 </button>
             </div>
@@ -141,7 +141,7 @@ $conn->close();
                             </span>
                         <?php else: ?>
                             <span class="status-badge status-badge-pending bold">
-                                <i class="bi bi-hourglass-split me-1"></i> Pending
+                                Pending
                             </span>
                         <?php endif; ?>
                     </div>
@@ -243,12 +243,12 @@ $conn->close();
                                 <div class="d-flex gap-2 mt-3">
                                     <form method="POST" class="mb-0">
                                         <input type="hidden" name="action" value="approve">
-                                        <button type="submit" class="btn btn-success px-4 w-auto" title="Approve Faculty"
+                                        <button type="submit" class="medium px-4 w-auto" title="Approve Faculty"
                                             data-bs-toggle="tooltip" data-bs-placement="auto">
                                             <i class="bi bi-check-lg me-1"></i> Approve
                                         </button>
                                     </form>
-                                    <button type="submit" class="btn btn-outline-danger px-4 w-auto" title="Reject Faculty"
+                                    <button type="submit" class="light px-4 w-auto" title="Reject Faculty"
                                         onclick="openRejectModal()" data-bs-toggle="tooltip" data-bs-placement="auto">
                                         <i class="bi bi-x-lg me-1"></i> Reject
                                     </button>

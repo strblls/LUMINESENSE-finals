@@ -53,6 +53,7 @@ function getCurrentSchedule($conn, $room_id)
     $time = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc()['t'];
     $stmt = $conn->prepare("
         SELECT s.start_time, s.end_time,
+               s.faculty_id,
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
                f.first_name, f.last_name
         FROM schedules s
@@ -104,6 +105,8 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
     <link rel="stylesheet" href="../../css/tooltip.css">
     <link rel="stylesheet" href="../../css/admin-common.css">
     <link rel="stylesheet" href="../../css/admin-timetable.css">
+    <link rel="stylesheet" href="../../css/faculty-timetable.css">
+    <link rel="stylesheet" href="../../css/faculty-head-timetable.css">
     <link rel="stylesheet" href="../../css/admin-room-manage.css">
 </head>
 
@@ -117,14 +120,102 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
             <!-- ═══ PAGE CONTENT ═══ -->
             <div class="page-content">
+                <div class="main-container faculty-timetable-heading d-flex align-items-center w-auto" style="background-color: var(--secondary-color-2);">
+                    <div class="d-flex align-items-center flex-grow-1" style="position:relative;">
+                        <button type="button" class="timetable-btn ms-2" data-panel="panelGuideInfo" title="Guide">
+                            <i class="bi bi-info-lg"></i>
+                            <span class="timetable-btn-title bold">Guide</span>
+                        </button>
+                        <div id="panelGuideInfo" class="timetable-panel p-3 m-3">
+                            <div class="section-container timetable" style="background-color:#f8f9fa;width:320px;">
+                                <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Room Management Guide</h6>
+                                <ol class="ps-3 mb-0" style="font-size:13px;line-height:1.7;">
+                                    <li>Use the search bar to find rooms by name or current faculty member.</li>
+                                    <li>Click the icons on each room card to edit, delete, or open the room's light view.</li>
+                                    <li>Click <strong>Inspect</strong> to view detailed room information, timetable, and alerts.</li>
+                                    <li>Use the <strong>Admin Override</strong> panel inside a room to manually control lighting per row or all rows at once.</li>
+                                    <li>All override actions are logged for audit purposes.</li>
+                                </ol>
+                            </div>
+                        </div>
+                        <input type="text" id="roomSearch" class="form-control" placeholder="Search room name or faculty..." style="max-width:500px;margin-left:16px;">
+                    </div>
+                    <div class="d-flex align-items-center pe-2" style="position:relative;">
+                        <button type="button" class="timetable-btn" data-panel="panelSubjectAreaFilter" title="Filter by Subject Area">
+                            <i class="bi bi-funnel"></i>
+                            <span class="timetable-btn-title bold">Subject<br>Area</span>
+                        </button>
+                        <div id="panelSubjectAreaFilter" class="timetable-panel panel-from-right p-3 m-3">
+                            <div class="section-container timetable" style="background-color:#f8f9fa;">
+                                <ul class="list-unstyled mb-0" id="subjectAreaFilterMenu" style="max-height:300px;overflow-y:auto;">
+                                    <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subject Areas</a></li>
+                                    <?php foreach ($allSaNames as $sa): ?>
+                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($sa) ?>"><?= htmlspecialchars($sa) ?></a></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        </div>
+                        <button type="button" class="timetable-btn" data-panel="panelSubjectFilter2" title="Filter by Subject">
+                            <i class="bi bi-funnel"></i>
+                            <span class="timetable-btn-title bold">Subject</span>
+                        </button>
+                        <div id="panelSubjectFilter2" class="timetable-panel panel-from-right p-3 m-3">
+                            <div class="section-container timetable" style="background-color:#f8f9fa;">
+                                <ul class="list-unstyled mb-0" id="subjectFilterMenu2" style="max-height:300px;overflow-y:auto;">
+                                    <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subjects</a></li>
+                                    <?php foreach ($allSubjNames as $subj): ?>
+                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($subj) ?>"><?= htmlspecialchars($subj) ?></a></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="section-heading">All Rooms</div>
 
+                <div class="main-container" style="padding: 1rem; background-color: var(--secondary-color-2);">
                 <div class="rooms-grid" id="roomsGrid">
-                    <?php foreach ($classrooms as $c):
+                    <?php
+                    // Build faculty coverage lookup and filter options
+                    $facultyCov = []; // faculty_id => [ 'sa' => [id=>name], 'subjects' => [id=>name] ]
+                    $allSaNames = [];
+                    $allSubjNames = [];
+                    $covSt = $conn->prepare("
+                        SELECT jfsa.faculty_id, sa.id AS sa_id, sa.name AS sa_name,
+                               jfs.subject_id, sub.name AS subj_name
+                        FROM junction_faculty_subjectarea jfsa
+                        JOIN subject_area sa ON sa.id = jfsa.subject_area_id
+                        LEFT JOIN junction_faculty_subject jfs ON jfs.faculty_id = jfsa.faculty_id
+                        LEFT JOIN subjects sub ON sub.id = jfs.subject_id AND sub.subject_area_id = sa.id
+                        ORDER BY sa.name, sub.name
+                    ");
+                    $covSt->execute();
+                    $covRes = $covSt->get_result();
+                    while ($row = $covRes->fetch_assoc()) {
+                        $fid = (int)$row['faculty_id'];
+                        if (!isset($facultyCov[$fid])) {
+                            $facultyCov[$fid] = ['sa' => [], 'subjects' => []];
+                        }
+                        $facultyCov[$fid]['sa'][(int)$row['sa_id']] = $row['sa_name'];
+                        $allSaNames[$row['sa_name']] = $row['sa_name'];
+                        if (!empty($row['subject_id'])) {
+                            $facultyCov[$fid]['subjects'][(int)$row['subject_id']] = $row['subj_name'];
+                            $allSubjNames[$row['subj_name']] = $row['subj_name'];
+                        }
+                    }
+                    $covSt->close();
+                    sort($allSaNames);
+                    sort($allSubjNames);
+                    foreach ($classrooms as $c):
                         $on         = ($c['light_status'] === 'on');
                         $curSched   = getCurrentSchedule($conn, $c['id']);
                         $isOccupied = !empty($curSched);
                         $fName      = $isOccupied ? $curSched['faculty_name'] : '—';
+                        $fid        = $isOccupied ? (int)$curSched['faculty_id'] : 0;
+                        $cov        = $isOccupied && isset($facultyCov[$fid]) ? $facultyCov[$fid] : null;
+                        $covSaNames = $cov ? implode(',', array_unique(array_values($cov['sa']))) : '';
+                        $covSubjNames = $cov ? implode(',', array_unique(array_values($cov['subjects']))) : '';
 
                         if ($isOccupied) {
                             $accentClass = 'accent-occupied';
@@ -154,18 +245,40 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                             ");
                             $st->bind_param('iss', $c['id'], $day, $time);
                             $st->execute();
-                            $result = $st->get_result();
-                            $next = $result->fetch_assoc();
+                            $next = $st->get_result()->fetch_assoc();
                             $st->close();
-                            if ($next) $nextSched = date('g:i A', strtotime($next['start_time']));
+                            if ($next) {
+                                $nextSched = date('g:i A', strtotime($next['start_time']));
+                            } else {
+                                $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                                $currentDayIndex = array_search($day, $dayOrder);
+                                for ($i = 1; $i <= 7; $i++) {
+                                    $checkDay = $dayOrder[($currentDayIndex + $i) % 7];
+                                    $st = $conn->prepare("
+                                        SELECT start_time FROM schedules 
+                                        WHERE classroom_id = ? 
+                                        AND day_of_week = ?
+                                        ORDER BY start_time 
+                                        LIMIT 1
+                                    ");
+                                    $st->bind_param('is', $c['id'], $checkDay);
+                                    $st->execute();
+                                    $next = $st->get_result()->fetch_assoc();
+                                    $st->close();
+                                    if ($next) {
+                                        $nextSched = date('g:i A', strtotime($next['start_time'])) . ' (' . $checkDay . ')';
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     ?>
-                        <div class="room-card" data-room-id="<?= $c['id'] ?>" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>">
+                        <div class="room-card" data-room-id="<?= $c['id'] ?>" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>" data-sa="<?= htmlspecialchars(strtolower($covSaNames)) ?>" data-subjects="<?= htmlspecialchars(strtolower($covSubjNames)) ?>">
                             <div class="room-card-accent <?= $accentClass ?>"></div>
                             <div class="room-card-body">
                                 <div class="room-card-header">
                                     <div>
-                                        <div class="room-card-name"><?= htmlspecialchars($c['room_name']) ?></div>
+                                        <h2 class="room-card-name"><?= htmlspecialchars($c['room_name']) ?></h2>
                                         <div class="room-card-section">
                                             <?= ucfirst($c['room_size']) ?> room
                                             <?php if (!empty($c['description'])): ?>
@@ -173,64 +286,48 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                             <?php endif; ?>
                                         </div>
                                     </div>
-                                    <div class="d-flex align-items-center room-icons gap-1">
-                                        <button class="btn-icon btn-icon-edit"
-                                            title="Edit"
-                                            onclick="openEditModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')"
-                                            data-bs-toggle="tooltip" 
-                                            data-bs-placement="auto">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn-icon btn-icon-del"
-                                            title="Delete"
-                                            onclick="openDeleteModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>')"
-                                            data-bs-toggle="tooltip" 
-                                            data-bs-placement="auto">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                        <button class="btn-icon btn-icon-view"
-                                            title="Open Dummy Room"
-                                            onclick="window.open('room-light-view.php?room_id=<?= $c['id'] ?>','lightView_<?= $c['id'] ?>_'+Date.now(),'width=500,height=600,scrollbars=0')"
-                                            data-bs-toggle="tooltip" 
-                                            data-bs-placement="auto">
-                                            <i class="bi bi-box-arrow-up-right"></i>
-                                        </button>
-                                        <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
-                                    </div>
+                                    <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
                                 </div>
                                 <hr class="room-card-divider">
-                                <div class="room-info-row">
-                                    <i class="bi bi-person-fill"></i>
-                                    <span class="room-info-label">Faculty:</span>
-                                    <span class="room-info-val"><?= htmlspecialchars($fName) ?></span>
+                                <div class="dept-info-card room-info-row" style="padding: 0.5rem;">
+                                    <p class="d-flex align-items-center gap-2"><i class="bi bi-person-fill"></i> <span class="room-info-label">Faculty:</span> <span class="room-info-val"><?= htmlspecialchars($fName) ?></span></p>
                                 </div>
-                                <div class="room-info-row">
-                                    <i class="bi bi-clock-fill"></i>
-                                    <span class="room-info-label">
-                                        <?= $isOccupied ? 'Time:' : 'Next class:' ?>
-                                    </span>
-                                    <span class="room-info-val">
-                                        <?php if ($isOccupied): ?>
-                                            <?= date('g:i A', strtotime($curSched['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($curSched['end_time'])) ?>
-                                        <?php else: ?>
-                                            <?= $nextSched ?? 'None today' ?>
-                                        <?php endif; ?>
-                                    </span>
+                                <div class="dept-info-card room-info-row" style="padding: 0.5rem;">
+                                    <p class="d-flex align-items-center gap-2"><i class="bi bi-clock-fill"></i> <span class="room-info-label"><?= $isOccupied ? 'Time:' : 'Next class:' ?></span> <span class="room-info-val"><?php if ($isOccupied): ?><?= date('g:i A', strtotime($curSched['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($curSched['end_time'])) ?><?php else: ?><?= $nextSched ?? 'None scheduled' ?><?php endif; ?></span></p>
                                 </div>
-                                <div class="room-info-row">
-                                    <i class="bi bi-lightbulb-fill"></i>
-                                    <span class="room-info-label">Lighting:</span>
-                                    <span>
-                                        <span class="light-dot <?= $on ? 'on' : 'off' ?>"></span>
-                                        <span class="room-info-val"><?= $on ? 'ON' : 'OFF' ?></span>
-                                    </span>
+                                <div class="dept-info-card room-info-row" style="padding: 0.5rem;">
+                                    <p class="d-flex align-items-center gap-2"><i class="bi bi-lightbulb-fill"></i> <span class="room-info-label">Lighting:</span> <span><span class="light-dot <?= $on ? 'on' : 'off' ?>"></span><span class="room-info-val"><?= $on ? 'ON' : 'OFF' ?></span></span></p>
                                 </div>
                             </div>
 
                             <div class="room-card-actions">
-                                <button class="medium"
+                                <div class="d-flex align-items-center room-icons gap-1">
+                                    <button class="btn-icon btn-icon-edit"
+                                        title="Edit"
+                                        onclick="openEditModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')"
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="auto">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-icon btn-icon-del"
+                                        title="Delete"
+                                        onclick="openDeleteModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>')"
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="auto">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <!-- PURPOSEFULLY HIDDEN: Open Dummy Room button for testing 
+                                    <button class="btn-icon btn-icon-view"
+                                        title="Open Dummy Room"
+                                        onclick="window.open('room-light-view.php?room_id=<?= $c['id'] ?>','lightView_<?= $c['id'] ?>_'+Date.now(),'width=500,height=600,scrollbars=0')"
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="auto">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </button> -->
+                                </div>
+                                <button class="light"
                                     onclick="openRoomModal(<?= $c['id'] ?>, '<?= addslashes($c['room_name']) ?>', '<?= $c['room_size'] ?>', '<?= addslashes($c['description']) ?>')">
-                                    View
+                                    Inspect
                                 </button>
                                 <!-- <button class="light"
                                     onclick="dissolve('admin-timetable-manage.php?room=<?= urlencode($c['room_name']) ?>')">
@@ -248,6 +345,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                     </div>
 
                 </div><!-- /rooms-grid -->
+            </div><!-- /main-container -->
             </div><!-- /page-content -->
             <?php $conn->close(); ?>
 
@@ -588,9 +686,12 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                 timeVal.textContent = st && et ? st + ' \u2013 ' + et : '\u2014';
                             } else {
                                 timeLabel.textContent = 'Next class:';
-                                timeVal.textContent = next && next.start_time
-                                    ? new Date('2000-01-01T' + next.start_time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})
-                                    : 'None today';
+                                if (next && next.start_time) {
+                                    var t = new Date('2000-01-01T' + next.start_time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+                                    timeVal.textContent = next.day_name ? t + ' (' + next.day_name + ')' : t;
+                                } else {
+                                    timeVal.textContent = 'None scheduled';
+                                }
                             }
                         }
                     });
@@ -641,12 +742,13 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 </div>
             </div>`;
             } else if (data.next_schedule) {
+                const dayLabel = data.next_schedule.day_name ? ' (' + data.next_schedule.day_name + ')' : ' today';
                 schedEl.innerHTML = `
             <div style="font-size:.85rem;">
                 <span style="background:#fff5d6;color:#a06800;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">
                     SCHEDULED
                 </span>
-                <p class="text-muted mt-2 mb-0">No active class right now. Next class today:</p>
+                <p class="text-muted mt-2 mb-0">No active class right now. Next class${dayLabel}:</p>
                 <p class="bold mb-0 mt-1">${data.next_schedule.start_time} – ${data.next_schedule.end_time}</p>
                 <small class="text-muted">${data.next_schedule.faculty_name}</small>
             </div>`;
@@ -835,22 +937,97 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 roomPollInterval = null;
             });
 
-            // Search filter
-            const roomSearchEl = document.getElementById('roomSearch');
-            if (roomSearchEl) {
-                roomSearchEl.addEventListener('input', function() {
-                    const q = this.value.toLowerCase();
-                    document.querySelectorAll('.room-card').forEach(card => {
-                        card.style.display = card.dataset.room.includes(q) ? '' : 'none';
-                    });
-                });
-            }
-
             // Poll all rooms' data (lighting + schedule) every 15 seconds
             pollAllRoomData();
             setInterval(pollAllRoomData, 15000);
+
+            // ── Combined filter logic ──
+            function applyFilters() {
+                var saVal = (document.querySelector('#subjectAreaFilterMenu .filter-option.active') || {}).dataset?.value || '';
+                var subjVal = (document.querySelector('#subjectFilterMenu2 .filter-option.active') || {}).dataset?.value || '';
+                var searchVal = (document.getElementById('roomSearch') || {}).value || '';
+                searchVal = searchVal.toLowerCase();
+                document.querySelectorAll('.room-card').forEach(function(card) {
+                    var show = true;
+                    if (saVal) {
+                        show = show && (card.dataset.sa || '').toLowerCase().includes(saVal.toLowerCase());
+                    }
+                    if (subjVal) {
+                        show = show && (card.dataset.subjects || '').toLowerCase().includes(subjVal.toLowerCase());
+                    }
+                    if (searchVal) {
+                        var roomMatch = (card.dataset.room || '').includes(searchVal);
+                        var facultyEl = card.querySelector('.dept-info-card .room-info-val');
+                        var facultyMatch = facultyEl ? facultyEl.textContent.toLowerCase().includes(searchVal) : false;
+                        show = show && (roomMatch || facultyMatch);
+                    }
+                    card.style.display = show ? '' : 'none';
+                });
+            }
+
+            document.querySelectorAll('#subjectAreaFilterMenu .filter-option, #subjectFilterMenu2 .filter-option').forEach(function(opt) {
+                opt.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var parent = this.closest('ul');
+                    parent.querySelectorAll('.filter-option').forEach(function(o) { o.classList.remove('active'); });
+                    this.classList.add('active');
+                    applyFilters();
+                });
+            });
+
+            var roomSearchEl = document.getElementById('roomSearch');
+            if (roomSearchEl) {
+                roomSearchEl.addEventListener('input', applyFilters);
+            }
+
+            // ── Timetable-panel toggle (hover/focus open, mouseleave close with delay) ──
+            (function() {
+                var panels = ['panelGuideInfo', 'panelSubjectAreaFilter', 'panelSubjectFilter2'];
+                var timers = {};
+                panels.forEach(function(id) {
+                    var btn = document.querySelector('[data-panel="' + id + '"]');
+                    var panel = document.getElementById(id);
+                    if (!btn || !panel) return;
+                    timers[id] = null;
+                    function open() {
+                        if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
+                        panel.classList.add('show');
+                    }
+                    function close() {
+                        if (timers[id]) clearTimeout(timers[id]);
+                        timers[id] = setTimeout(function() { panel.classList.remove('show'); }, 150);
+                    }
+                    btn.addEventListener('mouseenter', open);
+                    btn.addEventListener('focus', open);
+                    panel.addEventListener('mouseenter', open);
+                    panel.addEventListener('mouseleave', close);
+                    btn.addEventListener('mouseleave', close);
+                });
+            })();
+        });
+
+        // ── Scroll-to-hide topbar & sidebar ──
+        window.addEventListener('scroll', function() {
+            var scrollThreshold = 100;
+            var nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - scrollThreshold;
+            document.querySelectorAll('.topbar-greeting, .topbar-user-info').forEach(function(el) {
+                el.classList.toggle('hidden', nearBottom);
+            });
+
         });
     </script>
+
+    <style>
+        .topbar-greeting,
+        .topbar-user-info {
+            transition: opacity 0.3s ease;
+        }
+        .topbar-greeting.hidden,
+        .topbar-user-info.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
 </body>
 
 </html>

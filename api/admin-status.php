@@ -31,10 +31,45 @@ $total_rooms = $conn->query("
     SELECT COUNT(*) AS c FROM classrooms
 ")->fetch_assoc()['c'];
 
+// ── Departments ───────────────────────────────────────────────────────────
+$departments = [];
+$r = $conn->query("
+    SELECT d.id, d.name, d.status,
+           CONCAT(h.first_name,' ',h.last_name) AS head_name
+    FROM departments d
+    LEFT JOIN faculty h ON h.id = d.head_faculty_id
+    WHERE d.status IN ('active','pending')
+    ORDER BY d.name
+");
+while ($row = $r->fetch_assoc()) {
+    $did = (int)$row['id'];
+    $row['subject_areas'] = [];
+    $sa_res = $conn->query("SELECT name FROM subject_area WHERE department_id = $did ORDER BY name");
+    if ($sa_res) while ($sa = $sa_res->fetch_assoc()) $row['subject_areas'][] = $sa['name'];
+    $row['subjects'] = [];
+    $subj_res = $conn->query("SELECT DISTINCT s.name FROM subjects s JOIN subject_area sa ON sa.subject_id = s.id WHERE sa.department_id = $did ORDER BY s.name");
+    if ($subj_res) while ($s = $subj_res->fetch_assoc()) $row['subjects'][] = $s['name'];
+    $row['member_count'] = 0;
+    $mc_res = $conn->query("SELECT COUNT(*) AS c FROM junction_faculty_department WHERE department_id = $did");
+    if ($mc_res) $row['member_count'] = (int)$mc_res->fetch_assoc()['c'];
+    $departments[] = $row;
+}
+
+// ── Faculty Members ───────────────────────────────────────────────────────
+$faculty_members = [];
+$r = $conn->query("
+    SELECT f.first_name, f.last_name,
+           COALESCE(DATE(f.approved_at), DATE(f.created_at)) AS date_shown
+    FROM faculty f
+    WHERE f.is_verified = 1
+    ORDER BY f.last_name, f.first_name
+");
+while ($row = $r->fetch_assoc()) $faculty_members[] = $row;
+
 // ── Classrooms ────────────────────────────────────────────────────────────
 $classrooms = [];
 $r = $conn->query("
-    SELECT id, room_name, room_size, light_status
+    SELECT id, room_name, room_size, description, light_status
     FROM classrooms ORDER BY room_name
 ");
 while ($row = $r->fetch_assoc()) $classrooms[] = $row;
@@ -89,11 +124,13 @@ usort($logs, fn($a, $b) => strtotime($b['event_time']) - strtotime($a['event_tim
 $logs = array_slice($logs, 0, 10);
 
 echo json_encode([
-    'success'     => true,
-    'pending'     => (int)$pending,
-    'ext_pending' => (int)$ext_pending,
-    'lights_on'   => (int)$lights_on,
-    'total_rooms' => (int)$total_rooms,
-    'classrooms'  => $classrooms,
-    'logs'        => $logs,
+    'success'        => true,
+    'pending'        => (int)$pending,
+    'ext_pending'    => (int)$ext_pending,
+    'lights_on'      => (int)$lights_on,
+    'total_rooms'    => (int)$total_rooms,
+    'classrooms'     => $classrooms,
+    'departments'    => $departments,
+    'faculty_members'=> $faculty_members,
+    'logs'           => $logs,
 ]);

@@ -246,6 +246,7 @@
 .main-container.faculty-timetable-heading {
     display: flex;
     padding: 0.5rem;
+    margin: 0 !important;
 
     .group-container:first-child {
         flex: 2;
@@ -329,7 +330,6 @@
     box-shadow: 0 28px 80px rgba(0, 0, 0, 0.17);
     padding: 2rem;
     width: auto;
-    margin: 0px 1.5rem;
 }
 
 .access-icon {
@@ -487,6 +487,7 @@
     height: auto;
     /* was 100% — this caused overflow growth */
     width: 100%;
+    overflow: hidden;
 }
 
 .subsection-container {
@@ -537,6 +538,11 @@
 
 .section-topbar {
     padding: 10px 15px 10px 0px;
+}
+
+.section-topbar h2 {
+    font-size: 20px;
+    color: var(--secondary-color-1);
 }
 
 .fit-width.section-container {

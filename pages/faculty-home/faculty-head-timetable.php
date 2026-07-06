@@ -236,12 +236,12 @@ $conn->close();
                             </ol>
                         </div>
                     </div>
-                    <input type="text" id="deptSearch" class="form-control" placeholder="Search departments..." style="max-width:500px;margin-left:16px;">
+                    <input type="text" id="deptSearch" class="form-control" placeholder="Search departments or faculty..." style="max-width:500px;margin-left:16px;">
                 </div>
                 <div class="d-flex align-items-center pe-2" style="position:relative;">
                     <button type="button" class="timetable-btn" data-panel="panelCoverageFilter" title="Filter by Coverage">
                         <i class="bi bi-funnel"></i>
-                        <span class="timetable-btn-title bold">Coverage</span>
+                        <span class="timetable-btn-title bold">Subject<br>Area</span>
                     </button>
                     <div id="panelCoverageFilter" class="timetable-panel panel-from-right p-3 m-3">
                         <div class="section-container timetable" style="background-color:#f8f9fa;">
@@ -379,9 +379,9 @@ $conn->close();
                                         ?>
                                             <div class="section-container head-timetable faculty-member-card p-2 mb-1" style="border-left: 5px solid var(--secondary-color-4);">
                                                 <div class="faculty-member-container">
-                                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                                    <div class="d-flex flex-column gap-1">
                                                         <div class="faculty-name"><i class="bi bi-person me-1"></i><?= htmlspecialchars($member['full_name']) ?></div>
-                                                        <div class="faculty-subject-area d-flex flex-wrap gap-1" id="area-label-<?= (int)$member['id'] ?>">
+                                                        <div class="faculty-subject-area d-flex flex-wrap" id="area-label-<?= (int)$member['id'] ?>">
                                                             <?php if (!empty($sa_names)): foreach ($sa_names as $sname): ?>
                                                                     <span class="dept-subject-area bold dept-emphases align-self-start"><?= htmlspecialchars(trim($sname)) ?></span>
                                                                 <?php endforeach;
@@ -1696,8 +1696,12 @@ $conn->close();
         function applyFilters() {
             var q = document.getElementById('deptSearch').value.toLowerCase().trim();
             document.querySelectorAll('#deptGrid > .section-container').forEach(function(card) {
-                var name = card.querySelector('h2.bold').textContent.toLowerCase();
-                var show = name.includes(q);
+                var deptName = card.querySelector('h2.bold').textContent.toLowerCase();
+                var hasFacultyMatch = false;
+                card.querySelectorAll('.faculty-name').forEach(function(fn) {
+                    if (fn.textContent.toLowerCase().includes(q)) hasFacultyMatch = true;
+                });
+                var show = deptName.includes(q) || hasFacultyMatch;
 
                 if (show && activeCoverage) {
                     var saSpans = card.querySelectorAll('.dept-subject-area');

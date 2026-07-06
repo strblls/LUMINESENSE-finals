@@ -131,6 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/containers.css">
     <link rel="stylesheet" href="../css/registration.css">
+    <link rel="stylesheet" href="../css/admin-common.css">
+    <link rel="stylesheet" href="../css/faculty-settings.css">
+    <link rel="stylesheet" href="../css/modals.css">
 
     <title>Verify Email – LumineSense</title>
 
@@ -186,12 +189,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <h4 class="pb-2 semibold">Verify Your Email</h4>
 
-        <!-- Role badge -->
-        <p class="text-center mb-1">
-            <span class="badge <?= $role === 'admin' ? 'bg-danger' : 'bg-primary' ?>">
-                <?= ucfirst($role) ?> Account
+        <!-- Role badge (topbar style) -->
+        <div class="text-center mb-3">
+            <span class="bold status-badge <?= $role === 'admin' ? 'admin' : 'faculty-member' ?>">
+                <?= ucfirst($role) ?>
             </span>
-        </p>
+        </div>
 
         <p class="email-hint">
             A 6-digit code was sent to <strong><?= htmlspecialchars($email) ?></strong>.<br>
@@ -240,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="submit-container mt-3">
-                    <button class="medium w-100" type="submit" id="verify-btn" disabled>
+                    <button class="medium w-100" type="submit" id="verify-btn">
                         VERIFY
                     </button>
                 </div>
@@ -249,11 +252,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
+<!-- Empty fields warning modal -->
+<div class="modal fade" id="emptyOtpModal" tabindex="-1" aria-hidden="true">
+    <div class="room-details-modal modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Incomplete Code</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;color:var(--accent-yellow);"></i>
+                <p class="mt-3 mb-0">Please fill in all 6 digits before verifying.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="light" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 /* ── Auto-advance & backspace for OTP boxes ─────────────────────────── */
 const digits  = Array.from(document.querySelectorAll('.otp-digit'));
 const hidden  = document.getElementById('otp-hidden');
-const btn     = document.getElementById('verify-btn');
 
 digits.forEach((box, i) => {
     box.addEventListener('input', e => {
@@ -283,8 +304,16 @@ digits.forEach((box, i) => {
 function syncHidden() {
     const code = digits.map(d => d.value).join('');
     hidden.value = code;
-    btn.disabled = code.length < 6;
 }
+
+/* ── Validate on submit ─────────────────────────────────────────────── */
+document.getElementById('otp-form').addEventListener('submit', function(e) {
+    syncHidden();
+    if (hidden.value.length < 6) {
+        e.preventDefault();
+        new bootstrap.Modal(document.getElementById('emptyOtpModal')).show();
+    }
+});
 
 /* ── Countdown timer (15 min = 900 s) ──────────────────────────────── */
 let remaining = 900;
@@ -296,16 +325,12 @@ const timer = setInterval(() => {
         clearInterval(timer);
         display.textContent = 'Expired';
         display.style.color = '#e74c3c';
-        btn.disabled = true;
         return;
     }
     const m = String(Math.floor(remaining / 60)).padStart(2, '0');
     const s = String(remaining % 60).padStart(2, '0');
     display.textContent = `${m}:${s}`;
 }, 1000);
-
-/* ── Combine digits before submit ───────────────────────────────────── */
-document.getElementById('otp-form').addEventListener('submit', syncHidden);
 </script>
 </body>
 </html>

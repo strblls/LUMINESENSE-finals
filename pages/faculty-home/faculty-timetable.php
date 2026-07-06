@@ -123,24 +123,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['schedule_id'])) {
         $r = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'grace_minutes'");
         $grace_minutes = $r && $row = $r->fetch_assoc() ? (int)$row['setting_value'] : 0;
 
-        if ($grace_minutes > 0 && $sched_day === $today_dow) {
-            $now_time = date('H:i:s');
-
+        if ($grace_minutes > 0) {
+            $today = date('l');
             $stmt = $conn->prepare("
-                SELECT COALESCE(extended_until, end_time) AS end_time, classroom_id
+                SELECT COALESCE(extended_until, end_time) AS current_end, classroom_id
                 FROM schedules
-                WHERE id = ?
-                  AND start_time <= ?
-                  AND COALESCE(extended_until, end_time) >= ?
-                  AND TIME_TO_SEC(TIMEDIFF(COALESCE(extended_until, end_time), ?)) / 60 <= ?
+                WHERE id = ? AND day_of_week = ?
             ");
-            $stmt->bind_param('isssi', $schedule_id, $now_time, $now_time, $now_time, $grace_minutes);
+            $stmt->bind_param('is', $schedule_id, $today);
             $stmt->execute();
-            $sched = $stmt->get_result()->fetch_assoc();
+            $stmt->bind_result($current_end, $classroom_id);
+            $found = $stmt->fetch();
             $stmt->close();
 
-            if ($sched) {
-                $new_end = date('H:i:s', strtotime($sched['end_time']) + ($extend_mins * 60));
+            if ($found) {
+                $new_end = date('H:i:s', strtotime($current_end) + ($extend_mins * 60));
 
                 $upd = $conn->prepare("UPDATE extension_requests SET status = 'approved', reviewed_at = NOW() WHERE id = ?");
                 $upd->bind_param('i', $inserted_id);
@@ -154,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['schedule_id'])) {
 
                 $checkCol = $conn->query("SHOW COLUMNS FROM classrooms LIKE 'schedule_dirty'");
                 if ($checkCol && $checkCol->num_rows > 0) {
-                    $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = {$sched['classroom_id']}");
+                    $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = {$classroom_id}");
                 }
 
                 $auto_approved = true;
@@ -254,7 +251,7 @@ $r = $conn->query("
     WHERE s.faculty_id = $fid
       AND s.day_of_week = '$today_e'
       AND s.start_time <= '$now_e'
-      AND (s.extended_until >= '$now_e' OR (s.extended_until IS NULL AND s.end_time >= '$now_e'))
+      AND (s.extended_until >= '$now_e' OR s.end_time >= '$now_e')
     ORDER BY s.start_time
     LIMIT 1
 ");
@@ -265,8 +262,7 @@ $active_schedule_end = $active_schedule ? ($active_schedule['extended_until'] ??
 $current_class = null;
 $next_class = null;
 foreach ($schedule_by_day[$today] as $slot) {
-    $slot_end = $slot['extended_until'] ?? $slot['end_time'];
-    if ($slot['start_time'] <= $now && $slot_end >= $now) {
+    if ($slot['start_time'] <= $now && $slot['end_time'] >= $now) {
         $current_class = $slot;
     } elseif ($slot['start_time'] > $now && $next_class === null) {
         $next_class = $slot;
@@ -423,6 +419,7 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!--External links-->
+    <link rel="stylesheet" href="https://cloudflare.com">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
@@ -462,7 +459,7 @@ $conn->close();
                         </button>
                         <button type="button" class="timetable-btn" data-panel="panelClassDetails" title="Class Details">
                             <span class="timetable-btn-title bold">Class<br>Details</span>
-                            <i class="bi bi-info-circle me-2"></i>
+                            <i class="bi bi bi-easel me-2"></i>
                             <span class="notif-dot"></span>
                         </button>
                         <button type="button" class="timetable-btn" data-panel="panelExtRequests" title="Extension Requests">
@@ -474,8 +471,12 @@ $conn->close();
                     <div class="d-flex gap-2" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);">
                         <button type="button" class="timetable-btn" data-panel="panelCoverage" title="Coverage Details">
                             <span class="timetable-btn-title bold">Your<br>Coverage</span>
-                            <i class="bi bi-layout-three-columns me-2"></i>
+                            <i class="bi bi-briefcase me-2"></i>
                             <span class="notif-dot"></span>
+                        </button>
+                        <button type="button" class="timetable-btn" data-panel="panelInfo" title="Schedule Info">
+                            <span class="timetable-btn-title bold">Schedule<br>Info</span>
+                            <i class="bi bi-info-circle me-2"></i>
                         </button>
                         <button type="button" class="timetable-btn" id="exportPdfBtn" title="Export PDF" data-bs-toggle="tooltip" data-bs-placement="auto">
                             <span class="timetable-btn-title bold">Export<br>PDF</span>
@@ -512,19 +513,18 @@ $conn->close();
                                         <?php
                                         $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
                                         ?>
-                                        <h1 class="bold display-1 p-2" style="color: var(--muted-white);" id="timerDisplay" data-end="<?= htmlspecialchars($end) ?>">
+                                        <h1 class="bold display-1 p-2" style="color: var(--secondary-color-2);" id="timerDisplay" data-end="<?= htmlspecialchars($end) ?>">
                                             --:--:--
                                         </h1>
                                     <?php else: ?>
-                                        <h1 class="bold display-1 p-2" style="font-size: 5rem; color: var(--muted-white);" id="timerDisplay">00:00:00</h1>
+                                        <h1 class="bold display-1 p-2" style="font-size: 5rem; color: var(--secondary-color-2);" id="timerDisplay">00:00:00</h1>
                                     <?php endif; ?>
                                 </div>
                                 <div class="d-flex flex-row mx-2 align-items-end justify-content-center">
                                     <?php if ($active_schedule): ?>
                                         <?php
-                                        $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
                                         $start_12h = date('g:i A', strtotime($active_schedule['start_time']));
-                                        $end_12h = date('g:i A', strtotime($end));
+                                        $end_12h = date('g:i A', strtotime($active_schedule['end_time']));
                                         ?>
                                         <button class="light" style="width:auto;" onclick="requestExtend(<?= $active_schedule['id'] ?>, '<?= htmlspecialchars($active_schedule['room_name']) ?>', '<?= $start_12h ?>', '<?= $end_12h ?>')">
                                             <i class="bi bi-clock-history me-1"></i> Extend
@@ -546,32 +546,28 @@ $conn->close();
                         <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
                             <div class="section-topbar d-flex flex-column mx-2 justify-content-between">
                                 <div>
-                                    <h2 class="bold"><i class="bi bi-info-circle me-1"></i>Class Details</h2>
+                                    <h2 class="bold"><i class="bi bi-easel me-1"></i>Class Details</h2>
                                 </div>
                                 <div class="d-flex mx-2 align-items-center justify-content-end">
                                 </div>
                             </div>
                             <div class="d-flex flex-row mx-1 gap-3 align-items-center justify-content-center mb-3">
-                                <?php if ($current_class):
-                                    $cc_end = $current_class['extended_until'] ?? $current_class['end_time'];
-                                ?>
+                                <?php if ($current_class): ?>
                                     <div class="subsection-container p-3">
-                                        <h2 class="bold text-uppercase" style="color: #fff;">Current</h2>
-                                        <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($current_class['start_time'])) ?> – <?= date('g:i A', strtotime($cc_end)) ?></h2>
-                                        <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($current_class['room_name']) ?></h2>
-                                        <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($current_class['subject_name'] ?? 'N/A') ?></h2>
+                                        <h2 class="bold text-uppercase" style="color: var(--secondary-color-1);">Current</h2>
+                                        <h2 class="medium fs-6" style="color: var(--secondary-color-1);"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($current_class['start_time'])) ?> – <?= date('g:i A', strtotime($current_class['end_time'])) ?></h2>
+                                        <h2 class="medium fs-6" style="color: var(--secondary-color-1);"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($current_class['room_name']) ?></h2>
+                                        <h2 class="medium fs-6" style="color: var(--secondary-color-1);"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($current_class['subject_name'] ?? 'N/A') ?></h2>
                                     </div>
                                 <?php elseif (!$current_class && !$next_class): ?>
                                     <div class="d-flex align-items-center justify-content-center w-100">
                                         <p class="text-muted text-center my-2">No classes scheduled for today.</p>
                                     </div>
                                 <?php endif; ?>
-                                <?php if ($next_class):
-                                    $nc_end = $next_class['extended_until'] ?? $next_class['end_time'];
-                                ?>
+                                <?php if ($next_class): ?>
                                     <div>
                                         <h2 class="bold text-uppercase" style="font-size: 14px;">Next</h2>
-                                        <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($next_class['start_time'])) ?> – <?= date('g:i A', strtotime($nc_end)) ?></h2>
+                                        <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($next_class['start_time'])) ?> – <?= date('g:i A', strtotime($next_class['end_time'])) ?></h2>
                                         <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($next_class['room_name']) ?></h2>
                                         <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($next_class['subject_name'] ?? 'N/A') ?></h2>
                                     </div>
@@ -601,7 +597,7 @@ $conn->close();
                                         <div class="dept-info-card d-flex flex-row align-items-center justify-content-between gap-2 p-2">
                                             <div class="d-flex flex-column small flex-grow-1">
                                                 <span><strong><?= htmlspecialchars($er['room_name']) ?></strong> · <?= htmlspecialchars($er['subject_name'] ?? 'No subject') ?></span>
-                                                <span class="text-muted"><?= htmlspecialchars($er['day_of_week']) ?> · <?= date('g:i A', strtotime($er['start_time'])) ?> - <?= date('g:i A', strtotime($er['extended_until'] ?? $er['end_time'])) ?></span>
+                                                <span class="text-muted"><?= htmlspecialchars($er['day_of_week']) ?> · <?= date('g:i A', strtotime($er['start_time'])) ?> - <?= date('g:i A', strtotime($er['end_time'])) ?></span>
                                                 <span class="text-muted">+<?= (int)$er['extend_mins'] ?> min · Status:
                                                     <span class="fw-bold <?= $er['status'] === 'approved' ? 'text-success' : ($er['status'] === 'rejected' ? 'text-danger' : 'text-warning') ?>">
                                                         <?= ucfirst($er['status']) ?>
@@ -636,7 +632,7 @@ $conn->close();
                         <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
                             <div class="section-topbar mx-2 justify-content-between">
                                 <div>
-                                    <h2 class="bold"><i class="bi bi-layout-three-columns me-1"></i>Assigned Coverage</h2>
+                                    <h2 class="bold"><i class="bi bi-briefcase me-1"></i>Assigned Coverage</h2>
                                 </div>
                             </div>
                             <div class="d-flex flex-column p-2 gap-2" style="max-height:25vh;overflow-y:auto;">
@@ -665,6 +661,31 @@ $conn->close();
                                 <?php else: ?>
                                     <span class="text-muted">No subject areas assigned.</span>
                                 <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Info panel -->
+                    <div id="panelInfo" class="timetable-panel panel-from-right p-3 m-3">
+                        <div style="background-color: #f8f9fa;" class="section-container timetable mb-3">
+                            <div class="section-topbar mx-2 justify-content-between">
+                                <div>
+                                    <h2 class="bold"><i class="bi bi-info-circle me-1"></i>Schedule Info</h2>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column p-3 gap-2">
+                                <div class="dept-info-card mb-0 p-2">
+                                    <div class="small text-muted">Prepared by</div>
+                                    <div><span class="status-badge faculty-head bold">Faculty Head</span> <strong><?= !empty($edited_by_name) ? htmlspecialchars($edited_by_name) : htmlspecialchars($head_name) ?></strong></div>
+                                </div>
+                                <div class="dept-info-card mb-0 p-2">
+                                    <div class="small text-muted">Last Edited</div>
+                                    <div><strong><?= $last_edited ? date('F j, Y (g:i A)', strtotime($last_edited)) : 'No schedules yet' ?></strong></div>
+                                </div>
+                                <div class="dept-info-card mb-0 p-2">
+                                    <div class="small text-muted">Current Department</div>
+                                    <div><strong><?= htmlspecialchars($dept_name) ?></strong></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -711,15 +732,15 @@ $conn->close();
                                 <?php if (empty($slots)): ?>
                                     <p class="no-sched">No classes scheduled.</p>
                                     <?php else: foreach ($slots as $slot):
-                                        $start    = date('g:i A', strtotime($slot['start_time']));
-                                        $end_time = $slot['extended_until'] ?? $slot['end_time'];
-                                        $end      = date('g:i A', strtotime($end_time));
-                                        $ext      = $slot['extended_until']
+                                        $start     = date('g:i A', strtotime($slot['start_time']));
+                                        $end       = date('g:i A', strtotime($slot['extended_until'] ?? $slot['end_time']));
+                                        $modal_end = date('g:i A', strtotime($slot['end_time']));
+                                        $ext       = $slot['extended_until']
                                             ? date('g:i A', strtotime($slot['extended_until']))
                                             : null;
                                         $ext_status = $slot['ext_status'];
                                     ?>
-                                        <div class="slot-row">
+                                        <div class="slot-row" data-slot-id="<?= $slot['id'] ?>">
                                             <div class="slot-time">
                                                 <?php
                                                 $start_parts = explode(' ', $start);
@@ -766,9 +787,9 @@ $conn->close();
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <?php if ($is_today): ?>
-                                                        <button class="extend-icon-btn"
-                                                            onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
-                                                            title="Request Another Extension"
+                                                         <button class="extend-icon-btn"
+                                                             onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $modal_end ?>')"
+                                                             title="Request Another Extension"
                                                             data-bs-toggle="tooltip"
                                                             data-bs-placement="auto">
                                                             <i class="bi bi-clock-history"></i>
@@ -788,8 +809,8 @@ $conn->close();
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <button class="extend-icon-btn"
-                                                        onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
-                                                        title="Re-request Extension"
+                                                         onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $modal_end ?>')"
+                                                         title="Re-request Extension"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-placement="auto">
                                                         <i class="bi bi-clock-history"></i>
@@ -808,8 +829,8 @@ $conn->close();
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <button class="extend-icon-btn"
-                                                        onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $end ?>')"
-                                                        title="Request Extension"
+                                                         onclick="requestExtend(<?= $slot['id'] ?>, '<?= $slot['room_name'] ?>', '<?= $start ?>', '<?= $modal_end ?>')"
+                                                         title="Request Extension"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-placement="auto">
                                                         <i class="bi bi-clock-history"></i>
@@ -1261,6 +1282,58 @@ $conn->close();
             }
         });
 
+        // Handle confirm button — AJAX submit instead of form POST
+        document.getElementById('confirmExtendBtn').addEventListener('click', async function() {
+            const btn = this;
+            const schedId = document.getElementById('extend-schedule-id').value;
+            const mins = document.getElementById('extend-mins-val').value;
+            const editId = document.getElementById('extend-edit-id').value;
+
+            const form = new FormData();
+            form.append('schedule_id', schedId);
+            form.append('extend_mins', mins);
+            if (editId) form.append('edit_ext_request', editId);
+
+            btn.disabled = true;
+            btn.textContent = 'Sending…';
+
+            try {
+                const res = await fetch('../../api/request-extension.php', { method: 'POST', body: form });
+                const data = await res.json();
+                if (data.success) {
+                    // Close confirm modal
+                    if (confirmExtendModal) confirmExtendModal.hide();
+                    // Close extend modal
+                    if (extendModal) extendModal.hide();
+                    // Show toast
+                    showToast(data.message, 'success');
+                    // If auto-approved, update timer and time slot
+                    if (data.auto_approved && data.extended_until) {
+                        if (typeof window._updateScheduleEnd === 'function') {
+                            window._updateScheduleEnd(data.extended_until);
+                        }
+                        // Update the time slot display in the grid
+                        var slotRow = document.querySelector('.slot-row[data-slot-id="' + schedId + '"]');
+                        if (slotRow && data.extended_until_formatted) {
+                            var endParts = data.extended_until_formatted.split(' ');
+                            var endTime = endParts[0];
+                            var endAmpm = endParts[1] || '';
+                            var timeEnd = slotRow.querySelector('.slot-time-end');
+                            var timeAmpm = slotRow.querySelector('.slot-time-ampm');
+                            if (timeEnd) timeEnd.textContent = endTime;
+                            if (timeAmpm) timeAmpm.textContent = endAmpm;
+                        }
+                    }
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch {
+                showToast('Network error. Please try again.', 'error');
+            }
+            btn.disabled = false;
+            btn.textContent = 'Confirm';
+        });
+
         // Clear edit state when modal is hidden
         extendModalEl.addEventListener('hidden.bs.modal', () => {
             currentScheduleId = null;
@@ -1290,9 +1363,15 @@ $conn->close();
                 } else if (diff <= 1800) {
                     display.style.color = '#ff8c00';
                 } else {
-                    display.style.color = '#ffffff';
+                    display.style.color = 'var(--secondary-color-2)';
                 }
             }
+
+            window._updateScheduleEnd = function(newEnd) {
+                _scheduleEnd = newEnd;
+                if (display) display.dataset.end = newEnd;
+                window._tickTimer();
+            };
 
             window._tickTimer = function() {
                 if (!display) return;
@@ -1385,7 +1464,7 @@ $conn->close();
                 </div>
                 <div class="modal-footer d-flex flex-row flex-nowrap justify-content-between gap-2">
                     <button type="button" class="light bold w-100" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="medium w-100" id="confirmExtendBtn" onclick="document.getElementById('extend-form').submit();">Confirm</button>
+                    <button type="button" class="medium w-100" id="confirmExtendBtn">Confirm</button>
                 </div>
             </div>
         </div>
@@ -1570,7 +1649,7 @@ $conn->close();
 
     <script>
         (function() {
-            const panels = ['panelTimeLeft', 'panelClassDetails', 'panelExtRequests', 'panelCoverage'];
+            const panels = ['panelTimeLeft', 'panelClassDetails', 'panelExtRequests', 'panelCoverage', 'panelInfo'];
             const timers = {};
 
             panels.forEach(id => {
@@ -1623,6 +1702,57 @@ $conn->close();
             form.submit();
             document.body.removeChild(form);
         });
+    </script>
+
+    <style>
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast-notification {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 14px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            font-size: 14px;
+            max-width: 380px;
+            animation: slideInRight .3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .toast-notification.success { border-left: 4px solid #2ecc71; }
+        .toast-notification.error { border-left: 4px solid #e74c3c; }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+    function showToast(message, type) {
+        type = type || 'success';
+        var container = document.getElementById('toastContainer');
+        if (!container) return;
+        var toast = document.createElement('div');
+        toast.className = 'toast-notification ' + type;
+        toast.innerHTML = (type === 'success' ? '✅ ' : '⚠️ ') + message;
+        container.appendChild(toast);
+        setTimeout(function() {
+            toast.style.transition = 'opacity .5s';
+            toast.style.opacity = '0';
+            setTimeout(function() { toast.remove(); }, 500);
+        }, 5000);
+    }
     </script>
 
 </body>

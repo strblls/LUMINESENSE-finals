@@ -33,7 +33,7 @@ $r = $conn->query("
     WHERE s.faculty_id = $fid
       AND s.day_of_week = '$today_e'
       AND s.start_time <= '$now_e'
-      AND (s.extended_until >= '$now_e' OR (s.extended_until IS NULL AND s.end_time >= '$now_e'))
+      AND (s.extended_until >= '$now_e' OR s.end_time >= '$now_e')
     ORDER BY s.start_time
     LIMIT 1
 ");
@@ -408,11 +408,11 @@ $lighting_blocked = $lighting_reason !== null;
                                     <?php
                                     $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
                                     ?>
-                                    <h1 class="bold display-1 p-2" id="timerDisplay" style="color: var(--muted-white);" data-end="<?= htmlspecialchars($end) ?>" >
+                                    <h1 class="bold display-1 p-2" id="timerDisplay" style="color: var(--secondary-color-2);" data-end="<?= htmlspecialchars($end) ?>" >
                                         --:--:--
                                     </h1>
                                 <?php else: ?>
-                                    <h1 class="bold display-1 p-2" id="timerDisplay" style="color: var(--muted-white);">00:00:00</h1>
+                                    <h1 class="bold display-1 p-2" id="timerDisplay" style="color: var(--secondary-color-2);">00:00:00</h1>
                                 <?php endif; ?>
                             </div>
                             <div class="d-flex flex-row mx-2 align-items-center justify-content-center gap-2">
@@ -761,9 +761,16 @@ $lighting_blocked = $lighting_reason !== null;
                 } else if (diff <= 1800) {
                     display.style.color = '#ff8c00';
                 } else {
-                    display.style.color = '#ffffff';
+                    display.style.color = 'var(--secondary-color-2)';
                 }
             }
+
+            window._updateScheduleEnd = function(newEnd) {
+                _scheduleEnd = newEnd;
+                if (display) display.dataset.end = newEnd;
+                if (HAS_ACTIVE_SCHEDULE) unlockControls();
+                window._tickTimer();
+            };
 
             window._tickTimer = function() {
                 if (!display) return;
@@ -1351,7 +1358,7 @@ $lighting_blocked = $lighting_reason !== null;
                     <div class="modal-body">
                         <p class="text-muted small mb-3">
                             Current class ends at
-                            <strong><?= date('g:i A', strtotime($active_schedule['extended_until'] ?? $active_schedule['end_time'])) ?></strong>.
+                            <strong id="current-class-end"><?= date('g:i A', strtotime($active_schedule['end_time'])) ?></strong>.
                             How many extra minutes do you need?
                         </p>
                         <div class="d-flex gap-2 justify-content-center flex-wrap" id="extendPills">
@@ -1409,20 +1416,89 @@ $lighting_blocked = $lighting_reason !== null;
                         feedback.style.color = data.success ? 'green' : 'red';
                         if (data.success) {
                             btn.textContent = 'Sent ✓';
+                            // Close the modal
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('extendModal'));
+                            if (modal) modal.hide();
+                            // Show floating toast
+                            showToast(data.message, 'success');
+                            // If auto-approved, update timer and current class display
+                            if (data.auto_approved && data.extended_until) {
+                                if (typeof window._updateScheduleEnd === 'function') {
+                                    window._updateScheduleEnd(data.extended_until);
+                                }
+                                // Update the current class end time display
+                                var endTimeEl = document.getElementById('current-class-end');
+                                if (endTimeEl && data.extended_until_formatted) {
+                                    endTimeEl.textContent = data.extended_until_formatted;
+                                }
+                            }
                         } else {
                             btn.disabled = false;
                             btn.textContent = 'Send Request';
+                            showToast(data.message, 'error');
                         }
                     } catch {
                         feedback.textContent = 'Network error. Please try again.';
                         feedback.style.color = 'red';
                         btn.disabled = false;
                         btn.textContent = 'Send Request';
+                        showToast('Network error. Please try again.', 'error');
                     }
                 });
             })();
         </script>
     <?php endif; ?>
+
+    <style>
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .toast-notification {
+            background: #1a1a2e;
+            color: #fff;
+            padding: 14px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            font-size: 14px;
+            max-width: 380px;
+            animation: slideInRight .3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .toast-notification.success { border-left: 4px solid #2ecc71; }
+        .toast-notification.error { border-left: 4px solid #e74c3c; }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+    function showToast(message, type) {
+        type = type || 'success';
+        var container = document.getElementById('toastContainer');
+        if (!container) return;
+        var toast = document.createElement('div');
+        toast.className = 'toast-notification ' + type;
+        toast.innerHTML = (type === 'success' ? '✅ ' : '⚠️ ') + message;
+        container.appendChild(toast);
+        setTimeout(function() {
+            toast.style.transition = 'opacity .5s';
+            toast.style.opacity = '0';
+            setTimeout(function() { toast.remove(); }, 500);
+        }, 5000);
+    }
+    </script>
 
     <!-- ══════════════════════════════
          VIEW SCHEDULE MODAL

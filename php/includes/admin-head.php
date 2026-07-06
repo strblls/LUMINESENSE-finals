@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 $phpRoot = realpath(__DIR__ . '/../');
 require_once $phpRoot . '/session_guard.php';
 check_admin();
@@ -194,8 +195,8 @@ function activity_icon(array $log): array
 
     // ── Type badge ────────────────────────────────────────────────
     $typeMap = [
-        'room'        => ['#cfe2ff', '#084298', 'Room'],
-        'admin'       => ['#ede6f2', '#4a0078', 'Admin'],
+        'room'        => ['#f9edfa', '#2f004f', 'Room'],
+        'admin'       => ['#2f004f', '#f9edfa', 'Admin'],
         'admin_login' => ['#cff4fc', '#055160', 'Login'],
     ];
     [$typeBg, $typeClr, $typeLabel] = $typeMap[$type] ?? $typeMap['room'];

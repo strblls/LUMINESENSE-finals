@@ -80,7 +80,7 @@
 /* ── Room card ── */
 .room-card {
     background: #fff;
-    border-radius: 15px; /*NOTE: Do not change for CONSISTENCY*/
+    border-radius: 10px;
     box-shadow: 0 6px 28px rgba(47, 0, 79, .16);
     overflow: hidden;
     display: flex;
@@ -135,7 +135,7 @@
 }
 
 .room-card-section {
-    font-size: 12.36px;
+    font-size: 13.9px;
     color: var(--muted-dark);
     margin-top: 2px;
 }
@@ -188,7 +188,28 @@
     color: #a06800;
 }
 
-/* info rows */
+/* ── Dept info card reset ── */
+.dept-info-card {
+    margin-bottom: 0;
+}
+
+.dept-info-card.room-info-row p {
+    margin: 0;
+}
+
+/* ── Icon button overrides ── */
+.room-icons .btn-icon-edit,
+.room-icons .btn-icon-del {
+    background: #e9d5ff;
+    color: var(--secondary-color-1);
+}
+
+.room-icons .btn-icon-edit:hover,
+.room-icons .btn-icon-del:hover {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+}
+
 .room-info-row {
     display: flex;
     align-items: center;
@@ -228,7 +249,7 @@
 }
 
 .light-dot.off {
-    background: #ccc;
+    background: #dc3545;
 }
 
 .room-card-divider {
