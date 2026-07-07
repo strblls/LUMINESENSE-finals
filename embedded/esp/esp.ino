@@ -23,14 +23,14 @@ const char* UPDATE_ROWS_URL  = "https://luminesense-bet.site/app/controllers/Esp
 const char* SCHEDULE_FLAG_URL= "https://luminesense-bet.site/app/controllers/Esp32Controller.php?action=flag&token=LS_ESP32_TOKEN_2025&classroom_id=3";
 
 // ── Pin Definitions ────────────────────────────────────────
-#define ROW1_PIN 26
-#define ROW2_PIN 27
-#define ROW3_PIN 25
+#define ROW1_PIN 25
+#define ROW2_PIN 26
+#define ROW3_PIN 27
 #define PIR_PIN  13
 
 // ── Serial2 to Mega ────────────────────────────────────────
-#define MEGA_RX 16
-#define MEGA_TX 17
+#define MEGA_TX2 16
+#define MEGA_RX2 17
 
 // ── HTTP busy flag ─────────────────────────────────────────
 bool httpBusy = false;
