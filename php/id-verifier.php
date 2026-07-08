@@ -79,6 +79,19 @@ class IdVerifier
     }
 
     /**
+     * Verify from pre-extracted OCR text (no API call).
+     * Used when Tesseract.js runs OCR in the browser.
+     */
+    public function verifyFromText(string $ocrText, string $firstName, string $lastName): array
+    {
+        if (trim($ocrText) === '') {
+            return ['status' => 'unreadable', 'extracted_name' => null, 'note' => 'No text detected on ID.'];
+        }
+
+        return $this->evaluate($ocrText, false, $firstName, $lastName);
+    }
+
+    /**
      * Single Vision API call requesting text + face detection together.
      * @return array{text:string, hasFace:bool}
      */
@@ -129,15 +142,62 @@ class IdVerifier
      * ID, OR a recognizable institutional keyword) — otherwise a
      * blank paper with a handwritten name would sail through on
      * name-matching alone.
+     *
+     * Name matching uses a three-tier approach (Option C):
+     *   Tier 1 — Same-line: both first and last name on the same line
+     *   Tier 2 — Ordered adjacent-line: first name line N, last on N or N+1,
+     *            with first name appearing before last name in document order
+     *   Tier 3 — Fallback: names anywhere (original scatter approach)
      */
     private function evaluate(string $rawText, bool $hasFace, string $first, string $last): array
     {
+        $rawLines  = explode("\n", $rawText);
+        $lines     = array_map('trim', $rawLines);
         $normalized = strtolower(preg_replace('/\s+/', ' ', $rawText));
         $fullName   = strtolower(trim("$first $last"));
 
-        $firstFound = stripos($normalized, strtolower($first)) !== false;
-        $lastFound  = stripos($normalized, strtolower($last))  !== false;
-        $nameMatch  = $firstFound && $lastFound;
+        $firstLower = strtolower($first);
+        $lastLower  = strtolower($last);
+
+        // ── Tier 1: Same-line match ─────────────────────────────────────
+        $nameMatch = false;
+        foreach ($lines as $line) {
+            $lineLower = strtolower($line);
+            if (str_contains($lineLower, $firstLower) && str_contains($lineLower, $lastLower)) {
+                $nameMatch = true;
+                break;
+            }
+        }
+
+        // ── Tier 2: Ordered adjacent-line match ─────────────────────────
+        if (!$nameMatch) {
+            $firstLineIdx = null;
+            $lastInLine   = null;
+            foreach ($lines as $idx => $line) {
+                $lineLower = strtolower($line);
+                if ($firstLineIdx === null && str_contains($lineLower, $firstLower)) {
+                    $firstLineIdx = $idx;
+                }
+                // Track the line where last name first appears
+                if ($lastInLine === null && str_contains($lineLower, $lastLower)) {
+                    $lastInLine = $idx;
+                }
+            }
+            if ($firstLineIdx !== null && $lastInLine !== null) {
+                // First and last must be on the same line or adjacent lines
+                // (order doesn't matter — last name can appear above first name)
+                if (abs($lastInLine - $firstLineIdx) <= 1) {
+                    $nameMatch = true;
+                }
+            }
+        }
+
+        // ── Tier 3: Fallback scatter match (original) ──────────────────
+        if (!$nameMatch) {
+            $firstFound = stripos($normalized, $firstLower) !== false;
+            $lastFound  = stripos($normalized, $lastLower)  !== false;
+            $nameMatch  = $firstFound && $lastFound;
+        }
 
         $hasKeyword = false;
         foreach (self::ID_KEYWORDS as $kw) {
@@ -148,11 +208,62 @@ class IdVerifier
         }
 
         // Best-effort extraction of the printed name line, for the review queue UI.
-        $lines = array_filter(array_map('trim', explode("\n", $rawText)));
         $bestLine = null;
-        foreach ($lines as $line) {
-            similar_text(strtolower($line), $fullName, $pct);
-            if ($pct > 50) { $bestLine = $line; break; }
+        $matchedIdx = [];
+        foreach ($lines as $idx => $line) {
+            // Strip clearly non-name characters before checking
+            $clean    = preg_replace('/[^a-zA-Z\s.\-\',()]/', '', $line);
+            $clean    = trim(preg_replace('/\s+/', ' ', $clean));
+            $lineLower = strtolower($clean);
+            $hasFirst  = str_contains($lineLower, $firstLower);
+            $hasLast   = str_contains($lineLower, $lastLower);
+            if ($hasFirst && $hasLast) {
+                $bestLine = $clean;
+                break;
+            }
+            if ($hasFirst || $hasLast) {
+                $matchedIdx[] = $idx;
+            }
+            // Also store the cleaned version for later merging
+            $lines[$idx] = $clean;
+        }
+        // If no single line has both names, merge adjacent name-bearing lines
+        if ($bestLine === null && $matchedIdx !== []) {
+            $groups = [[$matchedIdx[0]]];
+            for ($i = 1, $g = 0; $i < count($matchedIdx); $i++) {
+                if ($matchedIdx[$i] === end($groups[$g]) + 1) {
+                    $groups[$g][] = $matchedIdx[$i];
+                } else {
+                    $groups[++$g] = [$matchedIdx[$i]];
+                }
+            }
+            $bestGroup = $groups[0];
+            foreach ($groups as $g) {
+                if (count($g) > count($bestGroup)) {
+                    $bestGroup = $g;
+                }
+            }
+            $parts = [];
+            foreach ($bestGroup as $idx) {
+                $parts[] = $lines[$idx];
+            }
+            $bestLine = implode(' ', $parts);
+        }
+
+        // Clean up bestLine: remove words that don't contain any name part
+        if ($bestLine !== null) {
+            $words = explode(' ', $bestLine);
+            $filtered = [];
+            foreach ($words as $word) {
+                $w = trim($word, '. ');
+                if ($w === '') continue;
+                $wLower = strtolower($w);
+                $isInitial = preg_match('/^[a-z]\.?$/i', $w);
+                if (str_contains($wLower, $firstLower) || str_contains($wLower, $lastLower) || $isInitial) {
+                    $filtered[] = $word;
+                }
+            }
+            $bestLine = implode(' ', $filtered);
         }
 
         if (!$nameMatch) {

@@ -108,10 +108,20 @@ if (!move_uploaded_file($_FILES['id_image']['tmp_name'], $tmp_path)) {
 // Grab raw bytes NOW — IdVerifier deletes the file once it's done checking.
 $raw_image_bytes = file_get_contents($tmp_path);
 
-// ── 9.2 Run the ID through IdVerifier (Google Vision) ────────────────────
-$verifier = new IdVerifier(getenv('VISION_API_KEY'));
-$result   = $verifier->verify($tmp_path, $first_name, $last_name);
-// ^ verify() deletes $tmp_path internally once it's done, win or lose.
+// ── 9.2 Verify ID using client-side OCR text (Tesseract.js) ──────────────
+$ocr_text = trim($_POST['ocr_text'] ?? '');
+$verifier = new IdVerifier('');
+if ($ocr_text !== '') {
+    // Run comparison locally — no API call needed
+    $result = $verifier->verifyFromText($ocr_text, $first_name, $last_name);
+    // Delete temp file manually since verifyFromText doesn't
+    if (is_file($tmp_path)) { @unlink($tmp_path); }
+} else {
+    // Fallback: use Google Vision API
+    $verifier = new IdVerifier(getenv('VISION_API_KEY'));
+    $result   = $verifier->verify($tmp_path, $first_name, $last_name);
+    // ^ verify() deletes $tmp_path internally once it's done.
+}
 
 // ── 10. Insert new admin (is_verified = 0 until email confirmed) ──────────
 $stmt = $conn->prepare("
