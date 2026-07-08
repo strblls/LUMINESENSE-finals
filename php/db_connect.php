@@ -125,46 +125,60 @@ $conn->query("
 $conn->set_charset('utf8mb4');
 
 // ── Runtime column migrations (safe – only adds if missing) ──────────────────
+// Helper to safely add a column if it doesn't exist
+function addColIfMissing($conn, $table, $column, $definition) {
+    $chk = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
+    if ($chk && $chk->num_rows === 0) {
+        $conn->query("ALTER TABLE `$table` ADD COLUMN $definition");
+    }
+}
 // light_status on classrooms (used by dashboard poll + Arduino PIR webhook)
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS light_status ENUM('on','off') DEFAULT 'off'");
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS row1_status ENUM('on','off') DEFAULT 'off'");
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS row2_status ENUM('on','off') DEFAULT 'off'");
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS row3_status ENUM('on','off') DEFAULT 'off'");
+addColIfMissing($conn, 'classrooms', 'light_status', "ENUM('on','off') DEFAULT 'off'");
+addColIfMissing($conn, 'classrooms', 'row1_status', "ENUM('on','off') DEFAULT 'off'");
+addColIfMissing($conn, 'classrooms', 'row2_status', "ENUM('on','off') DEFAULT 'off'");
+addColIfMissing($conn, 'classrooms', 'row3_status', "ENUM('on','off') DEFAULT 'off'");
 // pir_occupied flag – set by PIR webhook, cleared when occupancy ends
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pir_occupied TINYINT(1) DEFAULT 0");
+addColIfMissing($conn, 'classrooms', 'pir_occupied', 'TINYINT(1) DEFAULT 0');
 // pir_occupied_since – when occupancy started (drives System Uptime)
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pir_since TIMESTAMP NULL DEFAULT NULL");
+addColIfMissing($conn, 'classrooms', 'pir_since', 'TIMESTAMP NULL DEFAULT NULL');
 // extended_until on schedules (used by active-schedule query in faculty-home.php)
-$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS extended_until TIME DEFAULT NULL");
-$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS created_by INT DEFAULT NULL");
+addColIfMissing($conn, 'schedules', 'extended_until', 'TIME DEFAULT NULL');
+addColIfMissing($conn, 'schedules', 'created_by', 'INT DEFAULT NULL');
 //pzem live readings on classrooms (updated by api/post_pzem.php)
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_voltage float DEFAULT NULL");
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_current float DEFAULT NULL");
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_power   float DEFAULT NULL");
-$conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_energy  float DEFAULT NULL");
+addColIfMissing($conn, 'classrooms', 'pzem_voltage', 'float DEFAULT NULL');
+addColIfMissing($conn, 'classrooms', 'pzem_current', 'float DEFAULT NULL');
+addColIfMissing($conn, 'classrooms', 'pzem_power',   'float DEFAULT NULL');
+addColIfMissing($conn, 'classrooms', 'pzem_energy',  'float DEFAULT NULL');
 
 
 //Early adds
-// ── Departments status column (added later — safe ADD IF NOT EXISTS) ──────
-$conn->query("ALTER TABLE departments ADD COLUMN IF NOT EXISTS status ENUM('active','pending','inactive') NOT NULL DEFAULT 'active'");
 
 // ── Faculty ID image and AI verification columns ──────────────────────────
-$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS id_image VARCHAR(255) DEFAULT NULL");
-$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS faculty_id VARCHAR(20) DEFAULT NULL");
-$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL");
-$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_extracted_name VARCHAR(100) DEFAULT NULL");
-$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS ai_confidence_note TEXT DEFAULT NULL");
-$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS department_id INT DEFAULT NULL");
-$conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS subject_area_id INT DEFAULT NULL");
-$conn->query("ALTER TABLE subject_area ADD COLUMN IF NOT EXISTS subject_id INT DEFAULT NULL");
+addColIfMissing($conn, 'faculty', 'id_image', 'VARCHAR(255) DEFAULT NULL');
+addColIfMissing($conn, 'faculty', 'faculty_id', 'VARCHAR(20) DEFAULT NULL');
+addColIfMissing($conn, 'faculty', 'ai_match_status', "ENUM('matched','mismatched','unreadable') DEFAULT NULL");
+addColIfMissing($conn, 'faculty', 'ai_extracted_name', 'VARCHAR(100) DEFAULT NULL');
+addColIfMissing($conn, 'faculty', 'ai_confidence_note', 'TEXT DEFAULT NULL');
+addColIfMissing($conn, 'faculty', 'department_id', 'INT DEFAULT NULL');
+addColIfMissing($conn, 'faculty', 'subject_area_id', 'INT DEFAULT NULL');
+addColIfMissing($conn, 'subject_area', 'subject_id', 'INT DEFAULT NULL');
 
 // pin_hash on faculty_permissions (4-digit PIN, bcrypt hashed)
-$conn->query("ALTER TABLE faculty_permissions ADD COLUMN IF NOT EXISTS pin_hash VARCHAR(255) DEFAULT NULL");
+addColIfMissing($conn, 'faculty_permissions', 'pin_hash', 'VARCHAR(255) DEFAULT NULL');
 
 // ── Admin approval columns ─────────────────────────────────────────────────
-$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS approved_by INT DEFAULT NULL");
-$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP NULL DEFAULT NULL");
-$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS id_image VARCHAR(255) DEFAULT NULL");
+$colCheck = $conn->query("SHOW COLUMNS FROM admins LIKE 'approved_by'");
+if ($colCheck && $colCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE admins ADD COLUMN approved_by INT DEFAULT NULL");
+}
+$colCheck = $conn->query("SHOW COLUMNS FROM admins LIKE 'approved_at'");
+if ($colCheck && $colCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE admins ADD COLUMN approved_at TIMESTAMP NULL DEFAULT NULL");
+}
+$colCheck = $conn->query("SHOW COLUMNS FROM admins LIKE 'id_image'");
+if ($colCheck && $colCheck->num_rows === 0) {
+    $conn->query("ALTER TABLE admins ADD COLUMN id_image VARCHAR(255) DEFAULT NULL");
+}
 
 $conn->query("
     CREATE TABLE IF NOT EXISTS subjects (
@@ -182,10 +196,10 @@ $conn->query("
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
 
-$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS subject_id INT DEFAULT NULL");
-$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS faculty_id INT DEFAULT NULL");
-$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NULL DEFAULT NULL");
-$conn->query("ALTER TABLE schedules ADD COLUMN IF NOT EXISTS updated_by INT DEFAULT NULL");
+addColIfMissing($conn, 'schedules', 'subject_id', 'INT DEFAULT NULL');
+addColIfMissing($conn, 'schedules', 'faculty_id', 'INT DEFAULT NULL');
+addColIfMissing($conn, 'schedules', 'updated_at', 'TIMESTAMP NULL DEFAULT NULL');
+addColIfMissing($conn, 'schedules', 'updated_by', 'INT DEFAULT NULL');
 
 
 // ── Fix FK on schedules.created_by: should point to faculty, not admins ──
@@ -248,6 +262,8 @@ $conn->query("
         FOREIGN KEY (head_faculty_id) REFERENCES faculty(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
+// Add 'pending' to the status enum (safe to run repeatedly)
+$conn->query("ALTER TABLE departments MODIFY COLUMN status ENUM('active','pending','inactive') NOT NULL DEFAULT 'active'");
 
 // ── Junction tables (many-to-many relationships) ───────────────────────────
 $conn->query("

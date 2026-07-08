@@ -261,6 +261,7 @@ if (!$isStandalone && $grace_minutes > 0 && $conn->query("SHOW TABLES LIKE 'exte
         WHERE er.status = 'pending'
           AND s.day_of_week = ?
     ");
+    if ($stmt) {
     $stmt->bind_param('s', $today);
     $stmt->execute();
     $stmt->bind_result($ext_id, $ext_mins, $sched_id, $current_end, $classroom_id, $room_name, $faculty_name);
@@ -287,15 +288,15 @@ if (!$isStandalone && $grace_minutes > 0 && $conn->query("SHOW TABLES LIKE 'exte
 
         if ($reviewer_id) {
             $upd = $conn->prepare("UPDATE extension_requests SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?");
-            $upd->bind_param('ii', $reviewer_id, $ext['ext_id']);
+            if ($upd) $upd->bind_param('ii', $reviewer_id, $ext['ext_id']);
         } else {
             $upd = $conn->prepare("UPDATE extension_requests SET status = 'approved', reviewed_at = NOW() WHERE id = ?");
-            $upd->bind_param('i', $ext['ext_id']);
+            if ($upd) $upd->bind_param('i', $ext['ext_id']);
         }
-        $upd->execute();
-        $upd->close();
+        if ($upd) { $upd->execute(); $upd->close(); } else continue;
 
         $upd = $conn->prepare('UPDATE schedules SET extended_until = ? WHERE id = ?');
+        if (!$upd) continue;
         $upd->bind_param('si', $new_end, $ext['sched_id']);
         $upd->execute();
         $upd->close();
@@ -315,6 +316,7 @@ if (!$isStandalone && $grace_minutes > 0 && $conn->query("SHOW TABLES LIKE 'exte
             );
         }
     }
+    } // end if ($stmt)
 }
 
 // ── Data fetching (only for when included, not standalone) ─────────────────
@@ -335,7 +337,10 @@ if (!$isStandalone) {
     $total_admins = $conn->query("SELECT COUNT(*) AS c FROM admins")->fetch_assoc()['c'] ?? 0;
     $total_accounts = $total_faculty + $total_admins;
     $pending_count = $conn->query("SELECT COUNT(*) AS c FROM faculty WHERE is_verified = 1 AND approved_by IS NULL")->fetch_assoc()['c'] ?? 0;
-    $admin_pending_count = $conn->query("SELECT COUNT(*) AS c FROM admins WHERE is_verified = 1 AND approved_by IS NULL")->fetch_assoc()['c'] ?? 0;
+
+    $admin_pending_count = 0;
+    $admin_pending_q = $conn->query("SELECT COUNT(*) AS c FROM admins WHERE is_verified = 1 AND approved_by IS NULL");
+    if ($admin_pending_q) $admin_pending_count = (int)$admin_pending_q->fetch_assoc()['c'];
 
     if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
         $ext_pending = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE status = 'pending'")->fetch_assoc()['c'] ?? 0;
@@ -347,7 +352,7 @@ if (!$isStandalone) {
         FROM faculty
         ORDER BY last_name ASC
     ");
-    while ($row = $res->fetch_assoc()) {
+    if ($res) while ($row = $res->fetch_assoc()) {
         $row['status_label'] = match(true) {
             $row['is_verified'] == 1 && $row['approved_by'] !== null => 'approved',
             $row['is_verified'] == 1 && $row['approved_by'] === null => 'pending',
@@ -361,7 +366,7 @@ if (!$isStandalone) {
         FROM admins
         ORDER BY last_name ASC
     ");
-    while ($row = $res_admins->fetch_assoc()) {
+    if ($res_admins) while ($row = $res_admins->fetch_assoc()) {
         $row['status_label'] = match(true) {
             $row['approved_by'] !== null => 'approved',
             default => 'pending'
@@ -389,7 +394,7 @@ if (!$isStandalone) {
             LEFT JOIN subjects sub ON sub.id = s.subject_id
             ORDER BY er.id DESC
         ");
-        while ($row = $res2->fetch_assoc()) $extensions[] = $row;
+        if ($res2) while ($row = $res2->fetch_assoc()) $extensions[] = $row;
     }
 
     // ── Pending admin registrations ───────────────────────────────────────
@@ -399,7 +404,7 @@ if (!$isStandalone) {
         WHERE is_verified = 1 AND approved_by IS NULL
         ORDER BY created_at DESC
     ");
-    while ($row = $res_admin->fetch_assoc()) {
+    if ($res_admin) while ($row = $res_admin->fetch_assoc()) {
         $pending_admins[] = $row;
     }
 
