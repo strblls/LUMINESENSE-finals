@@ -57,6 +57,7 @@ function faculty_delete_cleanup($conn, $faculty_id) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     $dept_id = (int)($_POST['department_id'] ?? 0);
+    $redirect_tab = '';
     
     if ($action === 'delete_department' && $dept_id > 0) {
         $stmt = $conn->prepare('SELECT name FROM departments WHERE id = ?');
@@ -76,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         
         $message = 'Department deleted successfully.';
         log_admin_action($conn, $admin_id, 'department_deleted', $dept_name ?? 'Unknown');
+        $redirect_tab = 'departments';
         
     } elseif ($action === 'add_department') {
         $dept_name = trim($_POST['dept_name'] ?? '');
@@ -131,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             $message = 'Department added successfully.';
             log_admin_action($conn, $admin_id, 'department_added', $dept_name);
+            $redirect_tab = 'departments';
         }
         
     } elseif ($action === 'edit_department' && $dept_id > 0) {
@@ -197,12 +200,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             $message = 'Department updated successfully.';
             log_admin_action($conn, $admin_id, 'department_edited', $dept_name);
+            $redirect_tab = 'departments';
         }
     }
     
     if ($isStandalone) {
         $_SESSION['message'] = $message;
-        header('Location: ../../pages/admin-home/admin-faculty-management.php');
+        $tab_suffix = $redirect_tab ? '?tab=' . $redirect_tab : '';
+        header('Location: ../../pages/admin-home/admin-faculty-management.php' . $tab_suffix);
         exit;
     }
 }

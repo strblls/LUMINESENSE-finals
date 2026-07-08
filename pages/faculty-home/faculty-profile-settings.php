@@ -370,7 +370,7 @@ $conn->close();
                                 <div class="info-card d-flex flex-column align-items-center text-center py-5">
                                     <img src="../../images/logo.png" alt="LumineSense Logo" style="max-width:200px;margin-bottom:1.5rem;">
                                     <h3 class="bold mb-1">LumineSense</h3>
-                                    <p class="text-muted mb-4" style="font-size:14px;">Smart Room Management System</p>
+                                    <p class="text-muted mb-4" style="font-size:14px;">Smart Classroom Management System</p>
                                     <img src="../../images/team-logo.png" alt="Team Logo" style="max-width:120px;margin-bottom:0.75rem;">
                                     <p class="text-muted mb-0" style="font-size:12px;">All Rights Reserved &copy; <?= date('Y') ?></p>
                                 </div>

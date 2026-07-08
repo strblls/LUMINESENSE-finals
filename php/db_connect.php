@@ -3,6 +3,9 @@ error_reporting(0);
 ini_set('display_errors', 0);
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+require_once __DIR__ . '/load-env.php';
+loadEnv();
+
 if ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.1') {
     define('DB_HOST', 'localhost');
     define('DB_USER', 'root');
@@ -157,6 +160,11 @@ $conn->query("ALTER TABLE subject_area ADD COLUMN IF NOT EXISTS subject_id INT D
 
 // pin_hash on faculty_permissions (4-digit PIN, bcrypt hashed)
 $conn->query("ALTER TABLE faculty_permissions ADD COLUMN IF NOT EXISTS pin_hash VARCHAR(255) DEFAULT NULL");
+
+// ── Admin approval columns ─────────────────────────────────────────────────
+$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS approved_by INT DEFAULT NULL");
+$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP NULL DEFAULT NULL");
+$conn->query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS id_image VARCHAR(255) DEFAULT NULL");
 
 $conn->query("
     CREATE TABLE IF NOT EXISTS subjects (
@@ -326,3 +334,24 @@ foreach ($junction_tables as $table => $fks) {
         $conn->query("ALTER TABLE `$table` ADD FOREIGN KEY (`$col`) REFERENCES $ref ON DELETE CASCADE");
     }
 }
+
+// ── id_review_queue table (for quarantined ID images) ──────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS id_review_queue (
+        id                 INT AUTO_INCREMENT PRIMARY KEY,
+        account_type       ENUM('faculty','admin') NOT NULL,
+        account_id         INT NOT NULL,
+        encrypted_blob     LONGTEXT DEFAULT NULL,
+        ai_match_status    ENUM('matched','mismatched','unreadable') DEFAULT NULL,
+        ai_extracted_name  VARCHAR(150) DEFAULT NULL,
+        ai_confidence_note VARCHAR(255) DEFAULT NULL,
+        created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at         DATETIME NOT NULL,
+        reviewed           TINYINT(1) DEFAULT 0,
+        reviewed_by        INT DEFAULT NULL,
+        reviewed_at        DATETIME DEFAULT NULL,
+        FOREIGN KEY (reviewed_by) REFERENCES admins(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+// Fix existing enums that might be missing 'matched'
+$conn->query("ALTER TABLE id_review_queue MODIFY COLUMN ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL");

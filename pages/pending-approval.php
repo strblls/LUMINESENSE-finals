@@ -74,8 +74,9 @@
             Please reach out to your school's facility manager or information officer and let them know your registered email so they can approve your account.
         </p>
 
-        <button class="medium mt-3 d-inline-block" href="faculty-login.php"
-                onclick="dissolve('faculty-login.php')">
+        <?php $login_page = ($_GET['type'] ?? '') === 'admin' ? 'admin-login.php' : 'faculty-login.php'; ?>
+        <button class="medium mt-3 d-inline-block" href="<?= $login_page ?>"
+                onclick="dissolve('<?= $login_page ?>')">
             Back to Login
         </button>
     </div>

@@ -16,9 +16,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $faculty_id  = (int)$_SESSION['faculty_id'];
 $schedule_id = (int)($_POST['schedule_id'] ?? 0);
 $extend_mins = (int)($_POST['extend_mins'] ?? 30);
+$edit_ext_request = (int)($_POST['edit_ext_request'] ?? 0);
 
 if (!$schedule_id || $extend_mins <= 0) {
     echo json_encode(['success' => false, 'message' => 'Invalid data.']); exit;
+}
+
+// If editing, first remove the old pending request
+if ($edit_ext_request > 0) {
+    $stmt = $conn->prepare("DELETE FROM extension_requests WHERE id = ? AND faculty_id = ? AND status = 'pending'");
+    $stmt->bind_param('ii', $edit_ext_request, $faculty_id);
+    $stmt->execute();
+    $stmt->close();
 }
 
 // Check if there's a succeeding schedule in the same room
@@ -69,26 +78,20 @@ $grace_minutes = $r && $row = $r->fetch_assoc() ? (int)$row['setting_value'] : 0
 
 if ($grace_minutes > 0) {
     $today = date('l');
-    $now_time = date('H:i:s');
 
-    // Only auto-approve if the class is TODAY, currently in session,
-    // and has ≤ grace_minutes remaining
     $stmt = $conn->prepare("
-        SELECT COALESCE(extended_until, end_time) AS end_time, classroom_id
+        SELECT COALESCE(extended_until, end_time) AS current_end, classroom_id
         FROM schedules
-        WHERE id = ?
-          AND day_of_week = ?
-          AND start_time <= ?
-          AND COALESCE(extended_until, end_time) >= ?
-          AND TIME_TO_SEC(TIMEDIFF(COALESCE(extended_until, end_time), ?)) / 60 <= ?
+        WHERE id = ? AND day_of_week = ?
     ");
-    $stmt->bind_param('issssi', $schedule_id, $today, $now_time, $now_time, $now_time, $grace_minutes);
+    $stmt->bind_param('is', $schedule_id, $today);
     $stmt->execute();
-    $sched = $stmt->get_result()->fetch_assoc();
+    $stmt->bind_result($current_end, $classroom_id);
+    $found = $stmt->fetch();
     $stmt->close();
 
-    if ($sched) {
-        $new_end = date('H:i:s', strtotime($sched['end_time']) + ($extend_mins * 60));
+    if ($found) {
+        $new_end = date('H:i:s', strtotime($current_end) + ($extend_mins * 60));
 
         $upd = $conn->prepare("UPDATE extension_requests SET status = 'approved', reviewed_at = NOW() WHERE id = ?");
         $upd->bind_param('i', $inserted_id);
@@ -102,17 +105,31 @@ if ($grace_minutes > 0) {
 
         $checkCol = $conn->query("SHOW COLUMNS FROM classrooms LIKE 'schedule_dirty'");
         if ($checkCol && $checkCol->num_rows > 0) {
-            $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = {$sched['classroom_id']}");
+            $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = {$classroom_id}");
         }
 
         $auto_approved = true;
     }
 }
 
+// Fetch schedule details for frontend update
+$new_extended_until = null;
+$schedule_end_time = null;
+$stmt = $conn->prepare("SELECT end_time, extended_until FROM schedules WHERE id = ?");
+$stmt->bind_param('i', $schedule_id);
+$stmt->execute();
+$stmt->bind_result($schedule_end_time, $new_extended_until);
+$stmt->fetch();
+$stmt->close();
+
 echo json_encode([
     'success' => true,
     'message' => $auto_approved
         ? 'Extension request auto-approved.'
         : 'Extension request submitted. Waiting for admin approval.',
-    'auto_approved' => $auto_approved
+    'auto_approved' => $auto_approved,
+    'extended_until' => $new_extended_until,
+    'end_time' => $schedule_end_time,
+    'end_time_formatted' => $schedule_end_time ? date('g:i A', strtotime($schedule_end_time)) : null,
+    'extended_until_formatted' => $new_extended_until ? date('g:i A', strtotime($new_extended_until)) : null
 ]);

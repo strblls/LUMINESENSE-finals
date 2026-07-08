@@ -31,9 +31,9 @@ unset($_SESSION['flash']);
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/admin-profile-settings.css">
     <link rel="stylesheet" href="../../css/admin-common.css">
     <link rel="stylesheet" href="../../css/admin-settings.css">
+    <link rel="stylesheet" href="../../css/admin-profile-settings.css">
 </head>
 
 <body class="contrast-bg">
@@ -50,102 +50,127 @@ unset($_SESSION['flash']);
     <div class="parent-container">
         <?php include '../../php/includes/admin-sidebar.php'; ?>
 
-        <div class="child-container">
+        <div class="child-container homepage-modal">
             <div class="profile-wrapper">
-                <div class="profile-main-card">
+                <div class="profile-main-card" style="border-radius: 10px;">
+                    <div class="profile-layout">
 
-                    <!-- Header -->
-                    <div class="profile-header">
-                        <div class="profile-avatar"><?= htmlspecialchars($initials) ?></div>
-                        <div class="profile-user">
-                            <h2 class="bold mb-1"><?= htmlspecialchars($admin_name) ?></h2>
-                            <span class="bold status-badge admin">Administrator</span>
-                        </div>
-                    </div>
-
-                    <!-- Two-column content -->
-                    <div class="profile-content row gx-4 gy-4">
-
-                        <!-- Left: Contact Info -->
-                        <div class="col-xl-5 col-lg-6">
-                            <div class="info-card">
-                                <div class="info-card-header">
-                                    <h3 class="bold mb-0">Contact Information</h3>
-                                    <button class="info-action-btn"
-                                        data-bs-toggle="modal" data-bs-target="#editContactModal">
-                                        <i class="bi bi-pencil me-1"></i> Edit
-                                    </button>
-                                </div>
-                                <div class="info-field">
-                                    <span class="label">Full Name</span>
-                                    <div class="field-value" id="displayName"><?= htmlspecialchars($admin_name) ?></div>
-                                </div>
-                                <div class="info-field">
-                                    <span class="label">Email Address</span>
-                                    <div class="field-value" id="displayEmail"><?= htmlspecialchars($admin_email) ?></div>
-                                </div>
-                                <div class="info-field">
-                                    <span class="label">Role</span>
-                                    <div class="field-value">Administrator</div>
-                                </div>
+                        <!-- Sidebar -->
+                        <div class="profile-sidebar">
+                            <div class="sidebar-item active" data-section="contact">
+                                <i class="bi bi-person-lines-fill"></i> Contact Information
+                            </div>
+                            <div class="sidebar-item" data-section="credentials">
+                                <i class="bi bi-shield-lock"></i> Change Credentials
+                            </div>
+                            <div class="sidebar-item" data-section="about">
+                                <i class="bi bi-info-circle"></i> About System
                             </div>
                         </div>
 
-                        <!-- Right: Change Password -->
-                        <div class="col-xl-7 col-lg-6">
-                            <div class="info-card">
-                                <div class="info-card-header">
-                                    <h3 class="bold mb-0">Change Password</h3>
-                                </div>
-                                <form method="POST" action="../../php/handlers/change-password.php" id="pwForm">
-                                    <div class="mb-3">
-                                        <label class="info-field label">Current Password</label>
-                                        <div class="input-group">
-                                            <input type="password" class="form-control" name="current_password"
-                                                id="currentPw" placeholder="Current password" required>
-                                            <button class="btn btn-outline-secondary" type="button"
-                                                onclick="togglePw('currentPw', this)">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="mb-1">
-                                        <label class="info-field label">New Password</label>
-                                        <div class="input-group">
-                                            <input type="password" class="form-control" name="new_password"
-                                                id="newPw" placeholder="Min 8 characters" minlength="8"
-                                                oninput="checkStrength(this.value)" required>
-                                            <button class="btn btn-outline-secondary" type="button"
-                                                onclick="togglePw('newPw', this)">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                        </div>
-                                        <div class="strength-bar-wrap">
-                                            <div class="strength-bar" id="strengthBar"></div>
-                                        </div>
-                                        <div class="strength-label" id="strengthLabel"></div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="info-field label">Confirm New Password</label>
-                                        <div class="input-group">
-                                            <input type="password" class="form-control" name="confirm_password"
-                                                id="confirmPw" placeholder="Repeat new password" required>
-                                            <button class="btn btn-outline-secondary" type="button"
-                                                onclick="togglePw('confirmPw', this)">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                        </div>
-                                        <div class="strength-label" id="matchLabel"></div>
-                                    </div>
-                                    <button type="submit" class="info-action-btn w-100"
-                                        style="padding:10px; border-radius:8px;">
-                                        Save Password
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+                        <!-- Content Area -->
+                        <div class="profile-content-area">
 
-                    </div><!-- /profile-content -->
+                            <!-- Contact Section (default) -->
+                            <div id="section-contact" class="section-content active">
+                                <div class="profile-header">
+                                    <div class="profile-avatar"><?= htmlspecialchars($initials) ?></div>
+                                    <div class="profile-user">
+                                        <h2 class="bold mb-1"><?= htmlspecialchars($admin_name) ?></h2>
+                                        <span class="bold status-badge admin">Administrator</span>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="info-card">
+                                    <div class="info-card-header d-flex align-items-start justify-content-between">
+                                        <h3 class="bold mb-0">Contact Information</h3>
+                                        <button class="info-action-btn"
+                                            data-bs-toggle="modal" data-bs-target="#editContactModal">
+                                            <i class="bi bi-pencil me-1"></i> Edit
+                                        </button>
+                                    </div>
+                                    <div class="info-field">
+                                        <span class="label">Full Name</span>
+                                        <div class="field-value" id="displayName"><?= htmlspecialchars($admin_name) ?></div>
+                                    </div>
+                                    <div class="info-field">
+                                        <span class="label">Email Address</span>
+                                        <div class="field-value" id="displayEmail"><?= htmlspecialchars($admin_email) ?></div>
+                                    </div>
+                                    <div class="info-field">
+                                        <span class="label">Role</span>
+                                        <div class="field-value">Administrator</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Change Credentials Section -->
+                            <div id="section-credentials" class="section-content">
+                                <div class="info-card">
+                                    <div class="info-card-header">
+                                        <h3 class="bold mb-3">Change Password</h3>
+                                    </div>
+                                    <form method="POST" action="../../php/handlers/change-password.php" id="pwForm">
+                                        <div class="mb-3">
+                                            <label class="form-label">Current Password</label>
+                                            <div class="d-flex gap-2 align-items-stretch">
+                                                <input type="password" class="form-control flex-fill" name="current_password"
+                                                    id="currentPw" placeholder="Current password" required style="min-width:0;">
+                                                <button class="btn btn-outline-secondary flex-shrink-0" type="button"
+                                                    onclick="togglePw('currentPw', this)" style="width:44px;">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="mb-1">
+                                            <label class="form-label">New Password</label>
+                                            <div class="d-flex gap-2 align-items-stretch">
+                                                <input type="password" class="form-control flex-fill" name="new_password"
+                                                    id="newPw" placeholder="Min 8 characters" minlength="8"
+                                                    oninput="checkStrength(this.value)" required style="min-width:0;">
+                                                <button class="btn btn-outline-secondary flex-shrink-0" type="button"
+                                                    onclick="togglePw('newPw', this)" style="width:44px;">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                            <div class="strength-bar-wrap">
+                                                <div class="strength-bar" id="strengthBar"></div>
+                                            </div>
+                                            <div class="strength-label" id="strengthLabel"></div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Confirm New Password</label>
+                                            <div class="d-flex gap-2 align-items-stretch">
+                                                <input type="password" class="form-control flex-fill" name="confirm_password"
+                                                    id="confirmPw" placeholder="Repeat new password" required style="min-width:0;">
+                                                <button class="btn btn-outline-secondary flex-shrink-0" type="button"
+                                                    onclick="togglePw('confirmPw', this)" style="width:44px;">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            </div>
+                                            <div class="strength-label" id="matchLabel"></div>
+                                        </div>
+                                        <button type="submit" class="info-action-btn w-100"
+                                            style="padding:10px; border-radius:8px;">
+                                            Save Password
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- About System Section -->
+                            <div id="section-about" class="section-content">
+                                <div class="info-card d-flex flex-column align-items-center text-center py-5">
+                                    <img src="../../images/logo.png" alt="LumineSense Logo" style="max-width:200px;margin-bottom:1.5rem;">
+                                    <h3 class="bold mb-1">LumineSense</h3>
+                                    <p class="text-muted mb-4" style="font-size:14px;">Smart Classroom Management System</p>
+                                    <img src="../../images/team-logo.png" alt="Team Logo" style="max-width:120px;margin-bottom:0.75rem;">
+                                    <p class="text-muted mb-0" style="font-size:12px;">All Rights Reserved &copy; <?= date('Y') ?></p>
+                                </div>
+                            </div>
+
+                        </div><!-- /profile-content-area -->
+                    </div><!-- /profile-layout -->
                 </div><!-- /profile-main-card -->
             </div><!-- /profile-wrapper -->
         </div><!-- /child-container -->
@@ -196,6 +221,29 @@ unset($_SESSION['flash']);
             if (toast && toast.classList.contains('show')) {
                 setTimeout(() => toast.classList.remove('show'), 3500);
             }
+
+            // ── Sidebar navigation ──
+            const sidebarItems = document.querySelectorAll('.profile-sidebar .sidebar-item');
+            const sections = {
+                contact: document.getElementById('section-contact'),
+                credentials: document.getElementById('section-credentials'),
+                about: document.getElementById('section-about')
+            };
+
+            sidebarItems.forEach(function (item) {
+                item.addEventListener('click', function () {
+                    const section = this.getAttribute('data-section');
+                    if (!section || !sections[section]) return;
+
+                    sidebarItems.forEach(function (si) { si.classList.remove('active'); });
+                    this.classList.add('active');
+
+                    Object.keys(sections).forEach(function (key) {
+                        sections[key].classList.remove('active');
+                    });
+                    sections[section].classList.add('active');
+                });
+            });
 
             // ── Confirm-match on blur ──
             document.getElementById('confirmPw').addEventListener('input', function () {

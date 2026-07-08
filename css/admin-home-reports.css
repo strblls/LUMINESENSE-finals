@@ -56,7 +56,7 @@
 /* ── Section card ── */
 .reports-card {
     background: var(--card-bg);
-    border-radius: 14px;
+    border-radius: 10px;
     border: 1px solid var(--border);
     overflow: hidden;
 }
@@ -457,6 +457,7 @@
     grid-template-columns: repeat(4, 1fr) !important;
     gap: 0.6rem !important;
     width: 100%;
+    background-color: var(--secondary-color-1) !important;
 }
 
 .stat-card {
@@ -465,7 +466,7 @@
     align-items: center !important;
     gap: 0.9rem !important;
     background: #ffffff !important;
-    border-left: 4px solid #750cbb !important;
+    border-left: 4px solid var(--secondary-color-2) !important;
     border-radius: 10px !important;
     padding: 1rem !important;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07) !important;
@@ -477,14 +478,21 @@
     font-size: 3rem;
     font-weight: 700;
     line-height: 1;
-    color: var(--secondary-color-1);
+    color: var(--secondary-color-2);
 }
 
 .stat-card .stat-label {
     font-size: 0.80rem;
-    color: var(--muted-dark);
+    color: #000;
     margin: 0;
     line-height: 1.3;
+}
+
+.stat-card > div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .tab-panel {
@@ -494,4 +502,118 @@
             font-size: 28px;
         }
     }
+}
+
+.timetable-btn[data-tab].active {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+    transform: scale(1.08);
+    box-shadow: 0 0 12px rgba(255, 193, 7, 0.4);
+}
+
+.timetable-btn[data-tab].active i {
+    font-size: 24px;
+}
+
+.timetable-btn[data-tab].active .timetable-btn-title {
+    max-width: 0;
+    opacity: 0;
+}
+
+.default-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #888;
+}
+
+.default-state i {
+    font-size: 2.5rem;
+    color: var(--secondary-color-3);
+    margin-bottom: 0.75rem;
+    animation: float-up 1.5s ease-in-out infinite;
+}
+
+.default-state p {
+    font-size: 0.95rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+@keyframes float-up {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+
+}
+
+.room-main-row {
+    cursor: pointer;
+}
+
+.room-main-row:hover {
+    background: #f0e8fb !important;
+}
+
+.room-accordion-row td {
+    padding: 0 !important;
+    background: #faf8fc;
+}
+
+.room-accordion-content {
+    border-top: 1px solid #ede8f3;
+}
+
+.accordion-log-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f3edf7;
+    font-size: 13px;
+}
+
+.accordion-log-item:last-child {
+    border-bottom: none;
+}
+
+.accordion-log-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #ede6f2;
+    color: #4a0078;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 12px;
+}
+
+.accordion-log-action {
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    flex: 1;
+    min-width: 0;
+    text-transform: capitalize;
+}
+
+.accordion-log-time {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+}
+
+.accordion-log-actor {
+    font-size: 11px;
+    color: var(--secondary-color-3);
+    white-space: nowrap;
+}
+
+.accordion-log-notes {
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
 }

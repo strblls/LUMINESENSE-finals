@@ -9,7 +9,6 @@ config.php
 # Environment
 .env
 .env.local
-*.env.*
 
 # Editors
 .vscode/

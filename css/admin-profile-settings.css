@@ -44,22 +44,78 @@
     }
 }
 
-/* ── Page layout ── */
-.profile-wrapper {
+/* ── Profile sidebar layout ── */
+.profile-layout {
     display: flex;
-    justify-content: center;
-    padding: 2rem;
-    width: 100%;
-    box-sizing: border-box;
+    min-height: 450px;
 }
 
-.profile-main-card {
+.profile-content-area {
+    flex: 1;
+    padding: 2rem 2.5rem;
+    overflow-y: auto;
     background: #fff;
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(47, 0, 79, .13);
-    width: 100%;
-    max-width: 1100px;
-    overflow: hidden;
+    border-radius: 0 5px 5px 0;
+}
+
+.profile-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: #f8f9fa;
+    border-right: 1.5px solid #e8e8e8;
+    border-radius: 5px 0 0 5px !important;
+    padding: 1.5rem 0;
+}
+
+.profile-sidebar .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #555;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.profile-sidebar .sidebar-item:hover {
+    background: #e9ecef;
+    color: #333;
+}
+
+.profile-sidebar .sidebar-item.active {
+    background: #fff;
+    color: var(--secondary-color-1);
+    border-left-color: var(--secondary-color-1);
+    background: var(--accent-yellow);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+}
+
+.profile-sidebar .sidebar-item i {
+    font-size: 1.1rem;
+    width: 1.5rem;
+    text-align: center;
+}
+
+.section-content {
+    display: none;
+}
+
+.section-content.active {
+    display: block;
+}
+
+.section-content .profile-header {
+    border-bottom: none;
+    padding: 0 0 1rem 0;
+}
+
+.section-content hr {
+    margin: 0 0 1.5rem 0;
+    border-color: #eee;
 }
 
 /* ── Header ── */
@@ -69,25 +125,28 @@
     gap: 1.5rem;
     padding: 2rem 2.5rem;
     border-bottom: 1.5px solid #eee;
+    margin-bottom: 0;
 }
 
 .profile-avatar {
-    width: 90px;
-    height: 90px;
+    width: 140px !important;
+    height: 140px !important;
     border-radius: 50%;
-    background: #d9d6d6;
-    color: var(--secondary-color-1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
+    background: #d9d6d6 !important;
+    color: var(--secondary-color-1) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 56px !important;
     font-weight: 700;
     flex-shrink: 0;
+    border-radius: 50%;
 }
 
 .profile-user h2 {
     color: var(--secondary-color-1);
     margin-bottom: .2rem;
+    font-size: 1.5rem;
 }
 
 .profile-user p {
@@ -102,10 +161,10 @@
 
 /* ── Info cards ── */
 .info-card {
-    background: #fff;
-    border: 1.5px solid #e8e8e8;
-    border-radius: 14px;
-    padding: 1.5rem;
+    background: #fff !important;
+    border: 1.5px solid #e8e8e8 !important;
+    border-radius: 14px !important;
+    padding: 1.5rem !important;
     height: 100%;
 }
 
@@ -113,11 +172,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.2rem !important;
 }
 
 .info-card-header h3 {
-    font-size: 1rem;
+    font-size: 1rem !important;
     color: var(--secondary-color-1);
 }
 
@@ -127,31 +186,47 @@
 
 .info-field .label {
     display: block;
-    font-size: .8rem;
+    font-size: .8rem !important;
     font-weight: 500;
-    color: #888;
-    margin-bottom: .35rem;
+    color: #888 !important;
+    margin-bottom: .35rem !important;
 }
 
 .field-value {
-    background: #f0f0f0;
-    padding: 10px 12px;
-    border-radius: 6px;
-    color: #333;
-    font-size: .92rem;
+    background: #f0f0f0 !important;
+    padding: 10px 12px !important;
+    border-radius: 6px !important;
+    color: #333 !important;
+    font-size: .92rem !important;
+    border: none !important;
 }
 
-.input-group {
-    display: block ruby;
-    gap: 6px;
-    input {
-        width: 85% !important; 
-    }
-    button {
-        width: 50px;
-        justify-content: center;
-    }
+.info-action-btn {
+    padding: 10px 20px !important;
+    width: auto !important;
+    border-radius: 8px !important;
+    background-color: white !important;
+    color: var(--secondary-color-1) !important;
+    border: 2px solid #d0d0d0 !important;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.5;
+    transition: all 0.3s ease;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap;
+    height: 42px;
+    cursor: pointer;
 }
+
+.info-action-btn:hover {
+    background-color: var(--secondary-color-1) !important;
+    border-color: #8235bc !important;
+    color: white !important;
+}
+
+
 
 
 /* ── Password strength bar ── */

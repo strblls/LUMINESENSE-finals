@@ -28,7 +28,7 @@
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../php/db_connect.php';
 require_once __DIR__ . '/../php/session_guard.php';
-require_once __DIR__ . '/../php/IdQuarantine.php';
+require_once __DIR__ . '/../php/id-quarantine.php';
 
 check_admin(); // any verified, approved admin — flat role, no tiers
 

@@ -1,7 +1,7 @@
 <?php
 /**
- * Auto-approves pending extension requests when the class is currently
- * in session and has ≤ grace_minutes remaining.
+ * Auto-approves pending extension requests for today's classes
+ * when the grace period is enabled.
  *
  * This endpoint runs independently of admin login so auto-accept works
  * even when the admin is logged out.
@@ -30,48 +30,52 @@ if (!$check || $check->num_rows === 0) {
     exit;
 }
 
-$now_time = date('H:i:s');
 $today = date('l');
 
 $stmt = $conn->prepare("
     SELECT er.id, er.extend_mins, er.schedule_id,
-           COALESCE(s.extended_until, s.end_time) AS end_time,
+           COALESCE(s.extended_until, s.end_time) AS current_end,
            s.classroom_id
     FROM extension_requests er
     JOIN schedules s ON s.id = er.schedule_id
     WHERE er.status = 'pending'
       AND s.day_of_week = ?
-      AND s.start_time <= ?
-      AND COALESCE(s.extended_until, s.end_time) >= ?
-      AND TIME_TO_SEC(TIMEDIFF(COALESCE(s.extended_until, s.end_time), ?)) / 60 <= ?
 ");
-$stmt->bind_param('ssssi', $today, $now_time, $now_time, $now_time, $grace_minutes);
+$stmt->bind_param('s', $today);
 $stmt->execute();
-$result = $stmt->get_result();
+$stmt->bind_result($ext_id, $ext_mins, $sched_id, $current_end, $classroom_id);
+
+// Buffer all SELECT results before running UPDATE queries to avoid
+// MySQLi "Commands out of sync" error (one active query per connection).
+$pending = [];
+while ($stmt->fetch()) {
+    $pending[] = [$ext_id, $ext_mins, $sched_id, $current_end, $classroom_id];
+}
+$stmt->close();
 
 $approved = 0;
-while ($row = $result->fetch_assoc()) {
-    $new_end = date('H:i:s', strtotime($row['end_time']) + ($row['extend_mins'] * 60));
+foreach ($pending as $p) {
+    [$ext_id, $ext_mins, $sched_id, $current_end, $classroom_id] = $p;
 
-    // reviewed_by stays NULL (auto-approved without admin)
+    $new_end = date('H:i:s', strtotime($current_end) + ($ext_mins * 60));
+
     $upd = $conn->prepare("UPDATE extension_requests SET status = 'approved', reviewed_at = NOW() WHERE id = ?");
-    $upd->bind_param('i', $row['id']);
+    $upd->bind_param('i', $ext_id);
     $upd->execute();
     $upd->close();
 
     $upd = $conn->prepare('UPDATE schedules SET extended_until = ? WHERE id = ?');
-    $upd->bind_param('si', $new_end, $row['schedule_id']);
+    $upd->bind_param('si', $new_end, $sched_id);
     $upd->execute();
     $upd->close();
 
     $colCheck = $conn->query("SHOW COLUMNS FROM classrooms LIKE 'schedule_dirty'");
     if ($colCheck && $colCheck->num_rows > 0) {
-        $conn->query("UPDATE classrooms c JOIN schedules s ON s.classroom_id = c.id SET c.schedule_dirty = 1 WHERE s.id = {$row['schedule_id']}");
+        $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = {$classroom_id}");
     }
 
     $approved++;
 }
-$stmt->close();
 
 echo json_encode([
     'success'  => true,

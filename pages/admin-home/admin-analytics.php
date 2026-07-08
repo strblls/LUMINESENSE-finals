@@ -27,6 +27,10 @@ include '../../php/handlers/analytics-handler.php';
     <link rel="stylesheet" href="../../css/modals.css">
     <link rel="stylesheet" href="../../css/admin-analytics.css">
     <link rel="stylesheet" href="../../css/admin-common.css">
+    <link rel="stylesheet" href="../../css/faculty-timetable.css">
+    <link rel="stylesheet" href="../../css/admin-faculty-management.css">
+    <link rel="stylesheet" href="../../css/tooltip.css">
+    <link rel="stylesheet" href="../../css/admin-room-manage.css">
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -42,63 +46,189 @@ include '../../php/handlers/analytics-handler.php';
         <div class="child-container">
 
             <!-- Page header -->
-            <div class="analytics-header">
-                <div>
-                    <h2 class="page-title">Energy</h2>
-                    <div class="room-label bold" id="roomLabel">
-                        <?= htmlspecialchars($rooms[0]['room_name'] ?? 'Room') ?>
+            <div class="main-container faculty-timetable-heading d-flex flex-column align-items-center justify-content-center w-auto" 
+                style="position:relative;background-color:var(--secondary-color-2);margin-bottom: 1rem !important;">
+                <div class="d-flex gap-2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);">
+                    <button type="button" class="timetable-btn ms-2" data-panel="panelGuideInfo" title="Guide">
+                        <i class="bi bi-info-lg"></i>
+                        <span class="timetable-btn-title bold">Guide</span>
+                    </button>
+                    <div id="panelGuideInfo" class="timetable-panel p-3 m-3">
+                        <div class="section-container timetable" style="background-color:#f8f9fa;width:393px;">
+                            <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Analytics Guide</h6>
+                            <div class="ps-3 mb-0" style="font-size:10px;line-height:1.5;">
+                                <p class="mb-1"><strong>Live Readings</strong> — Real-time Voltage (V), Current (A), and Power (W) from connected hardware, plus session Energy (Wh) and Light Status.</p>
+                                <p class="mb-1"><strong>Rooms Sidebar</strong> — Click a room to filter all analytics to that room only. Hover to see description, dimension, faculty, schedule, and lighting.</p>
+                                <p class="mb-1"><strong>Charts</strong> — Line graph and bar graph display Voltage, Current, and Power. Click legend items to toggle datasets on/off; hidden datasets also hide their y-axis on the line graph.</p>
+                                <p class="mb-1"><strong>Filter by Period</strong> — Switch between Today (24 hourly data points), Last 7, 14, or 30 days. Today shows 5-minute interval history rows.</p>
+                                <p class="mb-1"><strong>Filter by Metrics</strong> — Focus on Voltage, Current, or Power across both charts and the live reading cards. Selecting a metric enlarges its card and shows the relevant formula.</p>
+                                <p class="mb-1"><strong>Formula Bar</strong> — Displays the relationship between V, A, W, and Energy. Updates dynamically based on the selected metric filter.</p>
+                                <p class="mb-0"><strong>Polling</strong> — Live data refreshes every 3s, charts every 30s. Polling pauses when filters are active, and resumes when all filters are cleared.</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <div class="content-area">
-                <div class="analytics-grid">
-                    <aside class="analytics-filters">
-                        <div class="card-white filters-card">
-                            <div class="filters-title">
-                                <h3 class="chart-card-title bold">Slicers</h3>
-                                <p class="metric-subtitle">Select the period and metric you want to view.</p>
-                            </div>
-                            <div class="filter-group">
-                                <label for="periodSelect">Period</label>
-                                <select id="periodSelect" onchange="onControlChange()">
-                                    <option value="7" selected>Last 7 days</option>
-                                    <option value="14">Last 14 days</option>
-                                    <option value="30">Last 30 days</option>
-                                </select>
-                            </div>
-                            <?php if (count($rooms) > 1): ?>
-                                <div class="filter-group">
-                                    <label for="roomSelect">Room</label>
-                                    <select id="roomSelect" onchange="onControlChange()">
-                                        <option value="0">All Rooms</option>
-                                        <?php foreach ($rooms as $room): ?>
-                                            <option value="<?= $room['id'] ?>">
-                                                <?= htmlspecialchars($room['room_name']) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
+                    <button type="button" class="timetable-btn" data-panel="panelFilterInfo" title="Filter">
+                        <i class="bi bi-funnel"></i>
+                        <span class="timetable-btn-title bold">Filter</span>
+                    </button>
+                    <div id="panelFilterInfo" class="timetable-panel p-3 m-3">
+                        <div class="section-container timetable" style="background-color:#f8f9fa;">
+                            <div class="dept-member-filter">
+                                <div class="dept-member-filter-header">Filter by Period</div>
+                                <div class="dept-member-filter-list">
+                                    <div class="dept-member-filter-item active" onclick="setPeriod(this, 1)">Today</div>
+                                    <div class="dept-member-filter-item" onclick="setPeriod(this, 7)">Last 7 days</div>
+                                    <div class="dept-member-filter-item" onclick="setPeriod(this, 14)">Last 14 days</div>
+                                    <div class="dept-member-filter-item" onclick="setPeriod(this, 30)">Last 30 days</div>
                                 </div>
-                            <?php else: ?>
-                                <input type="hidden" id="roomSelect" value="<?= $rooms[0]['id'] ?? 0 ?>">
-                            <?php endif; ?>
-                            <div class="filter-group">
-                                <div class="filters-subtitle">Metrics</div>
-                                <div class="metric-buttons" id="metricButtons">
-                                    <button type="button" class="metric-button active" data-metric="all">All Metrics</button>
-                                    <button type="button" class="metric-button" data-metric="voltage">Voltage</button>
-                                    <button type="button" class="metric-button" data-metric="current">Current</button>
-                                    <button type="button" class="metric-button" data-metric="power">Power</button>
-                                    <button type="button" class="metric-button" data-metric="cost">Cost</button>
+                            </div>
+                            <div class="dept-member-filter">
+                                <div class="dept-member-filter-header">Filter by Metrics</div>
+                                <div class="dept-member-filter-list">
+                                    <div class="dept-member-filter-item active" onclick="setMetric(this, 'all')">All Metrics</div>
+                                    <div class="dept-member-filter-item" onclick="setMetric(this, 'voltage')">Voltage</div>
+                                    <div class="dept-member-filter-item" onclick="setMetric(this, 'current')">Current</div>
+                                    <div class="dept-member-filter-item" onclick="setMetric(this, 'power')">Power</div>
                                 </div>
                             </div>
                         </div>
+                        <select id="periodSelect" onchange="onControlChange()" hidden>
+                            <option value="1" selected>Today</option>
+                            <option value="7">Last 7 days</option>
+                            <option value="14">Last 14 days</option>
+                            <option value="30">Last 30 days</option>
+                        </select>
+                        <?php if (count($rooms) > 1): ?>
+                            <select id="roomSelect" onchange="onControlChange()" hidden>
+                                <option value="0">All Rooms</option>
+                                <?php foreach ($rooms as $room): ?>
+                                    <option value="<?= $room['id'] ?>">
+                                        <?= htmlspecialchars($room['room_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php else: ?>
+                            <input type="hidden" id="roomSelect" value="<?= $rooms[0]['id'] ?? 0 ?>">
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="d-flex gap-2" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);">
+                    <button type="button" class="timetable-btn" onclick="exportCSV()" title="Export CSV">
+                        <i class="bi bi-filetype-csv"></i>
+                        <span class="timetable-btn-title bold">Export<br>CSV</span>
+                    </button>
+                    <button type="button" class="timetable-btn" onclick="exportPDF()" title="Export PDF">
+                        <i class="bi bi-filetype-pdf"></i>
+                        <span class="timetable-btn-title bold">Export<br>PDF</span>
+                    </button>
+                </div>
+                <div class="p-2" style="color:#fff;background-color:var(--secondary-color-1);border-radius:5px;overflow:hidden;position:relative;">
+                    <div class="tab-text-slide" id="tabTextSlide">
+                        <h2 class="text-center bold" id="tabHeading">Energy Statistics</h2>
+                        <p class="text-uppercase text-center mb-0" style="font-size:14px;color:var(--accent-yellow);" id="tabSubheading">
+                            All Rooms Selected
+                        </p>
+                    </div>
+                            </div>
+                        </div>
+
+            <div class="content-area">
+                <div class="analytics-grid">
+                    <aside class="analytics-filters" style="display:none;">
                     </aside>
+
+                    <div class="analytics-sidebar">
+                        <div class="card-white rooms-card">
+                            <h3 class="rooms-title">Rooms <span class="rooms-deselect" onclick="deselectRoom()" title="Deselect room" data-bs-toggle="tooltip" data-bs-placement="auto">&times;</span></h3>
+                            <?php foreach ($rooms as $room): ?>
+                            <div class="stat-card" data-room-id="<?= $room['id'] ?>">
+                                <div class="stat-card-top">
+                                    <span class="stat-icon">
+                                        <i class="bi bi-door-open" style="font-size:1.5rem;color:var(--secondary-color-2);"></i>
+                                    </span>
+                                    <div>
+                                        <div class="stat-value"><?= htmlspecialchars($room['room_name']) ?></div>
+                                        <p class="stat-label">Room</p>
+                                    </div>
+                                </div>
+                                <div class="room-expand">
+                                    <?php if (!empty($room['description'])): ?>
+                                    <div class="room-expand-row">
+                                        <i class="bi bi-info-circle"></i>
+                                        <span class="room-info-label">Description:</span>
+                                        <span class="room-info-val"><?= htmlspecialchars($room['description']) ?></span>
+                                    </div>
+                                    <?php endif; ?>
+                                    <div class="room-expand-row">
+                                        <i class="bi bi-aspect-ratio"></i>
+                                        <span class="room-info-label">Dimension:</span>
+                                        <span class="room-info-val" style="text-transform:capitalize;"><?= htmlspecialchars($room['room_size'] ?? 'medium') ?></span>
+                                    </div>
+                                    <div class="room-expand-row">
+                                        <i class="bi bi-person-fill"></i>
+                                        <span class="room-info-label">Faculty:</span>
+                                        <span class="room-info-val"><?= htmlspecialchars($room['faculty_name']) ?></span>
+                                    </div>
+                                    <div class="room-expand-row">
+                                        <i class="bi bi-clock-fill"></i>
+                                        <span class="room-info-label"><?= $room['is_occupied'] ? 'Time:' : 'Next class:' ?></span>
+                                        <span class="room-info-val">
+                                            <?php if ($room['is_occupied']): ?>
+                                                <?= date('g:i A', strtotime($room['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($room['end_time'])) ?>
+                                            <?php else: ?>
+                                                None scheduled
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
+                                    <div class="room-expand-row">
+                                        <i class="bi bi-lightbulb-fill"></i>
+                                        <span class="room-info-label">Lighting:</span>
+                                        <span><span class="light-dot <?= $room['light_status'] === 'on' ? 'on' : 'off' ?>"></span><span class="room-info-val"><?= $room['light_status'] === 'on' ? 'ON' : 'OFF' ?></span></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <!-- ── Summary live-card ── -->
+                        <div class="live-card">
+                            <div class="live-card-header" style="margin-bottom:10px;">
+                                <span class="chart-card-title bold">Summary</span>
+                                <span class="summary-label"><?= date('F j, Y') ?></span>
+                            </div>
+                            <div class="summary-column">
+                                <div class="live-stat-card">
+                                    <div class="live-stat-val" id="sumEnergy">—</div>
+                                    <div class="live-stat-label">Total Energy (kWh)</div>
+                                </div>
+                                <div class="live-stat-card">
+                                    <div class="live-stat-val" id="sumMinutes">—</div>
+                                    <div class="live-stat-label">Total Occupied (hrs)</div>
+                                </div>
+                                <div class="live-stat-card">
+                                    <div class="live-stat-val" id="sumVoltage">—</div>
+                                    <div class="live-stat-label">Avg Voltage (V)</div>
+                                </div>
+                                <div class="live-stat-card">
+                                    <div class="live-stat-val" id="sumCurrent">—</div>
+                                    <div class="live-stat-label">Avg Current (A)</div>
+                                </div>
+                                <div class="live-stat-card">
+                                    <div class="live-stat-val" id="sumPower">—</div>
+                                    <div class="live-stat-label">Peak Power (W)</div>
+                                </div>
+                                <div class="live-stat-card">
+                                    <div class="live-stat-val" id="sumCost">—</div>
+                                    <div class="live-stat-label">Est. Cost (PHP)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <main class="analytics-main">
 
                 <!-- ── Live readings ── -->
-                <div class="card-white live-card">
+                <div class="live-card">
                     <div class="live-card-header">
                         <span class="chart-card-title bold">Live Readings</span>
                         <span class="live-badge" id="liveBadge">
@@ -106,92 +236,36 @@ include '../../php/handlers/analytics-handler.php';
                         </span>
                     </div>
                     <div class="live-readings-row">
-                        <div class="live-reading-item">
-                            <div class="live-reading-val" id="liveVoltage">— V</div>
-                            <div class="live-reading-label">Voltage</div>
-                        </div>
-                        <div class="live-divider"></div>
-                        <div class="live-reading-item">
-                            <div class="live-reading-val" id="liveCurrent">— A</div>
-                            <div class="live-reading-label">Current</div>
-                        </div>
-                        <div class="live-divider"></div>
-                        <div class="live-reading-item">
-                            <div class="live-reading-val" id="livePower">— W</div>
-                            <div class="live-reading-label">Power</div>
-                        </div>
-                        <div class="live-divider"></div>
-                        <div class="live-reading-item">
-                            <div class="live-reading-val" id="liveEnergy">— Wh</div>
-                            <div class="live-reading-label">Energy (session)</div>
-                        </div>
-                        <div class="live-divider"></div>
-                        <div class="live-reading-item">
-                            <div class="live-status-row">
-                                <span class="live-status-dot" id="liveStatusDot"></span>
-                                <span class="live-reading-val" id="liveStatus">—</span>
+                        <div class="live-readings-group" id="vawGroup">
+                            <div class="live-stat-card" data-metric="voltage">
+                                <div class="live-stat-val" id="liveVoltage">— V</div>
+                                <div class="live-stat-label">Voltage</div>
                             </div>
-                            <div class="live-reading-label">Light Status</div>
+                            <div class="live-stat-card" data-metric="current">
+                                <div class="live-stat-val" id="liveCurrent">— A</div>
+                                <div class="live-stat-label">Current</div>
+                            </div>
+                            <div class="live-stat-card" data-metric="power">
+                                <div class="live-stat-val" id="livePower">— W</div>
+                                <div class="live-stat-label">Power</div>
+                            </div>
+                        </div>
+                        <div class="live-readings-group vaw-group">
+                            <div class="live-stat-card">
+                                <div class="live-stat-val" id="liveEnergy">— Wh</div>
+                                <div class="live-stat-label">Energy (session)</div>
+                            </div>
+                            <div class="live-stat-card">
+                                <div class="live-stat-row">
+                                    <span class="live-status-dot" id="liveStatusDot"></span>
+                                    <span class="live-stat-val" id="liveStatus">—</span>
+                                </div>
+                                <div class="live-stat-label">Light Status</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- ── Summary cards ── -->
-                <div class="card-white">
-                    <div class="live-card-header mb-3">
-                        <h3 class="chart-card-title bold">Today's Summary</h3>
-                        <span class="summary-label"><?= date('F j, Y') ?></span>
-                    </div>
-                    <div class="summary-cards-row">
-                        <div class="summary-card">
-                            <div class="summary-icon"><i class="bi bi-lightning-charge-fill"></i></div>
-                            <div class="summary-info">
-                                <div class="summary-val" id="sumEnergy">—</div>
-                                <div class="summary-label">Total Energy (kWh)</div>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-icon"><i class="bi bi-clock-history"></i></div>
-                            <div class="summary-info">
-                                <div class="summary-val" id="sumMinutes">—</div>
-                                <div class="summary-label">Total Occupied (hrs)</div>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-icon"><i class="bi bi-calendar-check"></i></div>
-                            <div class="summary-info">
-                                <div class="summary-val" id="sumSessions">—</div>
-                                <div class="summary-label">Total Sessions</div>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-icon"><i class="bi bi-bolt-fill"></i></div>
-                            <div class="summary-info">
-                                <div class="summary-val" id="sumVoltage">—</div>
-                                <div class="summary-label">Avg Voltage (V)</div>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-icon"><i class="bi bi-tachometer-fill"></i></div>
-                            <div class="summary-info">
-                                <div class="summary-val" id="sumCurrent">—</div>
-                                <div class="summary-label">Avg Current (A)</div>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-icon"><i class="bi bi-hdd-stack-fill"></i></div>
-                            <div class="summary-info">
-                                <div class="summary-val" id="sumPower">—</div>
-                                <div class="summary-label">Peak Power (W)</div>
-                            </div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-icon"><i class="bi bi-currency-dollar"></i></div>
-                            <div class="summary-info">
-                                <div class="summary-val" id="sumCost">—</div>
-                                <div class="summary-label">Est. Cost (PHP)</div>
-                            </div>
-                        </div>
+                    <div class="metric-info" id="metricInfo">
+                        <span class="metric-info-text">Voltage, Current, and Power readings are used to compute Energy (Wh) over time. <span class="metric-formula">Energy (Wh) = Power (W) &times; Time (h)</span></span>
                     </div>
                 </div>
 
@@ -218,17 +292,14 @@ include '../../php/handlers/analytics-handler.php';
 
                 <!-- ── Daily history table ── -->
                 <div class="card-white">
-                    <div class="breakdown-header" style="margin-bottom:14px;">
+
+                    <div class="breakdown-header" style="margin-top:18px;margin-bottom:14px;">
                         <div class="breakdown-title-row">
-                            <span class="breakdown-title bold">Daily History</span>
-                            <div class="export-btns">
-                                <button class="btn-export-csv" onclick="exportCSV()">Export CSV</button>
-                                <button class="btn-export-pdf" onclick="exportPDF()">Export PDF</button>
-                            </div>
+                            <span class="breakdown-title bold" id="historyTitle">7-Day History</span>
                         </div>
                         <div class="history-table-wrapper">
                             <table class="breakdown-table">
-                                <thead>
+                                <thead id="historyHead">
                                     <tr>
                                         <th style="text-align:left;">Date</th>
                                         <th>Sessions</th>
@@ -258,10 +329,90 @@ include '../../php/handlers/analytics-handler.php';
 
         <script src="../../script/animations.js"></script>
         <script src="../../script/toggles.js"></script>
+        <script src="../../script/tooltip.js"></script>
+        <style>
+            .topbar-greeting,
+            .topbar-user-info {
+                transition: opacity 0.3s ease;
+            }
+            .topbar-greeting.hidden,
+            .topbar-user-info.hidden {
+                opacity: 0;
+            }
+        </style>
+        <script>
+            // ── Scroll-to-hide topbar greeting & user info ──
+            window.addEventListener('scroll', function() {
+                var scrollThreshold = 100;
+                var nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - scrollThreshold;
+                document.querySelectorAll('.topbar-greeting, .topbar-user-info').forEach(function(el) {
+                    if (nearBottom) { el.classList.add('hidden'); }
+                    else { el.classList.remove('hidden'); }
+                });
+            });
+        </script>
 
         <script>
             const roomData = <?= json_encode($roomDataFromPHP, JSON_HEX_TAG) ?>;
             const defaultCid = <?= (int)($rooms[0]['id'] ?? 3) ?>;
+        </script>
+        <script>
+            // ── Timetable-panel toggle for Guide & Filter ──
+            (function() {
+                var panels = ['panelGuideInfo', 'panelFilterInfo'];
+                var timers = {};
+                var heading = document.querySelector('.main-container.faculty-timetable-heading');
+                panels.forEach(function(id) {
+                    var btn = document.querySelector('[data-panel="' + id + '"]');
+                    var panel = document.getElementById(id);
+                    if (!btn || !panel) return;
+                    timers[id] = null;
+                    function open() {
+                        if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
+                        panel.classList.add('show');
+                        if (heading) heading.style.zIndex = '1050';
+                    }
+                    function close() {
+                        if (timers[id]) clearTimeout(timers[id]);
+                        timers[id] = setTimeout(function() {
+                            panel.classList.remove('show');
+                            if (heading) heading.style.zIndex = '';
+                        }, 150);
+                    }
+                    btn.addEventListener('mouseenter', open);
+                    btn.addEventListener('mouseleave', close);
+                    panel.addEventListener('mouseenter', open);
+                    panel.addEventListener('mouseleave', close);
+                });
+            })();
+        </script>
+        <script>
+            function deselectRoom() {
+                document.querySelectorAll('.rooms-card .stat-card.active-room').forEach(function(c) {
+                    c.classList.remove('active-room');
+                });
+                var sub = document.getElementById('tabSubheading');
+                if (sub) sub.textContent = 'All Rooms Selected';
+                if (typeof checkPolling === 'function') checkPolling();
+            }
+            document.querySelectorAll('.rooms-card .stat-card').forEach(function(card) {
+                card.addEventListener('click', function(e) {
+                    var active = document.querySelector('.rooms-card .stat-card.active-room');
+                    if (active && active !== this) active.classList.remove('active-room');
+                    var wasActive = this.classList.contains('active-room');
+                    this.classList.toggle('active-room');
+                    var sub = document.getElementById('tabSubheading');
+                    if (sub) {
+                        if (wasActive) {
+                            sub.textContent = 'All Rooms Selected';
+                        } else {
+                            var nameEl = this.querySelector('.stat-value');
+                            sub.textContent = nameEl ? nameEl.textContent + ' Selected' : 'Room Selected';
+                        }
+                    }
+                    if (typeof checkPolling === 'function') checkPolling();
+                });
+            });
         </script>
         <script src="../../script/admin-analytics.js?v=<?= time() ?>"></script>
 

@@ -136,29 +136,45 @@ if (!$stmt->execute()) {
 $admin_id = $conn->insert_id;
 $stmt->close();
 
-// ── 10.1 If the ID didn't clearly match, drop it in the review queue ──────
-if (in_array($result['status'], ['mismatched', 'unreadable'], true)) {
+// ── 10.1 Save the ID image to disk ────────────────────────────────────
+$ext         = pathinfo($_FILES['id_image']['name'], PATHINFO_EXTENSION);
+$file_path   = 'uploads/admin_ids/' . $admin_id . '.' . $ext;
+$target_path = __DIR__ . '/../' . $file_path;
 
-    $encrypted_blob = IdQuarantine::encrypt($raw_image_bytes);
-    $expires_at     = date('Y-m-d H:i:s', strtotime('+24 hours'));
-
-    $qStmt = $conn->prepare("
-        INSERT INTO id_review_queue
-            (account_type, account_id, encrypted_blob, ai_match_status, ai_extracted_name, ai_confidence_note, expires_at)
-        VALUES ('admin', ?, ?, ?, ?, ?, ?)
-    ");
-    $qStmt->bind_param(
-        'isssss',
-        $admin_id,
-        $encrypted_blob,
-        $result['status'],
-        $result['extracted_name'],
-        $result['note'],
-        $expires_at
-    );
-    $qStmt->execute();
-    $qStmt->close();
+// Ensure the directory exists
+$dir = dirname($target_path);
+if (!is_dir($dir)) {
+    mkdir($dir, 0755, true);
 }
+
+file_put_contents($target_path, $raw_image_bytes);
+
+$upd = $conn->prepare('UPDATE admins SET id_image = ? WHERE id = ?');
+$upd->bind_param('si', $file_path, $admin_id);
+$upd->execute();
+$upd->close();
+
+// ── 10.2 Always drop the ID in the review queue for admin signups ─────
+// so the seeded admin can view the submitted ID before approving
+$encrypted_blob = IdQuarantine::encrypt($raw_image_bytes);
+$expires_at     = date('Y-m-d H:i:s', strtotime('+24 hours'));
+
+$qStmt = $conn->prepare("
+    INSERT INTO id_review_queue
+        (account_type, account_id, encrypted_blob, ai_match_status, ai_extracted_name, ai_confidence_note, expires_at)
+    VALUES ('admin', ?, ?, ?, ?, ?, ?)
+");
+$qStmt->bind_param(
+    'isssss',
+    $admin_id,
+    $encrypted_blob,
+    $result['status'],
+    $result['extracted_name'],
+    $result['note'],
+    $expires_at
+);
+$qStmt->execute();
+$qStmt->close();
 
 // Wipe our in-memory copy — don't need it anymore either way.
 $raw_image_bytes = null;

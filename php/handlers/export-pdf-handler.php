@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 /**
  * LumineSense – Export PDF Handler
  * Generates a PDF timetable from the faculty's schedule data.

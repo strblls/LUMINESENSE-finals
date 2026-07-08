@@ -132,7 +132,7 @@ $conn->close();
     <div class="profile-wrapper flex-column">
         <div class="p-2 mb-3">
             <button class="light mb-2"
-                onclick="dissolve('admin-faculty-management.php')">
+                onclick="dissolve('admin-faculty-management.php?tab=faculty-directory')">
                 <i class="bi bi-arrow-left me-1"></i> Back to Faculty Management
             </button>
         </div>
