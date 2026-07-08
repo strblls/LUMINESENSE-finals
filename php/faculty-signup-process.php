@@ -136,29 +136,27 @@ if (!$stmt->execute()) {
 $faculty_id = $conn->insert_id;
 $stmt->close();
 
-// ── 10.1 If the ID didn't clearly match, drop it in the review queue ──────
-if (in_array($result['status'], ['mismatched', 'unreadable'], true)) {
+// ── 10.1 Always drop the ID in the review queue for faculty signups ────
+// so the admin can view the submitted ID before approving
+$encrypted_blob = IdQuarantine::encrypt($raw_image_bytes);
+$expires_at     = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
-    $encrypted_blob = IdQuarantine::encrypt($raw_image_bytes);
-    $expires_at     = date('Y-m-d H:i:s', strtotime('+24 hours'));
-
-    $qStmt = $conn->prepare("
-        INSERT INTO id_review_queue
-            (account_type, account_id, encrypted_blob, ai_match_status, ai_extracted_name, ai_confidence_note, expires_at)
-        VALUES ('faculty', ?, ?, ?, ?, ?, ?)
-    ");
-    $qStmt->bind_param(
-        'isssss',
-        $faculty_id,
-        $encrypted_blob,
-        $result['status'],
-        $result['extracted_name'],
-        $result['note'],
-        $expires_at
-    );
-    $qStmt->execute();
-    $qStmt->close();
-}
+$qStmt = $conn->prepare("
+    INSERT INTO id_review_queue
+        (account_type, account_id, encrypted_blob, ai_match_status, ai_extracted_name, ai_confidence_note, expires_at)
+    VALUES ('faculty', ?, ?, ?, ?, ?, ?)
+");
+$qStmt->bind_param(
+    'isssss',
+    $faculty_id,
+    $encrypted_blob,
+    $result['status'],
+    $result['extracted_name'],
+    $result['note'],
+    $expires_at
+);
+$qStmt->execute();
+$qStmt->close();
 
 // Wipe our in-memory copy — we don't need it anymore either way.
 $raw_image_bytes = null;

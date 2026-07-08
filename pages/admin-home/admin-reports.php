@@ -213,15 +213,6 @@ function event_icon(string $type): array
                             <p class="stat-label">Lights Currently On</p>
                         </div>
                     </div>
-                    <div class="stat-card"
-                         data-a-icon="bi-exclamation-triangle-fill" data-a-label="Issues Logged"                  data-a-val="<?= count(array_filter($activity_logs, fn($l) => str_contains(strtolower($l['action']), 'issue'))) ?>"
-                         data-r-icon="bi-activity"                 data-r-label="Rooms w/ Events"              data-r-val="<?= count(array_filter($rooms, fn($r) => $r['total_events'] > 0)) ?>">
-                        <span class="stat-icon"><i class="bi bi-exclamation-triangle-fill" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                        <div>
-                            <div class="stat-value"><?= count(array_filter($activity_logs, fn($l) => str_contains(strtolower($l['action']), 'issue'))) ?></div>
-                            <p class="stat-label">Issues Logged</p>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -600,23 +591,20 @@ function event_icon(string $type): array
 
             function updateStats(stats) {
                 const cards = document.querySelectorAll('.stat-card');
-                if (cards.length >= 4) {
+                if (cards.length >= 3) {
                     cards[0].dataset.aVal = stats.total_logs;
                     cards[1].dataset.aVal = stats.total_rooms;
                     cards[2].dataset.aVal = stats.lights_on;
-                    cards[3].dataset.aVal = stats.issues;
                     var active = document.querySelector('.tab-btn.active, .timetable-btn[data-tab].active');
                     var tab = active ? active.dataset.tab : 'activity';
                     if (tab === 'rooms') {
                         cards[0].querySelector('.stat-value').textContent = cards[0].dataset.rVal;
                         cards[1].querySelector('.stat-value').textContent = cards[1].dataset.rVal;
                         cards[2].querySelector('.stat-value').textContent = cards[2].dataset.rVal;
-                        cards[3].querySelector('.stat-value').textContent = cards[3].dataset.rVal;
                     } else {
                         cards[0].querySelector('.stat-value').textContent = stats.total_logs;
                         cards[1].querySelector('.stat-value').textContent = stats.total_rooms;
                         cards[2].querySelector('.stat-value').textContent = stats.lights_on;
-                        cards[3].querySelector('.stat-value').textContent = stats.issues;
                     }
                 }
             }

@@ -9,4 +9,4 @@ function setupToggle(toggleId, inputId) {
 }
 
 setupToggle('togglePassword', 'password');
-setupToggle('toggleConfirmPassword', 'confirmPassword');
+setupToggle('toggleConfirmPassword', 'confirm_password');

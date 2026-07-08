@@ -1,6 +1,6 @@
 <?php
 /**
- * php/id-verifier.php
+ * IdVerifier.php
  * ---------------------------------------------------------
  * Used by BOTH faculty-signup-process.php and
  * admin-signup-process.php — same pipeline for both account

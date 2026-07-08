@@ -16,10 +16,19 @@ require_once $phpRoot . '/handlers/faculty-approvals-handler.php';
 /** @var string $message */
 /** @var int $total_faculty */
 /** @var int $pending_count */
+/** @var int $admin_pending_count */
 /** @var int $ext_pending */
 /** @var array $faculty_list */
+/** @var array $pending_admins */
 /** @var array $extensions */
 /** @var array $departments */
+
+// Check if the current admin can see admin accounts (is_seeded = 1)
+$admin_is_seeded = false;
+$seed_check = $conn->query("SELECT is_seeded FROM admins WHERE id = " . (int)$admin_id);
+if ($seed_check && $seed_row = $seed_check->fetch_assoc()) {
+    $admin_is_seeded = !empty($seed_row['is_seeded']);
+}
 
 // Get message from session if available
 if (isset($_SESSION['message']) && !empty($_SESSION['message'])) {
@@ -37,11 +46,25 @@ foreach ($departments as $dept) {
 
 // Fix stat values
 $total_rooms = count($departments);
-$pending = $pending_count;
+$pending = $admin_is_seeded ? $pending_count + $admin_pending_count : $pending_count;
+if (!$admin_is_seeded) {
+    $total_accounts = $total_faculty;
+}
 
 $approved_faculty = 0;
 foreach ($faculty_list as $f) {
     if ($f['status_label'] === 'approved') $approved_faculty++;
+}
+$approved_admins = 0;
+foreach ($admin_list as $a) {
+    if ($a['status_label'] === 'approved') $approved_admins++;
+}
+$total_approved = $admin_is_seeded ? $approved_faculty + $approved_admins : $approved_faculty;
+
+// Exclude the seeded admin's own account from stat counts
+if ($admin_is_seeded) {
+    $total_accounts -= 1;
+    if ($total_approved > 0) $total_approved -= 1;
 }
 
 $active_departments = 0;
@@ -89,6 +112,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
     <link rel="stylesheet" href="../../css/admin-common.css">
     <link rel="stylesheet" href="../../css/admin-home-reports.css">
     <link rel="stylesheet" href="../../css/admin-faculty-management.css">
+    <link rel="stylesheet" href="../../css/faculty-settings.css">
     <link rel="stylesheet" href="../../css/tooltip.css">
 </head>
 
@@ -217,16 +241,16 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                     </div>
                                     <div class="default-state-container-body">
                                         <div class="stat-card">
-                                            <span class="stat-icon"><i class="bi bi-people" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                                            <span class="stat-icon"><i class="bi bi-person-badge" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                                             <div>
-                                                <div class="stat-value"><?= $total_faculty ?></div>
-                                                <p class="stat-label">Total Faculty</p>
+                                                <div class="stat-value"><?= $total_accounts ?></div>
+                                                <p class="stat-label">Total Accounts</p>
                                             </div>
                                         </div>
                                         <div class="stat-card">
                                             <span class="stat-icon"><i class="bi bi-person-check" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                                             <div>
-                                                <div class="stat-value"><?= $approved_faculty ?></div>
+                                                <div class="stat-value"><?= $total_approved ?></div>
                                                 <p class="stat-label">Approved Accounts</p>
                                             </div>
                                         </div>
@@ -281,13 +305,33 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                                             </div>
                                                             <button type="button" class="btn-icon btn-icon-view d-inline-flex align-items-center"
                                                                 onclick="window.location.href='admin-faculty-review.php?id=<?= $faculty['id'] ?>'"
-                                                                title="Review" data-bs-toggle="tooltip" data-bs-placement="auto">
+                                                                title="Review Application" data-bs-toggle="tooltip" data-bs-placement="auto">
                                                                 <i class="bi bi-eye"></i>
                                                             </button>
                                                         </div>
                                                     <?php
                                                     endif;
                                                 endforeach;
+
+                                                if ($admin_is_seeded && !empty($pending_admins)):
+                                                    foreach ($pending_admins as $admin):
+                                                        $has_pending_landing = true;
+                                                    ?>
+                                                        <div class="room-info-row" style="padding: 1rem;">
+                                                            <div class="item-info">
+                                                                <h5 class="bold"><?= htmlspecialchars($admin['first_name'] . ' ' . $admin['last_name']) ?></h5>
+                                                                <span><?= htmlspecialchars($admin['email']) ?> <span class="badge badge-scheduled small ms-1">Admin</span></span>
+                                                            </div>
+                                                            <button type="button" class="btn-icon btn-icon-view d-inline-flex align-items-center"
+                                                                onclick="window.location.href='admin-admin-card.php?id=<?= $admin['id'] ?>'"
+                                                                title="Review Application" data-bs-toggle="tooltip" data-bs-placement="auto">
+                                                                <i class="bi bi-eye"></i>
+                                                            </button>
+                                                        </div>
+                                                    <?php
+                                                    endforeach;
+                                                endif;
+
                                                 if (!$has_pending_landing):
                                                     ?>
                                                     <div class="empty-state">
@@ -501,25 +545,42 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                         <div class="landing-panel" id="panel-faculty-directory">
                             <div class="landing-panel-header d-flex align-items-center gap-2" style="position:relative;">
                                 <button class="light w-auto" onclick="goToDefaultPanel()" data-bs-toggle="tooltip" data-bs-placement="top" title="Return"><i class="bi bi-arrow-left"></i></button>
-                                <h2 class="bold mb-0"><i class="bi bi-people"></i>Faculty Directory</h2>
+                                <h2 class="bold mb-0"><i class="bi bi-people"></i>Account Directory</h2>
                                 <input type="text" id="facultySearch" class="form-control" placeholder="Search faculty name or email..." style="max-width:340px;position:absolute;left:50%;transform:translateX(-50%);" oninput="filterFacultyCards(this.value)">
                             </div>
                             <div class="landing-panel-body-wrapper">
                                 <div class="landing-panel-col-left">
                                     <div class="landing-stat-card">
-                                        <span class="stat-icon"><i class="bi bi-people" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                                        <span class="stat-icon"><i class="bi bi-person-badge" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                                         <div class="stat-info">
-                                            <div class="stat-value"><?= $total_faculty ?></div>
-                                            <p class="stat-label">Total<br>Faculty</p>
+                                            <div class="stat-value"><?= $total_accounts ?></div>
+                                            <p class="stat-label">Total<br>Accounts</p>
                                         </div>
                                     </div>
                                     <div class="landing-stat-card">
                                         <span class="stat-icon"><i class="bi bi-person-check" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                                         <div class="stat-info">
-                                            <div class="stat-value"><?= $approved_faculty ?></div>
+                                            <div class="stat-value"><?= $total_approved ?></div>
                                             <p class="stat-label">Approved<br>Accounts</p>
                                         </div>
                                     </div>
+                                    <div class="faculty-side-filter">
+                                        <div class="dept-member-filter-header">Sort by Name</div>
+                                        <div class="dept-member-filter-list d-flex gap-1" style="flex-direction:row;flex-wrap:wrap;">
+                                            <div class="dept-member-filter-item active" onclick="sortFacultyByName(this, 'asc')">A–Z</div>
+                                            <div class="dept-member-filter-item" onclick="sortFacultyByName(this, 'desc')">Z–A</div>
+                                        </div>
+                                    </div>
+                                    <?php if ($admin_is_seeded): ?>
+                                    <div class="faculty-side-filter">
+                                        <div class="dept-member-filter-header">Filter by Type</div>
+                                        <div class="dept-member-filter-list">
+                                            <div class="dept-member-filter-item active" onclick="filterFacultyByType(this, 'all')">All Accounts</div>
+                                            <div class="dept-member-filter-item" onclick="filterFacultyByType(this, 'admin')">Administrator</div>
+                                            <div class="dept-member-filter-item" onclick="filterFacultyByType(this, 'faculty')">Faculty</div>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
                                     <div class="faculty-side-filter">
                                         <div class="dept-member-filter-header">Filter By Status</div>
                                         <div class="dept-member-filter-list">
@@ -539,19 +600,37 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                             <div class="dept-member-filter-item" onclick="filterFacultyByDate(this, 'year')">This Year</div>
                                         </div>
                                     </div>
-                                    <div class="faculty-side-filter">
-                                        <div class="dept-member-filter-header">Sort by Name</div>
-                                        <div class="dept-member-filter-list d-flex gap-1" style="flex-direction:row;flex-wrap:wrap;">
-                                            <div class="dept-member-filter-item active" onclick="sortFacultyByName(this, 'asc')">A–Z</div>
-                                            <div class="dept-member-filter-item" onclick="sortFacultyByName(this, 'desc')">Z–A</div>
-                                        </div>
-                                    </div>
                                 </div>
                                 <div class="landing-panel-col-center">
-                                    <?php if (!empty($faculty_list)): ?>
+                                    <?php
+                                    $accounts_merge = array_map(function($f) {
+                                        $f['_type'] = 'faculty';
+                                        $f['_search'] = strtolower($f['first_name'] . ' ' . $f['last_name'] . ' ' . $f['email'] . ' faculty');
+                                        return $f;
+                                    }, $faculty_list);
+                                    if ($admin_is_seeded) {
+                                        $visible_admins = array_filter($admin_list, function($a) use ($admin_id) {
+                                            return (int)$a['id'] !== (int)$admin_id;
+                                        });
+                                        $accounts_merge = array_merge($accounts_merge,
+                                            array_map(function($a) {
+                                                $a['_type'] = 'admin';
+                                                $a['_search'] = strtolower($a['first_name'] . ' ' . $a['last_name'] . ' ' . $a['email'] . ' admin');
+                                                return $a;
+                                            }, $visible_admins)
+                                        );
+                                    }
+                                    $all_accounts = $accounts_merge;
+                                    usort($all_accounts, function($a, $b) {
+                                        $cmp = strcmp(strtolower($a['last_name'] ?? $a['first_name']), strtolower($b['last_name'] ?? $b['first_name']));
+                                        return $cmp !== 0 ? $cmp : strcmp(strtolower($a['first_name'] ?? ''), strtolower($b['first_name'] ?? ''));
+                                    });
+                                    ?>
+                                    <?php if (!empty($all_accounts)): ?>
                                         <div class="faculty-grid style-scrollbar">
-                                            <?php foreach ($faculty_list as $faculty):
-                                                $f_status = $faculty['status_label'];
+                                            <?php foreach ($all_accounts as $acct):
+                                                $is_admin = $acct['_type'] === 'admin';
+                                                $f_status = $acct['status_label'];
                                                 if ($f_status === 'approved') {
                                                     $f_accent = 'accent-vacant';
                                                     $f_badge = 'badge-vacant';
@@ -565,21 +644,34 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                                     $f_badge = 'badge-occupied';
                                                     $f_badge_label = 'Unverified';
                                                 }
-                                                $f_created = !empty($faculty['created_at']) ? date('M j, Y', strtotime($faculty['created_at'])) : '—';
-                                                $f_approved = !empty($faculty['approved_at']) ? date('M j, Y', strtotime($faculty['approved_at'])) : '—';
-                                                $f_name = htmlspecialchars($faculty['first_name'] . ' ' . $faculty['last_name']);
-                                                $f_email = htmlspecialchars($faculty['email']);
-                                                $f_search_data = strtolower($f_name . ' ' . $f_email);
+                                                $f_created = !empty($acct['created_at']) ? date('M j, Y', strtotime($acct['created_at'])) : '—';
+                                                $f_approved = !empty($acct['approved_at']) ? date('M j, Y', strtotime($acct['approved_at'])) : '—';
+                                                $f_name = htmlspecialchars($acct['first_name'] . ' ' . $acct['last_name']);
+                                                $f_email = htmlspecialchars($acct['email']);
+                                                $f_type_label = $is_admin ? 'Admin' : 'Member';
+                                                $f_type_class = '';
+                                                if ($is_admin) {
+                                                    $f_type_class = 'badge-default';
+                                                    $f_type_style = 'background:#3b3809;color:#f9c74f;font-size:0.65rem;font-weight:800;';
+                                                } else {
+                                                    $is_faculty_head = isset($faculty_head_of_dept[$acct['id']]);
+                                                    $f_type_class = $is_faculty_head ? 'faculty-head' : 'faculty-member';
+                                                    $f_type_style = 'font-size:0.65rem;font-weight:800;';
+                                                    if ($is_faculty_head) $f_type_label = 'Head';
+                                                }
                                             ?>
-                                                <div class="room-card" data-faculty-status="<?= $f_status ?>" data-faculty-created="<?= htmlspecialchars($faculty['created_at'] ?? '') ?>" data-faculty-search="<?= $f_search_data ?>" data-faculty-name="<?= strtolower(htmlspecialchars($f_name)) ?>" data-faculty-email="<?= strtolower(htmlspecialchars($f_email)) ?>">
+                                                <div class="room-card" data-faculty-status="<?= $f_status ?>" data-faculty-created="<?= htmlspecialchars($acct['created_at'] ?? '') ?>" data-faculty-search="<?= $acct['_search'] ?>" data-faculty-name="<?= strtolower(htmlspecialchars($f_name)) ?>" data-faculty-email="<?= strtolower(htmlspecialchars($f_email)) ?>" data-faculty-type="<?= $acct['_type'] ?>">
                                                     <div class="room-card-accent <?= $f_accent ?>"></div>
                                                     <div class="room-card-body">
                                                         <div class="room-card-header">
                                                             <div>
                                                                 <h2 class="room-card-name"><?= $f_name ?></h2>
                                                                 <div class="room-card-section"><?= $f_email ?></div>
+                                                                <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+                                                                    <div class="status-badge <?= $f_type_class ?>" style="<?= $f_type_style ?>"><?= $f_type_label ?></div>
+                                                                    <span class="room-status-badge <?= $f_badge ?>"><?= $f_badge_label ?></span>
+                                                                </div>
                                                             </div>
-                                                            <span class="room-status-badge <?= $f_badge ?>"><?= $f_badge_label ?></span>
                                                         </div>
                                                         <hr class="room-card-divider">
                                                         <div class="room-info-row">
@@ -591,16 +683,22 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                                     </div>
                                                     <div class="room-card-actions">
                                                         <div class="d-flex align-items-center room-icons gap-1">
-                                                            <?php if ($f_status !== 'unverified'): ?>
+                                                            <?php if (!$is_admin && $f_status !== 'unverified'): ?>
                                                             <button class="btn-icon btn-icon-view d-inline-flex align-items-center justify-content-center"
-                                                                onclick="window.location.href='admin-faculty-card.php?id=<?= $faculty['id'] ?>'"
-                                                                title="View Profile" data-bs-toggle="tooltip" data-bs-placement="auto">
+                                                                onclick="window.location.href='<?= $f_status === 'pending' ? 'admin-faculty-review.php?id=' . $acct['id'] : 'admin-faculty-card.php?id=' . $acct['id'] ?>'"
+                                                                title="<?= $f_status === 'pending' ? 'Review Application' : 'View Profile' ?>" data-bs-toggle="tooltip" data-bs-placement="auto">
                                                                 <i class="bi bi-eye"></i>
                                                             </button>
                                                             <?php endif; ?>
+                                                            <?php if ($is_admin): ?>
+                                                            <button class="btn-icon btn-icon-del" title="Delete Admin"
+                                                                onclick="alert('Delete admin not yet implemented')" data-bs-toggle="tooltip" data-bs-placement="auto">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                            <?php else: ?>
                                                             <?php if ($f_status === 'approved'): ?>
                                                                 <form method="POST" class="mb-0" style="display:inline-flex;" onsubmit="sessionStorage.setItem('activeTab','faculty-directory')">
-                                                                    <input type="hidden" name="faculty_id" value="<?= $faculty['id'] ?>"><input type="hidden" name="action" value="revoke">
+                                                                    <input type="hidden" name="faculty_id" value="<?= $acct['id'] ?>"><input type="hidden" name="action" value="revoke">
                                                                     <button type="submit" class="btn-icon btn-icon-revoke room-icon-btn"
                                                                         data-bs-toggle="tooltip" data-bs-placement="auto" title="Revoke Access">
                                                                         <i class="bi bi-x-circle"></i>
@@ -609,18 +707,23 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                                             <?php endif; ?>
                                                             <button type="button" class="btn-icon btn-icon-del room-icon-btn"
                                                                 data-bs-toggle="tooltip" data-bs-placement="auto" title="Delete Faculty"
-                                                                onclick="openDeleteFacultyModal(<?= $faculty['id'] ?>, '<?= addslashes($f_name) ?>')">
+                                                                onclick="openDeleteFacultyModal(<?= $acct['id'] ?>, '<?= addslashes($f_name) ?>')">
                                                                 <i class="bi bi-trash"></i>
                                                             </button>
+                                                            <?php endif; ?>
                                                         </div>
                                                     </div>
                                                 </div>
                                             <?php endforeach; ?>
+                                            <div class="empty-state" id="facultyNoResults" style="display:none;">
+                                                <i class="bi bi-search"></i>
+                                                No results match your filter criteria.
+                                            </div>
                                         </div>
                                     <?php else: ?>
                                         <div class="empty-state">
                                             <i class="bi bi-people"></i>
-                                            No faculty records found.
+                                            No accounts found.
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -632,204 +735,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
 
             </div>
 
-            <div class="main-container faculty-management gap-5">
-
-                <div class="group-container">
-                    <!--Registration Approvals Pending-->
-                    <div class="row g-4 mb-2">
-                        <div class="col-6">
-                            <div class="card border-0 shadow-sm p-4 h-100" style="background-color: var(--secondary-color-1);">
-                                <div class="style-scrollbar" style="max-height: 300px; overflow-y: auto;">
-                                    <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between p-3 mb-2 sticky-topbar" style="background: var(--primary-color) !important;
-                                    border-radius: 8px !important;">
-                                        <div class="d-flex flex-column mx-2 align-items-start">
-                                            <h2 class="bold" style="font-size:24.5px;"><i class="fa-solid fa-user-clock me-2"></i>Pending Approvals</h2>
-                                            <p class="subtitle">Pending registration approvals are displayed here.</p>
-                                        </div>
-                                    </div>
-                                    <?php
-                                    $has_pending = false;
-                                    foreach ($faculty_list as $faculty):
-                                        if ($faculty['status_label'] === 'pending'):
-                                            $has_pending = true;
-                                    ?>
-                                            <div class="d-flex align-items-center justify-content-between p-3 mb-2 border border-warning-subtle rounded bg-warning-subtle bg-opacity-10">
-                                                <div>
-                                                    <h5 class="bold mb-0"><?= htmlspecialchars($faculty['first_name'] . ' ' . $faculty['last_name']) ?></h5>
-                                                    <span class="text-muted small" style="font-size: 11px;"><?= htmlspecialchars($faculty['email']) ?></span>
-                                                </div>
-
-                                                <button type="button"
-                                                    class="btn-icon btn-icon-view d-inline-flex align-items-center"
-                                                    onclick="window.location.href='admin-faculty-review.php?id=<?= $faculty['id'] ?>'"
-                                                    title="Review Access Request"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                            </div>
-                                        <?php endif;
-                                    endforeach;
-                                    if (!$has_pending):
-                                        ?>
-                                        <p class="text-center py-4 small" style="color: #fff;">No pending registrations require attention right now.</p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Schedule Extension Requests -->
-                        <div class="col-6">
-                            <div class="card border-0 shadow-sm px-4 pb-4 h-100" style="background-color: var(--secondary-color-1);">
-                                <div class="style-scrollbar" style="max-height: 300px; overflow-y: auto;">
-                                    <div class="section-topbar d-flex my-4 gap-1 align-items-center justify-content-between p-3 sticky-topbar" style="background: var(--primary-color) !important;
-                                    border-radius: 8px !important;">
-                                        <div class="d-flex flex-column mx-2 align-items-start">
-                                            <h5 class="bold" style="font-size:24.5px;"><i class="bi bi-clock-history me-2"></i>Pending Extensions</h5>
-                                            <p class="subtitle">Pending schedule extensions are displayed here.</p>
-
-                                        </div>
-                                    </div>
-                                    <?php
-                                    $has_ext = false;
-                                    foreach ($extensions as $ext):
-                                        if ($ext['status'] === 'pending'):
-                                            $has_ext = true;
-                                    ?>
-                                            <div class="p-3 border rounded mb-2 bg-light">
-                                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                                    <h6 class="bold mb-0 text-dark"><?= htmlspecialchars($ext['faculty_name']) ?></h6>
-                                                    <span class="badge bg-info text-dark">+<?= $ext['extend_mins'] ?> mins</span>
-                                                </div>
-                                                <p class="text-secondary small mb-2">
-                                                    <?= htmlspecialchars($ext['room_name']) ?> ·
-                                                    <?= htmlspecialchars($ext['subject_name'] ?? 'No subject') ?> ·
-                                                    <?= $ext['day_of_week'] ?> ·
-                                                    <?= date('g:i A', strtotime($ext['start_time'])) ?> –
-                                                    <?= date('g:i A', strtotime($ext['end_time'])) ?>
-                                                </p>
-                                                <div class="d-flex gap-2 justify-content-end">
-                                                    <form method="POST" class="mb-0">
-                                                        <input type="hidden" name="extension_id" value="<?= $ext['id'] ?>"><input type="hidden" name="action" value="ext_reject">
-                                                        <button type="submit" class="light py-1 px-2" data-bs-toggle="tooltip" title="Deny Extension">Deny</button>
-                                                    </form>
-                                                    <form method="POST" class="mb-0">
-                                                        <input type="hidden" name="extension_id" value="<?= $ext['id'] ?>"><input type="hidden" name="action" value="ext_approve">
-                                                        <button type="submit" class="medium py-1 px-2" data-bs-toggle="tooltip" title="Grant Extension">Grant</button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        <?php
-                                        endif;
-                                    endforeach;
-                                    if (!$has_ext):
-                                        ?>
-                                        <p class=" text-center small" style="color: #fff;">No schedule extensions are currently requested.</p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Stats cards -->
-                    <div style="background-color:#f8f9fa;" class="section-container py-4">
-                        <div class="stat-row gap-3">
-                            <div class="stat-card">
-                                <span class="stat-icon"><i class="bi bi-diagram-3" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                                <div>
-                                    <div class="stat-value"><?= $total_rooms ?></div>
-                                    <p class="stat-label">Total<br>Departments</p>
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <span class="stat-icon"><i class="bi bi-person-check" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                                <div>
-                                    <div class="stat-value"><?= $pending ?></div>
-                                    <p class="stat-label">Faculty Pending<br>Approval</p>
-                                </div>
-                            </div>
-                            <div class="stat-card">
-                                <span class="stat-icon"><i class="bi bi-clock-history" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                                <div>
-                                    <div class="stat-value"><?= $ext_pending ?></div>
-                                    <p class="stat-label">Extension<br>Requests</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="group-container gap-3 d-flex flex-column">
-                    <!-- Faculty Directory -->
-                    <div class="faculty-directory card border-0 shadow-sm p-4 bg-white w-100 d-flex flex-column flex-grow-1">
-                        <div class="faculty-directory-container d-flex flex-column justify-content-center align-items-center p-3 mb-3">
-                            <h2 class="bold mb-0"><i class="bi bi-people mb-3"></i> Faculty Directory</h2>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="light medium gap-2" style="font-size: 12px;" onclick="filterList('all')"><i class="bi bi-border-all"></i> All Records</button>
-                                <button type="button" class="light gap-2" style="font-size: 12px;" onclick="filterList('approved')"><i class="bi bi-check-circle"></i> Approved</button>
-                                <button type="button" class="light gap-2" style="font-size: 12px;" onclick="filterList('unverified')"><i class="bi bi-x-circle"></i> Unverified</button>
-                            </div>
-                        </div>
-                        <div class="style-scrollbar flex-grow-1" style="overflow-y: auto;">
-                            <?php if (empty($faculty_list)): ?>
-                                <p class="text-muted text-center py-4">No records found inside the active index.</p>
-                                <?php else: foreach ($faculty_list as $faculty): ?>
-                                    <div class="faculty-list-item d-flex align-items-start justify-content-between p-3 mb-2 border rounded" data-status="<?= $faculty['status_label'] ?>">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="avatar bg-light rounded-circle d-flex align-items-center justify-content-center text-secondary bold">
-                                                <?= strtoupper(substr($faculty['first_name'], 0, 1) . substr($faculty['last_name'], 0, 1)) ?>
-                                            </div>
-                                            <div>
-                                                <h5 class="bold mb-0"><?= htmlspecialchars($faculty['first_name'] . ' ' . $faculty['last_name']) ?></h5>
-                                                <span class="text-muted small" style="font-size: 11px;"><?= htmlspecialchars($faculty['email']) ?></span>
-                                            </div>
-                                            <?php if ($faculty['status_label'] === 'approved'): ?>
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><i class="fa-solid fa-circle-check"></i></span>
-                                            <?php elseif ($faculty['status_label'] === 'pending'): ?>
-                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1"><i class="fa-solid fa-clock"></i></span>
-                                            <?php else: ?>
-                                                <span class="badge bg-secondary-subtle text-secondary px-2 py-1"><i class="fa-solid fa-envelope"></i></span>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div>
-                                                <button type="button"
-                                                    class="btn-icon btn-icon-view d-inline-flex align-items-center"
-                                                    onclick="window.location.href='admin-faculty-card.php?id=<?= $faculty['id'] ?>'"
-                                                    title="View Profile"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="auto">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                            </div>
-                                            <?php if ($faculty['status_label'] === 'approved'): ?>
-                                                <form method="POST" class="mb-0">
-                                                    <input type="hidden" name="faculty_id" value="<?= $faculty['id'] ?>"><input type="hidden" name="action" value="revoke">
-                                                    <button type="submit"
-                                                        class="btn-icon btn-icon-revoke"
-                                                        data-bs-toggle="tooltip"
-                                                        data-bs-placement="auto"
-                                                        title="Revoke Access">
-                                                        <i class="bi bi-x-circle"></i>
-                                                    </button>
-                                                </form>
-                                            <?php endif; ?>
-                                            <!-- Delete button now opens modal instead of submitting directly -->
-                                            <button type="button"
-                                                class="btn-icon btn-icon-del"
-                                                data-bs-toggle="tooltip"
-                                                data-bs-placement="auto"
-                                                title="Delete Faculty"
-                                                onclick="openDeleteFacultyModal(<?= $faculty['id'] ?>, '<?= addslashes($faculty['first_name'] . ' ' . $faculty['last_name']) ?>')">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                            <?php endforeach;
-                            endif; ?>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
+        
         </div>
 
     </div>
@@ -1459,7 +1365,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
             },
             'faculty-directory': {
                 heading: 'Account Management',
-                sub: 'Manage all faculty accounts'
+                sub: 'Manage all accounts'
             }
         };
         var tabHeading = document.getElementById('tabHeading');
@@ -1668,10 +1574,11 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                     else if (activeFacultyDate === 'year') matchDate = d >= yearStart;
                 }
                 var matchSearch = !q || matchName || matchEmail;
+                var matchType = activeFacultyType === 'all' || (activeFacultyType === (card.getAttribute('data-faculty-type') || ''));
 
                 if (matchName && nameEl) nameEl.classList.add('search-highlight');
                 if (matchEmail && emailEl) emailEl.classList.add('search-highlight');
-                if (matchSearch && matchStatus && matchDate) {
+                if (matchSearch && matchStatus && matchDate && matchType) {
                     card.style.display = '';
                 } else {
                     card.style.display = 'none';
@@ -1680,12 +1587,17 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
 
             var grid = document.querySelector('#panel-faculty-directory .faculty-grid');
             if (!grid) return;
-            var sorted = cards.filter(function(c) { return c.style.display !== 'none'; }).sort(function(a, b) {
+            var visible = cards.filter(function(c) { return c.style.display !== 'none'; });
+            var sorted = visible.sort(function(a, b) {
                 var na = (a.getAttribute('data-faculty-name') || '').toLowerCase();
                 var nb = (b.getAttribute('data-faculty-name') || '').toLowerCase();
                 return activeFacultySort === 'asc' ? na.localeCompare(nb) : nb.localeCompare(na);
             });
             sorted.forEach(function(c) { grid.appendChild(c); });
+            var noResults = document.getElementById('facultyNoResults');
+            if (noResults) {
+                noResults.style.display = visible.length === 0 ? '' : 'none';
+            }
         }
 
         function filterFacultyByStatus(el, status) {
@@ -1712,6 +1624,17 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
             });
             el.classList.add('active');
             activeFacultySort = dir;
+            filterFacultyCards(document.getElementById('facultySearch').value);
+        }
+
+        var activeFacultyType = 'all';
+
+        function filterFacultyByType(el, type) {
+            el.closest('.faculty-side-filter').querySelectorAll('.dept-member-filter-item').forEach(function(i) {
+                i.classList.remove('active');
+            });
+            el.classList.add('active');
+            activeFacultyType = type;
             filterFacultyCards(document.getElementById('facultySearch').value);
         }
 

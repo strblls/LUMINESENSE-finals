@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // ✅ OTP is correct and not expired
             if ($role === 'admin') {
-                // Admin → email confirmed → is_verified = 1, can log in immediately
+                // Admin → email confirmed → is_verified = 1, pending admin approval
                 $stmt = $conn->prepare("
                     UPDATE admins
                     SET is_verified = 1, otp_code = NULL, otp_expires_at = NULL
@@ -87,8 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
 
                 unset($_SESSION['pending_verification']);
-                $_SESSION['signup_success'] = 'Email verified! You can now log in.';
-                header('Location: ../pages/admin-login.php');
+                header('Location: ../pages/pending-approval.php?type=admin');
                 exit;
 
             } else {
@@ -192,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Role badge (topbar style) -->
         <div class="text-center mb-3">
             <span class="bold status-badge <?= $role === 'admin' ? 'admin' : 'faculty-member' ?>">
-                <?= ucfirst($role) ?>
+                <?= $role === 'admin' ? 'Administrator' : 'Faculty' ?>
             </span>
         </div>
 

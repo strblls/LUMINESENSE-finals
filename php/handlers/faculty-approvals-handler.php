@@ -34,6 +34,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action     = $_POST['action'];
     $faculty_id = (int)($_POST['faculty_id'] ?? 0);
 
+    // ── Admin actions (admin_approve / admin_reject) ─────────────────────
+    $admin_approve_id = (int)($_POST['admin_approve_id'] ?? 0);
+    if ($action === 'admin_approve' && $admin_approve_id > 0) {
+        $stmt = $conn->prepare('SELECT CONCAT(first_name, " ", last_name), email FROM admins WHERE id = ?');
+        $stmt->bind_param('i', $admin_approve_id);
+        $stmt->execute();
+        $stmt->bind_result($a_name, $a_email);
+        $stmt->fetch();
+        $stmt->close();
+
+        $stmt = $conn->prepare('UPDATE admins SET approved_by = ?, approved_at = NOW() WHERE id = ?');
+        $stmt->bind_param('ii', $admin_id, $admin_approve_id);
+        $stmt->execute();
+        $stmt->close();
+
+        $vendorAutoload = $phpRoot . '/../vendor/autoload.php';
+        if (!empty($a_email) && file_exists($phpRoot . '/mailer.php') && file_exists($vendorAutoload)) {
+            require_once $phpRoot . '/mailer.php';
+            sendApprovalEmail($a_email, $a_name);
+        }
+
+        $message = 'Admin account approved successfully.';
+        log_admin_action($conn, $admin_id, 'admin_approved', $a_name, 'Admin ID: ' . $admin_approve_id);
+
+    } elseif ($action === 'admin_reject' && $admin_approve_id > 0) {
+        $stmt = $conn->prepare('SELECT CONCAT(first_name, " ", last_name) FROM admins WHERE id = ?');
+        $stmt->bind_param('i', $admin_approve_id);
+        $stmt->execute();
+        $stmt->bind_result($a_name);
+        $stmt->fetch();
+        $stmt->close();
+
+        $conn->query("DELETE FROM admin_login_logs WHERE admin_id = $admin_approve_id");
+        $stmt = $conn->prepare('DELETE FROM admins WHERE id = ?');
+        $stmt->bind_param('i', $admin_approve_id);
+        $stmt->execute();
+        $stmt->close();
+
+        $message = 'Admin account rejected and removed.';
+        log_admin_action($conn, $admin_id, 'admin_rejected', $a_name, 'Admin rejected on review');
+    }
+
     // ── Faculty actions (approve / revoke / delete) ───────────────────────
     if ($faculty_id > 0) {
 
@@ -59,7 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->close();
 
             // Send approval email if mailer exists
-            if (!empty($f_email) && file_exists($phpRoot . '/mailer.php')) {
+            $vendorAutoload = $phpRoot . '/../vendor/autoload.php';
+            if (!empty($f_email) && file_exists($phpRoot . '/mailer.php') && file_exists($vendorAutoload)) {
                 require_once $phpRoot . '/mailer.php';
                 sendApprovalEmail($f_email, $f_name);
             }
@@ -276,15 +319,23 @@ if (!$isStandalone && $grace_minutes > 0 && $conn->query("SHOW TABLES LIKE 'exte
 
 // ── Data fetching (only for when included, not standalone) ─────────────────
 $total_faculty = 0;
+$total_admins = 0;
+$total_accounts = 0;
 $pending_count = 0;
+$admin_pending_count = 0;
 $ext_pending = 0;
 $faculty_list = [];
+$admin_list = [];
+$pending_admins = [];
 $extensions = [];
 $all_faculty_map = [];
 
 if (!$isStandalone) {
     $total_faculty = $conn->query("SELECT COUNT(*) AS c FROM faculty")->fetch_assoc()['c'] ?? 0;
+    $total_admins = $conn->query("SELECT COUNT(*) AS c FROM admins")->fetch_assoc()['c'] ?? 0;
+    $total_accounts = $total_faculty + $total_admins;
     $pending_count = $conn->query("SELECT COUNT(*) AS c FROM faculty WHERE is_verified = 1 AND approved_by IS NULL")->fetch_assoc()['c'] ?? 0;
+    $admin_pending_count = $conn->query("SELECT COUNT(*) AS c FROM admins WHERE is_verified = 1 AND approved_by IS NULL")->fetch_assoc()['c'] ?? 0;
 
     if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
         $ext_pending = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE status = 'pending'")->fetch_assoc()['c'] ?? 0;
@@ -303,6 +354,19 @@ if (!$isStandalone) {
             default => 'unverified'
         };
         $faculty_list[] = $row;
+    }
+
+    $res_admins = $conn->query("
+        SELECT id, first_name, last_name, email, is_verified, approved_by, approved_at, created_at
+        FROM admins
+        ORDER BY last_name ASC
+    ");
+    while ($row = $res_admins->fetch_assoc()) {
+        $row['status_label'] = match(true) {
+            $row['approved_by'] !== null => 'approved',
+            default => 'pending'
+        };
+        $admin_list[] = $row;
     }
 
     if ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows > 0) {
@@ -326,6 +390,17 @@ if (!$isStandalone) {
             ORDER BY er.id DESC
         ");
         while ($row = $res2->fetch_assoc()) $extensions[] = $row;
+    }
+
+    // ── Pending admin registrations ───────────────────────────────────────
+    $res_admin = $conn->query("
+        SELECT id, first_name, last_name, email, created_at
+        FROM admins
+        WHERE is_verified = 1 AND approved_by IS NULL
+        ORDER BY created_at DESC
+    ");
+    while ($row = $res_admin->fetch_assoc()) {
+        $pending_admins[] = $row;
     }
 
     // Build the lookup map for the view file

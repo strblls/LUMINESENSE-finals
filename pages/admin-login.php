@@ -3,10 +3,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$_SESSION['login_error'] = null;
-$_SESSION['signup_success_modal'] = null;
-unset($_SESSION['login_error']);
-unset($_SESSION['signup_success_modal']);
+$loginError = $_SESSION['login_error'] ?? null;
+$signupSuccessModal = $_SESSION['signup_success_modal'] ?? null;
+
+unset($_SESSION['login_error'], $_SESSION['signup_success_modal']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,14 +48,11 @@ unset($_SESSION['signup_success_modal']);
             <h4 class="pb-4 semibold">Administrator Login</h4>
 
             <!-- SESSION MESSAGES -->
-            <?php
-                if (!empty($_SESSION['login_error'])) {
-                    echo '<div class="alert alert-danger">' . htmlspecialchars($_SESSION['login_error']) . '</div>';
-                    unset($_SESSION['login_error']);
-                }
-            ?>
+            <?php if (!empty($loginError)): ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($loginError) ?></div>
+            <?php endif; ?>
 
-            <?php if (!empty($_SESSION['signup_success_modal'])): ?>
+            <?php if (!empty($signupSuccessModal)): ?>
                 <div class="modal fade" id="signupSuccessModal" tabindex="-1" aria-labelledby="signupSuccessModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
@@ -64,7 +61,7 @@ unset($_SESSION['signup_success_modal']);
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
-                                <?= htmlspecialchars($_SESSION['signup_success_modal']) ?>
+                                <?= htmlspecialchars($signupSuccessModal) ?>
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Continue to Login</button>
@@ -79,9 +76,7 @@ unset($_SESSION['signup_success_modal']);
                         modal.show();
                     });
                 </script>
-            <?php
-                unset($_SESSION['signup_success_modal']);
-            endif;
+            <?php endif;
             ?>
 
             <div class="form-container">

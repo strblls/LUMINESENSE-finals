@@ -14,6 +14,7 @@
 .status-badge.faculty-head {
     background: #f9c74f;
     color: #3b3809;
+    font-weight: 700;
 }
 
 .status-badge.badge-active {
