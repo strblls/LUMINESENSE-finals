@@ -145,6 +145,9 @@ $conn->query("ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS pzem_energy  float
 
 
 //Early adds
+// ── Departments status column (added later — safe ADD IF NOT EXISTS) ──────
+$conn->query("ALTER TABLE departments ADD COLUMN IF NOT EXISTS status ENUM('active','pending','inactive') NOT NULL DEFAULT 'active'");
+
 // ── Faculty ID image and AI verification columns ──────────────────────────
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS id_image VARCHAR(255) DEFAULT NULL");
 $conn->query("ALTER TABLE faculty ADD COLUMN IF NOT EXISTS faculty_id VARCHAR(20) DEFAULT NULL");
