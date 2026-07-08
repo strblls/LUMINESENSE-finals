@@ -107,10 +107,16 @@ if (!move_uploaded_file($_FILES['id_image']['tmp_name'], $tmp_path)) {
 // We only need this copy if the ID ends up needing quarantine.
 $raw_image_bytes = file_get_contents($tmp_path);
 
-// ── 9.2 Run the ID through IdVerifier (Google Vision) ─────────────────────
-$verifier = new IdVerifier(getenv('VISION_API_KEY'));
-$result   = $verifier->verify($tmp_path, $first_name, $last_name);
-// ^ verify() deletes $tmp_path internally once it's done checking, win or lose.
+// ── 9.2 Verify ID using client-side OCR text (Tesseract.js) ──────────────
+$ocr_text = trim($_POST['ocr_text'] ?? '');
+$verifier = new IdVerifier('');
+if ($ocr_text !== '') {
+    $result = $verifier->verifyFromText($ocr_text, $first_name, $last_name);
+    if (is_file($tmp_path)) { @unlink($tmp_path); }
+} else {
+    $verifier = new IdVerifier(getenv('VISION_API_KEY'));
+    $result   = $verifier->verify($tmp_path, $first_name, $last_name);
+}
 
 // ── 10. Insert new faculty (is_verified = 0, approved_by = NULL) ─────────
 $stmt = $conn->prepare("
