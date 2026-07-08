@@ -1,64 +1,56 @@
 // admin-analytics.js
 // Matches updated admin-analytics.php layout:
-//   - Live readings strip (polls every 3s)
-//   - Summary cards
-//   - Daily energy bar chart
-//   - Daily history table with export
+//   - Live readings strip  (polls every 3s from pzem_live via live-pzem.php)
+//   - Summary cards        (from api/analytics.php → power_sessions + pzem_readings)
+//   - Line chart + Bar     (real hourly or daily avg V/A/W from pzem_readings)
+//   - Daily history table  (multi-day: per-day sessions; Today: real 5-min intervals)
 
-const API_URL = '../../api/analytics.php';
+const API_URL      = '../../api/analytics.php';
 const LIVE_API_URL = '../../api/live-pzem.php';
 
-// ── Sample static data ──────────────────────────────────────────────────────
+// ── Fallback sample data (used only when API call fails — all zeros) ──────────
 const sampleDaily = [
-    { label: 'Mon', date: '2026-06-29', energy_wh: 2450, sessions: 4, minutes: 320 },
-    { label: 'Tue', date: '2026-06-30', energy_wh: 3200, sessions: 6, minutes: 410 },
-    { label: 'Wed', date: '2026-07-01', energy_wh: 2800, sessions: 5, minutes: 380 },
-    { label: 'Thu', date: '2026-07-02', energy_wh: 4100, sessions: 8, minutes: 520 },
-    { label: 'Fri', date: '2026-07-03', energy_wh: 1900, sessions: 3, minutes: 250 },
-    { label: 'Sat', date: '2026-07-04', energy_wh: 1500, sessions: 2, minutes: 180 },
-    { label: 'Sun', date: '2026-07-05', energy_wh: 2200, sessions: 3, minutes: 290 },
+    { label: 'Mon', date: '', energy_wh: 0, sessions: 0, minutes: 0, avg_voltage: null, avg_current: null, avg_power: null },
+    { label: 'Tue', date: '', energy_wh: 0, sessions: 0, minutes: 0, avg_voltage: null, avg_current: null, avg_power: null },
+    { label: 'Wed', date: '', energy_wh: 0, sessions: 0, minutes: 0, avg_voltage: null, avg_current: null, avg_power: null },
+    { label: 'Thu', date: '', energy_wh: 0, sessions: 0, minutes: 0, avg_voltage: null, avg_current: null, avg_power: null },
+    { label: 'Fri', date: '', energy_wh: 0, sessions: 0, minutes: 0, avg_voltage: null, avg_current: null, avg_power: null },
+    { label: 'Sat', date: '', energy_wh: 0, sessions: 0, minutes: 0, avg_voltage: null, avg_current: null, avg_power: null },
+    { label: 'Sun', date: '', energy_wh: 0, sessions: 0, minutes: 0, avg_voltage: null, avg_current: null, avg_power: null },
 ];
 
 const sampleSummary = {
-    total_energy_kwh: 18.15,
-    total_minutes: 2350,
-    total_sessions: 31,
-    avg_voltage: 221.5,
-    avg_current: 1.85,
-    peak_power: 456.3,
-    total_cost: 203.28,
+    total_energy_kwh: 0,
+    total_minutes:    0,
+    avg_voltage:      0,
+    avg_current:      0,
+    peak_power_w:     0,
+    est_cost_php:     0,
 };
 
-const sampleHourly = Array.from({ length: 24 }, (_, i) => ({
-    hour: i,
-    voltage: 220 + Math.random() * 4,
-    current: 1.2 + Math.random() * 1.6,
-    power: 280 + Math.random() * 220,
-}));
-
-// ── Chart instances ─────────────────────────────────────────────────────────
+// ── Chart instances ───────────────────────────────────────────────────────────
 const barChartInstance = new Chart(document.getElementById('barChart'), {
     type: 'bar',
     data: {
-        labels: sampleDaily.map(d => d.label),
+        labels: [],
         datasets: [
             {
                 label: 'Voltage (V)',
-                data: sampleDaily.map(function() { return 218 + Math.random() * 6; }),
+                data: [],
                 backgroundColor: 'rgba(116,47,211,0.85)',
                 borderRadius: 4,
                 maxBarThickness: 16,
             },
             {
                 label: 'Current (A)',
-                data: sampleDaily.map(function() { return 1.0 + Math.random() * 2.0; }),
+                data: [],
                 backgroundColor: 'rgba(245,158,11,0.85)',
                 borderRadius: 4,
                 maxBarThickness: 16,
             },
             {
                 label: 'Power (W)',
-                data: sampleDaily.map(function() { return 250 + Math.random() * 280; }),
+                data: [],
                 backgroundColor: 'rgba(22,163,74,0.85)',
                 borderRadius: 4,
                 maxBarThickness: 16,
@@ -75,7 +67,7 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
                 onClick: function(e, legendItem, legend) {
                     var index = legendItem.datasetIndex;
                     var chart = legend.chart;
-                    var meta = chart.getDatasetMeta(index);
+                    var meta  = chart.getDatasetMeta(index);
                     meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
                     chart.update();
                     var labelEl = document.getElementById('barMetricLabel');
@@ -90,12 +82,12 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
         scales: {
             x: {
                 ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 10 } },
-                grid: { display: false },
+                grid:  { display: false },
             },
             y: {
                 beginAtZero: true,
                 ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 10 } },
-                grid: { color: 'rgba(47,0,79,0.07)' },
+                grid:  { color: 'rgba(47,0,79,0.07)' },
             }
         }
     }
@@ -104,36 +96,39 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
 const lineChartInstance = new Chart(document.getElementById('lineChart'), {
     type: 'line',
     data: {
-        labels: sampleHourly.map(d => d.hour + ':00'),
+        labels: [],
         datasets: [
             {
                 label: 'Voltage (V)',
-                data: sampleHourly.map(d => d.voltage),
+                data: [],
                 borderColor: '#742fd3',
                 backgroundColor: 'rgba(116,47,211,0.10)',
                 fill: true,
                 tension: 0.3,
                 pointRadius: 2,
+                spanGaps: false,
             },
             {
                 label: 'Current (A)',
-                data: sampleHourly.map(d => d.current),
+                data: [],
                 borderColor: '#f59e0b',
                 backgroundColor: 'rgba(245,158,11,0.10)',
                 fill: true,
                 tension: 0.3,
                 pointRadius: 2,
                 yAxisID: 'y1',
+                spanGaps: false,
             },
             {
                 label: 'Power (W)',
-                data: sampleHourly.map(d => d.power),
+                data: [],
                 borderColor: '#16a34a',
                 backgroundColor: 'rgba(22,163,74,0.10)',
                 fill: true,
                 tension: 0.3,
                 pointRadius: 2,
                 yAxisID: 'y2',
+                spanGaps: false,
             },
         ]
     },
@@ -147,7 +142,7 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
                 onClick: function(e, legendItem, legend) {
                     var index = legendItem.datasetIndex;
                     var chart = legend.chart;
-                    var meta = chart.getDatasetMeta(index);
+                    var meta  = chart.getDatasetMeta(index);
                     meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
                     var axisId = chart.data.datasets[index].yAxisID;
                     if (axisId && chart.options.scales[axisId]) {
@@ -166,7 +161,7 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
         scales: {
             x: {
                 ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 10 } },
-                grid: { display: false },
+                grid:  { display: false },
             },
             y: {
                 type: 'linear',
@@ -174,7 +169,7 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
                 position: 'left',
                 title: { display: false },
                 ticks: { color: '#742fd3', font: { family: 'Poppins', size: 10 } },
-                grid: { color: 'rgba(47,0,79,0.07)' },
+                grid:  { color: 'rgba(47,0,79,0.07)' },
             },
             y1: {
                 type: 'linear',
@@ -182,7 +177,7 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
                 position: 'left',
                 title: { display: false },
                 ticks: { color: '#f59e0b', font: { family: 'Poppins', size: 10 } },
-                grid: { display: false },
+                grid:  { display: false },
             },
             y2: {
                 type: 'linear',
@@ -190,7 +185,7 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
                 position: 'left',
                 title: { display: false },
                 ticks: { color: '#16a34a', font: { family: 'Poppins', size: 10 } },
-                grid: { display: false },
+                grid:  { display: false },
             },
         }
     }
@@ -198,41 +193,36 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
 
 let lastData = null;
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getCid() {
     return document.getElementById('roomSelect')?.value ?? 0;
 }
 
-// ── LIVE READINGS — polls every 3 seconds ──────────────────────────────────
+// ── LIVE READINGS — polls every 3 seconds ─────────────────────────────────────
 async function fetchLive() {
     try {
-        const cid = getCid();
-        const res = await fetch(`${LIVE_API_URL}?classroom_id=${cid}`);
+        const cid  = getCid();
+        const res  = await fetch(`${LIVE_API_URL}?classroom_id=${cid}`);
         const data = await res.json();
 
-        const dot = document.getElementById('liveStatusDot');
+        const dot    = document.getElementById('liveStatusDot');
         const status = document.getElementById('liveStatus');
-        const badge = document.getElementById('liveBadge');
+        const badge  = document.getElementById('liveBadge');
 
         if (!data.success || data.stale) {
-            // No active Arduino connection or API error
             if (badge) {
                 badge.className = 'live-badge stale';
                 badge.innerHTML = '<span class="live-dot stale"></span> No Device';
             }
             if (status) status.textContent = '—';
-            if (dot) {
-                dot.style.background = '#ccc';
-                dot.classList.remove('on');
-            }
+            if (dot) { dot.style.background = '#ccc'; dot.classList.remove('on'); }
             document.getElementById('liveVoltage').textContent = '— V';
             document.getElementById('liveCurrent').textContent = '— A';
-            document.getElementById('livePower').textContent = '— W';
-            document.getElementById('liveEnergy').textContent = '— Wh';
+            document.getElementById('livePower').textContent   = '— W';
+            document.getElementById('liveEnergy').textContent  = '— Wh';
             return;
         }
 
-        // Arduino is connected and sending
         if (badge) {
             badge.className = 'live-badge';
             badge.innerHTML = '<span class="live-dot"></span> Live';
@@ -240,22 +230,16 @@ async function fetchLive() {
 
         document.getElementById('liveVoltage').textContent = data.voltage.toFixed(1) + ' V';
         document.getElementById('liveCurrent').textContent = data.current.toFixed(3) + ' A';
-        document.getElementById('livePower').textContent = data.power.toFixed(2) + ' W' +
-            ' (' + data.power_kw.toFixed(3) + ' kW)';
-        document.getElementById('liveEnergy').textContent = data.energy.toFixed(4) + ' Wh';
+        document.getElementById('livePower').textContent   =
+            data.power.toFixed(2) + ' W (' + data.power_kw.toFixed(3) + ' kW)';
+        document.getElementById('liveEnergy').textContent  = data.energy.toFixed(4) + ' Wh';
 
         if (data.lights_on) {
             if (status) status.textContent = 'ON';
-            if (dot) {
-                dot.style.background = '#27ae60';
-                dot.classList.add('on');
-            }
+            if (dot) { dot.style.background = '#27ae60'; dot.classList.add('on'); }
         } else {
             if (status) status.textContent = 'OFF';
-            if (dot) {
-                dot.style.background = '#ccc';
-                dot.classList.remove('on');
-            }
+            if (dot) { dot.style.background = '#ccc'; dot.classList.remove('on'); }
         }
 
     } catch (err) {
@@ -263,7 +247,7 @@ async function fetchLive() {
     }
 }
 
-// ── Polling control ─────────────────────────────────────────────────────────
+// ── Polling control ───────────────────────────────────────────────────────────
 var liveInterval, dataInterval;
 
 function pausePolling() {
@@ -277,8 +261,8 @@ function resumePolling() {
 }
 
 function checkPolling() {
-    var activeRooms = document.querySelectorAll('.rooms-card .stat-card.active-room');
-    var metricEl = document.querySelector('.dept-member-filter-item.active');
+    var activeRooms  = document.querySelectorAll('.rooms-card .stat-card.active-room');
+    var metricEl     = document.querySelector('.dept-member-filter-item.active');
     var metricActive = metricEl && metricEl.textContent.trim() !== 'All Metrics';
     var periodSelect = document.getElementById('periodSelect');
     var periodActive = periodSelect && parseInt(periodSelect.value) !== 1;
@@ -300,7 +284,7 @@ function checkPolling() {
 fetchLive();
 liveInterval = setInterval(fetchLive, 3000);
 
-// ── Period / Metric filter helpers ──────────────────────────────────────────
+// ── Period / Metric filter helpers ────────────────────────────────────────────
 function setPeriod(el, days) {
     el.parentElement.querySelectorAll('.dept-member-filter-item').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
@@ -310,7 +294,7 @@ function setPeriod(el, days) {
 }
 
 function syncVawFromLegend() {
-    var charts = [lineChartInstance, barChartInstance];
+    var charts    = [lineChartInstance, barChartInstance];
     var allHidden = true;
     charts.forEach(function(ch) {
         ch.data.datasets.forEach(function(_, i) {
@@ -332,7 +316,9 @@ function syncVawFromLegend() {
 function syncMetricLabel(chart, id) {
     var labelEl = document.getElementById(id);
     if (!labelEl) return;
-    var visible = chart.data.datasets.filter(function(ds, i) { return !chart.getDatasetMeta(i).hidden; }).map(function(ds) { return ds.label; });
+    var visible = chart.data.datasets
+        .filter(function(ds, i) { return !chart.getDatasetMeta(i).hidden; })
+        .map(function(ds) { return ds.label; });
     labelEl.textContent = visible.length === chart.data.datasets.length ? 'All Metrics' : visible.join(', ');
 }
 
@@ -357,20 +343,15 @@ function setMetric(el, metric) {
         chart.update();
         syncMetricLabel(chart, chart === lineChartInstance ? 'lineMetricLabel' : 'barMetricLabel');
     });
-    // Resize V,A,W stat cards
     var vawCards = document.querySelectorAll('#vawGroup .live-stat-card');
     vawCards.forEach(function(card) {
         card.classList.remove('metric-active', 'metric-dimmed');
         if (metric === 'all') return;
         var m = card.getAttribute('data-metric');
-        if (m === metric) {
-            card.classList.add('metric-active');
-        } else {
-            card.classList.add('metric-dimmed');
-        }
+        if (m === metric) { card.classList.add('metric-active'); }
+        else              { card.classList.add('metric-dimmed'); }
     });
-    // Update metric info text
-    var infoEl = document.getElementById('metricInfo');
+    var infoEl   = document.getElementById('metricInfo');
     var infoText = infoEl.querySelector('.metric-info-text');
     var formulas = {
         voltage: 'Voltage (V) = Energy (J) \u00F7 Charge (C)',
@@ -378,35 +359,51 @@ function setMetric(el, metric) {
         power:   'Power (W) = Voltage (V) \u00D7 Current (A)'
     };
     if (metric === 'all') {
-        infoText.innerHTML = 'Voltage, Current, and Power readings are used to compute Energy (Wh) over time. <span class="metric-formula">Energy (Wh) = Power (W) \u00D7 Time (h)</span>';
+        infoText.innerHTML = 'Voltage, Current, and Power readings are used to compute Energy (Wh) over time. '
+            + '<span class="metric-formula">Energy (Wh) = Power (W) \u00D7 Time (h)</span>';
     } else if (formulas[metric]) {
         infoText.innerHTML = '<span class="metric-formula">' + formulas[metric] + '</span>';
     }
     checkPolling();
 }
 
-// ── MAIN FETCH + RENDER ────────────────────────────────────────────────────
-function updateLineData(labels) {
+// ── CHART RENDERER — uses real PZEM data ──────────────────────────────────────
+/**
+ * Push real avg V/A/W readings into both charts.
+ * @param {string[]} labels    x-axis labels
+ * @param {Array}    chartData array of objects with avg_voltage / avg_current / avg_power
+ *                             (null values leave a gap — Chart.js spanGaps: false)
+ */
+function updateCharts(labels, chartData) {
     if (!labels || labels.length === 0) labels = ['No data'];
-    var newData = labels.map(function() {
-        return {
-            voltage: 218 + Math.random() * 6,
-            current: 1.0 + Math.random() * 2.0,
-            power: 250 + Math.random() * 280,
-        };
-    });
-    lineChartInstance.data.labels = labels;
-    lineChartInstance.data.datasets[0].data = newData.map(function(d) { return d.voltage; });
-    lineChartInstance.data.datasets[1].data = newData.map(function(d) { return d.current; });
-    lineChartInstance.data.datasets[2].data = newData.map(function(d) { return d.power; });
+
+    const voltages = chartData.map(d => (d && d.avg_voltage != null) ? d.avg_voltage : null);
+    const currents = chartData.map(d => (d && d.avg_current != null) ? d.avg_current : null);
+    const powers   = chartData.map(d => (d && d.avg_power   != null) ? d.avg_power   : null);
+
+    // Bar chart
+    barChartInstance.data.labels           = labels;
+    barChartInstance.data.datasets[0].data = voltages;
+    barChartInstance.data.datasets[1].data = currents;
+    barChartInstance.data.datasets[2].data = powers;
+    barChartInstance.update();
+
+    // Line chart
+    lineChartInstance.data.labels           = labels;
+    lineChartInstance.data.datasets[0].data = voltages;
+    lineChartInstance.data.datasets[1].data = currents;
+    lineChartInstance.data.datasets[2].data = powers;
     lineChartInstance.update();
 }
 
+// ── MAIN FETCH + RENDER ───────────────────────────────────────────────────────
 async function onControlChange() {
     const range = parseInt(document.getElementById('periodSelect').value);
-    const cid = getCid();
+    const cid   = getCid();
+
     const titleEl = document.getElementById('historyTitle');
     if (titleEl) titleEl.textContent = range === 1 ? "Today's History" : range + '-Day History';
+
     // Update summary label date range
     var labelEl = document.querySelector('.summary-label');
     if (labelEl) {
@@ -417,9 +414,11 @@ async function onControlChange() {
             var from = new Date(now);
             from.setDate(from.getDate() - (range - 1));
             var opts = { month: 'short', day: 'numeric' };
-            labelEl.innerHTML = from.toLocaleDateString('en-US', opts) + ' \u2013 ' + now.toLocaleDateString('en-US', opts) + ', ' + now.getFullYear();
+            labelEl.innerHTML = from.toLocaleDateString('en-US', opts)
+                + ' \u2013 ' + now.toLocaleDateString('en-US', opts) + ', ' + now.getFullYear();
         }
     }
+
     var sub = document.getElementById('tabSubheading');
     if (sub) {
         var sel = document.getElementById('roomSelect');
@@ -434,75 +433,53 @@ async function onControlChange() {
     setLoading(true);
 
     try {
-        const res = await fetch(`${API_URL}?range=${range}&classroom_id=${cid}`);
+        const res  = await fetch(`${API_URL}?range=${range}&classroom_id=${cid}`);
         const data = await res.json();
         if (!data.success) throw new Error(data.message ?? 'API error');
 
         lastData = data;
         renderSummaryCards(data.summary);
-        renderHistoryTable(data.daily, data.summary, range);
-        var chartLabels;
+
+        var chartLabels, chartData;
         if (range === 1) {
-            chartLabels = Array.from({ length: 24 }, function(_, i) {
-                var h = i.toString().padStart(2, '0');
-                return h + ':00';
-            });
+            // Today: use 24-slot hourly data for the charts
+            chartLabels = (data.hourly || []).map(h => h.label);
+            chartData   = data.hourly || [];
+            // Today's table: real 5-minute intervals from pzem_readings
+            renderHistoryTable(data.intervals || [], data.summary, range);
         } else {
-            chartLabels = (data.daily || []).map(function(d) { return d.label; });
+            // Multi-day: use daily data (with avg V/A/W per day)
+            chartLabels = (data.daily || []).map(d => d.label);
+            chartData   = data.daily || [];
+            renderHistoryTable(data.daily, data.summary, range);
         }
-        renderEnergyChart(chartLabels);
-        updateLineData(chartLabels);
-        console.log('Daily data:', data.daily);
+
+        updateCharts(chartLabels, chartData);
 
     } catch (err) {
         console.error('[Analytics]', err);
         showError();
         renderSummaryCards(sampleSummary);
-        var fallbackLabels;
-        if (range === 1) {
-            fallbackLabels = Array.from({ length: 24 }, function(_, i) {
-                var h = i.toString().padStart(2, '0');
-                return h + ':00';
-            });
-        } else {
-            fallbackLabels = sampleDaily.map(function(d) { return d.label; });
-        }
-        renderEnergyChart(fallbackLabels);
+        updateCharts(sampleDaily.map(d => d.label), sampleDaily);
         renderHistoryTable(sampleDaily, sampleSummary, range);
-        updateLineData(fallbackLabels);
     } finally {
         setLoading(false);
     }
 }
 
-// ── SUMMARY CARDS ──────────────────────────────────────────────────────────
+// ── SUMMARY CARDS ─────────────────────────────────────────────────────────────
 function renderSummaryCards(s) {
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    set('sumEnergy', (s.total_energy_kwh ?? 0).toFixed(4) + ' kWh');
-    set('sumMinutes', ((s.total_minutes ?? 0) / 60).toFixed(1) + ' hrs');
-    set('sumVoltage', (s.avg_voltage ?? 0).toFixed(1) + ' V');
-    set('sumCurrent', (s.avg_current ?? 0).toFixed(3) + ' A');
-    set('sumPower', (s.peak_power ?? 0).toFixed(1) + ' W');
-    set('sumCost', '₱' + (s.total_cost ?? 0).toFixed(2));
+    set('sumEnergy',  (s.total_energy_kwh ?? 0).toFixed(4) + ' kWh');
+    set('sumMinutes', ((s.total_minutes   ?? 0) / 60).toFixed(1) + ' hrs');
+    set('sumVoltage', (s.avg_voltage      ?? 0).toFixed(1) + ' V');
+    set('sumCurrent', (s.avg_current      ?? 0).toFixed(3) + ' A');
+    set('sumPower',   (s.peak_power_w     ?? 0).toFixed(1) + ' W');  // fixed: was s.peak_power
+    set('sumCost',    '\u20B1' + (s.est_cost_php ?? 0).toFixed(2));  // fixed: was s.total_cost
 }
 
-// ── ENERGY CHART ───────────────────────────────────────────────────────────
-function renderEnergyChart(labels) {
-    if (!labels || labels.length === 0) {
-        barChartInstance.data.labels = ['No data'];
-        barChartInstance.data.datasets.forEach(function(ds) { ds.data = [0]; });
-        barChartInstance.update();
-        return;
-    }
-    barChartInstance.data.labels = labels;
-    barChartInstance.data.datasets[0].data = labels.map(function() { return 218 + Math.random() * 6; });
-    barChartInstance.data.datasets[1].data = labels.map(function() { return 1.0 + Math.random() * 2.0; });
-    barChartInstance.data.datasets[2].data = labels.map(function() { return 250 + Math.random() * 280; });
-    barChartInstance.update();
-}
-
-// ── DAILY HISTORY TABLE ────────────────────────────────────────────────────
-function renderHistoryTable(daily, summary, range) {
+// ── HISTORY TABLE ─────────────────────────────────────────────────────────────
+function renderHistoryTable(rows, summary, range) {
     range = parseInt(range);
     const tbody = document.getElementById('historyBody');
     const tfoot = document.getElementById('historyFoot');
@@ -511,6 +488,7 @@ function renderHistoryTable(daily, summary, range) {
     if (tfoot) tfoot.innerHTML = '';
 
     if (range === 1) {
+        // ── Today: 5-minute interval rows from real pzem_readings ──
         if (thead) thead.querySelector('tr').innerHTML = `
             <th style="text-align:left;">Time</th>
             <th>Energy (Wh)</th>
@@ -518,28 +496,39 @@ function renderHistoryTable(daily, summary, range) {
             <th>Current (A)</th>
             <th>Power (W)</th>
         `;
-        var intervals = 288;
-        var totalEnergy = 0, totalVoltage = 0, totalCurrent = 0, totalPower = 0;
-        for (var i = 0; i < intervals; i++) {
-            var h = Math.floor(i / 12);
-            var m = (i % 12) * 5;
-            var timeLabel = h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0');
-            var energy = (0.5 + Math.random() * 4).toFixed(2);
-            var volt = (218 + Math.random() * 6).toFixed(1);
-            var curr = (1.0 + Math.random() * 2.0).toFixed(3);
-            var pow = (250 + Math.random() * 280).toFixed(1);
-            totalEnergy += parseFloat(energy);
-            totalVoltage += parseFloat(volt);
-            totalCurrent += parseFloat(curr);
-            totalPower += parseFloat(pow);
-            var tr = document.createElement('tr');
-            tr.innerHTML = '<td>' + timeLabel + '</td><td class="text-center">' + energy + '</td><td class="text-center">' + volt + '</td><td class="text-center">' + curr + '</td><td class="text-center">' + pow + '</td>';
-            tbody.appendChild(tr);
+
+        if (!rows || rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No readings recorded today.</td></tr>';
+            return;
         }
-        if (tfoot) tfoot.innerHTML = '<tr style="font-weight:600;border-top:2px solid #e0d6f5;"><td>Total</td><td class="text-center">' + totalEnergy.toFixed(2) + '</td><td class="text-center">' + (totalVoltage / intervals).toFixed(1) + '</td><td class="text-center">' + (totalCurrent / intervals).toFixed(3) + '</td><td class="text-center">' + (totalPower / intervals).toFixed(1) + '</td></tr>';
+
+        var totalEnergy = 0, totalVoltage = 0, totalCurrent = 0, totalPower = 0;
+        rows.forEach(function(r) {
+            totalEnergy  += r.energy_wh;
+            totalVoltage += r.avg_voltage;
+            totalCurrent += r.avg_current;
+            totalPower   += r.avg_power;
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + r.time + '</td>'
+                + '<td class="text-center">' + r.energy_wh.toFixed(4)   + '</td>'
+                + '<td class="text-center">' + r.avg_voltage.toFixed(1) + '</td>'
+                + '<td class="text-center">' + r.avg_current.toFixed(3) + '</td>'
+                + '<td class="text-center">' + r.avg_power.toFixed(1)   + '</td>';
+            tbody.appendChild(tr);
+        });
+
+        var n = rows.length;
+        if (tfoot) tfoot.innerHTML = '<tr style="font-weight:600;border-top:2px solid #e0d6f5;">'
+            + '<td>Total / Avg</td>'
+            + '<td class="text-center">' + totalEnergy.toFixed(4)          + '</td>'
+            + '<td class="text-center">' + (totalVoltage / n).toFixed(1)   + '</td>'
+            + '<td class="text-center">' + (totalCurrent / n).toFixed(3)   + '</td>'
+            + '<td class="text-center">' + (totalPower   / n).toFixed(1)   + '</td>'
+            + '</tr>';
         return;
     }
 
+    // ── Multi-day: sessions + energy per day ──
     if (thead) thead.querySelector('tr').innerHTML = `
         <th style="text-align:left;">Date</th>
         <th>Sessions</th>
@@ -548,15 +537,15 @@ function renderHistoryTable(daily, summary, range) {
         <th>Energy (kWh)</th>
     `;
 
-    if (!daily || daily.length === 0) {
+    if (!rows || rows.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No data</td></tr>';
         return;
     }
 
-    daily.forEach(d => {
+    rows.forEach(d => {
         const kwh = (d.energy_wh / 1000).toFixed(4);
-        const hrs = ((d.minutes ?? 0) / 60).toFixed(1);
-        const tr = document.createElement('tr');
+        const hrs = ((d.minutes  ?? 0) / 60).toFixed(1);
+        const tr  = document.createElement('tr');
         tr.innerHTML = `
             <td>${d.label}</td>
             <td class="text-center">${d.sessions}</td>
@@ -567,13 +556,13 @@ function renderHistoryTable(daily, summary, range) {
         tbody.appendChild(tr);
     });
 
-    const totalWh = daily.reduce((s, d) => s + d.energy_wh, 0);
-    const totalKwh = (totalWh / 1000).toFixed(4);
-    const totalMins = daily.reduce((s, d) => s + (d.minutes ?? 0), 0);
-    const totalHrs = (totalMins / 60).toFixed(1);
-    const totalSess = daily.reduce((s, d) => s + d.sessions, 0);
+    const totalWh   = rows.reduce((s, d) => s + d.energy_wh, 0);
+    const totalKwh  = (totalWh / 1000).toFixed(4);
+    const totalMins = rows.reduce((s, d) => s + (d.minutes ?? 0), 0);
+    const totalHrs  = (totalMins / 60).toFixed(1);
+    const totalSess = rows.reduce((s, d) => s + d.sessions, 0);
 
-    tfoot.innerHTML = `
+    if (tfoot) tfoot.innerHTML = `
         <tr style="font-weight:600; border-top:2px solid #e0d6f5;">
             <td>Total</td>
             <td class="text-center">${totalSess}</td>
@@ -584,6 +573,7 @@ function renderHistoryTable(daily, summary, range) {
     `;
 }
 
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
 function exportCSV() {
     if (!lastData) return;
     const range = document.getElementById('periodSelect').value;
@@ -597,22 +587,22 @@ function exportCSV() {
             (d.energy_wh / 1000).toFixed(4),
         ]);
 
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const csv  = [headers, ...rows].map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
     a.href = url;
     a.download = `luminesense_report_${range}days.csv`;
     a.click();
     URL.revokeObjectURL(url);
 }
 
-// ── PDF EXPORT ─────────────────────────────────────────────────────────────
+// ── PDF EXPORT ────────────────────────────────────────────────────────────────
 function exportPDF() {
     window.print();
 }
 
-// ── LOADING / ERROR ────────────────────────────────────────────────────────
+// ── LOADING / ERROR ───────────────────────────────────────────────────────────
 function setLoading(on) {
     document.querySelectorAll('.summary-column .live-stat-val').forEach(c => {
         if (on) c.textContent = '...';
@@ -625,18 +615,15 @@ function showError() {
         '<tr><td colspan="5" class="text-center" style="color:#e03333">Failed to load data. Check your connection.</td></tr>';
 }
 
-// ── INIT ───────────────────────────────────────────────────────────────────
-var initLabels = sampleDaily.map(function(d) { return d.label; });
-renderSummaryCards(sampleSummary);
-renderEnergyChart(initLabels);
-renderHistoryTable(sampleDaily, sampleSummary, document.getElementById('periodSelect').value);
-updateLineData(initLabels);
-// Set initial summary label date range
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// Set summary label to today's date
 var initLabel = document.querySelector('.summary-label');
 if (initLabel) initLabel.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+// Fetch real data immediately (no dummy pre-render)
 onControlChange();
 
-// ── Silent background refresh every 30s ───────────────────────────────────
+// Silent background refresh every 30 s
 dataInterval = setInterval(() => {
     onControlChange();
 }, 30000);
