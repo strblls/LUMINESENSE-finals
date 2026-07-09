@@ -1,4 +1,5 @@
 
+<?php
 /**
  * api/pzem-push.php
  * ──────────────────
@@ -12,7 +13,7 @@
  * classroom_id must be appended by the ESP32 firmware.
  * Secured with the same X-Device-Token header as session-end.php.
  */
-<?php
+
 header('Content-Type: application/json');
 
 // Token check
