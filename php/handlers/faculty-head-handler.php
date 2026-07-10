@@ -220,10 +220,12 @@ if ($action === 'add_schedule') {
     // Check for overlaps
     $chk_overlap = $conn->prepare("
         SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name,
-               sub.name AS subject_name
+               sub.name AS subject_name,
+               CONCAT(f.first_name, ' ', f.last_name) AS teacher_name
         FROM schedules s
         JOIN classrooms c ON c.id = s.classroom_id
         LEFT JOIN subjects sub ON sub.id = s.subject_id
+        JOIN faculty f ON f.id = s.faculty_id
         WHERE s.classroom_id = ? AND s.day_of_week = ?
           AND s.start_time < ? AND s.end_time > ?
         LIMIT 1
@@ -241,7 +243,8 @@ if ($action === 'add_schedule') {
                 'start'     => date('g:i A', strtotime($overlap_row['start_time'])),
                 'end'       => date('g:i A', strtotime($overlap_row['end_time'])),
                 'room'      => $overlap_row['room_name'],
-                'subject'   => $overlap_row['subject_name'] ?? 'None'
+                'subject'   => $overlap_row['subject_name'] ?? 'None',
+                'teacher'   => $overlap_row['teacher_name']
             ]
         ]); exit;
     }
@@ -318,10 +321,12 @@ if ($action === 'update_schedule') {
 
     $chk = $conn->prepare("
         SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name,
-               sub.name AS subject_name
+               sub.name AS subject_name,
+               CONCAT(f.first_name, ' ', f.last_name) AS teacher_name
         FROM schedules s
         JOIN classrooms c ON c.id = s.classroom_id
         LEFT JOIN subjects sub ON sub.id = s.subject_id
+        JOIN faculty f ON f.id = s.faculty_id
         WHERE s.classroom_id = ? AND s.day_of_week = ?
           AND s.start_time < ? AND s.end_time > ?
           AND s.id != ?
@@ -340,7 +345,8 @@ if ($action === 'update_schedule') {
                 'start'     => date('g:i A', strtotime($overlap_row['start_time'])),
                 'end'       => date('g:i A', strtotime($overlap_row['end_time'])),
                 'room'      => $overlap_row['room_name'],
-                'subject'   => $overlap_row['subject_name'] ?? 'None'
+                'subject'   => $overlap_row['subject_name'] ?? 'None',
+                'teacher'   => $overlap_row['teacher_name']
             ]
         ]); exit;
     }

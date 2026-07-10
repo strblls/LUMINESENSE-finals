@@ -737,7 +737,8 @@ $conn->close();
                 '<div class="mb-1"><strong>Day:</strong> ' + conflict.day + '</div>' +
                 '<div class="mb-1"><strong>Time:</strong> ' + conflict.start + ' \u2014 ' + conflict.end + '</div>' +
                 '<div class="mb-1"><strong>Room:</strong> ' + conflict.room + '</div>' +
-                '<div class="mb-1"><strong>Subject:</strong> ' + conflict.subject + '</div>';
+                '<div class="mb-1"><strong>Subject:</strong> ' + conflict.subject + '</div>' +
+                '<div class="mb-1"><strong>Teacher:</strong> ' + conflict.teacher + '</div>';
             overlapWarningModal.show();
         }
 
