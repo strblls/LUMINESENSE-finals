@@ -202,10 +202,12 @@ function ordinal($number)
 $dow_map = ['Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6];
 $today_dow_num = $dow_map[$today];
 $day_date_map = [];
+$day_date_full = [];
 foreach ($days as $day) {
     $diff = $dow_map[$day] - $today_dow_num;
     $dt = new DateTime("$diff days");
     $day_date_map[$day] = strtoupper($dt->format('M j'));
+    $day_date_full[$day] = $dt->format('F j');
 }
 
 $conn->close();
@@ -461,8 +463,10 @@ $conn->close();
                     <div class="mb-3">
                         <label class="form-label bold">Day of Week</label>
                         <select class="form-select" id="edit-day">
-                            <?php foreach ($days as $d): ?>
-                                <option value="<?= $d ?>"><?= $d ?></option>
+                            <?php foreach ($days as $d):
+                                $day_date_label = $day_date_full[$d] ?? '';
+                            ?>
+                                <option value="<?= $d ?>" <?= $d === $today ? 'selected' : '' ?>><?= $d ?> (<?= $day_date_label ?>)</option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -692,6 +696,7 @@ $conn->close();
         const subjects = <?php echo json_encode($subjects); ?>;
         const rooms = <?php echo json_encode($rooms); ?>;
         const memberId = <?= (int)$member_id ?>;
+        const todayDayName = '<?= $today ?>';
 
         function cleanupModalBackdrop() {
             document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
@@ -807,7 +812,7 @@ $conn->close();
             document.getElementById('editScheduleLabel').innerHTML = '<i class="bi bi-plus-lg me-2"></i>Add Schedule Slot';
             document.getElementById('edit-slot-id').value = '';
             document.getElementById('edit-is-add').value = '1';
-            document.getElementById('edit-day').value = 'Monday';
+            document.getElementById('edit-day').value = todayDayName;
             document.getElementById('edit-start').value = '09:00';
             document.getElementById('edit-end').value = '10:00';
             document.getElementById('edit-room').value = rooms.length > 0 ? rooms[0].id : '';
