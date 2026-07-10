@@ -587,6 +587,27 @@ $conn->close();
         </div>
     </div>
 
+    <!-- Time Validation Caution Modal -->
+    <div class="modal fade" id="timeValidationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header" style="background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;">
+                    <h5 class="modal-title" style="font-weight:700;">Caution</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;color:#e67e22;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;">
+                        End time must be after start time. Please check your schedule entry — a time like 9PM to 10AM is not valid because the end falls before the start on the same day.
+                    </p>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button type="button" class="medium w-100 px-3" data-bs-dismiss="modal">Understood</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Restricted Action Modal -->
     <div class="modal fade" id="restrictedActionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -666,6 +687,7 @@ $conn->close();
         let confirmSaveModal = null;
         let restrictedModal = null;
         let overlapWarningModal = null;
+        let timeValidationModal = null;
         let deleteSlotId = null;
         const subjects = <?php echo json_encode($subjects); ?>;
         const rooms = <?php echo json_encode($rooms); ?>;
@@ -847,7 +869,10 @@ $conn->close();
                 return;
             }
             if (start >= end) {
-                alert('End time must be after start time.');
+                if (!timeValidationModal) {
+                    timeValidationModal = new bootstrap.Modal(document.getElementById('timeValidationModal'));
+                }
+                timeValidationModal.show();
                 return;
             }
 

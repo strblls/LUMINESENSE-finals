@@ -23,9 +23,9 @@ const char* UPDATE_ROWS_URL  = "https://luminesense-bet.site/api/esp32-update-ro
 const char* SCHEDULE_FLAG_URL= "https://luminesense-bet.site/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 
 // ── Pin Definitions ────────────────────────────────────────
-#define ROW1_PIN 26
-#define ROW2_PIN 27
-#define ROW3_PIN 25
+#define ROW1_PIN 25
+#define ROW2_PIN 26
+#define ROW3_PIN 27
 #define PIR_PIN  13
 
 // ── Serial2 to Mega ────────────────────────────────────────
@@ -111,7 +111,18 @@ void setup() {
 // ============================================================
 void loop() {
     unsigned long now = millis();
-    Serial.print(F("[BUSY] ")); Serial.println(httpBusy);
+
+    // heartbeat print — once per 2s instead of every single loop
+    static unsigned long lastHeartbeat = 0;
+    if (now - lastHeartbeat >= 2000) {
+        lastHeartbeat = now;
+        Serial.print(F("[HEARTBEAT] busy="));
+        Serial.print(httpBusy);
+        Serial.print(F(" wifi="));
+        Serial.print(WiFi.status() == WL_CONNECTED ? "connected" : "DISCONNECTED");
+        Serial.print(F(" ip="));
+        Serial.println(WiFi.localIP());
+    }
 
     handlePIR(now);
     handleMegaMessages();
@@ -265,9 +276,9 @@ void pollDatabase() {
         bool newR2 = doc["row2"] == 1;
         bool newR3 = doc["row3"] == 1;
 
-        if (newR1 != row1State) Serial2.println(newR1 ? "ROW1:ON" : "ROW1:OFF");
-        if (newR2 != row2State) Serial2.println(newR2 ? "ROW2:ON" : "ROW2:OFF");
-        if (newR3 != row3State) Serial2.println(newR3 ? "ROW3:ON" : "ROW3:OFF");
+        if (newR1 != row1State) { setRow(1, newR1); Serial2.println(newR1 ? "ROW1:ON" : "ROW1:OFF"); }
+        if (newR2 != row2State) { setRow(2, newR2); Serial2.println(newR2 ? "ROW2:ON" : "ROW2:OFF"); }
+        if (newR3 != row3State) { setRow(3, newR3); Serial2.println(newR3 ? "ROW3:ON" : "ROW3:OFF"); }
     } else {
         Serial.print(F("[DB] Poll failed, code: ")); Serial.println(httpCode);
     }

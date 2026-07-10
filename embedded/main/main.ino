@@ -303,6 +303,21 @@ void handleEsp32Messages()
 }
 
 // ============================================================
+// SET ROW (tracking only — ESP32 owns the actual relay pins)
+// ============================================================
+void setRow(int row, bool state)
+{
+    switch (row)
+    {
+        case 1: row1State = state; break;
+        case 2: row2State = state; break;
+        case 3: row3State = state; break;
+    }
+    Serial.print(F("[ROW")); Serial.print(row);
+    Serial.print(F("] ")); Serial.println(state ? "ON" : "OFF");
+}
+
+// ============================================================
 // SEND ROW COMMAND TO ESP32
 // ============================================================
 void sendRowCommand(String row, bool state)
