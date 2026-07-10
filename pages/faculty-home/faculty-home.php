@@ -620,9 +620,6 @@ $lighting_blocked = $lighting_reason !== null;
         const CLASSROOM_ID = <?= (int) $classroom_id ?>;
         const FACULTY_ID = <?= (int) $faculty_id ?>;
         const HAS_ACTIVE_SCHEDULE = <?= $active_schedule ? 'true' : 'false' ?>;
-        var HAS_PIN = <?= json_encode((bool)$has_pin) ?>;
-        var PIN_VERIFIED = false;
-
         // Sidebar trigger is handled by Bootstrap offcanvas attributes in the topbar.
 
         // Refresh
@@ -886,18 +883,6 @@ $lighting_blocked = $lighting_reason !== null;
         pollRecentActivities();
         setInterval(pollRecentActivities, 3000);
 
-        // ── PIN utilities ─────────────────────────────────────────────────────
-        var _timeoutTimer = null;
-
-        async function verifyPin(pin) {
-            var r = await fetch('../../api/pin.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: 'verify', pin: pin})
-            });
-            return await r.json();
-        }
-
         function showPinOverlaysFor(which) {
             var overlayId = which + 'PinOverlay';
             var contentId = which === 'gesture' ? 'gestureControlsContent' : 'lightingControlsContent';
@@ -949,27 +934,6 @@ $lighting_blocked = $lighting_reason !== null;
             });
         }
 
-        // ── Page timeout ──────────────────────────────────────────────────────
-        function resetPageTimeout() {
-            if (_timeoutTimer) clearTimeout(_timeoutTimer);
-            _timeoutTimer = setTimeout(showPageTimeout, 600000); // 10 min
-        }
-
-        function showPageTimeout() {
-            var ov = document.getElementById('pageTimeoutOverlay');
-            if (ov) ov.style.display = 'flex';
-            PIN_VERIFIED = false;
-            showPinOverlays();
-        }
-
-        function hidePageTimeout() {
-            var ov = document.getElementById('pageTimeoutOverlay');
-            if (ov) ov.style.display = 'none';
-            PIN_VERIFIED = true;
-            hidePinOverlays();
-            resetPageTimeout();
-        }
-
         // ── Wire up PIN overlay submit buttons ────────────────────────────────
         document.querySelectorAll('#gesturePinOverlay .pin-submit-btn, #lightingPinOverlay .pin-submit-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
@@ -989,43 +953,12 @@ $lighting_blocked = $lighting_reason !== null;
             });
         });
 
-        // ── Wire up page-timeout PIN submit ───────────────────────────────────
-        (function() {
-            var inp = document.getElementById('timeoutPinInput');
-            var err = document.getElementById('timeoutPinError');
-            var btn = document.getElementById('timeoutPinSubmit');
-            function submitTimeoutPin() {
-                var pin = inp.value;
-                if (!/^\d{4}$/.test(pin)) { err.textContent = 'Enter exactly 4 digits.'; return; }
-                inp.disabled = true;
-                verifyPin(pin).then(function(data) {
-                    if (data.success) {
-                        hidePageTimeout();
-                        err.textContent = '';
-                        inp.value = '';
-                        inp.disabled = false;
-                    } else {
-                        err.textContent = data.message || 'Incorrect PIN.';
-                        inp.value = '';
-                        inp.disabled = false;
-                        inp.focus();
-                    }
-                }).catch(function() {
-                    err.textContent = 'Network error.';
-                    inp.disabled = false;
-                });
-            }
-            btn.addEventListener('click', submitTimeoutPin);
-            inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') submitTimeoutPin(); });
-        })();
-
         // ── Initial PIN check on page load ────────────────────────────────────
         if (HAS_PIN) {
             if (HAS_ACTIVE_SCHEDULE) {
                 if (!GESTURE_REASON) showPinOverlaysFor('gesture');
                 if (!LIGHTING_REASON) showPinOverlaysFor('lighting');
             }
-            resetPageTimeout();
         }
 
         // ── Auto-approve pending extensions (grace period) ──────────────────
@@ -1094,23 +1027,6 @@ $lighting_blocked = $lighting_reason !== null;
     })();
     </script>
     <?php endif; ?>
-
-    <!-- ══════════════════════════════
-         PAGE TIMEOUT OVERLAY (every 10 min)
-    ══════════════════════════════ -->
-    <div id="pageTimeoutOverlay" class="page-timeout-overlay" style="display:none;">
-        <div class="page-timeout-modal">
-            <i class="bi bi-clock-history" style="font-size:2.5rem;color:var(--secondary-color-4);margin-bottom:0.75rem;"></i>
-            <h5 class="schedule-ended-title">Session Timeout</h5>
-            <p class="schedule-ended-text">Enter your PIN to continue using controls.</p>
-            <div class="mt-3 d-flex flex-column align-items-center gap-2">
-                <input type="password" id="timeoutPinInput" maxlength="4" pattern="\d*" inputmode="numeric"
-                       class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="••••">
-                <div><span id="timeoutPinError" class="text-danger small"></span></div>
-                <button class="light" id="timeoutPinSubmit">Unlock</button>
-            </div>
-        </div>
-    </div>
 
     <!-- ══════════════════════════════
          GESTURE HELP MODAL – 2-column grid, modal-xl, centered

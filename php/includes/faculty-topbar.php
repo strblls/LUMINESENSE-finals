@@ -10,6 +10,20 @@ $is_head = $_SESSION['is_head'] ?? false;
 
 // Initialize current schedule with default value if not set
 $current_sched ??= 'No class right now';
+
+// ── Has PIN set? ──
+$has_pin = false;
+if (isset($conn) && $conn instanceof mysqli) {
+    $faculty_id_topbar = (int)($_SESSION['faculty_id'] ?? 0);
+    if ($faculty_id_topbar) {
+        $stmt = $conn->prepare("SELECT 1 FROM faculty_permissions WHERE faculty_id = ? AND pin_hash IS NOT NULL");
+        $stmt->bind_param('i', $faculty_id_topbar);
+        $stmt->execute();
+        $stmt->bind_result($dummy);
+        $has_pin = (bool)$stmt->fetch();
+        $stmt->close();
+    }
+}
 ?>
 
 <link rel="stylesheet" href="../../css/faculty-settings.css">
@@ -53,6 +67,23 @@ $current_sched ??= 'No class right now';
     </div>
 </div>
 
+<!-- ══════════════════════════════
+     PAGE TIMEOUT OVERLAY (1 min inactivity)
+══════════════════════════════ -->
+<div id="pageTimeoutOverlay" class="page-timeout-overlay" style="display:none;">
+    <div class="page-timeout-modal">
+        <i class="bi bi-clock-history" style="font-size:2.5rem;color:var(--secondary-color-4);margin-bottom:0.75rem;"></i>
+        <h5 class="schedule-ended-title">Session Timeout</h5>
+        <p class="schedule-ended-text">Enter your PIN to continue using controls.</p>
+        <div class="mt-3 d-flex flex-column align-items-center gap-2">
+            <input type="password" id="timeoutPinInput" maxlength="4" pattern="\d*" inputmode="numeric"
+                   class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="••••">
+            <div><span id="timeoutPinError" class="text-danger small"></span></div>
+            <button class="light" id="timeoutPinSubmit">Unlock</button>
+        </div>
+    </div>
+</div>
+
 <script src="../../script/faculty-notification.js"></script>
 
 <style>
@@ -68,6 +99,93 @@ $current_sched ??= 'No class right now';
 </style>
 
 <script>
+// ── PIN / timeout globals ───────────────────────────────────────
+var HAS_PIN = <?= json_encode((bool)$has_pin) ?>;
+var PIN_VERIFIED = false;
+var _timeoutTimer = null;
+
+// ── Verify PIN via API ──────────────────────────────────────────
+async function verifyPin(pin) {
+    var r = await fetch('../../api/pin.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({action: 'verify', pin: pin})
+    });
+    return await r.json();
+}
+
+// ── Page timeout (1 min inactivity) ─────────────────────────────
+function resetPageTimeout() {
+    if (_timeoutTimer) clearTimeout(_timeoutTimer);
+    _timeoutTimer = setTimeout(showPageTimeout, 60000);
+    try { sessionStorage.setItem('faculty_last_activity', Date.now()); } catch(e) {}
+}
+
+function showPageTimeout() {
+    var ov = document.getElementById('pageTimeoutOverlay');
+    if (ov) ov.style.display = 'flex';
+    PIN_VERIFIED = false;
+    if (typeof showPinOverlays === 'function') showPinOverlays();
+}
+
+function hidePageTimeout() {
+    var ov = document.getElementById('pageTimeoutOverlay');
+    if (ov) ov.style.display = 'none';
+    PIN_VERIFIED = true;
+    if (typeof hidePinOverlays === 'function') hidePinOverlays();
+    resetPageTimeout();
+}
+
+// ── Activity listeners (reset timer on interaction) ─────────────
+document.addEventListener('mousemove', resetPageTimeout);
+document.addEventListener('click', resetPageTimeout);
+document.addEventListener('keydown', resetPageTimeout);
+document.addEventListener('scroll', resetPageTimeout);
+document.addEventListener('touchstart', resetPageTimeout);
+
+// ── Wire up page-timeout PIN submit ─────────────────────────────
+(function() {
+    var inp = document.getElementById('timeoutPinInput');
+    var err = document.getElementById('timeoutPinError');
+    var btn = document.getElementById('timeoutPinSubmit');
+    if (!inp || !btn) return;
+    function submitTimeoutPin() {
+        var pin = inp.value;
+        if (!/^\d{4}$/.test(pin)) { err.textContent = 'Enter exactly 4 digits.'; return; }
+        inp.disabled = true;
+        verifyPin(pin).then(function(data) {
+            if (data.success) {
+                hidePageTimeout();
+                err.textContent = '';
+                inp.value = '';
+                inp.disabled = false;
+            } else {
+                err.textContent = data.message || 'Incorrect PIN.';
+                inp.value = '';
+                inp.disabled = false;
+                inp.focus();
+            }
+        }).catch(function() {
+            err.textContent = 'Network error.';
+            inp.disabled = false;
+        });
+    }
+    btn.addEventListener('click', submitTimeoutPin);
+    inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') submitTimeoutPin(); });
+})();
+
+// ── Initial check on page load ──────────────────────────────────
+if (HAS_PIN) {
+    try {
+        var lastActivity = parseInt(sessionStorage.getItem('faculty_last_activity'), 10);
+        if (lastActivity && Date.now() - lastActivity > 60000) {
+            showPageTimeout();
+        }
+    } catch(e) {}
+    resetPageTimeout();
+}
+
+// ── Hide topbar text near bottom of page ────────────────────────
 window.addEventListener('scroll', function () {
     var scrollThreshold = 100;
     var nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - scrollThreshold;
