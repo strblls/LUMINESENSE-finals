@@ -95,7 +95,6 @@ function mask_email(string $email): string
     return substr($local, 0, $visible) . str_repeat('*', max(1, strlen($local) - $visible)) . '@' . $domain;
 }
 
-$conn->close();
 ?>
 
 <!DOCTYPE html>

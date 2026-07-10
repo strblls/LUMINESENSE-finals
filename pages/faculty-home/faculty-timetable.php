@@ -409,7 +409,6 @@ function ordinal(int $number): string
     return $number . $suffix;
 }
 
-$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">

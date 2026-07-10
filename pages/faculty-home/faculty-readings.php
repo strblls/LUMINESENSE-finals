@@ -58,7 +58,6 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $gesture_logs[] = $row;
 $stmt->close();
 
-$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">

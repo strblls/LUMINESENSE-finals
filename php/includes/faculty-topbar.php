@@ -118,7 +118,6 @@ async function verifyPin(pin) {
 function resetPageTimeout() {
     if (_timeoutTimer) clearTimeout(_timeoutTimer);
     _timeoutTimer = setTimeout(showPageTimeout, 60000);
-    try { sessionStorage.setItem('faculty_last_activity', Date.now()); } catch(e) {}
 }
 
 function showPageTimeout() {
@@ -176,12 +175,6 @@ document.addEventListener('touchstart', resetPageTimeout);
 
 // ── Initial check on page load ──────────────────────────────────
 if (HAS_PIN) {
-    try {
-        var lastActivity = parseInt(sessionStorage.getItem('faculty_last_activity'), 10);
-        if (lastActivity && Date.now() - lastActivity > 60000) {
-            showPageTimeout();
-        }
-    } catch(e) {}
     resetPageTimeout();
 }
 

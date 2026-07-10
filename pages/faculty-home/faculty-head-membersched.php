@@ -210,7 +210,6 @@ foreach ($days as $day) {
     $day_date_full[$day] = $dt->format('F j');
 }
 
-$conn->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">

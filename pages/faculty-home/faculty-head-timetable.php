@@ -183,7 +183,6 @@ sort($filter_sa_names);
 sort($filter_subject_names);
 
 $current_sched = 'No class right now';
-$conn->close();
 ?>
 
 <!DOCTYPE html>
