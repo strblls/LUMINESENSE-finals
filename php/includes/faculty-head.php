@@ -61,24 +61,15 @@ $r = $conn->query("
 ");
 while ($row = $r->fetch_assoc()) $schedules[] = $row;
 
-// Current schedule label for topbar
+// ── Current schedule label for topbar (with extension support) ─────────────
 $current_sched = 'No class right now';
-foreach ($schedules as $s) {
-    if ($s['day_of_week'] === $today && $now >= $s['start_time'] && $now <= $s['end_time']) {
-        $current_sched = $s['room_name'] . ' · '
-            . date('g:i A', strtotime($s['start_time'])) . ' - '
-            . date('g:i A', strtotime($s['end_time']));
-        break;
-    }
-}
-
-// ── Active schedule end time (with extension) for audio notifications ─────────
 $active_schedule_end = '';
 $active_schedule_room = '';
 $stmt = $conn->prepare("
-    SELECT COALESCE(s.extended_until, s.end_time) AS end_time, c.room_name
+    SELECT s.start_time, COALESCE(s.extended_until, s.end_time) AS end_time, c.room_name, sub.name AS subject_name
     FROM schedules s
     JOIN classrooms c ON c.id = s.classroom_id
+    LEFT JOIN subjects sub ON sub.id = s.subject_id
     WHERE s.faculty_id = ?
       AND s.day_of_week = ?
       AND s.start_time <= ?
@@ -88,9 +79,17 @@ $stmt = $conn->prepare("
 ");
 $stmt->bind_param('issss', $faculty_id, $today, $now, $now, $now);
 $stmt->execute();
-$stmt->bind_result($active_schedule_end, $active_schedule_room);
-$stmt->fetch();
+$active = $stmt->get_result()->fetch_assoc();
 $stmt->close();
+
+if ($active) {
+    $active_schedule_end = $active['end_time'];
+    $active_schedule_room = $active['room_name'] ?? '';
+    $subj_label = ($active['subject_name'] ?? '') ?: 'Class';
+    $current_sched = $active['room_name'] . ' · ' . $subj_label
+        . ' (' . date('g:i A', strtotime($active['start_time']))
+        . ' - ' . date('g:i A', strtotime($active['end_time'])) . ')';
+}
 
 // ── Has any schedule at all? ──────────────────────────────────────
 $has_any_schedule = false;

@@ -21,6 +21,6 @@
             style="text-decoration: none;">
             <h3 class="bold"><?= $initials ?></h3>
         </a>
-        <button class="light w-auto" onclick="dissolve('../../php/logout.php')">Logout</button>
+        <button class="topbar-logout light w-auto" onclick="dissolve('../../php/logout.php')">Logout</button>
     </div>
 </div>

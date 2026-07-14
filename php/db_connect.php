@@ -129,7 +129,7 @@ $conn->set_charset('utf8mb4');
 function addColIfMissing($conn, $table, $column, $definition) {
     $chk = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$column'");
     if ($chk && $chk->num_rows === 0) {
-        $conn->query("ALTER TABLE `$table` ADD COLUMN $definition");
+        $conn->query("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
     }
 }
 // light_status on classrooms (used by dashboard poll + Arduino PIR webhook)
@@ -371,3 +371,27 @@ $conn->query("
 ");
 // Fix existing enums that might be missing 'matched'
 $conn->query("ALTER TABLE id_review_queue MODIFY COLUMN ai_match_status ENUM('matched','mismatched','unreadable') DEFAULT NULL");
+
+// ── is_seeded column for admins (seeded admin = super-admin) ─────────────────
+addColIfMissing($conn, 'admins', 'is_seeded', "ENUM('1','0') DEFAULT '0'");
+
+// ── Flush schedules table (end-of-semester auto-flush) ──────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS flush_schedules (
+        id                 INT AUTO_INCREMENT PRIMARY KEY,
+        scheduled_datetime DATETIME NOT NULL,
+        flush_schedules    TINYINT(1) DEFAULT 1,
+        flush_departments  TINYINT(1) DEFAULT 0,
+        flush_subject_areas TINYINT(1) DEFAULT 0,
+        flush_subjects     TINYINT(1) DEFAULT 0,
+        reminder_dismissed TINYINT(1) DEFAULT 0,
+        confirmation_sent  TINYINT(1) DEFAULT 0,
+        confirmed          TINYINT(1) DEFAULT 0,
+        executed           TINYINT(1) DEFAULT 0,
+        executed_at        DATETIME DEFAULT NULL,
+        created_by         INT NOT NULL,
+        created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES admins(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");

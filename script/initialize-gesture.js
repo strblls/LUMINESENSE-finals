@@ -16,6 +16,12 @@ let stream = null;
 let active = false;
 let lastVideoTime = -1;
 
+// ── Chroma Key & Enhancement toggles ──────────────────────────────────────────
+let chromaKeyEnabled = true;
+let enhanceEnabled = true;
+const procCanvas = document.createElement('canvas');
+const procCtx = procCanvas.getContext('2d');
+
 // ── Progress bar colour map ────────────────────────────────────────────────────
 const PROGRESS_CLASSES = ['bg-success', 'bg-primary', 'bg-danger', 'bg-info', 'bg-warning', 'bg-dark', 'bg-secondary'];
 const GESTURE_COLOUR = {
@@ -68,7 +74,6 @@ const ROW_GESTURE = { Pointing_Up: 1, Victory: 2, ILoveYou: 3 };
 let _lastGesture = 'No Gesture';
 let _heldSince = null;
 let _actioned = false;
-let _selectedRow = null;
 let _dropoutStart = null;   // Tracks when a gesture dropout began
 
 let pendingAction = null; // null or { gesture: 'Open_Palm', action: 'all_on', label: 'All Lights ON', row: null }
@@ -82,7 +87,7 @@ function updatePillsState() {
     [1, 2, 3].forEach(r => {
         const p = document.getElementById(`rowPill${r}`);
         if (!p) return;
-        p.classList.remove('active', 'pending', 'confirmed');
+        p.classList.remove('pending', 'confirmed');
 
         if (pendingAction) {
             if (pendingAction.action === 'all_on' || pendingAction.action === 'all_off') {
@@ -90,10 +95,9 @@ function updatePillsState() {
             } else if (pendingAction.action === 'toggle_row' && pendingAction.row === r) {
                 p.classList.add('pending');
             }
-        } else if (_selectedRow === r) {
-            p.classList.add('active');
         }
     });
+    if (typeof window.syncRowPills === 'function') window.syncRowPills();
 }
 
 function flashPill(row) {
@@ -163,7 +167,6 @@ async function executePendingAction() {
         if (typeof logGestureEvent === 'function') logGestureEvent('Closed_Fist – all OFF');
 
     } else if (action === 'toggle_row') {
-        _selectedRow = row; // Keep track of the active selected row
         const sw = document.getElementById(`row-${row}-switch`);
         const newState = sw ? !sw.checked : true;
         if (sw) sw.checked = newState;
@@ -305,11 +308,11 @@ function processGesture(gesture, confidence) {
     if (pendingAction) {
         if (activeGesture === 'No Gesture') {
             if (gestureResult) {
-                gestureResult.innerHTML = `<span class="text-warning bold">👍 Confirm ${pendingAction.label}?</span> <span style="font-size:0.75rem; color:#6c757d;">(Hold 👍 to confirm)</span>`;
+                gestureResult.innerHTML = `<span class="text-confirm bold">👍 Confirm ${pendingAction.label}?</span> <span style="font-size:0.75rem; color:#6c757d;">(Hold 👍 to confirm)</span>`;
             }
         } else if (activeGesture !== 'Thumb_Up') {
             if (gestureResult) {
-                gestureResult.innerHTML = `<span class="text-warning bold">👍 Confirm ${pendingAction.label}?</span>`;
+                gestureResult.innerHTML = `<span class="text-confirm bold">👍 Confirm ${pendingAction.label}?</span>`;
             }
         }
     }
@@ -326,6 +329,8 @@ function updateGestureView(gesture, confidence) {
     setProgressStyle(cleanGesture, _smoothedConfidence);
     processGesture(cleanGesture, _smoothedConfidence);
 
+    updateGestureImage(cleanGesture);
+
     if (!pendingAction) {
         if (gestureResult) {
             if (cleanGesture === 'No Gesture' || _smoothedConfidence < 30) {
@@ -337,7 +342,81 @@ function updateGestureView(gesture, confidence) {
     }
 }
 
-// ── Draw skeleton landmarks on HTML Canvas ────────────────────────────────────
+// ── Gesture image map ─────────────────────────────────────────────────────────
+const GESTURE_IMAGES = {
+    Pointing_Up: '../../images/pointing-up.png',
+    Victory: '../../images/victory.png',
+    ILoveYou: '../../images/ily.png',
+    Open_Palm: '../../images/open-palm.png',
+    Closed_Fist: '../../images/closed-fist.png',
+    Thumb_Up: '../../images/thumbs-up.png',
+};
+
+function updateGestureImage(gesture) {
+    const list = document.getElementById('gestureImageList');
+    const img = document.getElementById('gestureImage');
+    const heading = document.getElementById('gestureListHeading');
+    if (!list || !img || !heading) return;
+
+    if (pendingAction) {
+        img.src = GESTURE_IMAGES.Thumb_Up;
+        img.style.display = '';
+        list.style.display = 'none';
+        heading.textContent = 'Confirm Action';
+        return;
+    }
+
+    if (gesture && gesture !== 'No Gesture' && GESTURE_IMAGES[gesture]) {
+        img.src = GESTURE_IMAGES[gesture];
+        img.style.display = '';
+        list.style.display = 'none';
+        heading.textContent = 'Detected: ' + gesture.replace(/_/g, ' ');
+        return;
+    }
+
+    img.style.display = 'none';
+    list.style.display = '';
+    heading.textContent = 'Available Gestures';
+}
+
+// ── Convex Hull (Monotone Chain) ──────────────────────────────────────────────
+function cross(o, a, b) {
+    return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+}
+function convexHull(points) {
+    const sorted = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+    const lower = [];
+    for (const p of sorted) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+        lower.push(p);
+    }
+    const upper = [];
+    for (const p of sorted.reverse()) {
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+        upper.push(p);
+    }
+    lower.pop(); upper.pop();
+    return lower.concat(upper);
+}
+
+// ── Update toggle button UI ───────────────────────────────────────────────────
+function updateToggleUI() {
+    const ct = document.getElementById('chromaKeyToggle');
+    if (ct) ct.classList.toggle('active', chromaKeyEnabled);
+    const et = document.getElementById('enhanceToggle');
+    if (et) et.classList.toggle('active', enhanceEnabled);
+}
+
+window.toggleChromaKey = function () {
+    chromaKeyEnabled = !chromaKeyEnabled;
+    updateToggleUI();
+};
+window.toggleEnhance = function () {
+    enhanceEnabled = !enhanceEnabled;
+    updateToggleUI();
+};
+
+// ── Draw skeleton landmarks with chroma-key spotlight overlay ─────────────────
 function drawLandmarks(landmarks) {
     if (!webcamCanvas) return;
     const ctx = webcamCanvas.getContext('2d');
@@ -357,8 +436,61 @@ function drawLandmarks(landmarks) {
         [13, 17], [0, 17], [17, 18], [18, 19], [19, 20] // Pinky
     ];
 
+    // ── Chroma key spotlight effect ──
+    if (chromaKeyEnabled) {
+        // 1. Darken everything
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+        ctx.fillRect(0, 0, width, height);
+
+        // 2. Cut out hand silhouettes to reveal original video
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        for (const hand of landmarks) {
+            const hull = convexHull(hand);
+            ctx.beginPath();
+            ctx.moveTo(hull[0].x * width, hull[0].y * height);
+            for (let i = 1; i < hull.length; i++) {
+                ctx.lineTo(hull[i].x * width, hull[i].y * height);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // 3. Draw glowing cyan outline + subtle fill per hand
+        for (const hand of landmarks) {
+            const hull = convexHull(hand);
+            const pts = hull.map(p => ({ x: p.x * width, y: p.y * height }));
+
+            // Glowing outline
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 200, 255, 0.6)';
+            ctx.shadowBlur = 18;
+            ctx.strokeStyle = 'rgba(0, 200, 255, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) {
+                ctx.lineTo(pts[i].x, pts[i].y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+
+            // Subtle cyan tint inside hand
+            ctx.fillStyle = 'rgba(0, 200, 255, 0.06)';
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i++) {
+                ctx.lineTo(pts[i].x, pts[i].y);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+
+    // ── Skeleton + joints (always drawn) ──
     for (const hand of landmarks) {
-        // Draw bones
         ctx.strokeStyle = '#2ecc71';
         ctx.lineWidth = 3;
         for (const [p1, p2] of connections) {
@@ -370,7 +502,6 @@ function drawLandmarks(landmarks) {
             ctx.stroke();
         }
 
-        // Draw joints
         for (const pt of hand) {
             ctx.beginPath();
             ctx.arc(pt.x * width, pt.y * height, 5, 0, 2 * Math.PI);
@@ -395,7 +526,20 @@ async function predictLoop() {
 
         try {
             const now = performance.now();
-            const results = recognizer.recognizeForVideo(webcamVideo, now);
+
+            // Optional preprocessing: contrast/brightness/saturation boost
+            let inputSource = webcamVideo;
+            if (enhanceEnabled) {
+                if (procCanvas.width !== webcamVideo.videoWidth) {
+                    procCanvas.width = webcamVideo.videoWidth;
+                    procCanvas.height = webcamVideo.videoHeight;
+                }
+                procCtx.filter = 'contrast(1.25) brightness(1.1) saturate(1.05)';
+                procCtx.drawImage(webcamVideo, 0, 0);
+                inputSource = procCanvas;
+            }
+
+            const results = recognizer.recognizeForVideo(inputSource, now);
 
             let bestGesture = 'No Gesture';
             let bestConfidence = 0;
@@ -491,6 +635,9 @@ function resetState() {
     const ctx = webcamCanvas.getContext('2d');
     ctx.clearRect(0, 0, webcamCanvas.width, webcamCanvas.height);
 }
+
+// Expose for external callers (session timeout, etc.)
+window.resetCameraState = resetState;
 
 if (enableBtn) {
     enableBtn.addEventListener('click', startWebcam);

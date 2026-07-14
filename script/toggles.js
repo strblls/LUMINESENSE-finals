@@ -43,12 +43,31 @@ const bulbOn  = '../../images/bulb-on.png';
         { switchId: 'row-3-switch', bulbs: row3Bulbs, row: 3 },
     ];
 
+    function syncAllLightsStatus() {
+        const sw1 = document.getElementById('row-1-switch');
+        const sw2 = document.getElementById('row-2-switch');
+        const sw3 = document.getElementById('row-3-switch');
+        const allOn = (sw1 && sw1.checked) && (sw2 && sw2.checked) && (sw3 && sw3.checked);
+        if (statusText) {
+            statusText.textContent = allOn ? 'ON' : 'OFF';
+            statusText.classList.replace(allOn ? 'off' : 'on', allOn ? 'on' : 'off');
+        }
+        if (btnContainer) {
+            btnContainer.classList.replace(
+                allOn ? 'all-lights-off' : 'all-lights-on',
+                allOn ? 'all-lights-on'  : 'all-lights-off'
+            );
+        }
+    }
+
     rowConfig.forEach(({ switchId, bulbs, row }) => {
         const sw = document.getElementById(switchId);
         if (!sw) return;
         sw.addEventListener('change', function () {
             setRow(bulbs, this.checked);
             persistLight(row, this.checked);
+            syncAllLightsStatus();
+            if (typeof syncRowPills === 'function') syncRowPills();
         });
     });
 

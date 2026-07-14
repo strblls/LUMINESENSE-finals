@@ -684,6 +684,7 @@ function event_icon(string $type): array
             }
         }
     </script>
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>

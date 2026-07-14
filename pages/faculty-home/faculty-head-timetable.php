@@ -1818,6 +1818,7 @@ $current_sched = 'No class right now';
             });
         })();
     </script>
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>

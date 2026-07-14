@@ -2,17 +2,17 @@
 
 | Date | Modules Affected | Notes |
 | :--- | :---: | :--- |
-| June 30 | Admin consistency overhaul | <ul><li>Palettes stick to: (`--secondary-color-1`,`--secondary-color-2`,`--accent-yellow`, and less frequently: `--muted`,)</li><li>Faculty member's sched can be exported (PDF)</li><li>Lacking: faculty-head-membersched.php</li></ul> |
+| July 14 | Landing page, Faculty fixes, and Admin system flush | <ul><li>Landing page improved</li><li>Fixes in faculty flow and UI concerns (faculty-timetable)</li><li>System flush in admin: flush all schedules (per sem), flush all extensions (every week)</li></ul> |
 
 ## Backend Needs
 
-- Timezone in Recent Activities (faculty) inaccurate
-- API concerns in ID authentication
-- Seed 1 admin account as per policy
-- Time extension autoapprovals interconnect with front-ends (e.g: automatic approve after pressing) 
-- Relevance and inner workings of Issues Logged in admin-reports.php? 
+- ~~Timezone in Recent Activities (faculty) inaccurate~~
+- ~~API concerns in ID authentication~~
+- ~~Seed 1 admin account as per policy~~
+- Time extension autoapprovals interconnect with front-ends (e.g: automatic approve after pressing)
+- ~~Relevance and inner workings of Issues Logged in admin-reports.php?~~
 - Form validation in certain modals (Require some fields to be inputted before submitting/confirming/adding)
-- Review the ai_confidence_note because some fields says "AI could not read..." -> change to -> "API could not read""
+- ~~Review the ai_confidence_note because some fields says "AI could not read..." -> change to -> "API could not read""~~
 - ~~Tab navigation in admin-reports.php~~ **__resolved Jun 30__**
 - ~~Updating stat cards in admin-faculty-management.php~~ **__resolved June 25 -G__**
 - ~~Status of Extension Requests (pending, disapproved) in faculty-timetable.php~~ **__resolved Jun 30__**
@@ -22,7 +22,7 @@
 
 ## Future Refinements
 
-- Improve landing page
+- ~~Improve landing page~~
 - ~~Organize/transport files for scripting and make OOP flexible for php (all those necessary)~~ __stricken for later(3x) implementation nlng for maintenance -G__
 
 ## Personal Issues

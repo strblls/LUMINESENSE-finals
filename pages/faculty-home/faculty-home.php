@@ -117,6 +117,7 @@ function mask_email(string $email): string
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
+    <link rel="stylesheet" href="../../css/tooltip.css">
     <link rel="stylesheet" href="../../css/faculty-home.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../../css/faculty-common.css">
 
@@ -127,18 +128,18 @@ function mask_email(string $email): string
     <div class="parent-container">
 
         <?php
-// ── Overlay hierarchy helper ─────────────────────────────────────
-function get_overlay_reason($has_sched, $permitted, $active) {
-    if (!$has_sched) return 'no_schedule';
-    if (!$permitted) return 'admin_restricted';
-    if (!$active)    return 'schedule_ended';
-    return null;
-}
-$gesture_reason   = get_overlay_reason($has_any_schedule, $permissions['gesture_control'],  $active_schedule);
-$lighting_reason  = get_overlay_reason($has_any_schedule, $permissions['lighting_control'], $active_schedule);
-$gesture_blocked  = $gesture_reason !== null;
-$lighting_blocked = $lighting_reason !== null;
-?>
+        // ── Overlay hierarchy helper 
+        function get_overlay_reason($has_sched, $permitted, $active) {
+            if (!$has_sched) return 'no_schedule';
+            if (!$permitted) return 'admin_restricted';
+            if (!$active)    return 'schedule_ended';
+            return null;
+        }
+        $gesture_reason   = get_overlay_reason($has_any_schedule, $permissions['gesture_control'],  $active_schedule);
+        $lighting_reason  = get_overlay_reason($has_any_schedule, $permissions['lighting_control'], $active_schedule);
+        $gesture_blocked  = $gesture_reason !== null;
+        $lighting_blocked = $lighting_reason !== null;
+        ?>
         <?php include '../../php/includes/faculty-topbar.php'; ?>
         <?php include '../../php/includes/faculty-sidebar.php'; ?>
 
@@ -146,16 +147,27 @@ $lighting_blocked = $lighting_reason !== null;
         <div class="child-container">
             <div class="main-container homepage gap-3">
 
-                <!-- ══════════════════════════════
+                <!--  
                      COLUMN 1 – GESTURE DETECTION
-                ══════════════════════════════ -->
+                  -->
                 <div class="group-container gap-3">
 
                     <!-- Gesture Detection -->
-                    <div style="background-color: #f8f9fa;" class="section-container">
+                    <div id="gestureSection" style="background-color: #f8f9fa;" class="section-container p-2">
                         <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">Gesture Detection</h2>
+                            </div>
+                            <div class="d-flex mx-2 align-items-end gap-1">
+                                <button class="light" id="refreshBtn" title="Refresh" data-bs-toggle="tooltip">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <button class="light" data-bs-toggle="modal" data-bs-target="#gestureHelpModal" title="Gesture Guide" data-bs-tooltip>
+                                    <i class="bi bi-question-circle"></i>
+                                </button>
+                                <button class="light" id="gestureMaximizeBtn" onclick="toggleGestureMaximize()" title="Maximize" data-bs-toggle="tooltip">
+                                    <i class="bi bi-arrows-expand"></i>
+                                </button>
                             </div>
                         </div>
 
@@ -195,14 +207,66 @@ $lighting_blocked = $lighting_reason !== null;
                                         <span class="bold mx-1" id="gestureResult">—</span>
                                     </div>
 
+                                    <!-- Gesture image (visible only when maximized) -->
+                                    <div id="gestureImageContainer" class="gesture-image-container w-100" style="display:none;">
+                                        <div class="gesture-list-heading" id="gestureListHeading">Available Gestures</div>
+                                        <div id="gestureImageList" class="gesture-image-list">
+                                            <div class="gesture-list-item" data-gesture="Pointing_Up">
+                                                <img src="../../images/pointing-up.png" alt="Pointing Up">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Pointing Up</span>
+                                                    <span class="gesture-list-desc">Toggle Row 1 ON/OFF</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="Victory">
+                                                <img src="../../images/victory.png" alt="Victory">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Victory</span>
+                                                    <span class="gesture-list-desc">Toggle Row 2 ON/OFF</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="ILoveYou">
+                                                <img src="../../images/ily.png" alt="I Love You">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">I Love You</span>
+                                                    <span class="gesture-list-desc">Toggle Row 3 ON/OFF</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="Open_Palm">
+                                                <img src="../../images/open-palm.png" alt="Open Palm">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Open Palm</span>
+                                                    <span class="gesture-list-desc">Turn all lights ON</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="Closed_Fist">
+                                                <img src="../../images/closed-fist.png" alt="Closed Fist">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Closed Fist</span>
+                                                    <span class="gesture-list-desc">Turn all lights OFF</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="Thumb_Up">
+                                                <img src="../../images/thumbs-up.png" alt="Thumbs Up">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Thumbs Up</span>
+                                                    <span class="gesture-list-desc">Confirm pending action</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <img id="gestureImage" src="" alt="Detected gesture" style="display:none;">
+                                    </div>
+
                                     <!-- Action buttons -->
-                                    <div class="w-100 d-flex justify-content-center gap-2">
-                                        <button class="light" id="refreshBtn">
-                                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-                                        </button>
-                                        <button class="light" data-bs-toggle="modal" data-bs-target="#gestureHelpModal">
-                                            <i class="bi bi-question-circle me-1"></i> View Gestures
-                                        </button>
+                                    <div class="w-100 d-flex justify-content-center">
+                                        <div class="gesture-toggle-group d-flex">
+                                            <button class="light toggle-btn active" id="chromaKeyToggle" onclick="toggleChromaKey()" title="Highlight hand and dim the background · On by default" data-bs-toggle="tooltip" data-bs-placement="top">
+                                                <i class="bi bi-brightness-high me-1"></i> Chroma
+                                            </button>
+                                            <button class="light toggle-btn active" id="enhanceToggle" onclick="toggleEnhance()" title="Boost contrast, brightness &amp; saturation · On by default" data-bs-toggle="tooltip" data-bs-placement="top">
+                                                <i class="bi bi-sliders me-1"></i> Enhance
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -242,7 +306,7 @@ $lighting_blocked = $lighting_reason !== null;
                     </div>
 
                     <!-- System Status -->
-                    <div style="background-color: #f8f9fa;" class="section-container">
+                    <div style="background-color: #f8f9fa;" class="section-container p-2">
                         <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">System Status</h2>
@@ -257,9 +321,8 @@ $lighting_blocked = $lighting_reason !== null;
                                 ['label' => 'PIR Sensor',     'ok' => false,                         'ok_text' => 'Detecting motion',    'fail_text' => 'No motion detected'],
                             ];
                             foreach ($statuses as $s):
-                                $is_pir_no_motion = ($s['label'] === 'PIR Sensor' && !$s['ok']);
-                                $bg_color = $is_pir_no_motion ? '#2f004f' : ($s['ok'] ? '#f9edfa' : '#f9edfa');
-                                $text_color = $is_pir_no_motion ? '#ffffff' : ($s['ok'] ? '#2f004f' : '#2f004f');
+                                $bg_color = $s['ok'] ? '#f9edfa' : '#2f004f';
+                                $text_color = $s['ok'] ? '#2f004f' : '#ffffff';
                             ?>
                                 <div class="d-flex justify-content-between align-items-center py-1" style="border-bottom:1px solid #eee;">
                                     <h5 class="mb-0" style="font-size:13px;"><?= $s['label'] ?></h5>
@@ -276,13 +339,13 @@ $lighting_blocked = $lighting_reason !== null;
 
 
 
-                <!-- ══════════════════════════════
+                <!--  
                      COLUMN 2 – LIGHTING
-                ══════════════════════════════ -->
+                  -->
                 <div class="group-container gap-3">
 
                     <!-- Lighting Grid -->
-                    <div style="background-color: #f8f9fa;" class="fit-width section-container">
+                    <div style="background-color: #f8f9fa;" class="fit-width section-container p-2">
                         <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">Lighting Grid</h2>
@@ -311,7 +374,7 @@ $lighting_blocked = $lighting_reason !== null;
                                 <img src="<?= $b3 ?>" class="bulb-img" data-row="3">
                                 <hr class="w-100">
                             </div>
-                            <div class="p-5">
+                            <div class="p-3">
                                 <div class="d-flex flex-column align-items-center gap-1">
                                     <label class="form-check-label" for="row-1-switch">Row 1</label>
                                     <div class="form-check form-switch">
@@ -387,9 +450,9 @@ $lighting_blocked = $lighting_reason !== null;
                     </div><!-- /col 2 -->
 
 
-                <!-- ══════════════════════════════
+                <!--  
                      COLUMN 3 – TIME LEFT + RECENT ACTIVITIES
-                ══════════════════════════════ -->
+                  -->
                 <div class="group-container recent-activities gap-3">
 
                     <!-- Time Left (moved from Column 2) -->
@@ -414,17 +477,16 @@ $lighting_blocked = $lighting_reason !== null;
                                     <h1 class="bold display-1 p-2" id="timerDisplay" style="color: var(--secondary-color-2);">00:00:00</h1>
                                 <?php endif; ?>
                             </div>
-                            <div class="d-flex flex-row mx-2 align-items-center justify-content-center gap-2">
+                            <div class="d-flex flex-row flex-nowrap mx-2 align-items-center justify-content-center gap-2">
                                 <?php if ($active_schedule): ?>
-                                    <button class="light" data-bs-toggle="modal" data-bs-target="#extendModal">
+                                    <button class="light text-nowrap" data-bs-toggle="modal" data-bs-target="#extendModal">
                                         <i class="bi bi-clock-history me-1"></i> Extend
                                     </button>
-                                    <button class="danger" onclick="openEndEarlyModal(<?= $active_schedule['id'] ?>, '<?= htmlspecialchars($active_schedule['room_name']) ?>')">
+                                    <button class="danger text-nowrap" onclick="openEndEarlyModal(<?= $active_schedule['id'] ?>, '<?= htmlspecialchars($active_schedule['room_name']) ?>')">
                                         <i class="bi bi-stop-circle me-1"></i> End Early
                                     </button>
                                 <?php endif; ?>
-                                    <button class="light h-50 w-auto" data-bs-toggle="modal" onclick="dissolve('faculty-timetable.php')">View Schedule</button>
-                            
+                                    <button class="light text-nowrap" data-bs-toggle="modal" onclick="dissolve('faculty-timetable.php')">View Schedule</button>
                             </div>
                         </div>
 
@@ -483,9 +545,9 @@ $lighting_blocked = $lighting_reason !== null;
                 </div><!-- /col 3 -->
 
 
-                <!-- ══════════════════════════════
+                <!--  
                      PROFILE MODAL
-                ══════════════════════════════ -->
+                  -->
                 <div class="profile-details-modal modal fade" id="profileModal" tabindex="-1"
                     aria-labelledby="profileModalLabel" aria-hidden="true">
                     <div class="d-flex justify-content-center modal-dialog modal-lg">
@@ -538,9 +600,9 @@ $lighting_blocked = $lighting_reason !== null;
                     </div>
                 </div>
 
-                <!-- ══════════════════════════════
+                <!--  
                      CLASSROOM DETAILS MODAL
-                ══════════════════════════════ -->
+                  -->
                 <div class="profile-details-modal modal fade" id="classroomModal" tabindex="-1"
                     aria-labelledby="classroomModalLabel" aria-hidden="true">
                     <div class="d-flex justify-content-center modal-dialog modal-lg">
@@ -622,7 +684,32 @@ $lighting_blocked = $lighting_reason !== null;
         // Sidebar trigger is handled by Bootstrap offcanvas attributes in the topbar.
 
         // Refresh
-        document.getElementById('refreshBtn').addEventListener('click', () => location.reload());
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            // Preserve maximized state across refresh
+            var gs = document.getElementById('gestureSection');
+            if (gs && gs.classList.contains('gesture-maximized')) {
+                sessionStorage.setItem('gestureMaximized', 'true');
+            } else {
+                sessionStorage.removeItem('gestureMaximized');
+            }
+            location.reload();
+        });
+
+        // Restore maximized state after refresh
+        (function() {
+            if (sessionStorage.getItem('gestureMaximized') === 'true') {
+                sessionStorage.removeItem('gestureMaximized');
+                // Wait for DOM and module to be ready
+                var check = setInterval(function() {
+                    var section = document.getElementById('gestureSection');
+                    var btn = document.getElementById('gestureMaximizeBtn');
+                    if (section && btn && typeof toggleGestureMaximize === 'function') {
+                        clearInterval(check);
+                        toggleGestureMaximize();
+                    }
+                }, 100);
+            }
+        })();
 
         // Log a gesture event to the DB
         async function logGestureEvent(gestureLabel, eventType = 'gesture') {
@@ -672,13 +759,11 @@ $lighting_blocked = $lighting_reason !== null;
             }
             const lightContent = document.getElementById('lightingControlsContent');
             if (lightContent) {
-                lightContent.style.filter = 'blur(6px)';
-                lightContent.style.pointerEvents = 'none';
+                lightContent.classList.add('controls-blurred');
             }
             const gestureContent = document.getElementById('gestureControlsContent');
             if (gestureContent) {
-                gestureContent.style.filter = 'blur(6px)';
-                gestureContent.style.pointerEvents = 'none';
+                gestureContent.classList.add('controls-blurred');
             }
             // Show overlay only if it's a timer-toggleable reason (schedule_ended or null → schedule_ended after timer)
             if (!LIGHTING_REASON || LIGHTING_REASON === 'schedule_ended') {
@@ -696,6 +781,12 @@ $lighting_blocked = $lighting_reason !== null;
         }
 
         function unlockControls() {
+            // Don't clear blur if a PIN overlay is active (timer would strip it every second)
+            var gesturePin = document.getElementById('gesturePinOverlay');
+            var lightingPin = document.getElementById('lightingPinOverlay');
+            var pinVisible = (gesturePin && gesturePin.style.display !== 'none') ||
+                             (lightingPin && lightingPin.style.display !== 'none');
+
             ['row-1-switch', 'row-2-switch', 'row-3-switch'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -717,15 +808,15 @@ $lighting_blocked = $lighting_reason !== null;
             if (disBtn) {
                 disBtn.disabled = false;
             }
-            const lightContent = document.getElementById('lightingControlsContent');
-            if (lightContent) {
-                lightContent.style.filter = '';
-                lightContent.style.pointerEvents = '';
-            }
-            const gestureContent = document.getElementById('gestureControlsContent');
-            if (gestureContent) {
-                gestureContent.style.filter = '';
-                gestureContent.style.pointerEvents = '';
+            if (!pinVisible) {
+                const lightContent = document.getElementById('lightingControlsContent');
+                if (lightContent) {
+                    lightContent.classList.remove('controls-blurred');
+                }
+                const gestureContent = document.getElementById('gestureControlsContent');
+                if (gestureContent) {
+                    gestureContent.classList.remove('controls-blurred');
+                }
             }
             // Hide overlay only for timer-toggleable reason (schedule_ended)
             if (LIGHTING_REASON === 'schedule_ended' || !LIGHTING_REASON) {
@@ -888,7 +979,7 @@ $lighting_blocked = $lighting_reason !== null;
             var ov = document.getElementById(overlayId);
             var ct = document.getElementById(contentId);
             if (ov) ov.style.display = '';
-            if (ct) { ct.style.filter = 'blur(6px)'; ct.style.pointerEvents = 'none'; }
+            if (ct) ct.classList.add('controls-blurred');
         }
 
         function hidePinOverlaysFor(which) {
@@ -897,7 +988,7 @@ $lighting_blocked = $lighting_reason !== null;
             var ov = document.getElementById(overlayId);
             var ct = document.getElementById(contentId);
             if (ov) ov.style.display = 'none';
-            if (ct) { ct.style.filter = ''; ct.style.pointerEvents = ''; }
+            if (ct) ct.classList.remove('controls-blurred');
         }
 
         function showPinOverlays() { showPinOverlaysFor('gesture'); showPinOverlaysFor('lighting'); }
@@ -967,9 +1058,7 @@ $lighting_blocked = $lighting_reason !== null;
     <!-- Gesture detection script -->
     <script type="module" src="../../script/initialize-gesture.js?v=<?= time() ?>"></script>
 
-    <!-- ══════════════════════════════
-         PIN SETUP MODAL (first login)
-    ══════════════════════════════ -->
+    <!--  PIN SETUP MODAL (first login)-->
     <?php if (!$has_pin): ?>
     <div id="pinSetupOverlay" class="page-timeout-overlay">
         <div class="page-timeout-modal">
@@ -1027,9 +1116,7 @@ $lighting_blocked = $lighting_reason !== null;
     </script>
     <?php endif; ?>
 
-    <!-- ══════════════════════════════
-         GESTURE HELP MODAL – 2-column grid, modal-xl, centered
-    ══════════════════════════════ -->
+    <!--  GESTURE HELP MODAL – 2-column grid, modal-xl, centered -->
     <div class="profile-details-modal gesture-help modal fade" id="gestureHelpModal" tabindex="-1" aria-labelledby="gestureHelpLabel" aria-hidden="true">
         <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
@@ -1158,10 +1245,7 @@ $lighting_blocked = $lighting_reason !== null;
         </div>
     </div>
 
-    <!-- ══════════════════════════════
-         ACTIVITY DETAILS MODAL
-         CHANGE 2: Added modal-dialog-centered
-    ══════════════════════════════ -->
+    <!--  ACTIVITY DETAILS MODAL CHANGE 2: Added modal-dialog-centered -->
     <div class="profile-details-modal modal fade" id="activityDetailsModal" tabindex="-1" aria-labelledby="activityDetailsLabel"
         aria-hidden="true">
         <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-lg">
@@ -1257,37 +1341,62 @@ $lighting_blocked = $lighting_reason !== null;
         </div>
     </div>
 
-    <!-- ══════════════════════════════
+    <!--  
          EXTEND SCHEDULE MODAL
-    ══════════════════════════════ -->
+      -->
     <?php if ($active_schedule): ?>
-        <div class="modal fade" id="extendModal" tabindex="-1" aria-labelledby="extendModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
+        <div class="profile-details-modal modal fade" id="extendModal" tabindex="-1" aria-labelledby="extendModalLabel" aria-hidden="true">
+            <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title bold" id="extendModalLabel">
                             <i class="bi bi-clock-history me-2"></i>Request Time Extension
                         </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <p class="text-muted small mb-3">
-                            Current class ends at
-                            <strong id="current-class-end"><?= date('g:i A', strtotime($active_schedule['end_time'])) ?></strong>.
-                            How many extra minutes do you need?
+                        <p class="extend-description">
+                            <span class="emphasis">
+                                Requesting extension for
+                                <span id="extend-room"><?= htmlspecialchars($active_schedule['room_name']) ?></span>
+                                from <span id="extend-start-time"><?= date('g:i A', strtotime($active_schedule['start_time'])) ?></span>
+                                to <span id="extend-end-time"><?= date('g:i A', strtotime($active_schedule['end_time'])) ?></span>
+                            </span>
+                            <br>How many extra minutes do you need?
                         </p>
-                        <div class="d-flex gap-2 justify-content-center flex-wrap" id="extendPills">
-                            <?php foreach ([15, 30, 45, 60] as $mins): ?>
-                                <button class="btn btn-outline-primary extend-pill" data-mins="<?= $mins ?>">
-                                    +<?= $mins ?> min
-                                </button>
-                            <?php endforeach; ?>
+                        <div class="extend-modal-content d-flex gap-4">
+                            <div class="extend-left-div">
+                                <h2 class="time-elapsed-title">Time Elapsed</h2>
+                                <h1 class="timer-display">
+                                    <input type="text" class="timer-input" id="timer-hours" value="00" maxlength="2" />:
+                                    <input type="text" class="timer-input" id="timer-minutes" value="00" maxlength="2" />:
+                                    <input type="text" class="timer-input" id="timer-seconds" value="00" maxlength="2" />
+                                </h1>
+                                <div class="timer-labels d-flex gap-3 justify-content-center">
+                                    <h6 class="timer-label">HOURS</h6>
+                                    <h6 class="timer-label">MINUTES</h6>
+                                    <h6 class="timer-label">SECONDS</h6>
+                                </div>
+                                <p class="extend-description mt-3" id="extend-description">
+                                    Extending current class at <?= htmlspecialchars($active_schedule['room_name']) ?> for <span id="extend-time-range"></span>
+                                </p>
+                            </div>
+                            <div class="extend-right-div d-flex flex-column align-items-center gap-3">
+                                <h2 class="time-elapsed-title">Extend Time</h2>
+                                <p class="extend-description mb-0">Add desired time:</p>
+                                <div class="d-flex flex-column gap-2" id="extendPills">
+                                    <?php foreach ([15, 30, 45, 60] as $mins): ?>
+                                        <button class="btn btn-outline-primary extend-pill" data-mins="<?= $mins ?>">
+                                            +<?= $mins ?> min
+                                        </button>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
                         </div>
-                        <p class="text-center text-muted small mt-3 mb-0" id="extendFeedback"></p>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="submitExtendBtn" disabled>
+                    <div class="modal-footer d-flex flex-row flex-nowrap justify-content-between gap-2">
+                        <button type="button" class="light bold w-100" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="medium w-100" id="submitExtendBtn" disabled>
                             Send Request
                         </button>
                     </div>
@@ -1295,70 +1404,206 @@ $lighting_blocked = $lighting_reason !== null;
             </div>
         </div>
 
+        <!-- Confirm Extend Modal -->
+        <div class="profile-details-modal modal fade" id="confirmExtendModal" tabindex="-1" aria-labelledby="confirmExtendLabel" aria-hidden="true">
+            <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title bold" id="confirmExtendLabel">
+                            <i class="bi bi-check-circle me-2"></i>Confirm Extension Request
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Please review the details below before submitting your extension request.</p>
+                        <div class="dept-info-card p-3">
+                            <div class="mb-2"><strong>Room:</strong> <span id="confirmExtendRoom"><?= htmlspecialchars($active_schedule['room_name']) ?></span></div>
+                            <div class="mb-2"><strong>Time:</strong> <span id="confirmExtendTime"><?= date('g:i A', strtotime($active_schedule['start_time'])) ?> - <?= date('g:i A', strtotime($active_schedule['end_time'])) ?></span></div>
+                            <div class="mb-2"><strong>Extension:</strong> <span id="confirmExtendMins"></span></div>
+                            <div><strong>Action:</strong> <span id="confirmExtendAction">submit</span></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer d-flex flex-row flex-nowrap justify-content-between gap-2">
+                        <button type="button" class="light bold w-100" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="medium w-100" id="confirmExtendBtn">Confirm</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .extend-modal-content { display:flex; gap:1.5rem; flex-wrap:wrap; }
+            .extend-left-div { flex:1; min-width:200px; text-align:center; }
+            .extend-right-div { flex:0 0 auto; min-width:140px; }
+            .time-elapsed-title { font-size:1rem; font-weight:700; margin-bottom:1rem; color:var(--secondary-color-2); text-transform:uppercase; letter-spacing:1px; }
+            .timer-display { font-size:2.2rem; font-weight:700; font-family:'Courier New',monospace; color:var(--secondary-color-2); display:flex; align-items:center; justify-content:center; gap:2px; }
+            .timer-input { width:50px; border:none; background:transparent; font-size:inherit; font-weight:inherit; font-family:inherit; color:inherit; text-align:center; outline:none; border-bottom:2px solid #ccc; }
+            .timer-input:focus { border-bottom-color:var(--secondary-color-2); }
+            .timer-labels { margin-top:4px; }
+            .timer-label { font-size:0.65rem; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:0.5px; }
+            .extend-description { font-size:0.85rem; color:#666; }
+            .extend-description .emphasis { color:#333; font-weight:600; }
+            .dept-info-card { background:var(--light-color); border-radius:12px; }
+            @media (max-width:576px) {
+                .extend-modal-content { flex-direction:column; align-items:center; }
+                .extend-right-div { width:100%; }
+                .timer-display { font-size:1.8rem; }
+                .timer-input { width:40px; }
+            }
+        </style>
+
         <script>
             (function() {
                 const SCHEDULE_ID = <?= (int) $active_schedule['id'] ?>;
-                let selectedMins = 0;
+                const CLASS_START = '<?= date('g:i A', strtotime($active_schedule['start_time'])) ?>';
+                const CLASS_END = '<?= date('g:i A', strtotime($active_schedule['end_time'])) ?>';
+                const ROOM_NAME = '<?= htmlspecialchars($active_schedule['room_name'], ENT_QUOTES) ?>';
 
-                document.querySelectorAll('.extend-pill').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        document.querySelectorAll('.extend-pill').forEach(b => b.classList.remove('active', 'btn-primary'));
-                        btn.classList.add('active', 'btn-primary');
-                        btn.classList.remove('btn-outline-primary');
-                        selectedMins = parseInt(btn.dataset.mins);
+                function parseTime(timeStr) {
+                    const now = new Date();
+                    const parts = timeStr.trim().split(' ');
+                    const timeParts = parts[0].split(':').map(Number);
+                    let hours = timeParts[0], minutes = timeParts[1] || 0;
+                    const ampm = parts[1];
+                    if (ampm === 'PM' && hours !== 12) hours += 12;
+                    if (ampm === 'AM' && hours === 12) hours = 0;
+                    now.setHours(hours, minutes, 0, 0);
+                    return now;
+                }
+
+                function formatTime(date) {
+                    let hours = date.getHours();
+                    const minutes = date.getMinutes();
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12;
+                    if (hours === 0) hours = 12;
+                    return hours + ':' + String(minutes).padStart(2, '0') + ' ' + ampm;
+                }
+
+                function calcElapsedMinutes() {
+                    const start = parseTime(CLASS_START);
+                    const end = parseTime(CLASS_END);
+                    return Math.max(0, Math.floor((end - start) / 60000));
+                }
+
+                function getTotalSeconds() {
+                    const h = parseInt(document.getElementById('timer-hours').value) || 0;
+                    const m = parseInt(document.getElementById('timer-minutes').value) || 0;
+                    const s = parseInt(document.getElementById('timer-seconds').value) || 0;
+                    return h * 3600 + m * 60 + s;
+                }
+
+                function updateTimerDisplay(totalSeconds) {
+                    const h = Math.floor(totalSeconds / 3600);
+                    const m = Math.floor((totalSeconds % 3600) / 60);
+                    const s = totalSeconds % 60;
+                    document.getElementById('timer-hours').value = String(h).padStart(2, '0');
+                    document.getElementById('timer-minutes').value = String(m).padStart(2, '0');
+                    document.getElementById('timer-seconds').value = String(s).padStart(2, '0');
+                }
+
+                function updateDescription() {
+                    const totalSeconds = getTotalSeconds();
+                    const elapsedMins = calcElapsedMinutes();
+                    const extraMins = Math.max(0, Math.floor(totalSeconds / 60) - elapsedMins);
+                    const endDT = parseTime(CLASS_END);
+                    endDT.setMinutes(endDT.getMinutes() + extraMins);
+                    document.getElementById('extend-time-range').textContent = CLASS_START + ' - ' + formatTime(endDT);
+                    document.getElementById('submitExtendBtn').disabled = !(extraMins > 0);
+                }
+
+                // Initialize timer to elapsed time
+                updateTimerDisplay(calcElapsedMinutes() * 60);
+                updateDescription();
+
+                // Pill click - add minutes to timer
+                document.querySelectorAll('#extendPills .extend-pill').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var mins = parseInt(this.dataset.mins);
+                        var h = parseInt(document.getElementById('timer-hours').value) || 0;
+                        var m = parseInt(document.getElementById('timer-minutes').value) || 0;
+                        var s = parseInt(document.getElementById('timer-seconds').value) || 0;
+                        m += mins;
+                        if (m >= 60) { h += Math.floor(m / 60); m = m % 60; }
+                        if (h > 99) h = 99;
+                        document.getElementById('timer-hours').value = String(h).padStart(2, '0');
+                        document.getElementById('timer-minutes').value = String(m).padStart(2, '0');
+                        document.getElementById('timer-seconds').value = String(s).padStart(2, '0');
+                        document.querySelectorAll('.extend-pill').forEach(function(b) {
+                            b.classList.remove('active', 'btn-primary');
+                            b.classList.add('btn-outline-primary');
+                        });
+                        this.classList.add('active', 'btn-primary');
+                        this.classList.remove('btn-outline-primary');
+                        setTimeout(function() {
+                            btn.classList.remove('active', 'btn-primary');
+                            btn.classList.add('btn-outline-primary');
+                        }, 150);
+                        updateDescription();
                         document.getElementById('submitExtendBtn').disabled = false;
-                        document.getElementById('extendFeedback').textContent = '';
                     });
                 });
 
-                document.getElementById('submitExtendBtn').addEventListener('click', async () => {
-                    const btn = document.getElementById('submitExtendBtn');
-                    const feedback = document.getElementById('extendFeedback');
-                    btn.disabled = true;
-                    btn.textContent = 'Sending…';
+                // Timer input changes
+                document.querySelectorAll('.timer-input').forEach(function(input) {
+                    input.addEventListener('focus', function(e) { e.target.select(); });
+                    input.addEventListener('input', function(e) { e.target.value = e.target.value.replace(/[^0-9]/g, ''); });
+                    input.addEventListener('blur', function(e) {
+                        var val = parseInt(e.target.value) || 0;
+                        if (e.target.id === 'timer-hours') { if (val > 99) val = 99; e.target.value = String(val).padStart(2, '0'); }
+                        else { if (val >= 60) val = 59; e.target.value = String(val).padStart(2, '0'); }
+                        updateDescription();
+                    });
+                    input.addEventListener('keydown', function(e) { if (e.key === 'Enter') e.target.blur(); });
+                });
 
+                // Submit button → show confirm modal
+                document.getElementById('submitExtendBtn').addEventListener('click', function() {
+                    const totalSeconds = getTotalSeconds();
+                    const elapsedMins = calcElapsedMinutes();
+                    const timerMins = Math.floor(totalSeconds / 60);
+                    const extensionMins = timerMins - elapsedMins;
+                    if (extensionMins > 0) {
+                        document.getElementById('confirmExtendMins').textContent = extensionMins + ' min';
+                        document.getElementById('confirmExtendAction').textContent = 'submit';
+                        new bootstrap.Modal(document.getElementById('confirmExtendModal')).show();
+                    }
+                });
+
+                // Confirm button
+                document.getElementById('confirmExtendBtn').addEventListener('click', async function() {
+                    const totalSeconds = getTotalSeconds();
+                    const elapsedMins = calcElapsedMinutes();
+                    const extensionMins = Math.floor(totalSeconds / 60) - elapsedMins;
+                    const btn = this;
                     const form = new FormData();
                     form.append('schedule_id', SCHEDULE_ID);
-                    form.append('extend_mins', selectedMins);
-
+                    form.append('extend_mins', extensionMins);
+                    btn.disabled = true;
+                    btn.textContent = 'Sending…';
                     try {
-                        const res = await fetch('../../api/request-extension.php', {
-                            method: 'POST',
-                            body: form
-                        });
+                        const res = await fetch('../../api/request-extension.php', { method: 'POST', body: form });
                         const data = await res.json();
-                        feedback.textContent = data.message;
-                        feedback.style.color = data.success ? 'green' : 'red';
                         if (data.success) {
-                            btn.textContent = 'Sent ✓';
-                            // Close the modal
-                            const modal = bootstrap.Modal.getInstance(document.getElementById('extendModal'));
-                            if (modal) modal.hide();
-                            // Show floating toast
+                            var confirmModal = bootstrap.Modal.getInstance(document.getElementById('confirmExtendModal'));
+                            if (confirmModal) confirmModal.hide();
+                            var extendModal = bootstrap.Modal.getInstance(document.getElementById('extendModal'));
+                            if (extendModal) extendModal.hide();
                             showToast(data.message, 'success');
-                            // If auto-approved, update timer and current class display
-                            if (data.auto_approved && data.extended_until) {
-                                if (typeof window._updateScheduleEnd === 'function') {
-                                    window._updateScheduleEnd(data.extended_until);
-                                }
-                                // Update the current class end time display
-                                var endTimeEl = document.getElementById('current-class-end');
-                                if (endTimeEl && data.extended_until_formatted) {
-                                    endTimeEl.textContent = data.extended_until_formatted;
-                                }
+                            if (data.auto_approved && data.extended_until && typeof window._updateScheduleEnd === 'function') {
+                                window._updateScheduleEnd(data.extended_until);
+                            }
+                            if (data.extended_until_formatted && typeof window.updateTopbarScheduleText === 'function') {
+                                window.updateTopbarScheduleText(data.extended_until_formatted);
                             }
                         } else {
-                            btn.disabled = false;
-                            btn.textContent = 'Send Request';
                             showToast(data.message, 'error');
                         }
                     } catch {
-                        feedback.textContent = 'Network error. Please try again.';
-                        feedback.style.color = 'red';
-                        btn.disabled = false;
-                        btn.textContent = 'Send Request';
                         showToast('Network error. Please try again.', 'error');
                     }
+                    btn.disabled = false;
+                    btn.textContent = 'Confirm';
                 });
             })();
         </script>
@@ -1415,9 +1660,9 @@ $lighting_blocked = $lighting_reason !== null;
     }
     </script>
 
-    <!-- ══════════════════════════════
+    <!--  
          VIEW SCHEDULE MODAL
-    ══════════════════════════════ -->
+      -->
     <div class="modal fade" id="viewScheduleModal" tabindex="-1" aria-labelledby="viewScheduleLabel" aria-hidden="true">
         <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -1491,7 +1736,7 @@ $lighting_blocked = $lighting_reason !== null;
     </div>
 
     <!-- End Early Confirm Modal -->
-    <div class="modal fade" id="endEarlyModal" tabindex="-1" aria-hidden="true">
+    <div class="profile-details-modal modal fade" id="endEarlyModal" tabindex="-1" aria-hidden="true">
         <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header" style="background:#dc3545;">
@@ -1504,10 +1749,10 @@ $lighting_blocked = $lighting_reason !== null;
                     <p class="text-muted small">Lights in this room will be turned off and the schedule will be marked as finished.</p>
                 </div>
                 <div class="modal-footer d-flex flex-row flex-nowrap justify-content-between gap-2">
-                    <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="light bold w-100" data-bs-dismiss="modal">Cancel</button>
                     <form method="POST" style="display:contents;">
                         <input type="hidden" name="end_early" id="endEarlySchedId" value="">
-                        <button type="submit" class="btn btn-danger w-100">Confirm</button>
+                        <button type="submit" class="medium w-100" style="background:#dc3545;border-color:#dc3545;">Confirm</button>
                     </form>
                 </div>
             </div>
@@ -1520,8 +1765,34 @@ $lighting_blocked = $lighting_reason !== null;
         document.getElementById('endEarlySchedId').value = schedId;
         new bootstrap.Modal(document.getElementById('endEarlyModal')).show();
     }
+
+    function toggleGestureMaximize() {
+        const section = document.getElementById('gestureSection');
+        const btn = document.getElementById('gestureMaximizeBtn');
+        if (!section || !btn) return;
+        const isMax = section.classList.toggle('gesture-maximized');
+        btn.innerHTML = isMax
+            ? '<i class="bi bi-arrows-collapse"></i>'
+            : '<i class="bi bi-arrows-expand"></i>';
+        // Re-layout canvas after transition
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+    }
+
+    function syncRowPills() {
+        [1, 2, 3].forEach(function (r) {
+            var sw = document.getElementById('row-' + r + '-switch');
+            var pill = document.getElementById('rowPill' + r);
+            if (!sw || !pill) return;
+            if (!pill.classList.contains('pending') && !pill.classList.contains('confirmed')) {
+                pill.classList.toggle('active', sw.checked);
+            }
+        });
+    }
+    syncRowPills();
     </script>
 
+    <script src="../../script/tooltip.js"></script>
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>

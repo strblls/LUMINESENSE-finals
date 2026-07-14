@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['schedule_id'])) {
             JOIN schedules s2 ON s2.classroom_id = s1.classroom_id
                              AND s2.day_of_week = s1.day_of_week
                              AND s2.start_time >= COALESCE(s1.extended_until, s1.end_time)
+                             AND s2.start_time < ADDTIME(COALESCE(s1.extended_until, s1.end_time), SEC_TO_TIME(? * 60))
                              AND s2.id != s1.id
             JOIN classrooms c ON c.id = s2.classroom_id
             LEFT JOIN subjects sub ON sub.id = s2.subject_id
@@ -59,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['schedule_id'])) {
             ORDER BY s2.start_time
             LIMIT 1
         ");
-        $stmt->bind_param('i', $schedule_id);
+        $stmt->bind_param('ii', $extend_mins, $schedule_id);
         $stmt->execute();
         $successor = $stmt->get_result()->fetch_assoc();
         $stmt->close();
@@ -257,12 +258,20 @@ $r = $conn->query("
 ");
 $active_schedule = ($r && $r->num_rows > 0) ? $r->fetch_assoc() : null;
 $active_schedule_end = $active_schedule ? ($active_schedule['extended_until'] ?? $active_schedule['end_time']) : '';
+if ($active_schedule) {
+    $end_display = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
+    $current_sched = $active_schedule['room_name'] . ' · '
+        . ($active_schedule['subject_name'] ?? 'Class')
+        . ' (' . date('g:i A', strtotime($active_schedule['start_time']))
+        . ' - ' . date('g:i A', strtotime($end_display)) . ')';
+}
 
 // ── Current & Next class from today's schedule ───────────────────────
 $current_class = null;
 $next_class = null;
 foreach ($schedule_by_day[$today] as $slot) {
-    if ($slot['start_time'] <= $now && $slot['end_time'] >= $now) {
+    $slot_end = $slot['extended_until'] ?? $slot['end_time'];
+    if ($slot['start_time'] <= $now && $slot_end >= $now) {
         $current_class = $slot;
     } elseif ($slot['start_time'] > $now && $next_class === null) {
         $next_class = $slot;
@@ -550,13 +559,13 @@ function ordinal(int $number): string
                                 <div class="d-flex mx-2 align-items-center justify-content-end">
                                 </div>
                             </div>
-                            <div class="d-flex flex-row mx-1 gap-3 align-items-center justify-content-center mb-3">
+                            <div class="d-flex flex-column mx-1 gap-3 align-items-center justify-content-center mb-3">
                                 <?php if ($current_class): ?>
-                                    <div class="subsection-container p-3">
-                                        <h2 class="bold text-uppercase" style="color: var(--secondary-color-1);">Current</h2>
-                                        <h2 class="medium fs-6" style="color: var(--secondary-color-1);"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($current_class['start_time'])) ?> – <?= date('g:i A', strtotime($current_class['end_time'])) ?></h2>
-                                        <h2 class="medium fs-6" style="color: var(--secondary-color-1);"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($current_class['room_name']) ?></h2>
-                                        <h2 class="medium fs-6" style="color: var(--secondary-color-1);"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($current_class['subject_name'] ?? 'N/A') ?></h2>
+                                    <div class="subsection-container p-3" style="background-color: var(--secondary-color-1); color: #fff; width: 100%;">
+                                        <h2 class="bold text-uppercase" style="color: #fff;">Current</h2>
+                                        <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($current_class['start_time'])) ?> – <?= date('g:i A', strtotime($current_class['extended_until'] ?? $current_class['end_time'])) ?></h2>
+                                        <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($current_class['room_name']) ?></h2>
+                                        <h2 class="medium fs-6" style="color: #fff;"><i class="bi bi-book me-1"></i>Subject: <?= htmlspecialchars($current_class['subject_name'] ?? 'N/A') ?></h2>
                                     </div>
                                 <?php elseif (!$current_class && !$next_class): ?>
                                     <div class="d-flex align-items-center justify-content-center w-100">
@@ -564,7 +573,7 @@ function ordinal(int $number): string
                                     </div>
                                 <?php endif; ?>
                                 <?php if ($next_class): ?>
-                                    <div>
+                                    <div class="p-3" style="width: 100%;">
                                         <h2 class="bold text-uppercase" style="font-size: 14px;">Next</h2>
                                         <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-clock me-1"></i><?= date('g:i A', strtotime($next_class['start_time'])) ?> – <?= date('g:i A', strtotime($next_class['end_time'])) ?></h2>
                                         <h2 class="medium fs-6" style="font-size: 14px;"><i class="bi bi-door-open me-1"></i>Room: <?= htmlspecialchars($next_class['room_name']) ?></h2>
@@ -583,44 +592,15 @@ function ordinal(int $number): string
                                     <h2 class="bold"><i class="bi bi-clock-history me-1"></i>Extension Requests for Today</h2>
                                 </div>
                                 <div>
-                                    <span class="badge text-dark fs-6 px-3 py-2" style="background-color: var(--accent-yellow);">Time Extensions Left for Today: <?= max(0, $extensions_left_today) ?></span>
+                                    <span class="badge text-dark fs-6 px-3 py-2" style="background-color: var(--accent-yellow);" id="extensionsLeftBadge">Time Extensions Left for Today: <?= max(0, $extensions_left_today) ?></span>
                                 </div>
                             </div>
-                            <?php if (empty($extension_requests)): ?>
-                                <div class="d-flex flex-column align-items-center justify-content-center h-100">
-                                    <p class="text-muted text-center">No extension requests yet.</p>
-                                </div>
-                            <?php else: ?>
-                                <div class="d-flex flex-column gap-2 p-2 overflow-auto flex-grow-1" style="max-height:25vh;">
-                                    <?php foreach ($extension_requests as $er): ?>
-                                        <div class="dept-info-card d-flex flex-row align-items-center justify-content-between gap-2 p-2">
-                                            <div class="d-flex flex-column small flex-grow-1">
-                                                <span><strong><?= htmlspecialchars($er['room_name']) ?></strong> · <?= htmlspecialchars($er['subject_name'] ?? 'No subject') ?></span>
-                                                <span class="text-muted"><?= htmlspecialchars($er['day_of_week']) ?> · <?= date('g:i A', strtotime($er['start_time'])) ?> - <?= date('g:i A', strtotime($er['end_time'])) ?></span>
-                                                <span class="text-muted">+<?= (int)$er['extend_mins'] ?> min · Status:
-                                                    <span class="fw-bold <?= $er['status'] === 'approved' ? 'text-success' : ($er['status'] === 'rejected' ? 'text-danger' : 'text-warning') ?>">
-                                                        <?= ucfirst($er['status']) ?>
-                                                    </span>
-                                                </span>
-                                            </div>
-                                            <?php if ($er['status'] === 'pending'): ?>
-                                                <div class="d-flex gap-1 flex-shrink-0">
-                                                    <button class="btn-icon btn-icon-view" style="width:auto;padding:4px 10px;font-size:12px;"
-                                                        onclick="editExtensionRequest(<?= $er['schedule_id'] ?>, '<?= htmlspecialchars($er['room_name']) ?>', '<?= date('g:i A', strtotime($er['start_time'])) ?>', '<?= date('g:i A', strtotime($er['end_time'])) ?>', <?= (int)$er['extend_mins'] ?>, <?= (int)$er['id'] ?>)"
-                                                        title="Edit" data-bs-toggle="tooltip">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </button>
-                                                    <button class="btn-icon btn-icon-del" style="width:auto;padding:4px 10px;font-size:12px;"
-                                                        onclick="openDeleteModal(<?= (int)$er['id'] ?>)"
-                                                        title="Delete" data-bs-toggle="tooltip">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
+                            <div id="extTodayContainer" class="d-flex flex-column gap-2 p-2 overflow-auto flex-grow-1" style="max-height:20vh;"></div>
+                            <hr class="mx-2 my-1">
+                            <div class="section-topbar flex-shrink-0 mx-2">
+                                <h2 class="bold" style="font-size:1rem;"><i class="bi bi-calendar me-1"></i>Other Extension Requests</h2>
+                            </div>
+                            <div id="extOtherContainer" class="d-flex flex-column gap-2 p-2 overflow-auto flex-grow-1" style="max-height:20vh;"></div>
                         </div>
                     </div>
 
@@ -692,17 +672,12 @@ function ordinal(int $number): string
 
                 <!-- Timetable Itself -->
                 <div class="main-container homepage gap-3" style="flex-direction:column;">
-                    <!-- Flash messages -->
                     <?php if (!empty($_SESSION['timetable_success'])): ?>
-                        <div class="alert alert-success flash-dismiss">
-                            ✅ <?= htmlspecialchars($_SESSION['timetable_success']) ?>
-                        </div>
+                        <script>document.addEventListener('DOMContentLoaded',function(){showToast(<?= json_encode($_SESSION['timetable_success']) ?>);});</script>
                         <?php unset($_SESSION['timetable_success']); ?>
                     <?php endif; ?>
                     <?php if (!empty($_SESSION['timetable_error'])): ?>
-                        <div class="alert alert-warning flash-dismiss">
-                            ⚠️ <?= htmlspecialchars($_SESSION['timetable_error']) ?>
-                        </div>
+                        <script>document.addEventListener('DOMContentLoaded',function(){showToast(<?= json_encode($_SESSION['timetable_error']) ?>);});</script>
                         <?php unset($_SESSION['timetable_error']); ?>
                     <?php endif; ?>
 
@@ -1009,8 +984,8 @@ function ordinal(int $number): string
                 document.getElementById('extend-time-range').textContent = `${currentStartTime} - ${newEndTime}`;
             }
 
-            // Disable send button if timer is 00:00:00
-            document.getElementById('submitExtendBtn').disabled = totalSeconds === 0;
+            // Disable send button if no extension minutes added
+            document.getElementById('submitExtendBtn').disabled = !(extraMinutes > 0);
         }
 
         // Reset timer to elapsed time based on slot
@@ -1282,55 +1257,58 @@ function ordinal(int $number): string
         });
 
         // Handle confirm button — AJAX submit instead of form POST
-        document.getElementById('confirmExtendBtn').addEventListener('click', async function() {
-            const btn = this;
-            const schedId = document.getElementById('extend-schedule-id').value;
-            const mins = document.getElementById('extend-mins-val').value;
-            const editId = document.getElementById('extend-edit-id').value;
+        document.addEventListener('DOMContentLoaded', function() {
+            var confirmBtn = document.getElementById('confirmExtendBtn');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', async function() {
+                    const btn = this;
+                    const schedId = document.getElementById('extend-schedule-id').value;
+                    const mins = document.getElementById('extend-mins-val').value;
+                    const editId = document.getElementById('extend-edit-id').value;
 
-            const form = new FormData();
-            form.append('schedule_id', schedId);
-            form.append('extend_mins', mins);
-            if (editId) form.append('edit_ext_request', editId);
+                    const form = new FormData();
+                    form.append('schedule_id', schedId);
+                    form.append('extend_mins', mins);
+                    if (editId) form.append('edit_ext_request', editId);
 
-            btn.disabled = true;
-            btn.textContent = 'Sending…';
+                    btn.disabled = true;
+                    btn.textContent = 'Sending…';
 
-            try {
-                const res = await fetch('../../api/request-extension.php', { method: 'POST', body: form });
-                const data = await res.json();
-                if (data.success) {
-                    // Close confirm modal
-                    if (confirmExtendModal) confirmExtendModal.hide();
-                    // Close extend modal
-                    if (extendModal) extendModal.hide();
-                    // Show toast
-                    showToast(data.message, 'success');
-                    // If auto-approved, update timer and time slot
-                    if (data.auto_approved && data.extended_until) {
-                        if (typeof window._updateScheduleEnd === 'function') {
-                            window._updateScheduleEnd(data.extended_until);
+                    try {
+                        const res = await fetch('../../api/request-extension.php', { method: 'POST', body: form });
+                        const data = await res.json();
+                        if (data.success) {
+                            if (confirmExtendModal) confirmExtendModal.hide();
+                            if (extendModal) extendModal.hide();
+                            showToast(data.message);
+                            if (data.auto_approved && data.extended_until) {
+                                if (typeof window._updateScheduleEnd === 'function') {
+                                    window._updateScheduleEnd(data.extended_until);
+                                }
+                                var slotRow = document.querySelector('.slot-row[data-slot-id="' + schedId + '"]');
+                                if (slotRow && data.extended_until_formatted) {
+                                    var endParts = data.extended_until_formatted.split(' ');
+                                    var endTime = endParts[0];
+                                    var endAmpm = endParts[1] || '';
+                                    var timeEnd = slotRow.querySelector('.slot-time-end');
+                                    var timeAmpm = slotRow.querySelector('.slot-time-ampm');
+                                    if (timeEnd) timeEnd.textContent = endTime;
+                                    if (timeAmpm) timeAmpm.textContent = endAmpm;
+                                }
+                                if (data.extended_until_formatted && typeof window.updateTopbarScheduleText === 'function') {
+                                    window.updateTopbarScheduleText(data.extended_until_formatted);
+                                }
+                            }
+                        } else {
+                            showToast(data.message);
                         }
-                        // Update the time slot display in the grid
-                        var slotRow = document.querySelector('.slot-row[data-slot-id="' + schedId + '"]');
-                        if (slotRow && data.extended_until_formatted) {
-                            var endParts = data.extended_until_formatted.split(' ');
-                            var endTime = endParts[0];
-                            var endAmpm = endParts[1] || '';
-                            var timeEnd = slotRow.querySelector('.slot-time-end');
-                            var timeAmpm = slotRow.querySelector('.slot-time-ampm');
-                            if (timeEnd) timeEnd.textContent = endTime;
-                            if (timeAmpm) timeAmpm.textContent = endAmpm;
-                        }
+                    } catch {
+                        showToast('Network error. Please try again.');
                     }
-                } else {
-                    showToast(data.message, 'error');
-                }
-            } catch {
-                showToast('Network error. Please try again.', 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Confirm';
+                });
             }
-            btn.disabled = false;
-            btn.textContent = 'Confirm';
         });
 
         // Clear edit state when modal is hidden
@@ -1342,54 +1320,6 @@ function ordinal(int $number): string
             totalExtensionMinutes = 0;
             document.getElementById('extend-edit-id').value = '';
         });
-
-        // ── Countdown timer for Time Left widget ───────────────────────────────
-        let _scheduleEnd = null;
-        (function() {
-            const display = document.getElementById('timerDisplay');
-            const phpEnd = display ? display.dataset.end : null;
-            if (phpEnd) _scheduleEnd = phpEnd;
-
-            function pad(n) {
-                return String(n).padStart(2, '0');
-            }
-
-            function setTimerColor(diff) {
-                if (diff === 0) {
-                    display.style.color = '#dc3545';
-                } else if (diff <= 900) {
-                    display.style.color = '#dc3545';
-                } else if (diff <= 1800) {
-                    display.style.color = '#ff8c00';
-                } else {
-                    display.style.color = 'var(--secondary-color-2)';
-                }
-            }
-
-            window._updateScheduleEnd = function(newEnd) {
-                _scheduleEnd = newEnd;
-                if (display) display.dataset.end = newEnd;
-                window._tickTimer();
-            };
-
-            window._tickTimer = function() {
-                if (!display) return;
-                if (!_scheduleEnd) {
-                    display.textContent = '00:00:00';
-                    display.style.color = '#6c757d';
-                    return;
-                }
-                const now = new Date();
-                const [h, m, s] = _scheduleEnd.split(':').map(Number);
-                const end = new Date(now);
-                end.setHours(h, m, s, 0);
-                let diff = Math.max(0, Math.floor((end - now) / 1000));
-                display.textContent = `${pad(Math.floor(diff / 3600))}:${pad(Math.floor((diff % 3600) / 60))}:${pad(diff % 60)}`;
-                setTimerColor(diff);
-            };
-            window._tickTimer();
-            setInterval(window._tickTimer, 1000);
-        })();
 
         // ── View Slot Details Modal ───────────────────────────────
         let viewSlotModal = null;
@@ -1408,15 +1338,66 @@ function ordinal(int $number): string
         }
     </script>
 
+    <!-- ── Countdown timer for Time Left widget (separate script to avoid errors) ── -->
     <script>
-        document.querySelectorAll('.flash-dismiss').forEach(el => {
-            setTimeout(() => {
-                el.style.transition = 'opacity .5s';
-                el.style.opacity = '0';
-                setTimeout(() => el.remove(), 500);
-            }, 5000);
-        });
+    (function() {
+        var display = document.getElementById('timerDisplay');
+        if (!display) return;
+        var _scheduleEnd = display.dataset.end || null;
+
+        function pad(n) { return String(n).padStart(2, '0'); }
+
+        function setTimerColor(diff) {
+            if (diff <= 900) { display.style.color = '#dc3545'; }
+            else if (diff <= 1800) { display.style.color = '#ff8c00'; }
+            else { display.style.color = 'var(--secondary-color-2)'; }
+        }
+
+        window._updateScheduleEnd = function(newEnd) {
+            _scheduleEnd = newEnd;
+            if (display) display.dataset.end = newEnd;
+            tick();
+        };
+
+        function tick() {
+            if (!_scheduleEnd) {
+                display.textContent = '00:00:00';
+                display.style.color = '#6c757d';
+                return;
+            }
+            var parts = _scheduleEnd.split(':').map(Number);
+            var end = new Date();
+            end.setHours(parts[0], parts[1], parts[2], 0);
+            var diff = Math.max(0, Math.floor((end - Date.now()) / 1000));
+            display.textContent = pad(Math.floor(diff / 3600)) + ':' + pad(Math.floor((diff % 3600) / 60)) + ':' + pad(diff % 60);
+            setTimerColor(diff);
+        }
+        tick();
+        setInterval(tick, 1000);
+
+        // Poll schedule status to keep timer updated (like faculty-home.php)
+        var pollCid = <?= $active_schedule ? (int)$active_schedule['classroom_id'] : 0 ?>;
+        setInterval(function() {
+            var cid = pollCid;
+            if (!cid) return;
+            fetch('../../api/faculty-status.php?classroom_id=' + cid)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.schedule_active && data.schedule_end) {
+                        var current = _scheduleEnd || '';
+                        if (data.schedule_end !== current) {
+                            window._updateScheduleEnd(data.schedule_end);
+                        }
+                    } else {
+                        _scheduleEnd = null;
+                    }
+                })
+                .catch(function() {});
+        }, 5000);
+    })();
     </script>
+
+
 
     <!-- Delete Confirmation Modal -->
     <div class="profile-details-modal modal fade" id="deleteExtModal" tabindex="-1" aria-labelledby="deleteExtLabel" aria-hidden="true">
@@ -1507,6 +1488,13 @@ function ordinal(int $number): string
                             <div class="flex-grow-1">
                                 <div class="text-muted">Subject</div>
                                 <strong id="slot-subject"></strong>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3">
+                            <i class="bi bi-person-badge" style="font-size:1.6rem; flex-shrink:0; color:var(--secondary-color-4);"></i>
+                            <div class="flex-grow-1">
+                                <div class="text-muted">Faculty</div>
+                                <strong id="slot-faculty"><?= htmlspecialchars($faculty_name) ?></strong>
                             </div>
                         </div>
                     </div>
@@ -1692,68 +1680,194 @@ function ordinal(int $number): string
     </script>
 
     <script>
-        document.getElementById('exportPdfBtn').addEventListener('click', function () {
-            var form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '../../php/handlers/export-pdf-handler.php';
-            form.style.display = 'none';
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
+    (function() {
+        var _firstExtPoll = true;
+
+        function esc(str) {
+            if (str == null) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        function escapeJs(str) {
+            if (str == null) return '';
+            return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+        }
+
+        function fmtTime(t) {
+            if (!t) return '';
+            var p = t.split(':');
+            var h = parseInt(p[0]), m = p[1];
+            var ampm = h >= 12 ? 'PM' : 'AM';
+            if (h > 12) h -= 12;
+            if (h === 0) h = 12;
+            return h + ':' + m + ' ' + ampm;
+        }
+
+        function buildExtCard(r, showDay) {
+            var dayHtml = showDay ? '<span class="text-muted">' + esc(r.day_of_week) + ' \u00b7 </span>' : '';
+            var timeRange = fmtTime(r.start_time) + ' - ' + fmtTime(r.end_time);
+            var statusClass = r.status === 'approved' ? 'text-success' : (r.status === 'rejected' ? 'text-danger' : 'text-warning');
+            var statusLabel = r.status.charAt(0).toUpperCase() + r.status.slice(1);
+            var actionsHtml = '';
+            if (r.status === 'pending') {
+                var roomEsc = escapeJs(r.room_name);
+                var startEsc = escapeJs(fmtTime(r.start_time));
+                var endEsc = escapeJs(fmtTime(r.end_time));
+                actionsHtml = '<div class="d-flex gap-1 flex-shrink-0">'
+                    + '<button class="btn-icon btn-icon-view" style="width:auto;padding:4px 10px;font-size:12px;"'
+                    + ' onclick="editExtensionRequest(' + r.schedule_id + ',\'' + roomEsc + '\',\'' + startEsc + '\',\'' + endEsc + '\',' + r.extend_mins + ',' + r.id + ')"'
+                    + ' title="Edit" data-bs-toggle="tooltip">'
+                    + '<i class="bi bi-pencil"></i></button>'
+                    + '<button class="btn-icon btn-icon-del" style="width:auto;padding:4px 10px;font-size:12px;"'
+                    + ' onclick="openDeleteModal(' + r.id + ')"'
+                    + ' title="Delete" data-bs-toggle="tooltip">'
+                    + '<i class="bi bi-trash"></i></button></div>';
+            }
+            return '<div class="dept-info-card d-flex flex-row align-items-center justify-content-between gap-2 p-2">'
+                + '<div class="d-flex flex-column small flex-grow-1">'
+                + '<span><strong>' + esc(r.room_name) + '</strong> \u00b7 ' + esc(r.subject_name || 'No subject') + '</span>'
+                + '<span class="text-muted">' + dayHtml + timeRange + '</span>'
+                + '<span class="text-muted">+' + r.extend_mins + ' min \u00b7 Status:'
+                + ' <span class="fw-bold ' + statusClass + '">' + statusLabel + '</span></span>'
+                + '</div>'
+                + actionsHtml
+                + '</div>';
+        }
+
+        function renderExtRequests(data) {
+            var todayContainer = document.getElementById('extTodayContainer');
+            var otherContainer = document.getElementById('extOtherContainer');
+            var badge = document.getElementById('extensionsLeftBadge');
+            if (!todayContainer || !otherContainer) return;
+
+            if (badge) {
+                badge.textContent = 'Time Extensions Left for Today: ' + data.extensions_left_today;
+            }
+
+            if (data.today && data.today.length > 0) {
+                todayContainer.innerHTML = data.today.map(function(r) { return buildExtCard(r, false); }).join('');
+            } else {
+                todayContainer.innerHTML = '<div class="d-flex flex-column align-items-center justify-content-center h-100"><p class="text-muted text-center">No extension requests yet.</p></div>';
+            }
+
+            if (data.other && data.other.length > 0) {
+                otherContainer.innerHTML = data.other.map(function(r) { return buildExtCard(r, true); }).join('');
+            } else {
+                otherContainer.innerHTML = '<div class="d-flex flex-column align-items-center justify-content-center h-100"><p class="text-muted text-center">No other extension requests.</p></div>';
+            }
+
+            if (_firstExtPoll) {
+                _firstExtPoll = false;
+                var btn = document.querySelector('[data-panel="panelExtRequests"]');
+                if (btn) btn.classList.remove('has-update');
+            }
+        }
+
+        function fetchExtRequests() {
+            fetch('../../api/faculty-extensions.php')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) renderExtRequests(data);
+                })
+                .catch(function() {});
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchExtRequests();
+            setInterval(fetchExtRequests, 10000);
+        });
+    })();
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('confirmPdfExportBtn').addEventListener('click', function () {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '../../php/handlers/export-pdf-handler.php';
+                form.style.display = 'none';
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+                var pdfModal = bootstrap.Modal.getInstance(document.getElementById('confirmPdfModal'));
+                if (pdfModal) pdfModal.hide();
+            });
+        });
+    </script>
+
+    <!-- Confirm PDF Export Modal -->
+    <div class="profile-details-modal modal fade" id="confirmPdfModal" tabindex="-1" aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold">
+                        <i class="bi bi-filetype-pdf me-2"></i>Export PDF
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i class="bi bi-file-earmark-pdf" style="font-size: 3rem; color: var(--secondary-color-2);"></i>
+                    <p class="mt-3 mb-0">Are you sure you want to export your class schedule as PDF?</p>
+                </div>
+                <div class="modal-footer d-flex flex-row flex-nowrap justify-content-between gap-2">
+                    <button type="button" class="light bold w-100" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="medium w-100" id="confirmPdfExportBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('exportPdfBtn').addEventListener('click', function () {
+                new bootstrap.Modal(document.getElementById('confirmPdfModal')).show();
+            });
         });
     </script>
 
     <style>
-        .toast-container {
+        .toast-wrap {
             position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 999999;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            pointer-events: none;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
         }
-        .toast-notification {
-            background: #1a1a2e;
+        .toast-msg {
+            background: var(--secondary-color-1);
             color: #fff;
-            padding: 14px 24px;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            font-size: 14px;
-            max-width: 380px;
-            animation: slideInRight .3s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            pointer-events: auto;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 6px 20px rgba(0,0,0,.25);
+            display: none;
         }
-        .toast-notification.success { border-left: 4px solid #2ecc71; }
-        .toast-notification.error { border-left: 4px solid #e74c3c; }
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        .toast-msg.show {
+            display: block;
+            animation: fadeInUp 0.3s ease, fadeOut 0.4s ease 2.2s forwards;
         }
+        @keyframes fadeInUp {
+            from { opacity:0; transform:translateY(12px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes fadeOut { to { opacity:0; } }
     </style>
-    <div class="toast-container" id="toastContainer"></div>
+    <div class="toast-wrap" id="toastWrap"><div class="toast-msg" id="toastMsg"></div></div>
 
     <script>
-    function showToast(message, type) {
-        type = type || 'success';
-        var container = document.getElementById('toastContainer');
-        if (!container) return;
-        var toast = document.createElement('div');
-        toast.className = 'toast-notification ' + type;
-        toast.innerHTML = (type === 'success' ? '✅ ' : '⚠️ ') + message;
-        container.appendChild(toast);
+    function showToast(message) {
+        var el = document.getElementById('toastMsg');
+        if (!el) return;
+        el.textContent = message;
+        el.classList.remove('show');
+        void el.offsetWidth;
+        el.classList.add('show');
         setTimeout(function() {
-            toast.style.transition = 'opacity .5s';
-            toast.style.opacity = '0';
-            setTimeout(function() { toast.remove(); }, 500);
-        }, 5000);
+            el.classList.remove('show');
+        }, 2600);
     }
     </script>
-
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>

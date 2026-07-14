@@ -9,7 +9,34 @@
 $is_head = $_SESSION['is_head'] ?? false;
 
 // Initialize current schedule with default value if not set
-$current_sched ??= 'No class right now';
+if (!isset($current_sched) || $current_sched === 'No class right now') {
+    $current_sched = 'No class right now';
+    if (isset($conn) && $conn instanceof mysqli) {
+        $fid_tb = (int)($_SESSION['faculty_id'] ?? 0);
+        if ($fid_tb) {
+            $today_tb = date('l');
+            $now_tb = date('H:i:s');
+            $r_tb = $conn->query("
+                SELECT c.room_name, sub.name AS subject_name, s.start_time, COALESCE(s.extended_until, s.end_time) AS display_end, s.end_time
+                FROM schedules s
+                JOIN classrooms c ON c.id = s.classroom_id
+                LEFT JOIN subjects sub ON sub.id = s.subject_id
+                WHERE s.faculty_id = $fid_tb
+                  AND s.day_of_week = '$today_tb'
+                  AND s.start_time <= '$now_tb'
+                  AND (s.extended_until >= '$now_tb' OR s.end_time >= '$now_tb')
+                LIMIT 1
+            ");
+            if ($r_tb && $row_tb = $r_tb->fetch_assoc()) {
+                $end_display = $row_tb['display_end'] ?? $row_tb['end_time'];
+                $current_sched = $row_tb['room_name'] . ' · '
+                    . ($row_tb['subject_name'] ?? 'Class')
+                    . ' (' . date('g:i A', strtotime($row_tb['start_time']))
+                    . ' - ' . date('g:i A', strtotime($end_display)) . ')';
+            }
+        }
+    }
+}
 
 // ── Has PIN set? ──
 $has_pin = false;
@@ -34,7 +61,7 @@ if (isset($conn) && $conn instanceof mysqli) {
     </button>
     <div class="col d-flex flex-column px-3 topbar-greeting">
         <h1 class="bold">Welcome, <?= $first_name ?>!</h1>
-        <h5 class="light">Current Schedule: <?= $current_sched ?></h5>
+        <h5 class="light">Current Schedule: <span id="topbarSchedText"><?= $current_sched ?></span></h5>
     </div>
     <div class="d-flex align-items-center justify-content-center gap-2 mx-2">
         <div class="d-flex flex-column align-items-end topbar-user-info">
@@ -99,6 +126,15 @@ if (isset($conn) && $conn instanceof mysqli) {
 </style>
 
 <script>
+// ── Update topbar schedule text when extended ───────────────────
+// Replaces the end time portion of the displayed schedule
+window.updateTopbarScheduleText = function(newEndFormatted) {
+    var el = document.getElementById('topbarSchedText');
+    if (!el) return;
+    // Replace last time pattern (the end time) with the new extended time
+    el.textContent = el.textContent.replace(/- (\d+:\d+\s[AP]M)/, '- ' + newEndFormatted);
+};
+
 // ── PIN / timeout globals ───────────────────────────────────────
 var HAS_PIN = <?= json_encode((bool)$has_pin) ?>;
 var PIN_VERIFIED = false;
@@ -121,10 +157,17 @@ function resetPageTimeout() {
 }
 
 function showPageTimeout() {
+    // Hide any open Bootstrap modals so focus isn't trapped by modal backdrop
+    document.querySelectorAll('.modal.show').forEach(function(m) {
+        var modal = bootstrap.Modal.getInstance(m);
+        if (modal) modal.hide();
+    });
     var ov = document.getElementById('pageTimeoutOverlay');
     if (ov) ov.style.display = 'flex';
     PIN_VERIFIED = false;
     if (typeof showPinOverlays === 'function') showPinOverlays();
+    // Stop camera if active
+    if (typeof window.resetCameraState === 'function') window.resetCameraState();
 }
 
 function hidePageTimeout() {

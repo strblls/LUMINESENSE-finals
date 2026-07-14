@@ -347,7 +347,7 @@ foreach ($days as $day) {
             </div>
 
             <!-- Weekly Calendar Type -->
-            <div class="main-container homepage gap-3" style="flex-direction:column;">
+            <div class="main-container homepage gap-3 mt-2" style="flex-direction:column;">
                 <div class="weekly-schedule-grid">
                     <?php foreach ($days as $day):
                         $is_today = ($day === $today);
@@ -1010,7 +1010,7 @@ foreach ($days as $day) {
             viewSlotModal.show();
         }
     </script>
-
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>

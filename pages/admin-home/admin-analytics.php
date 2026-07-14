@@ -415,6 +415,7 @@ include '../../php/handlers/analytics-handler.php';
             });
         </script>
         <script src="../../script/admin-analytics.js?v=<?= time() ?>"></script>
+        <script src="../../script/faculty-tutorial.js"></script>
 
 </body>
 

@@ -92,6 +92,51 @@ $stmt->bind_result($dummy);
 $is_head = (bool)$stmt->fetch();
 $stmt->close();
 
+// Fetch departments assigned to this faculty
+$f_departments = [];
+$stmt = $conn->prepare("
+    SELECT d.id, d.name
+    FROM departments d
+    JOIN junction_faculty_department jfd ON jfd.department_id = d.id
+    WHERE jfd.faculty_id = ?
+    ORDER BY d.name
+");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$r = $stmt->get_result();
+while ($row = $r->fetch_assoc()) $f_departments[] = $row;
+$stmt->close();
+
+// Fetch subject areas assigned to this faculty
+$f_subject_areas = [];
+$stmt = $conn->prepare("
+    SELECT sa.id, sa.name
+    FROM subject_area sa
+    JOIN junction_faculty_subjectarea jfsa ON jfsa.subject_area_id = sa.id
+    WHERE jfsa.faculty_id = ?
+    ORDER BY sa.name
+");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$r = $stmt->get_result();
+while ($row = $r->fetch_assoc()) $f_subject_areas[] = $row;
+$stmt->close();
+
+// Fetch subjects assigned to this faculty
+$f_subjects = [];
+$stmt = $conn->prepare("
+    SELECT s.id, s.name
+    FROM subjects s
+    JOIN junction_faculty_subject jfs ON jfs.subject_id = s.id
+    WHERE jfs.faculty_id = ?
+    ORDER BY s.name
+");
+$stmt->bind_param('i', $faculty_id);
+$stmt->execute();
+$r = $stmt->get_result();
+while ($row = $r->fetch_assoc()) $f_subjects[] = $row;
+$stmt->close();
+
 $conn->close();
 ?>
 
@@ -151,6 +196,33 @@ $conn->close();
                     <?php else: ?>
                         <span class="bold status-badge faculty-member">Faculty Member</span>
                     <?php endif; ?>
+                    <!-- Coverage -->
+                    <div class="mt-2 coverage-section">
+                        <?php if (!empty($f_departments)): ?>
+                            <div class="mb-1">
+                                <span class="coverage-label">Departments:</span>
+                                <?php foreach ($f_departments as $d): ?>
+                                    <span class="badge coverage-badge dept-badge"><?= htmlspecialchars($d['name']) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($f_subject_areas)): ?>
+                            <div class="mb-1">
+                                <span class="coverage-label">Subject Areas:</span>
+                                <?php foreach ($f_subject_areas as $sa): ?>
+                                    <span class="badge coverage-badge sa-badge"><?= htmlspecialchars($sa['name']) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($f_subjects)): ?>
+                            <div>
+                                <span class="coverage-label">Subjects:</span>
+                                <?php foreach ($f_subjects as $subj): ?>
+                                    <span class="badge coverage-badge subj-badge"><?= htmlspecialchars($subj['name']) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
             <!-- Assigned Rooms + Access Control row -->
@@ -329,6 +401,28 @@ $conn->close();
             color: #fff;
         }
 
+        /* Coverage */
+        .coverage-section {
+            font-size: 0.8rem;
+        }
+
+        .coverage-label {
+            font-weight: 600;
+            color: #000;
+            margin-right: 4px;
+        }
+
+        .coverage-badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 3px 10px;
+            border-radius: 12px;
+            margin-right: 4px;
+            margin-bottom: 2px;
+            background-color: var(--secondary-color-1);
+            color: #fff;
+        }
+
         /* Toast */
         .toast-wrap {
             position: fixed;
@@ -442,6 +536,7 @@ $conn->close();
                 });
         }
     </script>
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>

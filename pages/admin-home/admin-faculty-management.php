@@ -1695,6 +1695,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
             pointer-events: none;
         }
     </style>
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>

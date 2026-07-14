@@ -1,12 +1,30 @@
 .main-container.homepage {
     display: grid !important;
     grid-template-columns: 1.2fr 1.6fr 1.2fr !important;
-    align-items: start !important;
+    align-items: stretch !important;
 }
 
 .main-container.homepage > .group-container {
     min-width: 0;
     align-items: stretch;
+}
+
+.main-container.homepage > .group-container:nth-child(1) > .section-container:not(#gestureSection) {
+    flex: 1;
+}
+
+.main-container.homepage > .group-container:nth-child(2) > .section-container {
+    flex: 1;
+}
+
+.main-container.homepage > .group-container:nth-child(3) > .section-container:last-child {
+    flex: 1;
+}
+
+.main-container.homepage > .group-container:nth-child(2) > .section-container > .section-topbar,
+.main-container.homepage > .group-container:nth-child(3) > .section-container:last-child > .section-topbar {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
 .gesture-camera {
@@ -49,8 +67,12 @@
 
 /* Gesture row selector pills */
 .gesture-row-pills {
-    display: flex;
+    display: none !important;
     gap: 6px;
+}
+
+#gestureSection.gesture-maximized .gesture-row-pills {
+    display: flex !important;
 }
 
 .gesture-row-pill {
@@ -67,24 +89,24 @@
 }
 
 .gesture-row-pill.active {
-    background: #0d6efd;
-    color: #fff;
-    border-color: #0a58ca;
-    box-shadow: 0 0 8px rgba(13, 110, 253, 0.45);
-}
-
-.gesture-row-pill.pending {
     background: #ffc107;
     color: #212529;
     border-color: #ff9800;
-    box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.45);
+}
+
+.gesture-row-pill.pending {
+    background: var(--accent-yellow);
+    color: #212529;
+    border-color: #e6b13a;
+    box-shadow: 0 0 10px rgba(248, 198, 79, 0.6);
     animation: pillPulse 1s infinite alternate ease-in-out;
 }
 
 .gesture-row-pill.confirmed {
-    background: #198754;
+    background: var(--secondary-color-1);
     color: #fff;
-    border-color: #146c43;
+    border-color: var(--secondary-color-1);
     animation: pillPop 0.35s ease;
 }
 
@@ -203,6 +225,11 @@
     z-index: 50;
 }
 
+.controls-blurred {
+    filter: blur(6px) !important;
+    pointer-events: none !important;
+}
+
 .schedule-ended-modal {
     background: #fff;
     border-radius: 12px;
@@ -238,4 +265,184 @@
     border-radius: 20px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+/* ── Gesture Maximize (fullscreen) ── */
+#gestureSection {
+    transition: transform .25s ease, opacity .25s ease;
+    transform-origin: top center;
+}
+
+.text-confirm {
+    color: var(--secondary-color-1) !important;
+}
+
+#gestureSection.gesture-maximized {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1050 !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa !important;
+    animation: gestureFadeIn .25s ease forwards;
+}
+
+#gestureSection.gesture-maximized #gestureControlsWrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+#gestureSection.gesture-maximized #gestureControlsContent {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+}
+
+#gestureSection.gesture-maximized .gesture-camera {
+    flex: 4;
+    min-height: 0;
+    margin: 0 6px 0 10px;
+}
+
+#gestureSection.gesture-maximized .gesture-response {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px 12px 6px;
+    overflow-y: auto;
+}
+
+#gestureSection.gesture-maximized .gesture-image-container {
+    border: 1px solid var(--secondary-color-2);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    max-height: 300px;
+}
+
+#gestureSection.gesture-maximized .gesture-image-container img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    align-self: center;
+    margin: auto;
+}
+
+#gestureSection:not(.gesture-maximized) .gesture-image-container {
+    display: none !important;
+}
+
+/* ── Gesture image list (default view) ── */
+.gesture-list-heading {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-color-3);
+    padding: 8px 8px 2px;
+    flex-shrink: 0;
+}
+
+.gesture-image-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+}
+
+.gesture-list-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+}
+
+.gesture-list-item:hover {
+    background: var(--primary-color);
+}
+
+.gesture-list-item img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.gesture-list-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.gesture-list-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    line-height: 1.2;
+}
+
+.gesture-list-desc {
+    font-size: 0.68rem;
+    color: var(--muted);
+    line-height: 1.2;
+}
+
+#gestureImage.showing-list {
+    display: none !important;
+}
+
+#gestureImageList.showing-image {
+    display: none !important;
+}
+
+#gestureSection.gesture-maximized .schedule-ended-overlay {
+    position: fixed;
+}
+
+@keyframes gestureFadeIn {
+    from {
+        transform: scale(0.96);
+        opacity: 0.92;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ── Segmented toggle group ── */
+.gesture-toggle-group {
+    border: 1px solid var(--secondary-color-2);
+    border-radius: 6px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.gesture-toggle-group .toggle-btn {
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    flex: 1;
+}
+
+.gesture-toggle-group .toggle-btn:first-child {
+    border-right: 1px solid var(--secondary-color-2) !important;
+}
+
+.toggle-btn.active {
+    font-weight: 500;
+    background-color: var(--secondary-color-1) !important;
+    color: var(--primary-color) !important;
+}
+
+.toggle-btn:not(.active) {
+    opacity: 0.6;
 }

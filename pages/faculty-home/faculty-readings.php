@@ -159,6 +159,7 @@ $stmt->close();
 
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
+    <script src="../../script/faculty-tutorial.js"></script>
 </div>
 
 <script>

@@ -187,8 +187,8 @@
 }
 
 .btn-icon-edit:hover {
-    background: var(--secondary-color-1);
-    color: #fff;
+    background: var(--accent-yellow);
+    color: var(--accent-black);
     transform: scale(1.08);
 }
 

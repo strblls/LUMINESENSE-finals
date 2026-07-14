@@ -354,6 +354,7 @@ $conn->close();
             new bootstrap.Modal(document.getElementById('rejectAdminModal')).show();
         }
     </script>
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>

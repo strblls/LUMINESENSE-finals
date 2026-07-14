@@ -53,7 +53,7 @@ $r = $conn->query("
 while ($row = $r->fetch_assoc())
     $schedules[] = $row;
 
-// â”€â”€ PIN status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// — PIN status —
 $has_pin = false;
 $stmt = $conn->prepare("SELECT 1 FROM faculty_permissions WHERE faculty_id = ? AND pin_hash IS NOT NULL");
 $stmt->bind_param('i', $faculty_id);
@@ -62,7 +62,7 @@ $stmt->bind_result($pin_exists);
 $has_pin = (bool)$stmt->fetch();
 $stmt->close();
 
-// â”€â”€ Active schedule end time (with extension) for audio notifications â”€â”€
+// — Active schedule end time (with extension) for audio notifications —
 $now = date('H:i:s');
 $active_schedule_end = '';
 $stmt = $conn->prepare("
@@ -374,6 +374,34 @@ $conn->close();
                                     <img src="../../images/team-logo.png" alt="Team Logo" style="max-width:120px;margin-bottom:0.75rem;">
                                     <p class="text-muted mb-0" style="font-size:12px;">All Rights Reserved &copy; <?= date('Y') ?></p>
                                 </div>
+                                <div class="info-card mt-3">
+                                    <div class="info-card-header">
+                                        <h3 class="bold mb-0"><i class="bi bi-sliders me-2"></i>Preferences</h3>
+                                    </div>
+                                    <div class="info-field d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="label mb-0">Help Icon (Page Tutorials)</span>
+                                            <p class="text-muted small mb-0">Show the help icon on faculty pages to access step-by-step tutorials.</p>
+                                        </div>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" role="switch" id="tutorialToggle" checked>
+                                        </div>
+                                    </div>
+                                </div>
+                                <script>
+                                (function() {
+                                    var toggle = document.getElementById('tutorialToggle');
+                                    var key = 'lum_tutorial_disabled';
+                                    toggle.checked = localStorage.getItem(key) !== '1';
+                                    toggle.addEventListener('change', function() {
+                                        if (this.checked) {
+                                            localStorage.removeItem(key);
+                                        } else {
+                                            localStorage.setItem(key, '1');
+                                        }
+                                    });
+                                })();
+                                </script>
                             </div>
 
                         </div>

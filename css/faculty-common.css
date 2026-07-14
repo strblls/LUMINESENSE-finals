@@ -136,3 +136,206 @@
     text-align: center;
 }
 
+/* ── Tutorial System ──────────────────────────────────────────── */
+.tutorial-floater {
+    position: fixed;
+    bottom: 10px;
+    right: 24px;
+    z-index: 9996;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--secondary-color-4, #9b00e9);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(155, 0, 233, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-size: 1.4rem;
+}
+.tutorial-floater:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 24px rgba(155, 0, 233, 0.55);
+}
+
+.tutorial-menu {
+    display: none;
+    position: fixed;
+    bottom: 68px;
+    right: 24px;
+    z-index: 9997;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    min-width: 240px;
+    overflow: hidden;
+}
+.tutorial-menu-header {
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    background: var(--secondary-color-4, #9b00e9);
+    color: #fff;
+}
+.tutorial-menu-btn {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    color: #333;
+}
+.tutorial-menu-btn:hover {
+    background: #f3e8ff;
+}
+.tutorial-menu-toggle {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    font-size: 0.8rem;
+    color: #666;
+    cursor: pointer;
+    border-top: 1px solid #eee;
+}
+.tutorial-menu-toggle input {
+    accent-color: var(--secondary-color-4, #9b00e9);
+}
+
+.tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9995;
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.tutorial-bubble {
+    position: fixed;
+    z-index: 9998;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    width: 340px;
+    max-width: calc(100vw - 24px);
+}
+.tutorial-bubble-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px 0;
+}
+.tutorial-step-counter {
+    font-size: 0.75rem;
+    color: var(--secondary-color-1);
+    font-weight: 600;
+}
+.tutorial-close-btn {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+.tutorial-close-btn:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+.tutorial-bubble-body {
+    padding: 10px 14px 8px;
+}
+.tutorial-bubble-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: var(--secondary-color-4, #9b00e9);
+}
+.tutorial-bubble-desc {
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.5;
+    margin: 0;
+}
+.tutorial-bubble-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px 12px;
+    gap: 8px;
+}
+.tutorial-nav-btn {
+    font-family: var(--font-primary);
+    width: auto;
+    margin: 0;
+    padding: 6px 14px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-width: 1px;
+    border-style: solid;
+    transition: background-color 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+        color 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tutorial-prev-btn {
+    background-color: var(--primary-color);
+    border-color: var(--secondary-color-2);
+    color: var(--secondary-color-1);
+}
+.tutorial-prev-btn:hover {
+    background-color: var(--secondary-color-1);
+    color: var(--primary-color);
+    transform: scale(1.02);
+}
+.tutorial-next-btn,
+.tutorial-done-btn {
+    background-color: var(--secondary-color-1);
+    border-color: var(--secondary-color-3);
+    color: var(--primary-color);
+}
+.tutorial-next-btn:hover,
+.tutorial-done-btn:hover {
+    background-color: var(--secondary-color-4);
+    transform: scale(1.02);
+}
+
+.tutorial-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--secondary-color-1, #2f004f);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    z-index: 10001;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+}
+.tutorial-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+

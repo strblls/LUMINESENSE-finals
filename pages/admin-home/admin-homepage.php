@@ -1439,6 +1439,7 @@ $fm_res->free();
             </div>
         </div>
     </div>
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>

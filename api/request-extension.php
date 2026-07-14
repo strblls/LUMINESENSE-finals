@@ -37,13 +37,14 @@ $stmt = $conn->prepare("
     JOIN schedules s2 ON s2.classroom_id = s1.classroom_id
                      AND s2.day_of_week = s1.day_of_week
                      AND s2.start_time >= COALESCE(s1.extended_until, s1.end_time)
+                     AND s2.start_time < ADDTIME(COALESCE(s1.extended_until, s1.end_time), SEC_TO_TIME(? * 60))
                      AND s2.id != s1.id
     JOIN classrooms c ON c.id = s2.classroom_id
     WHERE s1.id = ?
     ORDER BY s2.start_time
     LIMIT 1
 ");
-$stmt->bind_param('i', $schedule_id);
+$stmt->bind_param('ii', $extend_mins, $schedule_id);
 $stmt->execute();
 $successor = $stmt->get_result()->fetch_assoc();
 $stmt->close();

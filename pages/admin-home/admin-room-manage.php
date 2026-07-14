@@ -1028,6 +1028,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             pointer-events: none;
         }
     </style>
+    <script src="../../script/faculty-tutorial.js"></script>
 </body>
 
 </html>
