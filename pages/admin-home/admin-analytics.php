@@ -198,28 +198,76 @@ include '../../php/handlers/analytics-handler.php';
                             </div>
                             <div class="summary-column">
                                 <div class="live-stat-card">
-                                    <div class="live-stat-val" id="sumEnergy">—</div>
-                                    <div class="live-stat-label">Total Energy (kWh)</div>
+                                    <div class="summary-row">
+                                        <div class="live-stat-val" id="sumEnergy">—</div>
+                                        <div class="live-stat-label">Total Energy (kWh)</div>
+                                    </div>
+                                    <div class="summary-expand">
+                                        <i class="bi bi-calculator"></i>
+                                        <span class="summary-info-label">Formula:</span>
+                                        <span class="summary-info-val">kWh = &Sigma;(energy_wh) &divide; 1000</span>
+                                        <span class="summary-info-desc">Total watt-hours from all completed sessions divided by 1000.</span>
+                                    </div>
                                 </div>
                                 <div class="live-stat-card">
-                                    <div class="live-stat-val" id="sumMinutes">—</div>
-                                    <div class="live-stat-label">Total Occupied (hrs)</div>
+                                    <div class="summary-row">
+                                        <div class="live-stat-val" id="sumMinutes">—</div>
+                                        <div class="live-stat-label">Total Occupied (hrs)</div>
+                                    </div>
+                                    <div class="summary-expand">
+                                        <i class="bi bi-calculator"></i>
+                                        <span class="summary-info-label">Formula:</span>
+                                        <span class="summary-info-val">hrs = &Sigma;(duration_mins) &divide; 60</span>
+                                        <span class="summary-info-desc">Total minutes lights were on across all sessions divided by 60.</span>
+                                    </div>
                                 </div>
                                 <div class="live-stat-card">
-                                    <div class="live-stat-val" id="sumVoltage">—</div>
-                                    <div class="live-stat-label">Avg Voltage (V)</div>
+                                    <div class="summary-row">
+                                        <div class="live-stat-val" id="sumVoltage">—</div>
+                                        <div class="live-stat-label">Avg Voltage (V)</div>
+                                    </div>
+                                    <div class="summary-expand">
+                                        <i class="bi bi-calculator"></i>
+                                        <span class="summary-info-label">Formula:</span>
+                                        <span class="summary-info-val">V<sub>avg</sub> = AVG(avg_voltage)</span>
+                                        <span class="summary-info-desc">Average voltage recorded across all completed power sessions.</span>
+                                    </div>
                                 </div>
                                 <div class="live-stat-card">
-                                    <div class="live-stat-val" id="sumCurrent">—</div>
-                                    <div class="live-stat-label">Avg Current (A)</div>
+                                    <div class="summary-row">
+                                        <div class="live-stat-val" id="sumCurrent">—</div>
+                                        <div class="live-stat-label">Avg Current (A)</div>
+                                    </div>
+                                    <div class="summary-expand">
+                                        <i class="bi bi-calculator"></i>
+                                        <span class="summary-info-label">Formula:</span>
+                                        <span class="summary-info-val">A<sub>avg</sub> = AVG(avg_current)</span>
+                                        <span class="summary-info-desc">Average current draw recorded across all completed power sessions.</span>
+                                    </div>
                                 </div>
                                 <div class="live-stat-card">
-                                    <div class="live-stat-val" id="sumPower">—</div>
-                                    <div class="live-stat-label">Peak Power (W)</div>
+                                    <div class="summary-row">
+                                        <div class="live-stat-val" id="sumPower">—</div>
+                                        <div class="live-stat-label">Peak Power (W)</div>
+                                    </div>
+                                    <div class="summary-expand">
+                                        <i class="bi bi-calculator"></i>
+                                        <span class="summary-info-label">Formula:</span>
+                                        <span class="summary-info-val">W<sub>peak</sub> = MAX(peak_power)</span>
+                                        <span class="summary-info-desc">Highest instantaneous power draw recorded across all completed sessions.</span>
+                                    </div>
                                 </div>
                                 <div class="live-stat-card">
-                                    <div class="live-stat-val" id="sumCost">—</div>
-                                    <div class="live-stat-label">Est. Cost (PHP)</div>
+                                    <div class="summary-row">
+                                        <div class="live-stat-val" id="sumCost">—</div>
+                                        <div class="live-stat-label">Est. Cost (PHP)</div>
+                                    </div>
+                                    <div class="summary-expand">
+                                        <i class="bi bi-calculator"></i>
+                                        <span class="summary-info-label">Formula:</span>
+                                        <span class="summary-info-val">Cost = Total kWh &times; &dollar;11.00/kWh</span>
+                                        <span class="summary-info-desc">Estimated cost using the national average rate of &#x20B1;11.00 per kWh.</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -615,6 +615,19 @@ function showError() {
         '<tr><td colspan="5" class="text-center" style="color:#e03333">Failed to load data. Check your connection.</td></tr>';
 }
 
+// ── Click vawGroup metric cards to focus metric (same as Filter by Metrics) ──
+document.querySelectorAll('#vawGroup .live-stat-card[data-metric]').forEach(function(card) {
+    card.addEventListener('click', function() {
+        var metric = this.getAttribute('data-metric');
+        document.querySelectorAll('.dept-member-filter-item').forEach(function(item) {
+            var onclickAttr = item.getAttribute('onclick');
+            if (onclickAttr && onclickAttr.includes("'" + metric + "'")) {
+                setMetric(item, metric);
+            }
+        });
+    });
+});
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 // Set summary label to today's date
 var initLabel = document.querySelector('.summary-label');
