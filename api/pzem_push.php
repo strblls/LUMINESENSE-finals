@@ -103,6 +103,17 @@ if (!$ok) {
 
 $affected = $stmt->affected_rows;
 $stmt->close();
+
+// ── Also log to pzem_readings for historical charts ──
+$stmt2 = $conn->prepare("
+    INSERT INTO pzem_readings
+        (classroom_id, voltage, current, power, energy)
+    VALUES (?, ?, ?, ?, ?)
+");
+$stmt2->bind_param('idddd', $cid, $voltage, $current, $power, $energy);
+$stmt2->execute();
+$stmt2->close();
+
 $conn->close();
 
 echo json_encode([

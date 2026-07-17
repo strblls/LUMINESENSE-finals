@@ -230,8 +230,8 @@ async function fetchLive() {
 
         document.getElementById('liveVoltage').textContent = data.voltage.toFixed(1) + ' V';
         document.getElementById('liveCurrent').textContent = data.current.toFixed(3) + ' A';
-        document.getElementById('livePower').textContent   =
-            data.power.toFixed(2) + ' W (' + data.power_kw.toFixed(3) + ' kW)';
+        document.getElementById('livePower').innerHTML   =
+            data.power.toFixed(2) + ' W<br><span style="font-size:14px;">(' + data.power_kw.toFixed(3) + ' kW)</span>';
         document.getElementById('liveEnergy').textContent  = data.energy.toFixed(4) + ' Wh';
 
         if (data.lights_on) {
