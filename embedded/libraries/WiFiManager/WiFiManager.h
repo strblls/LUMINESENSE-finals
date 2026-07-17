@@ -58,7 +58,7 @@
 
 // #include "soc/efuse_reg.h" // include to add efuse chip rev to info, getChipRevision() is almost always the same though, so not sure why it matters.
 
-// #define esp32autoreconnect    // implement esp32 autoreconnect event listener kludge, @DEPRECATED
+#define esp32autoreconnect    // implement esp32 autoreconnect event listener kludge
 // autoreconnect is WORKING https://github.com/espressif/arduino-esp32/issues/653#issuecomment-405604766
 
 #define WM_WEBSERVERSHIM      // use webserver shim lib
@@ -740,9 +740,9 @@ protected:
 
 
     #ifdef WM_ARDUINOEVENTS
-        void   WiFiEvent(WiFiEvent_t event, arduino_event_info_t info);
+        void IRAM_ATTR WiFiEvent(WiFiEvent_t event, arduino_event_info_t info);
     #else
-        void   WiFiEvent(WiFiEvent_t event, system_event_info_t info);
+        void IRAM_ATTR WiFiEvent(WiFiEvent_t event, system_event_info_t info);
     #endif
     #endif
 

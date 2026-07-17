@@ -6,7 +6,7 @@
     - WiFi + database polling (XAMPP)
     - PIR sensor reading (GPIO13)
     - MOSFET gate control (GPIO26, GPIO27, GPIO25)
-    - Serial2 bridge to/from Mega (GPIO16=RX, GPIO17=TX)
+    - Serial2 bridge to/from Mega (GPIO4=RX, GPIO2=TX)
   ============================================================
 */
 
@@ -29,8 +29,9 @@ const char* SCHEDULE_FLAG_URL= "https://luminesense-bet.site/api/esp32-schedule-
 #define PIR_PIN  13
 
 // ── Serial2 to Mega ────────────────────────────────────────
-#define MEGA_RX 16
-#define MEGA_TX 17
+// GPIO16/17 were damaged by 5V from Mega TX — moved to GPIO4/2
+#define MEGA_RX 4   // ESP32 RX (was 16)
+#define MEGA_TX 2   // ESP32 TX (was 17)
 
 // ── HTTP busy flag ─────────────────────────────────────────
 bool httpBusy = false;
@@ -97,6 +98,7 @@ void setup() {
         Serial.println();
         Serial.print(F("[WiFi] Connected! IP: "));
         Serial.println(WiFi.localIP());
+        WiFi.setAutoReconnect(true);
         delay(500);
         fetchAndForwardSchedule();
     } else {
@@ -119,7 +121,12 @@ void loop() {
         Serial.print(F("[HEARTBEAT] busy="));
         Serial.print(httpBusy);
         Serial.print(F(" wifi="));
-        Serial.print(WiFi.status() == WL_CONNECTED ? "connected" : "DISCONNECTED");
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.print(F("DISCONNECTED—reconnecting..."));
+            WiFi.reconnect();
+        } else {
+            Serial.print(F("connected"));
+        }
         Serial.print(F(" ip="));
         Serial.println(WiFi.localIP());
     }

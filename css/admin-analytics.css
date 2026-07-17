@@ -614,6 +614,10 @@
     padding-left: 12px;
 }
 
+.vaw-group .live-stat-card {
+    min-width: 130px;
+}
+
 .live-stat-card {
     flex: 1;
     min-width: 100px;
@@ -630,11 +634,12 @@
 }
 
 .live-stat-card .live-stat-val {
-    font-size: 3rem;
+    font-size: 2rem;
     font-weight: 700;
     line-height: 1;
     color: var(--secondary-color-1);
     transition: font-size .3s ease, opacity .3s ease;
+    white-space: nowrap;
 }
 
 .live-stat-card.metric-active {
@@ -643,7 +648,7 @@
 }
 
 .live-stat-card.metric-active .live-stat-val {
-    font-size: 4rem;
+    font-size: 2.8rem;
 }
 
 .live-stat-card.metric-dimmed {
@@ -652,7 +657,7 @@
 }
 
 .live-stat-card.metric-dimmed .live-stat-val {
-    font-size: 1.8rem;
+    font-size: 1.2rem;
 }
 
 .metric-info {

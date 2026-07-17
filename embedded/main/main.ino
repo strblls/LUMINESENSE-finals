@@ -9,7 +9,9 @@
     - PZEM-004T V3.0   : AC Power Metering (Serial1, pins 18/19)
     - DS3231 RTC       : Real-Time Clock (I2C, pins 20/21)
     - Micro SD Reader  : CSV Data Logging (SPI, pin 53)
-    - ESP32            : WiFi Bridge + LED Control (Serial2, pins 16/17)
+    - ESP32            : WiFi Bridge (Serial2, pins 16/17)
+    - MOSFETs          : LED strip control (pins 2, 3, 4)
+    - PIR Sensor       : Occupancy detection (pin 5)
 
   SYSTEM STATES:
     STATE_OUTSIDE   : Outside schedule — PIR ignored, faculty CAN toggle
@@ -28,6 +30,10 @@
 
 // ── Pin Definitions ────────────────────────────────────────
 #define SD_CS_PIN 53
+#define ROW1_PIN 8
+#define ROW2_PIN 3
+#define ROW3_PIN 10
+#define PIR_PIN  5
 
 // ── Object Initialization ──────────────────────────────────
 PZEM004Tv30 pzem(Serial1);
@@ -102,6 +108,14 @@ void setup()
     Serial2.begin(4800);
     Wire.begin();
 
+    pinMode(ROW1_PIN, OUTPUT);
+    pinMode(ROW2_PIN, OUTPUT);
+    pinMode(ROW3_PIN, OUTPUT);
+    pinMode(PIR_PIN, INPUT);
+    digitalWrite(ROW1_PIN, LOW);
+    digitalWrite(ROW2_PIN, LOW);
+    digitalWrite(ROW3_PIN, LOW);
+
     Serial.println(F("=== LUMINESENSE Mega Booting... ==="));
 
     if (!rtc.begin())
@@ -152,6 +166,7 @@ void loop()
     unsigned long now = millis();
 
     handleEsp32Messages();
+    handlePIR(now);
 
     if (now - lastPzemRead >= PZEM_INTERVAL_MS)
     {
@@ -181,10 +196,82 @@ void loop()
         if (millis() - cooldownStart >= COOLDOWN_MS)
         {
             Serial.println(F("[STATE] Cooldown expired — LOCKED"));
-            sendRowCommand("ALL", false);
+            setAllRows(false);
             sysState = STATE_LOCKED;
             syncStateToFrontend();
         }
+    }
+}
+
+// ============================================================
+// SET ROW (direct MOSFET control)
+// ============================================================
+void setRow(int row, bool state)
+{
+    switch (row)
+    {
+        case 1: row1State = state; digitalWrite(ROW1_PIN, state ? HIGH : LOW); break;
+        case 2: row2State = state; digitalWrite(ROW2_PIN, state ? HIGH : LOW); break;
+        case 3: row3State = state; digitalWrite(ROW3_PIN, state ? HIGH : LOW); break;
+    }
+    Serial.print(F("[ROW")); Serial.print(row);
+    Serial.print(F("] ")); Serial.println(state ? "ON" : "OFF");
+}
+
+void setAllRows(bool state)
+{
+    setRow(1, state);
+    setRow(2, state);
+    setRow(3, state);
+}
+
+// ============================================================
+// HANDLE PIR SENSOR
+// ============================================================
+void handlePIR(unsigned long now)
+{
+    static unsigned long lastPirChange = 0;
+    bool reading = digitalRead(PIR_PIN);
+
+    if (reading == pirState) return;
+
+    if (now - lastPirChange < 2000) return;
+
+    lastPirChange = now;
+    pirState = reading;
+
+    if (pirState == HIGH)
+    {
+        Serial.println(F("[PIR] Motion detected"));
+        if (sysState == STATE_SCHEDULED)
+        {
+            if (!row1State && !row2State && !row3State)
+            {
+                Serial.println(F("[PIR] Motion — lights ON"));
+                setAllRows(true);
+                if (!sessionActive)
+                    startSession(rtc.now());
+                syncStateToFrontend();
+            }
+            else
+            {
+                Serial.println(F("[PIR] Motion ignored — lights already on"));
+            }
+        }
+        else if (sysState == STATE_COOLDOWN && !pirResetUsed)
+        {
+            Serial.println(F("[PIR] Cooldown reset"));
+            pirResetUsed = true;
+            cooldownStart = millis();
+        }
+        else
+        {
+            Serial.println(F("[PIR] Ignored"));
+        }
+    }
+    else
+    {
+        Serial.println(F("[PIR] Motion stopped"));
     }
 }
 
@@ -262,37 +349,6 @@ void handleEsp32Messages()
                     syncStateToFrontend();
                     continue;
                 }
-
-            if (msg == "PIR:ON")
-            {
-                pirState = true;
-                if (sysState == STATE_SCHEDULED)
-                {
-                    // Only trigger if ALL lights are currently off
-                    if (!row1State && !row2State && !row3State)
-                    {
-                        Serial.println(F("[PIR] Motion — lights ON"));
-                        sendRowCommand("ALL", true);
-                        if (!sessionActive)
-                            startSession(rtc.now());
-                        syncStateToFrontend();
-                    }
-                    else
-                    {
-                        Serial.println(F("[PIR] Motion ignored — lights already managed"));
-                    }
-                }
-                else if (sysState == STATE_COOLDOWN && !pirResetUsed)
-                {
-                    Serial.println(F("[PIR] Cooldown reset"));
-                    pirResetUsed = true;
-                    cooldownStart = millis();
-                }
-                else
-                {
-                    Serial.println(F("[PIR] Ignored"));
-                }
-            }
             // while loop continues naturally to next byte
         }
         else
@@ -300,41 +356,6 @@ void handleEsp32Messages()
             serial2Buffer += c;
         }
     }
-}
-
-// ============================================================
-// SET ROW (tracking only — ESP32 owns the actual relay pins)
-// ============================================================
-void setRow(int row, bool state)
-{
-    switch (row)
-    {
-        case 1: row1State = state; break;
-        case 2: row2State = state; break;
-        case 3: row3State = state; break;
-    }
-    Serial.print(F("[ROW")); Serial.print(row);
-    Serial.print(F("] ")); Serial.println(state ? "ON" : "OFF");
-}
-
-// ============================================================
-// SEND ROW COMMAND TO ESP32
-// ============================================================
-void sendRowCommand(String row, bool state)
-{
-    String cmd = "ACK:" + row + (state ? ":ON" : ":OFF");
-    Serial2.println(cmd);
-    Serial.print(F("[CMD] "));
-    Serial.println(cmd);
-
-    if (row == "ROW1")
-        row1State = state;
-    else if (row == "ROW2")
-        row2State = state;
-    else if (row == "ROW3")
-        row3State = state;
-    else if (row == "ALL")
-        row1State = row2State = row3State = state;
 }
 
 // ============================================================

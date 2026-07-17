@@ -111,8 +111,8 @@
 
 <body style="background-color: transparent;">
     <div class="parent-container-index" style="position: relative; overflow: hidden;">
-        <img src="images/landing/bg-off.png" alt="" class="bg-base">
-        <img src="images/landing/bg-on.png" alt="" class="bg-base bg-hover">
+        <img src="images/landing/bg-off.png" alt="" class="bg-base" loading="lazy">
+        <img src="images/landing/bg-on.png" alt="" class="bg-base bg-hover" loading="lazy">
 
         <!--Div Border-->
         <div class="border-glow" style="position: absolute; inset: 0; box-sizing: border-box; z-index: 1; margin: 5rem; border-radius: 10px; pointer-events: none;"></div>
