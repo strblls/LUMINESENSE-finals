@@ -574,32 +574,96 @@ function renderHistoryTable(rows, summary, range) {
 }
 
 // ── CSV EXPORT ────────────────────────────────────────────────────────────────
-function exportCSV() {
-    if (!lastData) return;
-    const range = document.getElementById('periodSelect').value;
-    const headers = ['Date', 'Sessions', 'Occupied (hrs)', 'Energy (Wh)', 'Energy (kWh)'];
-    const rows = (lastData.daily ?? [])
-        .map(d => [
-            d.date,
-            d.sessions,
-            ((d.minutes ?? 0) / 60).toFixed(1),
-            d.energy_wh.toFixed(2),
-            (d.energy_wh / 1000).toFixed(4),
-        ]);
+var exportMode = 'csv';
 
-    const csv  = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url;
-    a.download = `luminesense_report_${range}days.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+function exportCSV() {
+    exportMode = 'csv';
+    document.getElementById('exportModalTitle').textContent = 'Export CSV';
+    var modal = new bootstrap.Modal(document.getElementById('exportModal'));
+    modal.show();
 }
 
 // ── PDF EXPORT ────────────────────────────────────────────────────────────────
 function exportPDF() {
-    window.print();
+    exportMode = 'pdf';
+    document.getElementById('exportModalTitle').textContent = 'Export PDF';
+    var modal = new bootstrap.Modal(document.getElementById('exportModal'));
+    modal.show();
+}
+
+// ── Export selected section ────────────────────────────────────────────────────
+function exportSection(sectionId) {
+    var modalEl = document.getElementById('exportModal');
+    var modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+
+    if (exportMode === 'csv') {
+        exportSectionCSV(sectionId);
+    } else {
+        exportSectionPDF(sectionId);
+    }
+}
+
+function exportSectionCSV(sectionId) {
+    if (!lastData) return;
+    const range = document.getElementById('periodSelect').value;
+
+    if (sectionId === 'historyCard') {
+        const headers = ['Date', 'Sessions', 'Occupied (hrs)', 'Energy (Wh)', 'Energy (kWh)'];
+        const rows = (lastData.daily ?? [])
+            .map(d => [
+                d.date,
+                d.sessions,
+                ((d.minutes ?? 0) / 60).toFixed(1),
+                d.energy_wh.toFixed(2),
+                (d.energy_wh / 1000).toFixed(4),
+            ]);
+        const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+        downloadCSV(csv, `luminesense_history_${range}days.csv`);
+    } else {
+        const sourceData = (range === '1') ? (lastData.hourly ?? []) : (lastData.daily ?? []);
+        if (sourceData.length === 0) return;
+        const headers = ['Time', 'Voltage (V)', 'Current (A)', 'Power (W)'];
+        const rows = sourceData.map(d => [
+            d.label,
+            d.avg_voltage != null ? d.avg_voltage : '',
+            d.avg_current != null ? d.avg_current : '',
+            d.avg_power != null ? d.avg_power : '',
+        ]);
+        const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+        const name = sectionId === 'lineGraphCard' ? 'line_graph' : 'bar_graph';
+        downloadCSV(csv, `luminesense_${name}_${range}days.csv`);
+    }
+}
+
+function downloadCSV(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportSectionPDF(sectionId) {
+    var target = document.getElementById(sectionId);
+    if (!target) return;
+
+    var allSiblings = document.querySelectorAll('.analytics-main > *');
+    allSiblings.forEach(function(el) {
+        if (el.id !== sectionId) {
+            el.classList.add('export-hide');
+        }
+    });
+
+    target.classList.add('export-active');
+
+    setTimeout(function() {
+        window.print();
+        allSiblings.forEach(function(el) { el.classList.remove('export-hide'); });
+        target.classList.remove('export-active');
+    }, 100);
 }
 
 // ── LOADING / ERROR ───────────────────────────────────────────────────────────

@@ -318,7 +318,7 @@ include '../../php/handlers/analytics-handler.php';
                 </div>
 
                 <div class="chart-grid">
-                    <div class="card-white">
+                    <div class="card-white" id="lineGraphCard">
                         <div class="chart-card-header">
                             <h3 class="chart-card-title bold">Line Graph</h3>
                             <span class="summary-label" id="lineMetricLabel">All Metrics</span>
@@ -327,7 +327,7 @@ include '../../php/handlers/analytics-handler.php';
                             <canvas id="lineChart"></canvas>
                         </div>
                     </div>
-                    <div class="card-white">
+                    <div class="card-white" id="barGraphCard">
                         <div class="chart-card-header">
                             <h3 class="chart-card-title bold">Vertical Bar Graph</h3>
                             <span class="summary-label" id="barMetricLabel">All Metrics</span>
@@ -339,7 +339,7 @@ include '../../php/handlers/analytics-handler.php';
                 </div>
 
                 <!-- ── Daily history table ── -->
-                <div class="card-white">
+                <div class="card-white" id="historyCard">
 
                     <div class="breakdown-header" style="margin-top:18px;margin-bottom:14px;">
                         <div class="breakdown-title-row">
@@ -372,6 +372,35 @@ include '../../php/handlers/analytics-handler.php';
             </div><!-- /content-area -->
         </div><!-- /child-container -->
         </div><!-- /parent-container -->
+
+        <!-- Export selection modal -->
+        <div class="modal fade" id="exportModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+                    <div class="modal-header" style="background:var(--secondary-color-1);color:#fff;padding:12px 20px;">
+                        <h6 class="modal-title bold" id="exportModalTitle">Export</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-3">
+                        <p class="mb-2" style="font-size:13px;color:#666;">Select a section to export:</p>
+                        <div class="d-flex flex-column gap-2">
+                            <button type="button" class="export-option-btn" onclick="exportSection('lineGraphCard')">
+                                <i class="bi bi-graph-up"></i>
+                                <span>Line Graph</span>
+                            </button>
+                            <button type="button" class="export-option-btn" onclick="exportSection('barGraphCard')">
+                                <i class="bi bi-bar-chart"></i>
+                                <span>Vertical Bar Graph</span>
+                            </button>
+                            <button type="button" class="export-option-btn" onclick="exportSection('historyCard')">
+                                <i class="bi bi-table"></i>
+                                <span>History Table</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <?php include '../../php/includes/profile-offcanvas.php'; ?>
 

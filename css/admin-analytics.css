@@ -821,3 +821,51 @@ body.contrast-bg {
         flex-wrap: wrap;
     }
 }
+
+/* ── Export modal buttons ── */
+.export-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 16px;
+    border: 1.5px solid rgba(116, 47, 211, 0.20);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--secondary-color-1);
+    font-size: 14px;
+    font-family: var(--font-primary, 'Poppins', sans-serif);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.export-option-btn:hover {
+    background: #f8f1ff;
+    border-color: var(--secondary-color-2);
+}
+
+.export-option-btn i {
+    font-size: 18px;
+    color: var(--secondary-color-2);
+    width: 24px;
+    text-align: center;
+}
+
+/* ── Print: hide non-targeted sections ── */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .export-active,
+    .export-active * {
+        visibility: visible;
+    }
+
+    .export-active {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+}
