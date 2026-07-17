@@ -291,21 +291,19 @@
 
 /* ── Summary card hover expand ── */
 .summary-expand {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 6px;
     max-height: 0;
     opacity: 0;
     overflow: hidden;
     transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
     width: 100%;
     padding: 0;
+    margin: 0;
     box-sizing: border-box;
     pointer-events: none;
     font-size: 10px;
     color: var(--secondary-color-1);
     line-height: 1.4;
+    min-height: 0;
 }
 
 .summary-column .live-stat-card:hover .summary-expand {
@@ -329,7 +327,7 @@
 }
 
 .summary-expand .summary-info-desc {
-    width: 100%;
+    display: block;
     color: #666;
     margin-left: 1.1rem;
 }

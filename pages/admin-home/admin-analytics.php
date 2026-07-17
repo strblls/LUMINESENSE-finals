@@ -25,7 +25,7 @@ include '../../php/handlers/analytics-handler.php';
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/admin-analytics.css">
+    <link rel="stylesheet" href="../../css/admin-analytics.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../../css/admin-common.css">
     <link rel="stylesheet" href="../../css/faculty-timetable.css">
     <link rel="stylesheet" href="../../css/admin-faculty-management.css">
