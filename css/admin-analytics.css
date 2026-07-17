@@ -260,8 +260,10 @@
 
 .summary-column .live-stat-card {
     min-width: 0;
-    flex-direction: column !important;
-    align-items: stretch !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    flex-direction: row !important;
+    align-items: center !important;
     gap: 0 !important;
     padding: 0.6rem 0.75rem !important;
     border-top: none !important;
@@ -291,6 +293,7 @@
 
 /* ── Summary card hover expand ── */
 .summary-expand {
+    flex: 0 0 100%;
     max-height: 0;
     opacity: 0;
     overflow: hidden;
@@ -303,7 +306,6 @@
     font-size: 10px;
     color: var(--secondary-color-1);
     line-height: 1.4;
-    min-height: 0;
 }
 
 .summary-column .live-stat-card:hover .summary-expand {
