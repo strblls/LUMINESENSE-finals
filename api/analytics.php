@@ -349,92 +349,91 @@ if (!$active_session) {
     }
 }
 
-// ── 8. Hourly chart data for today (24 slots, nulls where no readings) ──────
+// ── 8. Per-minute chart data for today ──────────────────────────────────
 $hourly = [];
 if ($days === 1) {
     if ($cid) {
         $stmt = $conn->prepare("
             SELECT HOUR(recorded_at)     AS hr,
+                   MINUTE(recorded_at)   AS minute,
                    ROUND(AVG(voltage),1) AS avg_voltage,
                    ROUND(AVG(current),3) AS avg_current,
                    ROUND(AVG(power),2)   AS avg_power,
                    COUNT(*)              AS reading_count
             FROM pzem_readings
             WHERE DATE(recorded_at) = CURDATE() AND classroom_id = ?
-            GROUP BY hr ORDER BY hr
+            GROUP BY hr, minute
+            ORDER BY hr, minute
         ");
         $stmt->bind_param('i', $cid);
     } else {
         $stmt = $conn->prepare("
             SELECT HOUR(recorded_at)     AS hr,
+                   MINUTE(recorded_at)   AS minute,
                    ROUND(AVG(voltage),1) AS avg_voltage,
                    ROUND(AVG(current),3) AS avg_current,
                    ROUND(AVG(power),2)   AS avg_power,
                    COUNT(*)              AS reading_count
             FROM pzem_readings
             WHERE DATE(recorded_at) = CURDATE()
-            GROUP BY hr ORDER BY hr
-        ");
-    }
-    $stmt->execute();
-    $r = $stmt->get_result();
-    $hrMap = [];
-    while ($row = $r->fetch_assoc()) {
-        $hrMap[(int)$row['hr']] = $row;
-    }
-    $stmt->close();
-    for ($h = 0; $h < 24; $h++) {
-        $hLabel = str_pad($h, 2, '0', STR_PAD_LEFT) . ':00';
-        $hr     = $hrMap[$h] ?? null;
-        $hourly[] = [
-            'hour'          => $h,
-            'label'         => $hLabel,
-            'avg_voltage'   => $hr ? (float)$hr['avg_voltage'] : null,
-            'avg_current'   => $hr ? (float)$hr['avg_current'] : null,
-            'avg_power'     => $hr ? (float)$hr['avg_power']   : null,
-            'reading_count' => $hr ? (int)$hr['reading_count'] : 0,
-        ];
-    }
-}
-
-// ── 9. 5-minute interval rows for today's history table ───────────────────
-$intervals = [];
-if ($days === 1) {
-    if ($cid) {
-        $stmt = $conn->prepare("
-            SELECT HOUR(recorded_at)              AS hr,
-                   FLOOR(MINUTE(recorded_at)/5)*5 AS min_bucket,
-                   ROUND(AVG(voltage),1)          AS avg_voltage,
-                   ROUND(AVG(current),3)          AS avg_current,
-                   ROUND(AVG(power),2)            AS avg_power,
-                   ROUND(SUM(power)*(3/3600),4)   AS energy_wh,
-                   COUNT(*)                       AS reading_count
-            FROM pzem_readings
-            WHERE DATE(recorded_at) = CURDATE() AND classroom_id = ?
-            GROUP BY hr, min_bucket
-            ORDER BY hr, min_bucket
-        ");
-        $stmt->bind_param('i', $cid);
-    } else {
-        $stmt = $conn->prepare("
-            SELECT HOUR(recorded_at)              AS hr,
-                   FLOOR(MINUTE(recorded_at)/5)*5 AS min_bucket,
-                   ROUND(AVG(voltage),1)          AS avg_voltage,
-                   ROUND(AVG(current),3)          AS avg_current,
-                   ROUND(AVG(power),2)            AS avg_power,
-                   ROUND(SUM(power)*(3/3600),4)   AS energy_wh,
-                   COUNT(*)                       AS reading_count
-            FROM pzem_readings
-            WHERE DATE(recorded_at) = CURDATE()
-            GROUP BY hr, min_bucket
-            ORDER BY hr, min_bucket
+            GROUP BY hr, minute
+            ORDER BY hr, minute
         ");
     }
     $stmt->execute();
     $r = $stmt->get_result();
     while ($row = $r->fetch_assoc()) {
         $h = (int)$row['hr'];
-        $m = (int)$row['min_bucket'];
+        $m = (int)$row['minute'];
+        $hourly[] = [
+            'label'         => str_pad($h, 2, '0', STR_PAD_LEFT) . ':' . str_pad($m, 2, '0', STR_PAD_LEFT),
+            'avg_voltage'   => (float)$row['avg_voltage'],
+            'avg_current'   => (float)$row['avg_current'],
+            'avg_power'     => (float)$row['avg_power'],
+            'reading_count' => (int)$row['reading_count'],
+        ];
+    }
+    $stmt->close();
+}
+
+// ── 9. Per-minute interval rows for today's history table ────────────────
+$intervals = [];
+if ($days === 1) {
+    if ($cid) {
+        $stmt = $conn->prepare("
+            SELECT HOUR(recorded_at)     AS hr,
+                   MINUTE(recorded_at)   AS minute,
+                   ROUND(AVG(voltage),1) AS avg_voltage,
+                   ROUND(AVG(current),3) AS avg_current,
+                   ROUND(AVG(power),2)   AS avg_power,
+                   ROUND(SUM(power)*(3/3600),4)   AS energy_wh,
+                   COUNT(*)              AS reading_count
+            FROM pzem_readings
+            WHERE DATE(recorded_at) = CURDATE() AND classroom_id = ?
+            GROUP BY hr, minute
+            ORDER BY hr, minute
+        ");
+        $stmt->bind_param('i', $cid);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT HOUR(recorded_at)     AS hr,
+                   MINUTE(recorded_at)   AS minute,
+                   ROUND(AVG(voltage),1) AS avg_voltage,
+                   ROUND(AVG(current),3) AS avg_current,
+                   ROUND(AVG(power),2)   AS avg_power,
+                   ROUND(SUM(power)*(3/3600),4)   AS energy_wh,
+                   COUNT(*)              AS reading_count
+            FROM pzem_readings
+            WHERE DATE(recorded_at) = CURDATE()
+            GROUP BY hr, minute
+            ORDER BY hr, minute
+        ");
+    }
+    $stmt->execute();
+    $r = $stmt->get_result();
+    while ($row = $r->fetch_assoc()) {
+        $h = (int)$row['hr'];
+        $m = (int)$row['minute'];
         $intervals[] = [
             'time'          => str_pad($h, 2, '0', STR_PAD_LEFT) . ':' . str_pad($m, 2, '0', STR_PAD_LEFT),
             'avg_voltage'   => (float)$row['avg_voltage'],

@@ -43,6 +43,7 @@ if (!$data) {
 }
 
 require_once '../php/db_connect.php';
+date_default_timezone_set('Asia/Manila');
 
 $cid     = (int)($data['classroom_id'] ?? 0);
 $voltage = (float)($data['voltage'] ?? 0);
@@ -105,12 +106,13 @@ $affected = $stmt->affected_rows;
 $stmt->close();
 
 // ── Also log to pzem_readings for historical charts ──
+$now = date('Y-m-d H:i:s');
 $stmt2 = $conn->prepare("
     INSERT INTO pzem_readings
-        (classroom_id, voltage, current, power, energy)
-    VALUES (?, ?, ?, ?, ?)
+        (classroom_id, voltage, current, power, energy, recorded_at)
+    VALUES (?, ?, ?, ?, ?, ?)
 ");
-$stmt2->bind_param('idddd', $cid, $voltage, $current, $power, $energy);
+$stmt2->bind_param('idddds', $cid, $voltage, $current, $power, $energy, $now);
 $ok2 = $stmt2->execute();
 if (!$ok2) {
     echo json_encode(['error' => 'pzem_readings insert failed', 'db_error' => $stmt2->error]);
