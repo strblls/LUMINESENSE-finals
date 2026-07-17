@@ -111,7 +111,13 @@ $stmt2 = $conn->prepare("
     VALUES (?, ?, ?, ?, ?)
 ");
 $stmt2->bind_param('idddd', $cid, $voltage, $current, $power, $energy);
-$stmt2->execute();
+$ok2 = $stmt2->execute();
+if (!$ok2) {
+    echo json_encode(['error' => 'pzem_readings insert failed', 'db_error' => $stmt2->error]);
+    $stmt2->close();
+    $conn->close();
+    exit;
+}
 $stmt2->close();
 
 $conn->close();
