@@ -26,60 +26,73 @@ $cid_filter  = $cid ? "AND ps.classroom_id = $cid" : "";
 $cid_filter2 = $cid ? "AND ll.classroom_id = $cid" : "";
 $cid_filter3 = $cid ? "AND pr.classroom_id = $cid" : "";
 
-// ── 1. Summary cards — from power_sessions ────────────────────────────────
-if ($cid) {
-    $stmt = $conn->prepare("
-        SELECT
-            COUNT(*)                            AS total_sessions,
-            SUM(duration_mins)                  AS total_minutes,
-            ROUND(SUM(total_energy_wh), 2)      AS total_energy_wh,
-            ROUND(AVG(avg_voltage), 1)          AS avg_voltage,
-            ROUND(AVG(avg_current), 3)          AS avg_current,
-            ROUND(MAX(peak_power), 2)           AS peak_power_w
-        FROM power_sessions ps
-        WHERE ps.session_date = CURDATE()
-          AND ps.end_time IS NOT NULL
-          AND ps.classroom_id = ?
-    ");
-    $stmt->bind_param('i', $cid);
-} else {
-    $stmt = $conn->prepare("
-        SELECT
-            COUNT(*)                            AS total_sessions,
-            SUM(duration_mins)                  AS total_minutes,
-            ROUND(SUM(total_energy_wh), 2)      AS total_energy_wh,
-            ROUND(AVG(avg_voltage), 1)          AS avg_voltage,
-            ROUND(AVG(avg_current), 3)          AS avg_current,
-            ROUND(MAX(peak_power), 2)           AS peak_power_w
-        FROM power_sessions ps
-        WHERE ps.session_date = CURDATE()
-          AND ps.end_time IS NOT NULL
-    ");
-}
-$stmt->execute();
-$summary = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-
-// Fallback: if no sessions yet, pull live averages from pzem_readings
-if (!$summary['total_sessions']) {
-    $stmt = $conn->prepare("
-        SELECT
-            ROUND(AVG(voltage), 1)  AS avg_voltage,
-            ROUND(AVG(current), 3)  AS avg_current,
-            ROUND(MAX(power), 2)    AS peak_power_w,
-            ROUND(SUM(power) * (3/3600), 4) AS total_energy_wh
-        FROM pzem_readings pr
-        WHERE pr.recorded_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        $cid_filter3
-    ");
-    $stmt->bind_param('i', $days);
+// ── 1. Summary cards ─────────────────────────────────────────────────────
+if ($days === 1) {
+    // Today: pull live averages directly from pzem_readings
+    if ($cid) {
+        $stmt = $conn->prepare("
+            SELECT
+                ROUND(AVG(voltage), 1)                      AS avg_voltage,
+                ROUND(AVG(current), 3)                      AS avg_current,
+                ROUND(MAX(power), 2)                        AS peak_power_w,
+                ROUND(SUM(power) * (3/3600), 4)             AS total_energy_wh
+            FROM pzem_readings pr
+            WHERE DATE(pr.recorded_at) = CURDATE()
+              AND pr.classroom_id = ?
+        ");
+        $stmt->bind_param('i', $cid);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT
+                ROUND(AVG(voltage), 1)                      AS avg_voltage,
+                ROUND(AVG(current), 3)                      AS avg_current,
+                ROUND(MAX(power), 2)                        AS peak_power_w,
+                ROUND(SUM(power) * (3/3600), 4)             AS total_energy_wh
+            FROM pzem_readings pr
+            WHERE DATE(pr.recorded_at) = CURDATE()
+        ");
+    }
     $stmt->execute();
-    $live = $stmt->get_result()->fetch_assoc();
+    $summary = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    $summary['avg_voltage']   = $live['avg_voltage']   ?? 0;
-    $summary['avg_current']   = $live['avg_current']   ?? 0;
-    $summary['peak_power_w']  = $live['peak_power_w']  ?? 0;
-    $summary['total_energy_wh'] = $live['total_energy_wh'] ?? 0;
+    $summary['total_sessions'] = 0;
+    $summary['total_minutes']  = 0;
+
+} else {
+    // Multi-day: aggregate from power_sessions within the selected range
+    if ($cid) {
+        $stmt = $conn->prepare("
+            SELECT
+                COUNT(*)                            AS total_sessions,
+                SUM(duration_mins)                  AS total_minutes,
+                ROUND(SUM(total_energy_wh), 2)      AS total_energy_wh,
+                ROUND(AVG(avg_voltage), 1)          AS avg_voltage,
+                ROUND(AVG(avg_current), 3)          AS avg_current,
+                ROUND(MAX(peak_power), 2)           AS peak_power_w
+            FROM power_sessions ps
+            WHERE ps.session_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+              AND ps.end_time IS NOT NULL
+              AND ps.classroom_id = ?
+        ");
+        $stmt->bind_param('ii', $days, $cid);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT
+                COUNT(*)                            AS total_sessions,
+                SUM(duration_mins)                  AS total_minutes,
+                ROUND(SUM(total_energy_wh), 2)      AS total_energy_wh,
+                ROUND(AVG(avg_voltage), 1)          AS avg_voltage,
+                ROUND(AVG(avg_current), 3)          AS avg_current,
+                ROUND(MAX(peak_power), 2)           AS peak_power_w
+            FROM power_sessions ps
+            WHERE ps.session_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+              AND ps.end_time IS NOT NULL
+        ");
+        $stmt->bind_param('i', $days);
+    }
+    $stmt->execute();
+    $summary = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
 }
 
 $summary['total_energy_kwh'] = round(($summary['total_energy_wh'] ?? 0) / 1000, 4);

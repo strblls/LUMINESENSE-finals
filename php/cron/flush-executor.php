@@ -10,6 +10,7 @@
  */
 function execute_extension_flush($conn) {
     $conn->query("UPDATE schedules SET extended_until = NULL WHERE extended_until IS NOT NULL");
+    $conn->query("DELETE FROM extension_requests");
 
     // Remove the scheduled setting so it doesn't re-fire
     $conn->query("DELETE FROM system_settings WHERE setting_key = 'extension_reset_datetime'");
