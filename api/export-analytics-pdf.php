@@ -5,10 +5,11 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use Dompdf\Dompdf;
 
-header('Content-Type: application/json');
+header('Content-Type: application/pdf');
 
 if (empty($_SESSION['admin_logged_in'])) {
     http_response_code(401);
+    header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
     exit;
 }
@@ -18,6 +19,7 @@ $data = json_decode($raw, true);
 
 if (!$data || empty($data['section'])) {
     http_response_code(400);
+    header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Missing section.']);
     exit;
 }
@@ -94,6 +96,21 @@ if ($section === 'historyCard') {
 
 } else {
     $label = ($section === 'lineGraphCard') ? 'Line Graph' : 'Vertical Bar Graph';
+
+    // Calculate summary stats
+    $voltages = [];
+    $currents = [];
+    $powers   = [];
+    foreach ($rows as $row) {
+        if ($row['avg_voltage'] !== null) $voltages[] = (float)$row['avg_voltage'];
+        if ($row['avg_current'] !== null) $currents[] = (float)$row['avg_current'];
+        if ($row['avg_power']   !== null) $powers[]   = (float)$row['avg_power'];
+    }
+    $avgV = !empty($voltages) ? array_sum($voltages) / count($voltages) : 0;
+    $avgA = !empty($currents) ? array_sum($currents) / count($currents) : 0;
+    $avgW = !empty($powers)   ? array_sum($powers)   / count($powers)   : 0;
+    $totalWh = round($avgW * (count($rows) / 12), 2);
+
     $html .= '<table><thead><tr>';
     $html .= '<th>Time</th><th>Voltage (V)</th><th>Current (A)</th><th>Power (W)</th>';
     $html .= '</tr></thead><tbody>';
@@ -110,6 +127,30 @@ if ($section === 'historyCard') {
         $html .= '</tr>';
     }
     $html .= '</tbody></table>';
+
+    // Summary statistics box
+    $html .= '<div style="margin-top:20px;padding:12px 18px;background:#f8f1ff;border:1px solid rgba(116,47,211,0.2);border-radius:8px;">';
+    $html .= '<h3 style="font-size:13px;color:#2f004f;margin:0 0 8px 0;">Summary Statistics</h3>';
+    $html .= '<table style="width:auto;border-collapse:collapse;margin:0;">';
+    $html .= '<tr>';
+    $html .= '<td style="border:none;padding:4px 15px 4px 0;font-weight:600;color:#2f004f;">Average Voltage:</td><td style="border:none;padding:4px 0;">' . number_format($avgV, 1) . ' V</td>';
+    $html .= '<td style="border:none;padding:4px 15px 4px 15px;font-weight:600;color:#2f004f;">Average Current:</td><td style="border:none;padding:4px 0;">' . number_format($avgA, 3) . ' A</td>';
+    $html .= '</tr>';
+    $html .= '<tr>';
+    $html .= '<td style="border:none;padding:4px 15px 4px 0;font-weight:600;color:#2f004f;">Average Power:</td><td style="border:none;padding:4px 0;">' . number_format($avgW, 2) . ' W</td>';
+    $html .= '<td style="border:none;padding:4px 15px 4px 15px;font-weight:600;color:#2f004f;">Energy (Wh):</td><td style="border:none;padding:4px 0;">' . number_format($totalWh, 4) . ' Wh</td>';
+    $html .= '</tr>';
+    $html .= '</table>';
+    $html .= '</div>';
+
+    // Graph image
+    $graphImage = $data['graph_image'] ?? null;
+    if ($graphImage) {
+        $html .= '<div style="margin-top:20px;text-align:center;">';
+        $html .= '<h3 style="font-size:13px;color:#2f004f;margin:0 0 8px 0;">' . htmlspecialchars($label) . '</h3>';
+        $html .= '<img src="' . $graphImage . '" style="width:100%;max-width:900px;" />';
+        $html .= '</div>';
+    }
 }
 
 $html .= '<p style="text-align:center;margin-top:15px;color:#aaa;font-size:10px;">LumineSense Energy Monitoring System</p>';

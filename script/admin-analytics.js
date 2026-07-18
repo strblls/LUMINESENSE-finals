@@ -658,11 +658,16 @@ function exportSectionPDF(sectionId) {
         chartData = lastData.daily ?? [];
     }
 
+    var canvasId = (sectionId === 'lineGraphCard') ? 'lineChart' : 'barChart';
+    var canvas = document.getElementById(canvasId);
+    var graphImage = canvas ? canvas.toDataURL('image/png', 1.0) : null;
+
     var payload = {
         section: sectionId,
         range: range,
         classroom_id: cid,
-        data: (sectionId === 'historyCard') ? (lastData.daily ?? []) : chartData
+        data: chartData,
+        graph_image: graphImage
     };
 
     fetch('../../api/export-analytics-pdf.php', {
