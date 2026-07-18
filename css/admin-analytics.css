@@ -270,6 +270,12 @@
     border-left: 4px solid var(--secondary-color-2) !important;
     border-radius: 8px !important;
     cursor: default;
+    transition: padding 0.3s ease;
+}
+
+.summary-column .live-stat-card:hover {
+    padding: 1rem 1.2rem !important;
+    min-height: 80px;
 }
 
 .summary-column .live-stat-card .summary-row {
@@ -849,23 +855,4 @@ body.contrast-bg {
     color: var(--secondary-color-2);
     width: 24px;
     text-align: center;
-}
-
-/* ── Print: hide non-targeted sections ── */
-@media print {
-    body * {
-        visibility: hidden;
-    }
-
-    .export-active,
-    .export-active * {
-        visibility: visible;
-    }
-
-    .export-active {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-    }
 }

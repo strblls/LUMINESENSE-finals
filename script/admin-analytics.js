@@ -647,23 +647,45 @@ function downloadCSV(csv, filename) {
 }
 
 function exportSectionPDF(sectionId) {
-    var target = document.getElementById(sectionId);
-    if (!target) return;
+    if (!lastData) return;
+    var range = parseInt(document.getElementById('periodSelect').value);
+    var cid   = document.getElementById('roomSelect')?.value ?? 0;
 
-    var allSiblings = document.querySelectorAll('.analytics-main > *');
-    allSiblings.forEach(function(el) {
-        if (el.id !== sectionId) {
-            el.classList.add('export-hide');
-        }
+    var chartData;
+    if (range === 1) {
+        chartData = lastData.hourly ?? [];
+    } else {
+        chartData = lastData.daily ?? [];
+    }
+
+    var payload = {
+        section: sectionId,
+        range: range,
+        classroom_id: cid,
+        data: (sectionId === 'historyCard') ? (lastData.daily ?? []) : chartData
+    };
+
+    fetch('../../api/export-analytics-pdf.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(function(res) {
+        if (!res.ok) throw new Error('PDF generation failed');
+        return res.blob();
+    })
+    .then(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'luminesense_export.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+    })
+    .catch(function(err) {
+        console.error('[PDF Export]', err);
+        alert('Failed to generate PDF. Please try again.');
     });
-
-    target.classList.add('export-active');
-
-    setTimeout(function() {
-        window.print();
-        allSiblings.forEach(function(el) { el.classList.remove('export-hide'); });
-        target.classList.remove('export-active');
-    }, 100);
 }
 
 // ── LOADING / ERROR ───────────────────────────────────────────────────────────
