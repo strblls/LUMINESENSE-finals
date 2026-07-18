@@ -128,27 +128,57 @@ if ($section === 'historyCard') {
     }
     $html .= '</tbody></table>';
 
-    // Summary statistics box
+    // Summary statistics box with calculation breakdown
+    $n = count($voltages);
     $html .= '<div style="margin-top:20px;padding:12px 18px;background:#f8f1ff;border:1px solid rgba(116,47,211,0.2);border-radius:8px;">';
     $html .= '<h3 style="font-size:13px;color:#2f004f;margin:0 0 8px 0;">Summary Statistics</h3>';
-    $html .= '<table style="width:auto;border-collapse:collapse;margin:0;">';
+
+    $html .= '<table style="width:100%;border-collapse:collapse;margin:0;">';
+
+    // Average Voltage
+    $vSum = number_format(array_sum($voltages), 1);
     $html .= '<tr>';
-    $html .= '<td style="border:none;padding:4px 15px 4px 0;font-weight:600;color:#2f004f;">Average Voltage:</td><td style="border:none;padding:4px 0;">' . number_format($avgV, 1) . ' V</td>';
-    $html .= '<td style="border:none;padding:4px 15px 4px 15px;font-weight:600;color:#2f004f;">Average Current:</td><td style="border:none;padding:4px 0;">' . number_format($avgA, 3) . ' A</td>';
+    $html .= '<td style="border:none;padding:3px 10px 3px 0;font-weight:600;color:#2f004f;width:30%;">Average Voltage</td>';
+    $html .= '<td style="border:none;padding:3px 0;font-family:monospace;font-size:10px;">= Sum(Voltage) / Count = ' . $vSum . ' / ' . $n . ' = <strong>' . number_format($avgV, 1) . ' V</strong></td>';
     $html .= '</tr>';
+
+    // Average Current
+    $aSum = number_format(array_sum($currents), 3);
     $html .= '<tr>';
-    $html .= '<td style="border:none;padding:4px 15px 4px 0;font-weight:600;color:#2f004f;">Average Power:</td><td style="border:none;padding:4px 0;">' . number_format($avgW, 2) . ' W</td>';
-    $html .= '<td style="border:none;padding:4px 15px 4px 15px;font-weight:600;color:#2f004f;">Energy (Wh):</td><td style="border:none;padding:4px 0;">' . number_format($totalWh, 4) . ' Wh</td>';
+    $html .= '<td style="border:none;padding:3px 10px 3px 0;font-weight:600;color:#2f004f;">Average Current</td>';
+    $html .= '<td style="border:none;padding:3px 0;font-family:monospace;font-size:10px;">= Sum(Current) / Count = ' . $aSum . ' / ' . $n . ' = <strong>' . number_format($avgA, 3) . ' A</strong></td>';
     $html .= '</tr>';
+
+    // Average Power
+    $wSum = number_format(array_sum($powers), 2);
+    $html .= '<tr>';
+    $html .= '<td style="border:none;padding:3px 10px 3px 0;font-weight:600;color:#2f004f;">Average Power</td>';
+    $html .= '<td style="border:none;padding:3px 0;font-family:monospace;font-size:10px;">= Sum(Power) / Count = ' . $wSum . ' / ' . $n . ' = <strong>' . number_format($avgW, 2) . ' W</strong></td>';
+    $html .= '</tr>';
+
+    // Energy (Wh)
+    $hours = round($n / 12, 2);
+    $html .= '<tr>';
+    $html .= '<td style="border:none;padding:3px 10px 3px 0;font-weight:600;color:#2f004f;">Energy (Wh)</td>';
+    $html .= '<td style="border:none;padding:3px 0;font-family:monospace;font-size:10px;">= Avg Power &times; Hours = ' . number_format($avgW, 2) . ' &times; ' . $hours . ' = <strong>' . number_format($totalWh, 4) . ' Wh</strong></td>';
+    $html .= '</tr>';
+
     $html .= '</table>';
     $html .= '</div>';
 
-    // Graph image
+    // Graph image — save to temp file (dompdf blocks base64 data URIs)
+    $tempImage = null;
     $graphImage = $data['graph_image'] ?? null;
-    if ($graphImage) {
+    if ($graphImage && preg_match('/^data:image\/(\w+);base64,/', $graphImage, $m)) {
+        $ext = $m[1] === 'jpeg' ? 'jpg' : $m[1];
+        $tempImage = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'luminesense_graph_' . md5(uniqid()) . '.' . $ext;
+        file_put_contents($tempImage, base64_decode(substr($graphImage, strpos($graphImage, ',') + 1)));
+    }
+
+    if ($tempImage && file_exists($tempImage)) {
         $html .= '<div style="margin-top:20px;text-align:center;">';
         $html .= '<h3 style="font-size:13px;color:#2f004f;margin:0 0 8px 0;">' . htmlspecialchars($label) . '</h3>';
-        $html .= '<img src="' . $graphImage . '" style="width:100%;max-width:900px;" />';
+        $html .= '<img src="' . $tempImage . '" style="width:100%;max-width:900px;" />';
         $html .= '</div>';
     }
 }
@@ -158,6 +188,11 @@ $html .= '<p style="text-align:center;margin-top:15px;color:#aaa;font-size:10px;
 // ── Generate PDF ────────────────────────────────────────────────────────
 $dompdf = new Dompdf();
 $dompdf->setPaper('A4', 'landscape');
+$opts = $dompdf->getOptions();
+$chroot = $opts->getChroot();
+$chroot[] = sys_get_temp_dir();
+$opts->setChroot($chroot);
+$dompdf->setOptions($opts);
 
 $doc = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
 $doc .= '<style>
@@ -178,3 +213,5 @@ $filename = 'luminesense_' . str_replace(' ', '_', strtolower($sectionTitle)) . 
 header('Content-Type: application/pdf');
 header('Content-Disposition: attachment; filename="' . $filename . '"');
 echo $dompdf->output();
+
+if ($tempImage && file_exists($tempImage)) @unlink($tempImage);
