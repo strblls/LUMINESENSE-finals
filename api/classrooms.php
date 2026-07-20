@@ -6,6 +6,7 @@
 // POST action=delete        classroom_id=X
 
 require_once '../php/db_connect.php';
+date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 
 if (empty($_SESSION['admin_logged_in']) || $_SESSION['role'] !== 'admin') {
@@ -25,7 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     $rows = [];
-    $now = date('H:i:s');
+    $timeRow = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc();
+    $now = $timeRow['t'];
     $r = $conn->query("
         SELECT c.*, COUNT(s.id) AS schedule_count
         FROM classrooms c
@@ -58,6 +60,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             ORDER BY s.start_time LIMIT 1
         ");
         $row['next_schedule'] = $ns->fetch_assoc();
+        if ($row['next_schedule']) {
+            $row['next_schedule']['day_name'] = date('l');
+            $row['next_schedule']['next_date'] = date('l, F j');
+        }
         $ns->free();
         if (!$row['next_schedule']) {
             $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -73,6 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                     ORDER BY s.start_time LIMIT 1
                 ");
                 $row['next_schedule'] = $ns2->fetch_assoc();
+                if ($row['next_schedule']) {
+                    $row['next_schedule']['next_date'] = date('l, F j', strtotime("next $checkDay"));
+                }
                 $ns2->free();
                 if ($row['next_schedule']) break;
             }

@@ -126,14 +126,14 @@ while ($r = $res->fetch_assoc()) {
 }
 $stmt->close();
 
-// ── 7. Today's activity / alerts ───────────────────────────────────────────
+// ── 7. Room activity log / alerts ──────────────────────────────────────────
 $stmt = $conn->prepare("
-    SELECT event_type, triggered_by,
-           DATE_FORMAT(event_time,'%h:%i %p') AS event_time
+    SELECT event_type, triggered_by, row_affected,
+           DATE_FORMAT(event_time,'%Y-%m-%d %H:%i:%s') AS event_time
     FROM lighting_logs
-    WHERE classroom_id = ? AND DATE(event_time) = CURDATE()
+    WHERE classroom_id = ?
     ORDER BY event_time DESC
-    LIMIT 20
+    LIMIT 50
 ");
 $stmt->bind_param('i', $room_id);
 $stmt->execute();
@@ -203,6 +203,7 @@ $stmt->close();
 $conn->close();
 
 echo json_encode([
+    'today_date'       => date('F j, l'),
     'next_schedule'   => $next_schedule,
     'light_on'         => $light_on,
     'row1_status'      => $row1_status, 
