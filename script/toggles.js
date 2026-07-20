@@ -23,13 +23,16 @@ const bulbOn  = '../../images/bulb-on.png';
         bulbs.forEach(img => img.src = state ? bulbOn : bulbOff);
     }
 
-    async function persistLight(row, state) {
+    async function persistLight(row, state, newGlobalLightStatus) {
         try {
             const cid = (typeof CLASSROOM_ID !== 'undefined') ? CLASSROOM_ID : 0;
             const form = new FormData();
             form.append('classroom_id', cid);
             form.append('row',   String(row));
             form.append('state', state ? 'on' : 'off');
+            if (newGlobalLightStatus !== undefined) {
+                form.append('new_global_light_status', newGlobalLightStatus);
+            }
             await fetch('../../api/lights.php', { method: 'POST', body: form });
         } catch (e) {
             console.warn('persistLight error:', e);
@@ -65,7 +68,11 @@ const bulbOn  = '../../images/bulb-on.png';
         if (!sw) return;
         sw.addEventListener('change', function () {
             setRow(bulbs, this.checked);
-            persistLight(row, this.checked);
+            const sw1 = document.getElementById('row-1-switch');
+            const sw2 = document.getElementById('row-2-switch');
+            const sw3 = document.getElementById('row-3-switch');
+            const anyOn = (sw1 && sw1.checked) || (sw2 && sw2.checked) || (sw3 && sw3.checked);
+            persistLight(row, this.checked, anyOn ? 'on' : 'off');
             syncAllLightsStatus();
             if (typeof syncRowPills === 'function') syncRowPills();
         });

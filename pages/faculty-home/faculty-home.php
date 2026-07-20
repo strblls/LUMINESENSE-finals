@@ -315,10 +315,10 @@ function mask_email(string $email): string
                         <div class="activity-list system-status px-2 gap-2 max-width">
                             <?php
                             $statuses = [
-                                ['label' => 'Server',         'ok' => true,                          'ok_text' => 'Connected',           'fail_text' => 'Disconnected'],
-                                ['label' => 'Lighting System', 'ok' => ($light_status === 'on'),      'ok_text' => 'Active',              'fail_text' => 'No active lights'],
-                                ['label' => 'Webcam',         'ok' => false,                         'ok_text' => 'Active',              'fail_text' => 'Disabled'],
-                                ['label' => 'PIR Sensor',     'ok' => false,                         'ok_text' => 'Detecting motion',    'fail_text' => 'No motion detected'],
+                                ['label' => 'Server',         'id' => 'statusServer',   'ok' => true,                          'ok_text' => 'Connected',           'fail_text' => 'Disconnected'],
+                                ['label' => 'Lighting System', 'id' => 'statusLighting', 'ok' => ($light_status === 'on'),      'ok_text' => 'Active',              'fail_text' => 'No active lights'],
+                                ['label' => 'Webcam',         'id' => 'statusWebcam',   'ok' => false,                         'ok_text' => 'Active',              'fail_text' => 'Disabled'],
+                                ['label' => 'PIR Sensor',     'id' => 'statusPIR',      'ok' => false,                         'ok_text' => 'Detecting motion',    'fail_text' => 'No motion detected'],
                             ];
                             foreach ($statuses as $s):
                                 $bg_color = $s['ok'] ? '#f9edfa' : '#2f004f';
@@ -326,7 +326,8 @@ function mask_email(string $email): string
                             ?>
                                 <div class="d-flex justify-content-between align-items-center py-1" style="border-bottom:1px solid #eee;">
                                     <h5 class="mb-0" style="font-size:13px;"><?= $s['label'] ?></h5>
-                                    <span style="font-size:12px; padding:2px 10px; border-radius:20px; font-weight:600;
+                                    <span id="<?= $s['id'] ?>" data-ok-text="<?= $s['ok_text'] ?>" data-fail-text="<?= $s['fail_text'] ?>"
+                                        style="font-size:12px; padding:2px 10px; border-radius:20px; font-weight:600;
                                         background:<?= $bg_color ?>;
                                         color:<?= $text_color ?>;">
                                         <?= $s['ok'] ? $s['ok_text'] : $s['fail_text'] ?>
@@ -681,6 +682,34 @@ function mask_email(string $email): string
         const CLASSROOM_ID = <?= (int) $classroom_id ?>;
         const FACULTY_ID = <?= (int) $faculty_id ?>;
         const HAS_ACTIVE_SCHEDULE = <?= $active_schedule ? 'true' : 'false' ?>;
+
+        // ── System Status polling ────────────────────────────────────────────
+        (function pollSystemStatus() {
+            const interval = 3000;
+
+            function updateBadge(id, ok) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const okText = el.dataset.okText;
+                const failText = el.dataset.failText;
+                el.textContent = ok ? okText : failText;
+                el.style.background = ok ? '#f9edfa' : '#2f004f';
+                el.style.color = ok ? '#2f004f' : '#ffffff';
+            }
+
+            async function checkWebcam() {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const hasCamera = devices.some(d => d.kind === 'videoinput');
+                    updateBadge('statusWebcam', hasCamera);
+                } catch (e) {
+                    updateBadge('statusWebcam', false);
+                }
+            }
+
+            checkWebcam();
+        })();
+
         // Sidebar trigger is handled by Bootstrap offcanvas attributes in the topbar.
 
         // Refresh
@@ -928,13 +957,50 @@ function mask_email(string $email): string
             return map[eventType] || ['bi-clock-history', '#5a5a5a', '#e9ecef'];
         }
 
+        // ── Update lighting grid UI (bulbs, switches, All Lights) ─────────
+        function updateLightingUI(row1On, row2On, row3On, lightOn, scheduleActive) {
+            var showOn = scheduleActive;
+            document.querySelectorAll('.bulb-img[data-row="1"]').forEach(function(img) {
+                img.src = (row1On && showOn) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
+            });
+            document.querySelectorAll('.bulb-img[data-row="2"]').forEach(function(img) {
+                img.src = (row2On && showOn) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
+            });
+            document.querySelectorAll('.bulb-img[data-row="3"]').forEach(function(img) {
+                img.src = (row3On && showOn) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
+            });
+            document.getElementById('row-1-switch').checked = row1On && showOn;
+            document.getElementById('row-2-switch').checked = row2On && showOn;
+            document.getElementById('row-3-switch').checked = row3On && showOn;
+            var allOn = lightOn && showOn;
+            var statusEl = document.getElementById('allLightsStatus');
+            statusEl.textContent = allOn ? 'ON' : 'OFF';
+            statusEl.className = 'bold ' + (allOn ? 'on' : 'off');
+            var container = document.getElementById('allLightsContainer');
+            container.className = 'all-lights-' + (allOn ? 'on' : 'off') + ' ...';
+        }
+
         // ── Poll Recent Activities (every 3 s) ───────────────────────────
         async function pollRecentActivities() {
             try {
                 const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
                 if (!res.ok) return;
                 const data = await res.json();
-                if (!data.success || !data.logs || !data.logs.length) return;
+                if (!data.success) return;
+
+                updateBadge('statusLighting', data.light_status === 'on');
+                updateBadge('statusPIR', data.pir_occupied === true);
+
+                // Update lighting grid UI (bulbs, switches, All Lights)
+                updateLightingUI(
+                    data.row1_status === 'on',
+                    data.row2_status === 'on',
+                    data.row3_status === 'on',
+                    data.light_status === 'on',
+                    data.schedule_active
+                );
+
+                if (!data.logs || !data.logs.length) return;
 
                 var list = document.getElementById('activityTimeline');
                 if (!list) return;

@@ -64,7 +64,7 @@ function setProgressStyle(gesture, confidence) {
 }
 
 // ── Gesture → Row State Machine with 900ms Debounce and 👍 Confirmation ──
-const DEBOUNCE_MS = 900;
+const DEBOUNCE_MS = 400;
 const CONFIRM_TIMEOUT_MS = 15000;
 const GESTURE_ACCURACY_THRESHOLD = 70; // was 80
 const GESTURE_DECAY_THRESHOLD = 60;    // was 70
@@ -184,6 +184,7 @@ async function executePendingAction() {
         flashPill(row);
         form.append('row', String(row));
         form.append('state', newState ? 'on' : 'off');
+        form.append('new_global_light_status', overallOn ? 'on' : 'off');
         await fetch('../../api/lights.php', { method: 'POST', body: form });
         if (typeof logGestureEvent === 'function') logGestureEvent(`Thumb_Up – row ${row} ${newState ? 'ON' : 'OFF'}`);
     }
@@ -638,6 +639,7 @@ function resetState() {
 
 // Expose for external callers (session timeout, etc.)
 window.resetCameraState = resetState;
+window.isGestureCameraActive = function () { return active; };
 
 if (enableBtn) {
     enableBtn.addEventListener('click', startWebcam);

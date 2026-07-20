@@ -153,10 +153,17 @@ async function verifyPin(pin) {
 // ── Page timeout (1 min inactivity) ─────────────────────────────
 function resetPageTimeout() {
     if (_timeoutTimer) clearTimeout(_timeoutTimer);
+    // Skip timeout when gesture camera is active — the camera IS the user activity
+    if (typeof window.isGestureCameraActive === 'function' && window.isGestureCameraActive()) return;
     _timeoutTimer = setTimeout(showPageTimeout, 60000);
 }
 
 function showPageTimeout() {
+    // Safety net: if camera is active, just reschedule with a longer interval
+    if (typeof window.isGestureCameraActive === 'function' && window.isGestureCameraActive()) {
+        _timeoutTimer = setTimeout(showPageTimeout, 600000);
+        return;
+    }
     // Hide any open Bootstrap modals so focus isn't trapped by modal backdrop
     document.querySelectorAll('.modal.show').forEach(function(m) {
         var modal = bootstrap.Modal.getInstance(m);

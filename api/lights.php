@@ -44,19 +44,27 @@ if ($row === 'all') {
     $stmt->execute();
     $stmt->close();
 
-    // Re-evaluate global light_status: 'on' if any row is ON, otherwise 'off'
-    $stmt = $conn->prepare("SELECT row1_status, row2_status, row3_status FROM classrooms WHERE id = ? LIMIT 1");
-    $stmt->bind_param('i', $cid);
-    $stmt->execute();
-    $stmt->bind_result($r1, $r2, $r3);
-    $stmt->fetch();
-    $stmt->close();
+    // Use client-provided global status if available, otherwise re-evaluate
+    $new_global = $_POST['new_global_light_status'] ?? null;
+    if ($new_global !== null && in_array($new_global, ['on', 'off'], true)) {
+        $stmt = $conn->prepare("UPDATE classrooms SET light_status = ? WHERE id = ?");
+        $stmt->bind_param('si', $new_global, $cid);
+        $stmt->execute();
+        $stmt->close();
+    } else {
+        $stmt = $conn->prepare("SELECT row1_status, row2_status, row3_status FROM classrooms WHERE id = ? LIMIT 1");
+        $stmt->bind_param('i', $cid);
+        $stmt->execute();
+        $stmt->bind_result($r1, $r2, $r3);
+        $stmt->fetch();
+        $stmt->close();
 
-    $new_global = ($r1 === 'on' || $r2 === 'on' || $r3 === 'on') ? 'on' : 'off';
-    $stmt = $conn->prepare("UPDATE classrooms SET light_status = ? WHERE id = ?");
-    $stmt->bind_param('si', $new_global, $cid);
-    $stmt->execute();
-    $stmt->close();
+        $new_global = ($r1 === 'on' || $r2 === 'on' || $r3 === 'on') ? 'on' : 'off';
+        $stmt = $conn->prepare("UPDATE classrooms SET light_status = ? WHERE id = ?");
+        $stmt->bind_param('si', $new_global, $cid);
+        $stmt->execute();
+        $stmt->close();
+    }
 }
 
 // Log the event

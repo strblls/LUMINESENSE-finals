@@ -73,7 +73,7 @@
 
         for (var i = 0; i < THRESHOLDS.length; i++) {
             var t = THRESHOLDS[i];
-            if (!notified[t.min] && minutes === t.min) {
+            if (!notified[t.min] && diff === t.min * 60) {
                 notified[t.min] = true;
                 showNotification(t.label, t.msg);
             }

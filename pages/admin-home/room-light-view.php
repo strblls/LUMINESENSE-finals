@@ -460,6 +460,7 @@ function sendLightingUpdate(changedRow) {
     form.append('row', rowToSend);
     form.append('state', stateToSend);
     form.append('triggered_by', 'admin_override');
+    form.append('new_global_light_status', anyOn ? 'on' : 'off');
 
     fetch('../../api/lights.php', { method: 'POST', body: form })
         .then(r => r.json())

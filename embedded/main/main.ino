@@ -316,6 +316,24 @@ void handleEsp32Messages()
                 continue;
             }
 
+            // Handle TIME before toUpperCase — payload has commas/numbers
+            if (msg.startsWith("TIME:"))
+            {
+                String t = msg.substring(5);
+                int y = t.substring(0, t.indexOf(',')).toInt(); t = t.substring(t.indexOf(',') + 1);
+                int mo = t.substring(0, t.indexOf(',')).toInt(); t = t.substring(t.indexOf(',') + 1);
+                int d = t.substring(0, t.indexOf(',')).toInt(); t = t.substring(t.indexOf(',') + 1);
+                int h = t.substring(0, t.indexOf(',')).toInt(); t = t.substring(t.indexOf(',') + 1);
+                int mn = t.substring(0, t.indexOf(',')).toInt(); t = t.substring(t.indexOf(',') + 1);
+                int s = t.toInt();
+                if (y >= 2025) {
+                    rtc.adjust(DateTime(y, mo, d, h, mn, s));
+                    Serial.println(F("[RTC] Time synced from NTP"));
+                    checkSchedule();
+                }
+                continue;
+            }
+
             msg.toUpperCase();
             Serial.print(F("[ESP32] "));
             Serial.println(msg);

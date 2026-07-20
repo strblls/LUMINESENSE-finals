@@ -14,6 +14,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WiFiManager.h>
+#include <time.h>
 
 // ── Server URLs ────────────────────────────────────────────
 const char* TOGGLE_URL       = "https://luminesense-bet.site/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
@@ -101,6 +102,20 @@ void setup() {
         WiFi.setAutoReconnect(true);
         delay(500);
         fetchAndForwardSchedule();
+
+        // NTP time sync — send accurate time to Mega
+        configTime(8 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+        struct tm timeinfo;
+        int ntpRetries = 0;
+        while (!getLocalTime(&timeinfo) && ntpRetries < 20) {
+            delay(500);
+            ntpRetries++;
+        }
+        if (ntpRetries < 20) {
+            syncTimeToMega();
+        } else {
+            Serial.println(F("[NTP] Time sync failed — will retry in loop"));
+        }
     } else {
         Serial.println(F("[WiFi] Config portal timed out — running offline"));
     }
@@ -326,6 +341,24 @@ void fetchAndForwardSchedule() {
 
     http.end();
     httpBusy = false;
+}
+
+// ============================================================
+// SYNC NTP TIME TO MEGA
+// ============================================================
+void syncTimeToMega() {
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo)) {
+        Serial.println(F("[NTP] getLocalTime() failed"));
+        return;
+    }
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "TIME:%d,%d,%d,%d,%d,%d",
+             timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+             timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    Serial2.println(buf);
+    Serial.print(F("[NTP] Sent to Mega: ")); Serial.println(buf);
 }
 
 // ============================================================

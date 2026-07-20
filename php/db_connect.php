@@ -93,7 +93,8 @@ $conn->query("
         triggered_by  VARCHAR(100) DEFAULT '',
         event_time    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
-        FOREIGN KEY (faculty_id)   REFERENCES faculty(id) ON DELETE SET NULL
+        FOREIGN KEY (faculty_id)   REFERENCES faculty(id) ON DELETE SET NULL,
+        INDEX idx_classroom_event (classroom_id, id)
     )
 ");
 
