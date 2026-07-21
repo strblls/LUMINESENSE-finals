@@ -477,7 +477,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
                         <!-- Left: Schedule + lighting -->
                         <div class="d-flex flex-column gap-3" style="flex:0 0 340px; min-width:280px; max-width:380px;">
-                            <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #eee;">
+                            <div style="background:var(--accent-yellow);border-radius:12px;padding:20px;border:1px solid #eee;">
                                 <h6 class="bold mb-3">Current Schedule</h6>
                                 <div id="modalCurrentSched" style="background:#fff;border-radius:8px;padding:12px;font-size:13px; min-height:60px;">
                                     <em class="text-muted">Loading…</em>
@@ -734,9 +734,9 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             if (data.current_schedule) {
                 const s = data.current_schedule;
                 const infoRows = [];
-                if (s.subject_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-book" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject:</span> <span style="font-size:.82rem;">${s.subject_name}</span></p></div>`);
-                if (s.subject_area_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-diagram-3" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject Area:</span> <span style="font-size:.82rem;">${s.subject_area_name}</span></p></div>`);
-                if (s.department_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-building" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Department:</span> <span style="font-size:.82rem;">${s.department_name}</span></p></div>`);
+                if (s.subject_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0;margin-bottom:3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-book" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject:</span> <span style="font-size:.82rem;">${s.subject_name}</span></p></div>`);
+                if (s.subject_area_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0;margin-bottom:3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-diagram-3" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject Area:</span> <span style="font-size:.82rem;">${s.subject_area_name}</span></p></div>`);
+                if (s.department_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0;margin-bottom:3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-building" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Department:</span> <span style="font-size:.82rem;">${s.department_name}</span></p></div>`);
                 schedEl.innerHTML = `
             <div class="d-flex align-items-start gap-3">
                 <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0"
@@ -756,13 +756,13 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 const ns = data.next_schedule;
                 const dayInfo = ns.day_name ? '<span style="color:#a06800;font-weight:600;">' + ns.day_name + '</span>' : '';
                 const infoRows = [];
-                if (ns.subject_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-book" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject:</span> <span style="font-size:.82rem;">${ns.subject_name}</span></p></div>`);
-                if (ns.subject_area_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-diagram-3" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject Area:</span> <span style="font-size:.82rem;">${ns.subject_area_name}</span></p></div>`);
-                if (ns.department_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-building" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Department:</span> <span style="font-size:.82rem;">${ns.department_name}</span></p></div>`);
+                if (ns.subject_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0;margin-bottom:3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-book" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject:</span> <span style="font-size:.82rem;">${ns.subject_name}</span></p></div>`);
+                if (ns.subject_area_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0;margin-bottom:3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-diagram-3" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject Area:</span> <span style="font-size:.82rem;">${ns.subject_area_name}</span></p></div>`);
+                if (ns.department_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0;margin-bottom:3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-building" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Department:</span> <span style="font-size:.82rem;">${ns.department_name}</span></p></div>`);
                 schedEl.innerHTML = `
             <div class="d-flex align-items-start gap-3">
                 <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0"
-                     style="width:48px;height:48px;font-size:1rem;background:var(--accent-yellow);color:#a06800;">
+                     style="width:48px;height:48px;font-size:1rem;background:#fff5d6;color:#a06800;">
                     <i class="bi bi-calendar-event" style="font-size:1.2rem;"></i>
                 </div>
                 <div style="flex:1;min-width:0;">
@@ -810,27 +810,25 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             }
             syncAllLightsLabel();
 
-            // ── Today's Timetable — slot-row style with date ──
+            // ── Today's Timetable — horizontal scrolling cards (all schedules) ──
             const todayEl = document.getElementById('modalTodaySched');
-            if (data.today_schedules && data.today_schedules.length > 0) {
-                todayEl.innerHTML = '<div style="font-size:.78rem;color:#888;margin-bottom:6px;">' + td + '</div>' +
-                    data.today_schedules.map(s => {
-                    const sp = s.start_time.split(' ');
-                    const ep = s.end_time.split(' ');
-                    return `<div class="modal-slot-row">
-                <div class="modal-slot-time">
-                    <span class="modal-slot-start">${sp[0]}</span>
-                    <span class="modal-slot-sep">TO</span>
-                    <span class="modal-slot-end">${ep[0]}</span>
-                    <span class="modal-slot-ampm">${ep[1]}</span>
-                </div>
-                <div class="modal-slot-content">
-                    <div class="modal-slot-faculty">${s.faculty_name}</div>
-                </div>
-            </div>`;
-                }).join('');
+            if (data.all_schedules && data.all_schedules.length > 0) {
+                const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+                const sorted = [...data.all_schedules].sort((a, b) => {
+                    const di = dayOrder.indexOf(a.day_of_week) - dayOrder.indexOf(b.day_of_week);
+                    return di !== 0 ? di : a.start_time.localeCompare(b.start_time);
+                });
+                todayEl.innerHTML = '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">' +
+                    sorted.map(s => `
+                <div style="flex-shrink:0;width:120px;background:#fff;border-radius:8px;padding:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);text-align:center;">
+                    <div style="font-size:10px;font-weight:700;color:var(--secondary-color-1);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">${s.day_of_week}</div>
+                    <div style="font-size:12px;font-weight:800;color:#333;">${s.start_time}</div>
+                    <div style="font-size:9px;color:#bbb;font-weight:600;margin:2px 0;">TO</div>
+                    <div style="font-size:12px;font-weight:800;color:#333;">${s.end_time}</div>
+                    <div style="font-size:10px;font-weight:600;color:#555;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.faculty_name}</div>
+                </div>`).join('') + '</div>';
             } else {
-                todayEl.innerHTML = '<div class="modal-slot-empty">No classes scheduled today.</div>';
+                todayEl.innerHTML = '<div class="modal-slot-empty">No schedules for this room.</div>';
             }
 
             // ── Full timetable — slot-row style ──
