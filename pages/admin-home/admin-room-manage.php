@@ -142,55 +142,56 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                         <input type="text" id="roomSearch" class="form-control" placeholder="Search room name or faculty..." style="max-width:500px;margin-left:16px;">
                     </div>
                     <div class="d-flex align-items-center pe-2" style="position:relative;">
-                        <button type="button" class="timetable-btn" data-panel="panelDepartmentFilter" title="Filter by Department">
+                        <button type="button" class="timetable-btn" data-panel="panelStatusFilter" title="Filter by Status">
                             <i class="bi bi-funnel"></i>
-                            <span class="timetable-btn-title bold">Department</span>
+                            <span class="timetable-btn-title bold">Status</span>
                         </button>
-                        <div id="panelDepartmentFilter" class="timetable-panel panel-from-right p-3 m-3">
+                        <div id="panelStatusFilter" class="timetable-panel panel-from-right p-3 m-3">
                             <div class="section-container timetable" style="background-color:#f8f9fa;">
-                                <?php if (!empty($activeDeptNames)): ?>
-                                <ul class="list-unstyled mb-0" id="departmentFilterMenu" style="max-height:300px;overflow-y:auto;">
-                                    <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Departments</a></li>
-                                    <?php foreach ($activeDeptNames as $dept): ?>
-                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($dept) ?>"><?= htmlspecialchars($dept) ?></a></li>
-                                    <?php endforeach; ?>
+                                <ul class="list-unstyled mb-0" id="statusFilterMenu" style="max-height:300px;overflow-y:auto;">
+                                    <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Statuses</a></li>
+                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="occupied">Occupied</a></li>
+                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="scheduled">Scheduled</a></li>
+                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="vacant">Vacant</a></li>
                                 </ul>
-                                <?php else: ?>
-                                <p class="text-muted text-center small my-3">No current schedules.</p>
-                                <?php endif; ?>
                             </div>
                         </div>
-                        <button type="button" class="timetable-btn" data-panel="panelSubjectAreaFilter" title="Filter by Subject Area">
+                        <button type="button" class="timetable-btn" data-panel="panelScheduleFilter" title="Filter by Schedule Info">
                             <i class="bi bi-funnel"></i>
-                            <span class="timetable-btn-title bold">Subject<br>Area</span>
+                            <span class="timetable-btn-title bold">Schedule<br>Info</span>
                         </button>
-                        <div id="panelSubjectAreaFilter" class="timetable-panel panel-from-right p-3 m-3">
-                            <div class="section-container timetable" style="background-color:#f8f9fa;">
-                                <?php if (!empty($activeSaNames)): ?>
-                                <ul class="list-unstyled mb-0" id="subjectAreaFilterMenu" style="max-height:300px;overflow-y:auto;">
-                                    <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subject Areas</a></li>
-                                    <?php foreach ($activeSaNames as $sa): ?>
-                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($sa) ?>"><?= htmlspecialchars($sa) ?></a></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                                <?php else: ?>
-                                <p class="text-muted text-center small my-3">No current schedules.</p>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <button type="button" class="timetable-btn" data-panel="panelSubjectFilter2" title="Filter by Subject">
-                            <i class="bi bi-funnel"></i>
-                            <span class="timetable-btn-title bold">Subject</span>
-                        </button>
-                        <div id="panelSubjectFilter2" class="timetable-panel panel-from-right p-3 m-3">
-                            <div class="section-container timetable" style="background-color:#f8f9fa;">
-                                <?php if (!empty($activeSubjNames)): ?>
-                                <ul class="list-unstyled mb-0" id="subjectFilterMenu2" style="max-height:300px;overflow-y:auto;">
-                                    <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subjects</a></li>
-                                    <?php foreach ($activeSubjNames as $subj): ?>
-                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($subj) ?>"><?= htmlspecialchars($subj) ?></a></li>
-                                    <?php endforeach; ?>
-                                </ul>
+                        <div id="panelScheduleFilter" class="timetable-panel panel-from-right p-3 m-3">
+                            <div class="section-container timetable" style="background-color:#f8f9fa;min-width:200px;">
+                                <?php if (!empty($activeDeptNames) || !empty($activeSaNames) || !empty($activeSubjNames)): ?>
+                                <div class="mb-2">
+                                    <div class="small fw-bold text-muted mb-1 px-2">Department</div>
+                                    <ul class="list-unstyled mb-0" id="departmentFilterMenu" style="max-height:130px;overflow-y:auto;">
+                                        <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Departments</a></li>
+                                        <?php foreach ($activeDeptNames as $dept): ?>
+                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($dept) ?>"><?= htmlspecialchars($dept) ?></a></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </div>
+                                <hr class="my-1">
+                                <div class="mb-2">
+                                    <div class="small fw-bold text-muted mb-1 px-2">Subject Area</div>
+                                    <ul class="list-unstyled mb-0" id="subjectAreaFilterMenu" style="max-height:130px;overflow-y:auto;">
+                                        <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subject Areas</a></li>
+                                        <?php foreach ($activeSaNames as $sa): ?>
+                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($sa) ?>"><?= htmlspecialchars($sa) ?></a></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </div>
+                                <hr class="my-1">
+                                <div>
+                                    <div class="small fw-bold text-muted mb-1 px-2">Subject</div>
+                                    <ul class="list-unstyled mb-0" id="subjectFilterMenu2" style="max-height:130px;overflow-y:auto;">
+                                        <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subjects</a></li>
+                                        <?php foreach ($activeSubjNames as $subj): ?>
+                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($subj) ?>"><?= htmlspecialchars($subj) ?></a></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </div>
                                 <?php else: ?>
                                 <p class="text-muted text-center small my-3">No current schedules.</p>
                                 <?php endif; ?>
@@ -264,38 +265,21 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                     sort($allSubjNames);
                     sort($allDeptNames);
 
-                    // ── Find currently active faculty (occupied rooms right now) ──
-                    $activeDay  = date('l');
-                    $activeTime = date('H:i:s');
-                    $activeFacultyIds = [];
-                    $actSt = $conn->prepare("
-                        SELECT DISTINCT s.faculty_id
-                        FROM schedules s
-                        WHERE s.day_of_week = ? AND s.start_time <= ? AND s.end_time >= ?
-                    ");
-                    if ($actSt) {
-                        $actSt->bind_param('sss', $activeDay, $activeTime, $activeTime);
-                        @$actSt->execute();
-                        $actRes = @$actSt->get_result();
-                        if ($actRes) {
-                            while ($row = $actRes->fetch_assoc()) {
-                                $activeFacultyIds[] = (int)$row['faculty_id'];
-                            }
-                        }
-                        $actSt->close();
-                    }
-
-                    // ── Build active-only filter lists ──
+                    // ── Build active-only filter lists by checking each room's current schedule ──
                     $activeSaNames     = [];
                     $activeSubjNames   = [];
                     $activeDeptNames   = [];
-                    foreach ($activeFacultyIds as $fid) {
-                        if (isset($facultyCov[$fid])) {
-                            foreach ($facultyCov[$fid]['sa'] as $n) $activeSaNames[$n] = $n;
-                            foreach ($facultyCov[$fid]['subjects'] as $n) $activeSubjNames[$n] = $n;
-                        }
-                        if (isset($facultyDepts[$fid])) {
-                            foreach ($facultyDepts[$fid] as $n) $activeDeptNames[$n] = $n;
+                    foreach ($classrooms as $c) {
+                        $sched = getCurrentSchedule($conn, $c['id']);
+                        if (!empty($sched)) {
+                            $fid = (int)$sched['faculty_id'];
+                            if (isset($facultyCov[$fid])) {
+                                foreach ($facultyCov[$fid]['sa'] as $n) $activeSaNames[$n] = $n;
+                                foreach ($facultyCov[$fid]['subjects'] as $n) $activeSubjNames[$n] = $n;
+                            }
+                            if (isset($facultyDepts[$fid])) {
+                                foreach ($facultyDepts[$fid] as $n) $activeDeptNames[$n] = $n;
+                            }
                         }
                     }
                     ksort($activeSaNames);
@@ -370,7 +354,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                             }
                         }
                     ?>
-                        <div class="room-card" data-room-id="<?= $c['id'] ?>" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>" data-sa="<?= htmlspecialchars(strtolower($covSaNames)) ?>" data-subjects="<?= htmlspecialchars(strtolower($covSubjNames)) ?>" data-departments="<?= htmlspecialchars(strtolower($covDeptNames)) ?>">
+                        <div class="room-card" data-room-id="<?= $c['id'] ?>" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>" data-sa="<?= htmlspecialchars(strtolower($covSaNames)) ?>" data-subjects="<?= htmlspecialchars(strtolower($covSubjNames)) ?>" data-departments="<?= htmlspecialchars(strtolower($covDeptNames)) ?>" data-status="<?= strtolower($badgeLabel) ?>">
                             <div class="room-card-accent <?= $accentClass ?>"></div>
                             <div class="room-card-body">
                                 <div class="room-card-header">
@@ -1095,6 +1079,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
             // ── Combined filter logic ──
             function applyFilters() {
+                var statusVal = (document.querySelector('#statusFilterMenu .filter-option.active') || {}).dataset?.value || '';
                 var deptVal = (document.querySelector('#departmentFilterMenu .filter-option.active') || {}).dataset?.value || '';
                 var saVal = (document.querySelector('#subjectAreaFilterMenu .filter-option.active') || {}).dataset?.value || '';
                 var subjVal = (document.querySelector('#subjectFilterMenu2 .filter-option.active') || {}).dataset?.value || '';
@@ -1102,6 +1087,9 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 searchVal = searchVal.toLowerCase();
                 document.querySelectorAll('.room-card').forEach(function(card) {
                     var show = true;
+                    if (statusVal) {
+                        show = show && (card.dataset.status || '') === statusVal.toLowerCase();
+                    }
                     if (deptVal) {
                         show = show && (card.dataset.departments || '').toLowerCase().includes(deptVal.toLowerCase());
                     }
@@ -1121,7 +1109,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 });
             }
 
-            document.querySelectorAll('#departmentFilterMenu .filter-option, #subjectAreaFilterMenu .filter-option, #subjectFilterMenu2 .filter-option').forEach(function(opt) {
+            document.querySelectorAll('#statusFilterMenu .filter-option, #departmentFilterMenu .filter-option, #subjectAreaFilterMenu .filter-option, #subjectFilterMenu2 .filter-option').forEach(function(opt) {
                 opt.addEventListener('click', function(e) {
                     e.preventDefault();
                     var parent = this.closest('ul');
@@ -1138,7 +1126,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
             // ── Timetable-panel toggle (hover/focus open, mouseleave close with delay) ──
             (function() {
-                var panels = ['panelGuideInfo', 'panelDepartmentFilter', 'panelSubjectAreaFilter', 'panelSubjectFilter2'];
+                var panels = ['panelGuideInfo', 'panelStatusFilter', 'panelScheduleFilter'];
                 var timers = {};
                 panels.forEach(function(id) {
                     var btn = document.querySelector('[data-panel="' + id + '"]');
