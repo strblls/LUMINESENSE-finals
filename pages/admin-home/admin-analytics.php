@@ -333,6 +333,8 @@ include '../../php/handlers/analytics-handler.php';
                         </div>
                         <div class="chart-scrollbar-wrap" id="lineChartScrollWrap">
                             <input type="range" class="chart-scrollbar" id="lineChartScroll" min="0" max="0" value="0" oninput="onChartScroll('lineChart', this.value)">
+                            <div class="chart-scroll-tip" id="lineScrollTip"></div>
+                            <div class="chart-scroll-pending" id="lineScrollPending"></div>
                         </div>
                     </div>
                     <div class="card-white" id="barGraphCard">
@@ -350,6 +352,8 @@ include '../../php/handlers/analytics-handler.php';
                         </div>
                         <div class="chart-scrollbar-wrap" id="barChartScrollWrap">
                             <input type="range" class="chart-scrollbar" id="barChartScroll" min="0" max="0" value="0" oninput="onChartScroll('barChart', this.value)">
+                            <div class="chart-scroll-tip" id="barScrollTip"></div>
+                            <div class="chart-scroll-pending" id="barScrollPending"></div>
                         </div>
                     </div>
                 </div>

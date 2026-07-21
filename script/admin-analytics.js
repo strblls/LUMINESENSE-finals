@@ -40,6 +40,7 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
                 backgroundColor: 'rgba(116,47,211,0.85)',
                 borderRadius: 4,
                 maxBarThickness: 16,
+                yAxisID: 'y',
             },
             {
                 label: 'Current (A)',
@@ -47,6 +48,7 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
                 backgroundColor: 'rgba(245,158,11,0.85)',
                 borderRadius: 4,
                 maxBarThickness: 16,
+                yAxisID: 'y1',
             },
             {
                 label: 'Power (W)',
@@ -54,6 +56,7 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
                 backgroundColor: 'rgba(22,163,74,0.85)',
                 borderRadius: 4,
                 maxBarThickness: 16,
+                yAxisID: 'y2',
             },
         ]
     },
@@ -86,9 +89,29 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
             },
             y: {
                 beginAtZero: true,
-                ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 10 } },
+                position: 'left',
+                title: { display: false },
+                ticks: { color: '#742fd3', font: { family: 'Poppins', size: 10 } },
                 grid:  { color: 'rgba(47,0,79,0.07)' },
-            }
+            },
+            y1: {
+                type: 'linear',
+                beginAtZero: true,
+                display: true,
+                position: 'left',
+                title: { display: false },
+                ticks: { color: '#f59e0b', font: { family: 'Poppins', size: 10 } },
+                grid:  { display: false },
+            },
+            y2: {
+                type: 'linear',
+                beginAtZero: true,
+                display: true,
+                position: 'right',
+                title: { display: false },
+                ticks: { color: '#16a34a', font: { family: 'Poppins', size: 10 } },
+                grid:  { display: false },
+            },
         }
     }
 });
@@ -201,6 +224,8 @@ function getCid() {
 // ── Chart window scroll state ──
 const WINDOW_SIZE = 15;
 var chartScrollOffset = { lineChart: 0, barChart: 0 };
+var scrollbarHovered = { lineChart: false, barChart: false };
+var currentLabels = [];
 
 // ── LIVE READINGS — polls every 3 seconds ─────────────────────────────────────
 async function fetchLive() {
@@ -395,12 +420,14 @@ function updateCharts(labels, chartData) {
         if (d && d.avg_power   != null && d.avg_power   > maxW) maxW = d.avg_power;
     });
 
-    // Bar chart (single shared y-axis)
+    // Bar chart (separate y-axes: y=voltage, y1=current, y2=power)
     barChartInstance.data.labels           = labels;
     barChartInstance.data.datasets[0].data = voltages;
     barChartInstance.data.datasets[1].data = currents;
     barChartInstance.data.datasets[2].data = powers;
-    barChartInstance.options.scales.y.max  = Math.max(maxV, maxA, maxW) > 0 ? Math.max(maxV, maxA, maxW) * 1.1 : undefined;
+    barChartInstance.options.scales.y.max  = maxV > 0 ? maxV * 1.1 : undefined;
+    barChartInstance.options.scales.y1.max = maxA > 0 ? maxA * 1.1 : undefined;
+    barChartInstance.options.scales.y2.max = maxW > 0 ? maxW * 1.1 : undefined;
     barChartInstance.update();
 
     // Line chart (separate y-axes: y=voltage, y1=current, y2=power)
@@ -413,11 +440,16 @@ function updateCharts(labels, chartData) {
     lineChartInstance.options.scales.y2.max = maxW > 0 ? maxW * 1.1 : undefined;
     lineChartInstance.update();
 
+    // Store labels for tooltip use
+    currentLabels = labels;
+
     // Update scrollbars, auto-scroll to rightmost on new data
     ['lineChart', 'barChart'].forEach(function(key) {
         var chart = key === 'lineChart' ? lineChartInstance : barChartInstance;
         var wrap = document.getElementById(key + 'ScrollWrap');
         var slider = document.getElementById(key + 'Scroll');
+        var tipEl = document.getElementById(key + 'ScrollTip');
+        var pendingEl = document.getElementById(key + 'ScrollPending');
         if (!wrap || !slider) return;
         var n = chart.data.labels.length;
         if (n <= WINDOW_SIZE) {
@@ -433,13 +465,35 @@ function updateCharts(labels, chartData) {
         wrap.classList.add('visible');
         var maxVal = n - WINDOW_SIZE;
         slider.max = maxVal;
-        // Auto-scroll to rightmost (latest data)
-        slider.value = maxVal;
-        chartScrollOffset[key] = maxVal;
-        chart.options.scales.x.min = maxVal;
-        chart.options.scales.x.max = maxVal + WINDOW_SIZE;
-        chart.update();
+        if (scrollbarHovered[key]) {
+            // User is hovering — don't auto-scroll, show pending indicator
+            var currentVal = parseInt(slider.value);
+            if (currentVal < maxVal && pendingEl) {
+                pendingEl.classList.add('show');
+            }
+        } else {
+            // Auto-scroll to rightmost (latest data)
+            slider.value = maxVal;
+            chartScrollOffset[key] = maxVal;
+            chart.options.scales.x.min = maxVal;
+            chart.options.scales.x.max = maxVal + WINDOW_SIZE;
+            chart.update();
+            if (pendingEl) pendingEl.classList.remove('show');
+        }
     });
+}
+
+function updateScrollTip(chartId) {
+    var tipEl = document.getElementById(chartId + 'ScrollTip');
+    var slider = document.getElementById(chartId + 'Scroll');
+    if (!tipEl || !slider) return;
+    var offset = parseInt(slider.value);
+    var label = currentLabels[offset] || '';
+    tipEl.textContent = label;
+    // Position the tooltip above the thumb
+    var pct = slider.max > 0 ? (offset / slider.max) * 100 : 0;
+    tipEl.style.left = 'calc(' + pct + '% + ' + (4 - pct * 0.08) + 'px)';
+    tipEl.style.transform = 'translateX(-50%)';
 }
 
 function onChartScroll(chartId, value) {
@@ -450,6 +504,15 @@ function onChartScroll(chartId, value) {
     chart.options.scales.x.min = offset;
     chart.options.scales.x.max = offset + WINDOW_SIZE;
     chart.update();
+    updateScrollTip(chartId);
+    // Hide pending dot if scrolled to rightmost
+    var pendingEl = document.getElementById(chartId + 'ScrollPending');
+    if (pendingEl) {
+        var slider = document.getElementById(chartId + 'Scroll');
+        if (slider && parseInt(slider.value) >= parseInt(slider.max)) {
+            pendingEl.classList.remove('show');
+        }
+    }
 }
 
 // ── TOGGLE CHART MAXIMIZE ─────────────────────────────────────────────────────
@@ -785,6 +848,17 @@ function showError() {
 // ── Click vawGroup metric cards to focus metric (same as Filter by Metrics) ──
 document.querySelectorAll('#vawGroup .live-stat-card[data-metric]').forEach(function(card) {
     card.addEventListener('click', function() {
+        var isActive = this.classList.contains('metric-active');
+        if (isActive) {
+            // Deselect: switch to All Metrics
+            document.querySelectorAll('.dept-member-filter-item').forEach(function(item) {
+                var onclickAttr = item.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes("'all'")) {
+                    setMetric(item, 'all');
+                }
+            });
+            return;
+        }
         var metric = this.getAttribute('data-metric');
         document.querySelectorAll('.dept-member-filter-item').forEach(function(item) {
             var onclickAttr = item.getAttribute('onclick');
@@ -792,6 +866,40 @@ document.querySelectorAll('#vawGroup .live-stat-card[data-metric]').forEach(func
                 setMetric(item, metric);
             }
         });
+    });
+});
+
+// ── Scrollbar hover handlers ───────────────────────────────────────────────────
+['lineChart', 'barChart'].forEach(function(key) {
+    var wrap = document.getElementById(key + 'ScrollWrap');
+    var slider = document.getElementById(key + 'Scroll');
+    if (!wrap || !slider) return;
+    wrap.addEventListener('mouseenter', function() {
+        scrollbarHovered[key] = true;
+        var tipEl = document.getElementById(key + 'ScrollTip');
+        if (tipEl) tipEl.classList.add('show');
+        updateScrollTip(key);
+    });
+    wrap.addEventListener('mouseleave', function() {
+        scrollbarHovered[key] = false;
+        var tipEl = document.getElementById(key + 'ScrollTip');
+        if (tipEl) tipEl.classList.remove('show');
+        // When leaving, auto-scroll to rightmost for latest data
+        var chart = key === 'lineChart' ? lineChartInstance : barChartInstance;
+        var s = document.getElementById(key + 'Scroll');
+        var p = document.getElementById(key + 'ScrollPending');
+        if (s && chart && chart.data && chart.data.labels) {
+            var n = chart.data.labels.length;
+            if (n > WINDOW_SIZE) {
+                var maxVal = n - WINDOW_SIZE;
+                s.value = maxVal;
+                chartScrollOffset[key] = maxVal;
+                chart.options.scales.x.min = maxVal;
+                chart.options.scales.x.max = maxVal + WINDOW_SIZE;
+                chart.update();
+                if (p) p.classList.remove('show');
+            }
+        }
     });
 });
 

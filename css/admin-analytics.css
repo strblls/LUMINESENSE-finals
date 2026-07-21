@@ -423,6 +423,14 @@
     align-items: center;
     gap: 8px;
     margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.chart-card-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 @media (max-width: 1100px) {
@@ -872,6 +880,7 @@ body.contrast-bg {
 .chart-scrollbar-wrap {
     padding: 4px 8px 0;
     display: none;
+    position: relative;
 }
 
 .chart-scrollbar-wrap.visible {
@@ -909,6 +918,69 @@ body.contrast-bg {
     cursor: pointer;
     border: 2px solid #fff;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* ── Chart scrollbar tooltip ── */
+.chart-scroll-tip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2f004f;
+    color: #fff;
+    font-family: 'Poppins', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 20;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.chart-scroll-tip.show {
+    opacity: 1;
+}
+
+.chart-scroll-tip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -4px;
+    border-width: 4px;
+    border-style: solid;
+    border-color: #2f004f transparent transparent transparent;
+}
+
+/* ── Chart scrollbar pending dot ── */
+.chart-scroll-pending {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245,158,11,0.6);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.chart-scroll-pending.show {
+    opacity: 1;
+    animation: pulse-pending 1.2s infinite;
+}
+
+@keyframes pulse-pending {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.6); }
+    50% { box-shadow: 0 0 8px 4px rgba(245,158,11,0); }
 }
 
 /* ── Chart maximized state ── */
