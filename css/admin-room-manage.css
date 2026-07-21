@@ -797,7 +797,8 @@
 }
 
 #modalTodaySched .weekly-schedule-grid {
-    min-width: max-content;
+    width: auto;
+    grid-template-columns: repeat(7, minmax(130px, 1fr));
 }
 
 @keyframes fadeSlide {
