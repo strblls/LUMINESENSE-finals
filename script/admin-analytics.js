@@ -490,6 +490,7 @@ function updateScrollTip(chartId) {
     var offset = parseInt(slider.value);
     var label = currentLabels[offset] || '';
     tipEl.textContent = label;
+    tipEl.classList.add('show');
     // Position the tooltip above the thumb
     var pct = slider.max > 0 ? (offset / slider.max) * 100 : 0;
     tipEl.style.left = 'calc(' + pct + '% + ' + (4 - pct * 0.08) + 'px)';
@@ -884,22 +885,8 @@ document.querySelectorAll('#vawGroup .live-stat-card[data-metric]').forEach(func
         scrollbarHovered[key] = false;
         var tipEl = document.getElementById(key + 'ScrollTip');
         if (tipEl) tipEl.classList.remove('show');
-        // When leaving, auto-scroll to rightmost for latest data
-        var chart = key === 'lineChart' ? lineChartInstance : barChartInstance;
-        var s = document.getElementById(key + 'Scroll');
         var p = document.getElementById(key + 'ScrollPending');
-        if (s && chart && chart.data && chart.data.labels) {
-            var n = chart.data.labels.length;
-            if (n > WINDOW_SIZE) {
-                var maxVal = n - WINDOW_SIZE;
-                s.value = maxVal;
-                chartScrollOffset[key] = maxVal;
-                chart.options.scales.x.min = maxVal;
-                chart.options.scales.x.max = maxVal + WINDOW_SIZE;
-                chart.update();
-                if (p) p.classList.remove('show');
-            }
-        }
+        if (p) p.classList.remove('show');
     });
 });
 
