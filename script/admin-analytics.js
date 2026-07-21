@@ -395,17 +395,15 @@ function updateCharts(labels, chartData) {
         if (d && d.avg_power   != null && d.avg_power   > maxW) maxW = d.avg_power;
     });
 
-    // Bar chart
+    // Bar chart (single shared y-axis)
     barChartInstance.data.labels           = labels;
     barChartInstance.data.datasets[0].data = voltages;
     barChartInstance.data.datasets[1].data = currents;
     barChartInstance.data.datasets[2].data = powers;
-    barChartInstance.options.scales.y.max  = maxV > 0 ? maxV * 1.1 : undefined;
-    barChartInstance.options.scales.y1.max = maxA > 0 ? maxA * 1.1 : undefined;
-    barChartInstance.options.scales.y2.max = maxW > 0 ? maxW * 1.1 : undefined;
+    barChartInstance.options.scales.y.max  = Math.max(maxV, maxA, maxW) > 0 ? Math.max(maxV, maxA, maxW) * 1.1 : undefined;
     barChartInstance.update();
 
-    // Line chart
+    // Line chart (separate y-axes: y=voltage, y1=current, y2=power)
     lineChartInstance.data.labels           = labels;
     lineChartInstance.data.datasets[0].data = voltages;
     lineChartInstance.data.datasets[1].data = currents;
