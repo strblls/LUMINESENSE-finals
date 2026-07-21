@@ -5,9 +5,8 @@ date_default_timezone_set('Asia/Manila');
 
 function getRoomSchedules($conn, $room_id)
 {
-    $row = $conn->query("SELECT DAYNAME(CURDATE()) as day, TIME(NOW()) as t")->fetch_assoc();
-    $day  = $row['day'];
-    $time = $row['t'];
+    $day  = date('l');
+    $time = date('H:i:s');
     $stmt = $conn->prepare("
         SELECT s.start_time, s.end_time,
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name
@@ -50,9 +49,8 @@ function getRoomSchedules($conn, $room_id)
 
 function getCurrentSchedule($conn, $room_id)
 {
-    $row = $conn->query("SELECT DAYNAME(CURDATE()) as day, TIME(NOW()) as t")->fetch_assoc();
-    $day  = $row['day'];
-    $time = $row['t'];
+    $day  = date('l');
+    $time = date('H:i:s');
     $stmt = $conn->prepare("
         SELECT s.start_time, s.end_time,
                s.faculty_id,
@@ -240,9 +238,8 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
                         $nextSched = null;
                         if (!$isOccupied) {
-                            $row  = $conn->query("SELECT DAYNAME(CURDATE()) as day, TIME(NOW()) as t")->fetch_assoc();
-                            $day  = $row['day'];
-                            $time = $row['t'];
+                            $day  = date('l');
+                            $time = date('H:i:s');
                             $st = $conn->prepare("
                                 SELECT start_time FROM schedules 
                                 WHERE classroom_id = ? 
