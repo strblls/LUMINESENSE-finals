@@ -788,6 +788,103 @@
     text-transform: uppercase;
 }
 
+/* ══════════════════════════════════════
+       MODAL WEEKLY GRID — DAY-COLUMN LAYOUT
+    ══════════════════════════════════════ */
+.modal-weekly-grid {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+}
+
+.modal-weekly-card {
+    flex-shrink: 0;
+    width: 140px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 10px;
+    min-height: 80px;
+}
+
+.modal-weekly-card.today {
+    background: var(--secondary-color-1, #6c5ce7);
+}
+
+.modal-weekly-card.today .modal-weekly-label {
+    color: #fff;
+}
+
+.modal-weekly-label {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #9f9f9f;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.modal-weekly-slot {
+    background: #fff;
+    border-radius: 6px;
+    padding: 7px 8px;
+    margin-bottom: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+
+.modal-weekly-slot-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mws-start {
+    font-size: 12px;
+    font-weight: 800;
+    color: #333;
+    line-height: 1.1;
+}
+
+.mws-sep {
+    font-size: 8px;
+    color: #bbb;
+    font-weight: 600;
+}
+
+.mws-end {
+    font-size: 12px;
+    font-weight: 800;
+    color: #333;
+    line-height: 1.1;
+}
+
+.mws-ampm {
+    font-size: 9px;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 1px;
+}
+
+.modal-weekly-slot-faculty {
+    font-size: 10px;
+    font-weight: 600;
+    color: #555;
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.modal-weekly-card .no-sched {
+    font-size: 11px;
+    color: #aaa;
+    text-align: center;
+    margin: 0;
+    padding: 10px 0;
+}
+
 @keyframes fadeSlide {
     from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0); }

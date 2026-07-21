@@ -810,26 +810,42 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             }
             syncAllLightsLabel();
 
-            // ── Today's Timetable — horizontal scrolling cards (all schedules) ──
+            // ── Today's Timetable — weekly schedule grid (horizontal scroll) ──
             const todayEl = document.getElementById('modalTodaySched');
-            if (data.all_schedules && data.all_schedules.length > 0) {
-                const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-                const sorted = [...data.all_schedules].sort((a, b) => {
-                    const di = dayOrder.indexOf(a.day_of_week) - dayOrder.indexOf(b.day_of_week);
-                    return di !== 0 ? di : a.start_time.localeCompare(b.start_time);
+            const todayName = new Date().toLocaleDateString('en-US', {weekday:'long'});
+            const dayOrder = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            const grouped = {};
+            dayOrder.forEach(d => grouped[d] = []);
+            if (data.all_schedules) {
+                data.all_schedules.forEach(s => {
+                    if (grouped[s.day_of_week]) grouped[s.day_of_week].push(s);
                 });
-                todayEl.innerHTML = '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">' +
-                    sorted.map(s => `
-                <div style="flex-shrink:0;width:120px;background:#fff;border-radius:8px;padding:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);text-align:center;">
-                    <div style="font-size:10px;font-weight:700;color:var(--secondary-color-1);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;">${s.day_of_week}</div>
-                    <div style="font-size:12px;font-weight:800;color:#333;">${s.start_time}</div>
-                    <div style="font-size:9px;color:#bbb;font-weight:600;margin:2px 0;">TO</div>
-                    <div style="font-size:12px;font-weight:800;color:#333;">${s.end_time}</div>
-                    <div style="font-size:10px;font-weight:600;color:#555;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s.faculty_name}</div>
-                </div>`).join('') + '</div>';
-            } else {
-                todayEl.innerHTML = '<div class="modal-slot-empty">No schedules for this room.</div>';
+                Object.values(grouped).forEach(arr => arr.sort((a,b) => a.start_time.localeCompare(b.start_time)));
             }
+            todayEl.innerHTML = '<div class="modal-weekly-grid">' +
+                dayOrder.map(day => {
+                    const isToday = day === todayName;
+                    const slots = grouped[day];
+                    const slotsHtml = slots && slots.length
+                        ? slots.map(s => {
+                            const sp = s.start_time.split(' ');
+                            const ep = s.end_time.split(' ');
+                            return `<div class="modal-weekly-slot">
+                                <div class="modal-weekly-slot-time">
+                                    <span class="mws-start">${sp[0]}</span>
+                                    <span class="mws-sep">TO</span>
+                                    <span class="mws-end">${ep[0]}</span>
+                                    <span class="mws-ampm">${ep[1]}</span>
+                                </div>
+                                <div class="modal-weekly-slot-faculty">${s.faculty_name}</div>
+                            </div>`;
+                        }).join('')
+                        : '<p class="no-sched">No classes scheduled.</p>';
+                    return `<div class="modal-weekly-card${isToday ? ' today' : ''}">
+                        <div class="modal-weekly-label">${day}</div>
+                        ${slotsHtml}
+                    </div>`;
+                }).join('') + '</div>';
 
             // ── Full timetable — slot-row style ──
             const tBody = document.getElementById('modalTimetableBody');
