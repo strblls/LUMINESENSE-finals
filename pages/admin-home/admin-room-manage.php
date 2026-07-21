@@ -80,6 +80,87 @@ $r = $conn->query("
     ORDER BY room_name
 ");
 while ($row = $r->fetch_assoc()) $classrooms[] = $row;
+
+// ── Build faculty coverage lookups (ALL faculty) ──
+$facultyCov   = []; // faculty_id => [ 'sa' => [...], 'subjects' => [...] ]
+$facultyDepts = []; // faculty_id => [ dept_name, ... ]
+$allSaNames   = [];
+$allSubjNames = [];
+$allDeptNames = [];
+
+$covSt = @$conn->prepare("
+    SELECT jfsa.faculty_id, sa.id AS sa_id, sa.name AS sa_name,
+           jfs.subject_id, sub.name AS subj_name
+    FROM junction_faculty_subjectarea jfsa
+    JOIN subject_area sa ON sa.id = jfsa.subject_area_id
+    LEFT JOIN junction_faculty_subject jfs ON jfs.faculty_id = jfsa.faculty_id
+    LEFT JOIN subjects sub ON sub.id = jfs.subject_id
+    ORDER BY sa.name, sub.name
+");
+if ($covSt) {
+    @$covSt->execute();
+    $covRes = @$covSt->get_result();
+    if ($covRes) {
+        while ($row = $covRes->fetch_assoc()) {
+            $fid = (int)$row['faculty_id'];
+            if (!isset($facultyCov[$fid])) {
+                $facultyCov[$fid] = ['sa' => [], 'subjects' => []];
+            }
+            $facultyCov[$fid]['sa'][(int)$row['sa_id']] = $row['sa_name'];
+            $allSaNames[$row['sa_name']] = $row['sa_name'];
+            if (!empty($row['subject_id'])) {
+                $facultyCov[$fid]['subjects'][(int)$row['subject_id']] = $row['subj_name'];
+                $allSubjNames[$row['subj_name']] = $row['subj_name'];
+            }
+        }
+    }
+    $covSt->close();
+}
+
+$deptSt = @$conn->prepare("
+    SELECT jfd.faculty_id, d.id AS dept_id, d.name AS dept_name
+    FROM junction_faculty_department jfd
+    JOIN departments d ON d.id = jfd.department_id
+    WHERE d.status = 'active'
+    ORDER BY d.name
+");
+if ($deptSt) {
+    @$deptSt->execute();
+    $deptRes = @$deptSt->get_result();
+    if ($deptRes) {
+        while ($row = $deptRes->fetch_assoc()) {
+            $fid = (int)$row['faculty_id'];
+            if (!isset($facultyDepts[$fid])) $facultyDepts[$fid] = [];
+            $facultyDepts[$fid][(int)$row['dept_id']] = $row['dept_name'];
+            $allDeptNames[$row['dept_name']] = $row['dept_name'];
+        }
+    }
+    $deptSt->close();
+}
+sort($allSaNames);
+sort($allSubjNames);
+sort($allDeptNames);
+
+// ── Build active-only filter lists by checking each room's current schedule ──
+$activeSaNames     = [];
+$activeSubjNames   = [];
+$activeDeptNames   = [];
+foreach ($classrooms as $c) {
+    $sched = getCurrentSchedule($conn, $c['id']);
+    if (!empty($sched)) {
+        $fid = (int)$sched['faculty_id'];
+        if (isset($facultyCov[$fid])) {
+            foreach ($facultyCov[$fid]['sa'] as $n) $activeSaNames[$n] = $n;
+            foreach ($facultyCov[$fid]['subjects'] as $n) $activeSubjNames[$n] = $n;
+        }
+        if (isset($facultyDepts[$fid])) {
+            foreach ($facultyDepts[$fid] as $n) $activeDeptNames[$n] = $n;
+        }
+    }
+}
+ksort($activeSaNames);
+ksort($activeSubjNames);
+ksort($activeDeptNames);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -204,89 +285,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
                 <div class="main-container" style="padding: 1rem; background-color: var(--secondary-color-2);">
                 <div class="rooms-grid" id="roomsGrid">
-                    <?php
-                    // ── Build faculty coverage lookups (ALL faculty) ──
-                    $facultyCov   = []; // faculty_id => [ 'sa' => [...], 'subjects' => [...] ]
-                    $facultyDepts = []; // faculty_id => [ dept_name, ... ]
-                    $allSaNames   = [];
-                    $allSubjNames = [];
-                    $allDeptNames = [];
-
-                    $covSt = @$conn->prepare("
-                        SELECT jfsa.faculty_id, sa.id AS sa_id, sa.name AS sa_name,
-                               jfs.subject_id, sub.name AS subj_name
-                        FROM junction_faculty_subjectarea jfsa
-                        JOIN subject_area sa ON sa.id = jfsa.subject_area_id
-                        LEFT JOIN junction_faculty_subject jfs ON jfs.faculty_id = jfsa.faculty_id
-                        LEFT JOIN subjects sub ON sub.id = jfs.subject_id
-                        ORDER BY sa.name, sub.name
-                    ");
-                    if ($covSt) {
-                        @$covSt->execute();
-                        $covRes = @$covSt->get_result();
-                        if ($covRes) {
-                            while ($row = $covRes->fetch_assoc()) {
-                                $fid = (int)$row['faculty_id'];
-                                if (!isset($facultyCov[$fid])) {
-                                    $facultyCov[$fid] = ['sa' => [], 'subjects' => []];
-                                }
-                                $facultyCov[$fid]['sa'][(int)$row['sa_id']] = $row['sa_name'];
-                                $allSaNames[$row['sa_name']] = $row['sa_name'];
-                                if (!empty($row['subject_id'])) {
-                                    $facultyCov[$fid]['subjects'][(int)$row['subject_id']] = $row['subj_name'];
-                                    $allSubjNames[$row['subj_name']] = $row['subj_name'];
-                                }
-                            }
-                        }
-                        $covSt->close();
-                    }
-
-                    $deptSt = @$conn->prepare("
-                        SELECT jfd.faculty_id, d.id AS dept_id, d.name AS dept_name
-                        FROM junction_faculty_department jfd
-                        JOIN departments d ON d.id = jfd.department_id
-                        WHERE d.status = 'active'
-                        ORDER BY d.name
-                    ");
-                    if ($deptSt) {
-                        @$deptSt->execute();
-                        $deptRes = @$deptSt->get_result();
-                        if ($deptRes) {
-                            while ($row = $deptRes->fetch_assoc()) {
-                                $fid = (int)$row['faculty_id'];
-                                if (!isset($facultyDepts[$fid])) $facultyDepts[$fid] = [];
-                                $facultyDepts[$fid][(int)$row['dept_id']] = $row['dept_name'];
-                                $allDeptNames[$row['dept_name']] = $row['dept_name'];
-                            }
-                        }
-                        $deptSt->close();
-                    }
-                    sort($allSaNames);
-                    sort($allSubjNames);
-                    sort($allDeptNames);
-
-                    // ── Build active-only filter lists by checking each room's current schedule ──
-                    $activeSaNames     = [];
-                    $activeSubjNames   = [];
-                    $activeDeptNames   = [];
-                    foreach ($classrooms as $c) {
-                        $sched = getCurrentSchedule($conn, $c['id']);
-                        if (!empty($sched)) {
-                            $fid = (int)$sched['faculty_id'];
-                            if (isset($facultyCov[$fid])) {
-                                foreach ($facultyCov[$fid]['sa'] as $n) $activeSaNames[$n] = $n;
-                                foreach ($facultyCov[$fid]['subjects'] as $n) $activeSubjNames[$n] = $n;
-                            }
-                            if (isset($facultyDepts[$fid])) {
-                                foreach ($facultyDepts[$fid] as $n) $activeDeptNames[$n] = $n;
-                            }
-                        }
-                    }
-                    ksort($activeSaNames);
-                    ksort($activeSubjNames);
-                    ksort($activeDeptNames);
-
-                    foreach ($classrooms as $c):
+                    <?php foreach ($classrooms as $c):
                         $on         = ($c['light_status'] === 'on');
                         $curSched   = getCurrentSchedule($conn, $c['id']);
                         $isOccupied = !empty($curSched);
