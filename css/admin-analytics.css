@@ -351,29 +351,6 @@
 .chart-wrapper {
     position: relative;
     height: 230px;
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
-.chart-wrapper::-webkit-scrollbar {
-    height: 6px;
-}
-
-.chart-wrapper::-webkit-scrollbar-track {
-    background: rgba(116, 47, 211, 0.03);
-}
-
-.chart-wrapper::-webkit-scrollbar-thumb {
-    background: rgba(116, 47, 211, 0.15);
-    border-radius: 4px;
-}
-
-.chart-wrapper::-webkit-scrollbar-thumb:hover {
-    background: rgba(116, 47, 211, 0.30);
-}
-
-.chart-wrapper canvas {
-    min-width: 100%;
 }
 
 .metric-card {
@@ -878,56 +855,4 @@ body.contrast-bg {
     color: var(--secondary-color-2);
     width: 24px;
     text-align: center;
-}
-
-/* ── Chart maximize button ── */
-.chart-maximize-btn {
-    background: none;
-    border: none;
-    color: var(--secondary-color-3);
-    font-size: 16px;
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 4px;
-    transition: background 0.15s, color 0.15s;
-    line-height: 1;
-    margin-left: auto;
-}
-
-.chart-maximize-btn:hover {
-    background: rgba(116, 47, 211, 0.10);
-    color: var(--secondary-color-1);
-}
-
-/* ── Chart maximized state ── */
-.chart-maximized {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 1050 !important;
-    border-radius: 0 !important;
-    display: flex;
-    flex-direction: column;
-    background: #ffffff !important;
-    animation: chartFadeIn .25s ease forwards;
-}
-
-.chart-maximized .chart-wrapper {
-    flex: 1;
-    height: auto !important;
-    min-height: 0 !important;
-}
-
-.chart-maximized .chart-wrapper canvas {
-    min-height: 400px;
-}
-
-@keyframes chartFadeIn {
-    from {
-        transform: scale(0.96);
-        opacity: 0.92;
-    }
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
 }

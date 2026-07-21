@@ -322,9 +322,6 @@ include '../../php/handlers/analytics-handler.php';
                         <div class="chart-card-header">
                             <h3 class="chart-card-title bold">Line Graph</h3>
                             <span class="summary-label" id="lineMetricLabel">All Metrics</span>
-                            <button class="chart-maximize-btn" onclick="toggleChartMaximize('lineGraphCard')" title="Maximize">
-                                <i class="bi bi-arrows-expand"></i>
-                            </button>
                         </div>
                         <div class="chart-wrapper">
                             <canvas id="lineChart"></canvas>
@@ -334,9 +331,6 @@ include '../../php/handlers/analytics-handler.php';
                         <div class="chart-card-header">
                             <h3 class="chart-card-title bold">Vertical Bar Graph</h3>
                             <span class="summary-label" id="barMetricLabel">All Metrics</span>
-                            <button class="chart-maximize-btn" onclick="toggleChartMaximize('barGraphCard')" title="Maximize">
-                                <i class="bi bi-arrows-expand"></i>
-                            </button>
                         </div>
                         <div class="chart-wrapper">
                             <canvas id="barChart"></canvas>
