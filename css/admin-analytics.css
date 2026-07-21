@@ -856,3 +856,95 @@ body.contrast-bg {
     width: 24px;
     text-align: center;
 }
+
+/* ── Chart maximize button ── */
+.chart-maximize-btn {
+    background: none;
+    border: none;
+    color: var(--secondary-color-3);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
+    margin-left: auto;
+}
+
+.chart-maximize-btn:hover {
+    background: rgba(116, 47, 211, 0.10);
+    color: var(--secondary-color-1);
+}
+
+/* ── Chart scroll buttons ── */
+.chart-scroll-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(116,47,211,0.2);
+    color: var(--secondary-color-2);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.15s, opacity 0.15s;
+    opacity: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+.chart-wrapper:hover .chart-scroll-btn {
+    opacity: 1;
+}
+
+.chart-scroll-btn:hover {
+    background: var(--secondary-color-2);
+    color: #fff;
+}
+
+.chart-scroll-left {
+    left: 4px;
+}
+
+.chart-scroll-right {
+    right: 4px;
+}
+
+/* ── Chart maximized state ── */
+.chart-maximized {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1050 !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff !important;
+    animation: chartFadeIn .25s ease forwards;
+}
+
+.chart-maximized .chart-wrapper {
+    flex: 1;
+    height: auto !important;
+    min-height: 0 !important;
+}
+
+.chart-maximized .chart-wrapper canvas {
+    min-height: 400px;
+}
+
+@keyframes chartFadeIn {
+    from {
+        transform: scale(0.96);
+        opacity: 0.92;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+

@@ -322,18 +322,36 @@ include '../../php/handlers/analytics-handler.php';
                         <div class="chart-card-header">
                             <h3 class="chart-card-title bold">Line Graph</h3>
                             <span class="summary-label" id="lineMetricLabel">All Metrics</span>
+                            <button class="chart-maximize-btn" onclick="toggleChartMaximize('lineGraphCard')" title="Maximize">
+                                <i class="bi bi-arrows-expand"></i>
+                            </button>
                         </div>
                         <div class="chart-wrapper">
                             <canvas id="lineChart"></canvas>
+                            <button class="chart-scroll-btn chart-scroll-left" onclick="scrollChart('lineChart', -1)" title="Scroll left">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button class="chart-scroll-btn chart-scroll-right" onclick="scrollChart('lineChart', 1)" title="Scroll right">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
                         </div>
                     </div>
                     <div class="card-white" id="barGraphCard">
                         <div class="chart-card-header">
                             <h3 class="chart-card-title bold">Vertical Bar Graph</h3>
                             <span class="summary-label" id="barMetricLabel">All Metrics</span>
+                            <button class="chart-maximize-btn" onclick="toggleChartMaximize('barGraphCard')" title="Maximize">
+                                <i class="bi bi-arrows-expand"></i>
+                            </button>
                         </div>
                         <div class="chart-wrapper">
                             <canvas id="barChart"></canvas>
+                            <button class="chart-scroll-btn chart-scroll-left" onclick="scrollChart('barChart', -1)" title="Scroll left">
+                                <i class="bi bi-chevron-left"></i>
+                            </button>
+                            <button class="chart-scroll-btn chart-scroll-right" onclick="scrollChart('barChart', 1)" title="Scroll right">
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

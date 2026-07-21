@@ -1272,7 +1272,7 @@ $fm_res->free();
                         }).replace(/'/g, '&#39;');
                         return `
                     <div class="room-item" data-type="room" data-detail='${detail}'>
-                        <i class="bi bi-building room-icon"></i>
+                        <i class="bi bi-door-open room-icon"></i>
                         <div class="room-info">
                             <div class="d-flex align-items-center gap-2">
                                 <h5 class="mb-0" style="font-size: 14.5px;">${c.room_name}</h5>

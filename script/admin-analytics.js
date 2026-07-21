@@ -198,6 +198,10 @@ function getCid() {
     return document.getElementById('roomSelect')?.value ?? 0;
 }
 
+// ── Chart window scroll state ──
+const WINDOW_SIZE = 15;
+var chartScrollOffset = { lineChart: 0, barChart: 0 };
+
 // ── LIVE READINGS — polls every 3 seconds ─────────────────────────────────────
 async function fetchLive() {
     try {
@@ -377,6 +381,14 @@ function setMetric(el, metric) {
 function updateCharts(labels, chartData) {
     if (!labels || labels.length === 0) labels = ['No data'];
 
+    var count = labels.length;
+
+    // Clamp scroll offsets after data change
+    ['lineChart', 'barChart'].forEach(function(key) {
+        var maxOffset = Math.max(0, count - WINDOW_SIZE);
+        if (chartScrollOffset[key] > maxOffset) chartScrollOffset[key] = maxOffset;
+    });
+
     const voltages = chartData.map(d => (d && d.avg_voltage != null) ? d.avg_voltage : null);
     const currents = chartData.map(d => (d && d.avg_current != null) ? d.avg_current : null);
     const powers   = chartData.map(d => (d && d.avg_power   != null) ? d.avg_power   : null);
@@ -394,6 +406,48 @@ function updateCharts(labels, chartData) {
     lineChartInstance.data.datasets[1].data = currents;
     lineChartInstance.data.datasets[2].data = powers;
     lineChartInstance.update();
+
+    // Apply window scroll to both charts
+    applyChartWindow('barChart', barChartInstance);
+    applyChartWindow('lineChart', lineChartInstance);
+}
+
+function applyChartWindow(chartId, chart) {
+    if (!chart || !chart.data || !chart.data.labels) return;
+    var count = chart.data.labels.length;
+    if (count <= WINDOW_SIZE) return;
+    var offset = chartScrollOffset[chartId] || 0;
+    chart.options.scales.x.min = offset;
+    chart.options.scales.x.max = offset + WINDOW_SIZE;
+    chart.update();
+}
+
+function scrollChart(chartId, direction) {
+    var chart = chartId === 'lineChart' ? lineChartInstance : barChartInstance;
+    if (!chart || !chart.data || !chart.data.labels) return;
+    var count = chart.data.labels.length;
+    if (count <= WINDOW_SIZE) return;
+    var maxOffset = count - WINDOW_SIZE;
+    var newOffset = (chartScrollOffset[chartId] || 0) + direction;
+    if (newOffset < 0) newOffset = 0;
+    if (newOffset > maxOffset) newOffset = maxOffset;
+    chartScrollOffset[chartId] = newOffset;
+    applyChartWindow(chartId, chart);
+}
+
+// ── TOGGLE CHART MAXIMIZE ─────────────────────────────────────────────────────
+function toggleChartMaximize(cardId) {
+    var card = document.getElementById(cardId);
+    if (!card) return;
+    var btn = card.querySelector('.chart-maximize-btn');
+    var isMax = card.classList.toggle('chart-maximized');
+    if (btn) {
+        btn.innerHTML = isMax ? '<i class="bi bi-arrows-collapse"></i>' : '<i class="bi bi-arrows-expand"></i>';
+        btn.title = isMax ? 'Minimize' : 'Maximize';
+    }
+    setTimeout(function() {
+        [lineChartInstance, barChartInstance].forEach(function(ch) { if (ch) ch.resize(); });
+    }, 100);
 }
 
 // ── MAIN FETCH + RENDER ───────────────────────────────────────────────────────
