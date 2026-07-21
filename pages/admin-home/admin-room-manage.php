@@ -18,11 +18,11 @@ function getRoomSchedules($conn, $room_id)
           AND s.end_time >= ?
         ORDER BY s.start_time
     ");
-    $stmt->bind_param('isss', $room_id, $day, $time, $time);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt->bind_param('iss', $room_id, $day, $time);
+    @$stmt->execute();
+    $result = @$stmt->get_result();
     $rows = [];
-    while ($row = $result->fetch_assoc()) $rows[] = $row;
+    if ($result) while ($row = $result->fetch_assoc()) $rows[] = $row;
     $stmt->close();
     return $rows;
 }
@@ -67,8 +67,9 @@ function getCurrentSchedule($conn, $room_id)
         LIMIT 1
     ");
     $stmt->bind_param('isss', $room_id, $day, $time, $time);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
+    @$stmt->execute();
+    $result = @$stmt->get_result();
+    $row = $result ? $result->fetch_assoc() : null;
     $stmt->close();
     return $row;
 }
@@ -251,8 +252,8 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                 LIMIT 1
                             ");
                             $st->bind_param('iss', $c['id'], $day, $time);
-                            $st->execute();
-                            $next = $st->get_result()->fetch_assoc();
+                            @$st->execute();
+                            $next = ($res = @$st->get_result()) ? $res->fetch_assoc() : null;
                             $st->close();
                             if ($next) {
                                 $nextSched = date('g:i A', strtotime($next['start_time']));
@@ -269,8 +270,8 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                         LIMIT 1
                                     ");
                                     $st->bind_param('is', $c['id'], $checkDay);
-                                    $st->execute();
-                                    $next = $st->get_result()->fetch_assoc();
+                                    @$st->execute();
+                                    $next = ($res = @$st->get_result()) ? $res->fetch_assoc() : null;
                                     $st->close();
                                     if ($next) {
                                         $nextDate = date('F j', strtotime("next $checkDay"));

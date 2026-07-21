@@ -18,7 +18,8 @@ if ($_SERVER['HTTP_HOST'] === 'localhost' || $_SERVER['HTTP_HOST'] === '127.0.0.
     define('DB_NAME', 'u805324966_luminesense_db');
 }
 
-$conn = new mysqli(DB_HOST, DB_USER, DB_PASS);
+mysqli_report(MYSQLI_REPORT_OFF);
+$conn = @new mysqli(DB_HOST, DB_USER, DB_PASS);
 if ($conn->connect_error) {
     die(json_encode(['success' => false, 'message' => 'DB connection failed: ' . $conn->connect_error]));
 }

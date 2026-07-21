@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'db_connect.php';
+require_once __DIR__ . '/db_connect.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ../pages/admin-login.php');
@@ -30,7 +30,12 @@ if ($_SESSION['admin_attempts'] >= 3) {
     exit;
 }
 
-$stmt = $conn->prepare('SELECT id, first_name, last_name, password, is_verified, approved_by FROM admins WHERE email = ?');
+$stmt = @$conn->prepare('SELECT id, first_name, last_name, password, is_verified, approved_by FROM admins WHERE email = ?');
+if (!$stmt) {
+    $_SESSION['login_error'] = 'Database error. Please try again.';
+    header('Location: ../pages/admin-login.php');
+    exit;
+}
 $stmt->bind_param('s', $email);
 $stmt->execute();
 $row = $stmt->get_result()->fetch_assoc();
