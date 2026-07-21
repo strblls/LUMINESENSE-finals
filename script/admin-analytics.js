@@ -394,6 +394,32 @@ function updateCharts(labels, chartData) {
     lineChartInstance.data.datasets[1].data = currents;
     lineChartInstance.data.datasets[2].data = powers;
     lineChartInstance.update();
+
+    // ── Dynamic canvas width for horizontal scroll ──
+    var count = labels.length;
+    if (count > 0) {
+        var barCanvas = document.getElementById('barChart');
+        var lineCanvas = document.getElementById('lineChart');
+        var barMinW = Math.max(count * 50, 400);
+        var lineMinW = Math.max(count * 40, 400);
+        if (barCanvas) barCanvas.style.minWidth = barMinW + 'px';
+        if (lineCanvas) lineCanvas.style.minWidth = lineMinW + 'px';
+    }
+}
+
+// ── TOGGLE CHART MAXIMIZE ─────────────────────────────────────────────────────
+function toggleChartMaximize(cardId) {
+    var card = document.getElementById(cardId);
+    if (!card) return;
+    var btn = card.querySelector('.chart-maximize-btn');
+    var isMax = card.classList.toggle('chart-maximized');
+    if (btn) {
+        btn.innerHTML = isMax ? '<i class="bi bi-arrows-collapse"></i>' : '<i class="bi bi-arrows-expand"></i>';
+        btn.title = isMax ? 'Minimize' : 'Maximize';
+    }
+    setTimeout(function() {
+        [lineChartInstance, barChartInstance].forEach(function(ch) { if (ch) ch.resize(); });
+    }, 100);
 }
 
 // ── MAIN FETCH + RENDER ───────────────────────────────────────────────────────
