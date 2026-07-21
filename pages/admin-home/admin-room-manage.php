@@ -142,18 +142,40 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                         <input type="text" id="roomSearch" class="form-control" placeholder="Search room name or faculty..." style="max-width:500px;margin-left:16px;">
                     </div>
                     <div class="d-flex align-items-center pe-2" style="position:relative;">
+                        <button type="button" class="timetable-btn" data-panel="panelDepartmentFilter" title="Filter by Department">
+                            <i class="bi bi-funnel"></i>
+                            <span class="timetable-btn-title bold">Department</span>
+                        </button>
+                        <div id="panelDepartmentFilter" class="timetable-panel panel-from-right p-3 m-3">
+                            <div class="section-container timetable" style="background-color:#f8f9fa;">
+                                <?php if (!empty($activeDeptNames)): ?>
+                                <ul class="list-unstyled mb-0" id="departmentFilterMenu" style="max-height:300px;overflow-y:auto;">
+                                    <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Departments</a></li>
+                                    <?php foreach ($activeDeptNames as $dept): ?>
+                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($dept) ?>"><?= htmlspecialchars($dept) ?></a></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                                <?php else: ?>
+                                <p class="text-muted text-center small my-3">No current schedules.</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                         <button type="button" class="timetable-btn" data-panel="panelSubjectAreaFilter" title="Filter by Subject Area">
                             <i class="bi bi-funnel"></i>
                             <span class="timetable-btn-title bold">Subject<br>Area</span>
                         </button>
                         <div id="panelSubjectAreaFilter" class="timetable-panel panel-from-right p-3 m-3">
                             <div class="section-container timetable" style="background-color:#f8f9fa;">
+                                <?php if (!empty($activeSaNames)): ?>
                                 <ul class="list-unstyled mb-0" id="subjectAreaFilterMenu" style="max-height:300px;overflow-y:auto;">
                                     <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subject Areas</a></li>
-                                    <?php foreach ($allSaNames as $sa): ?>
+                                    <?php foreach ($activeSaNames as $sa): ?>
                                     <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($sa) ?>"><?= htmlspecialchars($sa) ?></a></li>
                                     <?php endforeach; ?>
                                 </ul>
+                                <?php else: ?>
+                                <p class="text-muted text-center small my-3">No current schedules.</p>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <button type="button" class="timetable-btn" data-panel="panelSubjectFilter2" title="Filter by Subject">
@@ -162,12 +184,16 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                         </button>
                         <div id="panelSubjectFilter2" class="timetable-panel panel-from-right p-3 m-3">
                             <div class="section-container timetable" style="background-color:#f8f9fa;">
+                                <?php if (!empty($activeSubjNames)): ?>
                                 <ul class="list-unstyled mb-0" id="subjectFilterMenu2" style="max-height:300px;overflow-y:auto;">
                                     <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subjects</a></li>
-                                    <?php foreach ($allSubjNames as $subj): ?>
+                                    <?php foreach ($activeSubjNames as $subj): ?>
                                     <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="<?= htmlspecialchars($subj) ?>"><?= htmlspecialchars($subj) ?></a></li>
                                     <?php endforeach; ?>
                                 </ul>
+                                <?php else: ?>
+                                <p class="text-muted text-center small my-3">No current schedules.</p>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -178,10 +204,13 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 <div class="main-container" style="padding: 1rem; background-color: var(--secondary-color-2);">
                 <div class="rooms-grid" id="roomsGrid">
                     <?php
-                    // Build faculty coverage lookup and filter options
-                    $facultyCov = []; // faculty_id => [ 'sa' => [id=>name], 'subjects' => [id=>name] ]
-                    $allSaNames = [];
+                    // ── Build faculty coverage lookups (ALL faculty) ──
+                    $facultyCov   = []; // faculty_id => [ 'sa' => [...], 'subjects' => [...] ]
+                    $facultyDepts = []; // faculty_id => [ dept_name, ... ]
+                    $allSaNames   = [];
                     $allSubjNames = [];
+                    $allDeptNames = [];
+
                     $covSt = @$conn->prepare("
                         SELECT jfsa.faculty_id, sa.id AS sa_id, sa.name AS sa_name,
                                jfs.subject_id, sub.name AS subj_name
@@ -210,8 +239,69 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                         }
                         $covSt->close();
                     }
+
+                    $deptSt = @$conn->prepare("
+                        SELECT jfd.faculty_id, d.id AS dept_id, d.name AS dept_name
+                        FROM junction_faculty_department jfd
+                        JOIN departments d ON d.id = jfd.department_id
+                        WHERE d.status = 'active'
+                        ORDER BY d.name
+                    ");
+                    if ($deptSt) {
+                        @$deptSt->execute();
+                        $deptRes = @$deptSt->get_result();
+                        if ($deptRes) {
+                            while ($row = $deptRes->fetch_assoc()) {
+                                $fid = (int)$row['faculty_id'];
+                                if (!isset($facultyDepts[$fid])) $facultyDepts[$fid] = [];
+                                $facultyDepts[$fid][(int)$row['dept_id']] = $row['dept_name'];
+                                $allDeptNames[$row['dept_name']] = $row['dept_name'];
+                            }
+                        }
+                        $deptSt->close();
+                    }
                     sort($allSaNames);
                     sort($allSubjNames);
+                    sort($allDeptNames);
+
+                    // ── Find currently active faculty (occupied rooms right now) ──
+                    $activeDay  = date('l');
+                    $activeTime = date('H:i:s');
+                    $activeFacultyIds = [];
+                    $actSt = $conn->prepare("
+                        SELECT DISTINCT s.faculty_id
+                        FROM schedules s
+                        WHERE s.day_of_week = ? AND s.start_time <= ? AND s.end_time >= ?
+                    ");
+                    if ($actSt) {
+                        $actSt->bind_param('sss', $activeDay, $activeTime, $activeTime);
+                        @$actSt->execute();
+                        $actRes = @$actSt->get_result();
+                        if ($actRes) {
+                            while ($row = $actRes->fetch_assoc()) {
+                                $activeFacultyIds[] = (int)$row['faculty_id'];
+                            }
+                        }
+                        $actSt->close();
+                    }
+
+                    // ── Build active-only filter lists ──
+                    $activeSaNames     = [];
+                    $activeSubjNames   = [];
+                    $activeDeptNames   = [];
+                    foreach ($activeFacultyIds as $fid) {
+                        if (isset($facultyCov[$fid])) {
+                            foreach ($facultyCov[$fid]['sa'] as $n) $activeSaNames[$n] = $n;
+                            foreach ($facultyCov[$fid]['subjects'] as $n) $activeSubjNames[$n] = $n;
+                        }
+                        if (isset($facultyDepts[$fid])) {
+                            foreach ($facultyDepts[$fid] as $n) $activeDeptNames[$n] = $n;
+                        }
+                    }
+                    ksort($activeSaNames);
+                    ksort($activeSubjNames);
+                    ksort($activeDeptNames);
+
                     foreach ($classrooms as $c):
                         $on         = ($c['light_status'] === 'on');
                         $curSched   = getCurrentSchedule($conn, $c['id']);
@@ -221,6 +311,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                         $cov        = $isOccupied && isset($facultyCov[$fid]) ? $facultyCov[$fid] : null;
                         $covSaNames = $cov ? implode(',', array_unique(array_values($cov['sa']))) : '';
                         $covSubjNames = $cov ? implode(',', array_unique(array_values($cov['subjects']))) : '';
+                        $covDeptNames = $isOccupied && isset($facultyDepts[$fid]) ? implode(',', array_unique(array_values($facultyDepts[$fid]))) : '';
 
                         if ($isOccupied) {
                             $accentClass = 'accent-occupied';
@@ -279,7 +370,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                             }
                         }
                     ?>
-                        <div class="room-card" data-room-id="<?= $c['id'] ?>" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>" data-sa="<?= htmlspecialchars(strtolower($covSaNames)) ?>" data-subjects="<?= htmlspecialchars(strtolower($covSubjNames)) ?>">
+                        <div class="room-card" data-room-id="<?= $c['id'] ?>" data-room="<?= htmlspecialchars(strtolower($c['room_name'])) ?>" data-sa="<?= htmlspecialchars(strtolower($covSaNames)) ?>" data-subjects="<?= htmlspecialchars(strtolower($covSubjNames)) ?>" data-departments="<?= htmlspecialchars(strtolower($covDeptNames)) ?>">
                             <div class="room-card-accent <?= $accentClass ?>"></div>
                             <div class="room-card-body">
                                 <div class="room-card-header">
@@ -1004,12 +1095,16 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
             // ── Combined filter logic ──
             function applyFilters() {
+                var deptVal = (document.querySelector('#departmentFilterMenu .filter-option.active') || {}).dataset?.value || '';
                 var saVal = (document.querySelector('#subjectAreaFilterMenu .filter-option.active') || {}).dataset?.value || '';
                 var subjVal = (document.querySelector('#subjectFilterMenu2 .filter-option.active') || {}).dataset?.value || '';
                 var searchVal = (document.getElementById('roomSearch') || {}).value || '';
                 searchVal = searchVal.toLowerCase();
                 document.querySelectorAll('.room-card').forEach(function(card) {
                     var show = true;
+                    if (deptVal) {
+                        show = show && (card.dataset.departments || '').toLowerCase().includes(deptVal.toLowerCase());
+                    }
                     if (saVal) {
                         show = show && (card.dataset.sa || '').toLowerCase().includes(saVal.toLowerCase());
                     }
@@ -1026,7 +1121,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 });
             }
 
-            document.querySelectorAll('#subjectAreaFilterMenu .filter-option, #subjectFilterMenu2 .filter-option').forEach(function(opt) {
+            document.querySelectorAll('#departmentFilterMenu .filter-option, #subjectAreaFilterMenu .filter-option, #subjectFilterMenu2 .filter-option').forEach(function(opt) {
                 opt.addEventListener('click', function(e) {
                     e.preventDefault();
                     var parent = this.closest('ul');
@@ -1043,7 +1138,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
             // ── Timetable-panel toggle (hover/focus open, mouseleave close with delay) ──
             (function() {
-                var panels = ['panelGuideInfo', 'panelSubjectAreaFilter', 'panelSubjectFilter2'];
+                var panels = ['panelGuideInfo', 'panelDepartmentFilter', 'panelSubjectAreaFilter', 'panelSubjectFilter2'];
                 var timers = {};
                 panels.forEach(function(id) {
                     var btn = document.querySelector('[data-panel="' + id + '"]');
