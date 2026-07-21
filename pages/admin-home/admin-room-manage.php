@@ -733,13 +733,17 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             const schedEl = document.getElementById('modalCurrentSched');
             if (data.current_schedule) {
                 const s = data.current_schedule;
+                const badges = [];
+                if (s.subject_name) badges.push(`<span style="display:inline-block;background:#e8f5e9;color:#2e7d32;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;">${s.subject_name}</span>`);
+                if (s.subject_area_name) badges.push(`<span style="display:inline-block;background:#e3f2fd;color:#1565c0;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;">${s.subject_area_name}</span>`);
+                if (s.department_name) badges.push(`<span style="display:inline-block;background:#fce4ec;color:#c62828;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;">${s.department_name}</span>`);
                 schedEl.innerHTML = `
-            <div class="d-flex align-items-center gap-3">
-                <div class="avatar-icon d-flex align-items-center justify-content-center"
+            <div class="d-flex align-items-start gap-3">
+                <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0"
                      style="width:48px;height:48px;font-size:1rem;">
                     <span class="bold">${s.initials}</span>
                 </div>
-                <div>
+                <div style="flex:1;min-width:0;">
                     <p class="bold mb-0" style="font-size:.9rem;">${s.faculty_name}</p>
                     <small class="text-muted">Faculty Member</small>
                     <div style="font-size:.82rem;margin-top:.3rem;">
@@ -751,17 +755,29 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                     <div style="font-size:.9rem;font-weight:600;margin-top:.15rem;">
                         ${s.start_time} – ${s.end_time}
                     </div>
+                    ${badges.length ? '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">' + badges.join('') + '</div>' : ''}
                 </div>
             </div>`;
             } else if (data.next_schedule) {
+                const ns = data.next_schedule;
+                const dayInfo = ns.day_name ? '<span style="color:#a06800;font-weight:600;">' + ns.day_name + '</span>' : '';
                 schedEl.innerHTML = `
-            <div style="font-size:.85rem;">
-                <span style="background:#fff5d6;color:#a06800;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">
-                    SCHEDULED
-                </span>
-                <p class="text-muted mt-2 mb-0">No active schedule right now.</p>
-                <p class="bold mb-0 mt-1">${data.next_schedule.start_time} – ${data.next_schedule.end_time}</p>
-                <small class="text-muted">${data.next_schedule.faculty_name}</small>
+            <div class="d-flex align-items-start gap-3">
+                <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:48px;height:48px;font-size:1rem;background:#fff5d6;color:#a06800;">
+                    <i class="bi bi-calendar-event" style="font-size:1.2rem;"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <span style="display:inline-block;background:#fff5d6;color:#a06800;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;margin-bottom:6px;">
+                        SCHEDULED
+                    </span>
+                    <p class="bold mb-0" style="font-size:.9rem;">${ns.faculty_name || '—'}</p>
+                    <small class="text-muted">Next class</small>
+                    <div style="font-size:.9rem;font-weight:600;margin-top:.2rem;">
+                        ${ns.start_time} – ${ns.end_time}
+                    </div>
+                    ${dayInfo ? '<div style="font-size:.82rem;margin-top:2px;">' + dayInfo + '</div>' : ''}
+                </div>
             </div>`;
             } else if (data.today_schedules && data.today_schedules.length > 0) {
                 schedEl.innerHTML = `

@@ -44,15 +44,20 @@ $pir_active = !empty($pirRow);
 $cam_active = false;
 
 // ── 4. Current schedule (right now) ───────────────────────────────────────
-$row  = $conn->query("SELECT DAYNAME(CURDATE()) as day, TIME(NOW()) as t")->fetch_assoc();
-$day  = $row['day'];
-$time = $row['t'];
+$day  = date('l');
+$time = date('H:i:s');
 $stmt = $conn->prepare("
     SELECT s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
-           f.first_name, f.last_name
+           f.first_name, f.last_name,
+           sub.name AS subject_name,
+           sa.name AS subject_area_name,
+           d.name AS department_name
     FROM schedules s
     JOIN faculty f ON f.id = s.faculty_id
+    LEFT JOIN subjects sub ON sub.id = s.subject_id
+    LEFT JOIN subject_area sa ON sa.id = sub.subject_area_id
+    LEFT JOIN departments d ON d.id = sub.department_id
     WHERE s.classroom_id = ?
       AND s.day_of_week  = ?
       AND TIME(s.start_time) <= TIME(?)
@@ -67,11 +72,14 @@ $stmt->close();
 $current_schedule = null;
 if ($curSched) {
     $current_schedule = [
-        'faculty_name' => $curSched['faculty_name'],
-        'initials'     => strtoupper(substr($curSched['first_name'], 0, 1) . substr($curSched['last_name'], 0, 1)),
-        'start_time'   => date('g:i A', strtotime($curSched['start_time'])),
-        'end_time'     => date('g:i A', strtotime($curSched['end_time'])),
-        'status'       => 'Occupied',
+        'faculty_name'     => $curSched['faculty_name'],
+        'initials'         => strtoupper(substr($curSched['first_name'], 0, 1) . substr($curSched['last_name'], 0, 1)),
+        'start_time'       => date('g:i A', strtotime($curSched['start_time'])),
+        'end_time'         => date('g:i A', strtotime($curSched['end_time'])),
+        'status'           => 'Occupied',
+        'subject_name'     => $curSched['subject_name'] ?? null,
+        'subject_area_name'=> $curSched['subject_area_name'] ?? null,
+        'department_name'  => $curSched['department_name'] ?? null,
     ];
 }
 
