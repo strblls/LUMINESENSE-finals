@@ -546,7 +546,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                     <h6 class="bold mb-0">Timetable</h6>
                                 </div>
-                                <div id="modalTodaySched" style="background:#fff;border-radius:8px;padding:12px;font-size:13px;">
+                                <div id="modalTodaySched">
                                     <em class="text-muted">Loading…</em>
                                 </div>
                             </div>

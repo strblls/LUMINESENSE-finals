@@ -791,19 +791,25 @@
 /* ══════════════════════════════════════
        MODAL WEEKLY GRID — DAY-COLUMN LAYOUT
     ══════════════════════════════════════ */
+#modalTodaySched {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+}
+
 .modal-weekly-grid {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     overflow-x: auto;
     padding-bottom: 6px;
 }
 
 .modal-weekly-card {
     flex-shrink: 0;
-    width: 140px;
+    width: 150px;
     background: #f8f9fa;
-    border-radius: 6px;
-    padding: 10px;
+    border-radius: 8px;
+    padding: 12px 10px;
     min-height: 80px;
 }
 
@@ -828,9 +834,9 @@
 .modal-weekly-slot {
     background: #fff;
     border-radius: 6px;
-    padding: 7px 8px;
-    margin-bottom: 5px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    padding: 8px;
+    margin-bottom: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
 }
 
 .modal-weekly-slot-time {
@@ -868,10 +874,10 @@
 }
 
 .modal-weekly-slot-faculty {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    color: #555;
-    margin-top: 3px;
+    color: #444;
+    margin-top: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
