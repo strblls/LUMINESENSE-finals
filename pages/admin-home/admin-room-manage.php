@@ -734,9 +734,9 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             if (data.current_schedule) {
                 const s = data.current_schedule;
                 const infoRows = [];
-                if (s.subject_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-book" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject:</span> <span style="font-size:.82rem;">${s.subject_name}</span></p></div>`);
-                if (s.subject_area_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-diagram-3" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject Area:</span> <span style="font-size:.82rem;">${s.subject_area_name}</span></p></div>`);
-                if (s.department_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-building" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Department:</span> <span style="font-size:.82rem;">${s.department_name}</span></p></div>`);
+                if (s.subject_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-book" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject:</span> <span style="font-size:.82rem;">${s.subject_name}</span></p></div>`);
+                if (s.subject_area_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-diagram-3" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject Area:</span> <span style="font-size:.82rem;">${s.subject_area_name}</span></p></div>`);
+                if (s.department_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-building" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Department:</span> <span style="font-size:.82rem;">${s.department_name}</span></p></div>`);
                 schedEl.innerHTML = `
             <div class="d-flex align-items-start gap-3">
                 <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0"
@@ -755,10 +755,14 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             } else if (data.next_schedule) {
                 const ns = data.next_schedule;
                 const dayInfo = ns.day_name ? '<span style="color:#a06800;font-weight:600;">' + ns.day_name + '</span>' : '';
+                const infoRows = [];
+                if (ns.subject_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-book" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject:</span> <span style="font-size:.82rem;">${ns.subject_name}</span></p></div>`);
+                if (ns.subject_area_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-diagram-3" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Subject Area:</span> <span style="font-size:.82rem;">${ns.subject_area_name}</span></p></div>`);
+                if (ns.department_name) infoRows.push(`<div class="dept-info-card room-info-row" style="padding:0.25rem 0 3px;"><p class="d-flex align-items-center gap-2 mb-0"><i class="bi bi-building" style="font-size:.85rem;"></i> <span style="font-weight:600;font-size:.82rem;">Department:</span> <span style="font-size:.82rem;">${ns.department_name}</span></p></div>`);
                 schedEl.innerHTML = `
             <div class="d-flex align-items-start gap-3">
                 <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0"
-                     style="width:48px;height:48px;font-size:1rem;background:#fff5d6;color:#a06800;">
+                     style="width:48px;height:48px;font-size:1rem;background:var(--accent-yellow);color:#a06800;">
                     <i class="bi bi-calendar-event" style="font-size:1.2rem;"></i>
                 </div>
                 <div style="flex:1;min-width:0;">
@@ -771,6 +775,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                         ${ns.start_time} – ${ns.end_time}
                     </div>
                     ${dayInfo ? '<div style="font-size:.82rem;margin-top:2px;">' + dayInfo + '</div>' : ''}
+                    ${infoRows.length ? '<div style="margin-top:4px;border-top:1px solid #eee;padding-top:4px;">' + infoRows.join('') + '</div>' : ''}
                 </div>
             </div>`;
             } else if (data.today_schedules && data.today_schedules.length > 0) {

@@ -154,9 +154,15 @@ $stmt->close();
 //8. ── Next schedule today or future day ───────────────────────
 $stmt = $conn->prepare("
     SELECT s.start_time, s.end_time,
-           CONCAT(f.first_name,' ',f.last_name) AS faculty_name
+           CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
+           sub.name AS subject_name,
+           sa.name AS subject_area_name,
+           d.name AS department_name
     FROM schedules s
     JOIN faculty f ON f.id = s.faculty_id
+    LEFT JOIN subjects sub ON sub.id = s.subject_id
+    LEFT JOIN subject_area sa ON sa.id = sub.subject_area_id
+    LEFT JOIN departments d ON d.id = sub.department_id
     WHERE s.classroom_id = ?
       AND s.day_of_week = ?
       AND TIME(s.start_time) > TIME(?)
@@ -171,10 +177,13 @@ $next_schedule = null;
 
 if ($row = $stmt->get_result()->fetch_assoc()) {
     $next_schedule = [
-        'start_time' => date('g:i A', strtotime($row['start_time'])),
-        'end_time' => date('g:i A', strtotime($row['end_time'])),
-        'faculty_name' => $row['faculty_name'],
-        'day_name' => null
+        'start_time'        => date('g:i A', strtotime($row['start_time'])),
+        'end_time'          => date('g:i A', strtotime($row['end_time'])),
+        'faculty_name'      => $row['faculty_name'],
+        'day_name'          => null,
+        'subject_name'      => $row['subject_name'] ?? null,
+        'subject_area_name' => $row['subject_area_name'] ?? null,
+        'department_name'   => $row['department_name'] ?? null,
     ];
 } else {
     $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -183,9 +192,15 @@ if ($row = $stmt->get_result()->fetch_assoc()) {
         $checkDay = $dayOrder[($currentDayIndex + $i) % 7];
         $st2 = $conn->prepare("
             SELECT s.start_time, s.end_time,
-                   CONCAT(f.first_name,' ',f.last_name) AS faculty_name
+                   CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
+                   sub.name AS subject_name,
+                   sa.name AS subject_area_name,
+                   d.name AS department_name
             FROM schedules s
             JOIN faculty f ON f.id = s.faculty_id
+            LEFT JOIN subjects sub ON sub.id = s.subject_id
+            LEFT JOIN subject_area sa ON sa.id = sub.subject_area_id
+            LEFT JOIN departments d ON d.id = sub.department_id
             WHERE s.classroom_id = ?
               AND s.day_of_week = ?
             ORDER BY TIME(s.start_time) ASC
@@ -195,10 +210,13 @@ if ($row = $stmt->get_result()->fetch_assoc()) {
         $st2->execute();
         if ($row = $st2->get_result()->fetch_assoc()) {
             $next_schedule = [
-                'start_time' => date('g:i A', strtotime($row['start_time'])),
-                'end_time' => date('g:i A', strtotime($row['end_time'])),
-                'faculty_name' => $row['faculty_name'],
-                'day_name' => $checkDay
+                'start_time'        => date('g:i A', strtotime($row['start_time'])),
+                'end_time'          => date('g:i A', strtotime($row['end_time'])),
+                'faculty_name'      => $row['faculty_name'],
+                'day_name'          => $checkDay,
+                'subject_name'      => $row['subject_name'] ?? null,
+                'subject_area_name' => $row['subject_area_name'] ?? null,
+                'department_name'   => $row['department_name'] ?? null,
             ];
             $st2->close();
             break;
