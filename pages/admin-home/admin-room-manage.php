@@ -810,10 +810,11 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             }
             syncAllLightsLabel();
 
-            // ── Today's Timetable — weekly schedule grid (horizontal scroll) ──
+            // ── Today's Timetable — weekly schedule grid matching faculty-timetable.php ──
             const todayEl = document.getElementById('modalTodaySched');
             const todayName = new Date().toLocaleDateString('en-US', {weekday:'long'});
             const dayOrder = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            const todayIndex = dayOrder.indexOf(todayName);
             const grouped = {};
             dayOrder.forEach(d => grouped[d] = []);
             if (data.all_schedules) {
@@ -822,7 +823,15 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 });
                 Object.values(grouped).forEach(arr => arr.sort((a,b) => a.start_time.localeCompare(b.start_time)));
             }
-            todayEl.innerHTML = '<div class="modal-weekly-grid">' +
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const now = new Date();
+            const dateLabels = {};
+            dayOrder.forEach((day, i) => {
+                const d = new Date(now);
+                d.setDate(d.getDate() + (i - todayIndex));
+                dateLabels[day] = months[d.getMonth()] + ' ' + d.getDate();
+            });
+            todayEl.innerHTML = '<div class="weekly-schedule-grid" style="min-width:max-content;">' +
                 dayOrder.map(day => {
                     const isToday = day === todayName;
                     const slots = grouped[day];
@@ -830,19 +839,24 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                         ? slots.map(s => {
                             const sp = s.start_time.split(' ');
                             const ep = s.end_time.split(' ');
-                            return `<div class="modal-weekly-slot">
-                                <div class="modal-weekly-slot-time">
-                                    <span class="mws-start">${sp[0]}</span>
-                                    <span class="mws-sep">TO</span>
-                                    <span class="mws-end">${ep[0]}</span>
-                                    <span class="mws-ampm">${ep[1]}</span>
+                            return `<div class="slot-row">
+                                <div class="slot-time">
+                                    <span class="slot-time-start">${sp[0]}</span>
+                                    <span class="slot-time-separator">TO</span>
+                                    <span class="slot-time-end">${ep[0]}</span>
+                                    <span class="slot-time-ampm">${ep[1]}</span>
                                 </div>
-                                <div class="modal-weekly-slot-faculty">${s.faculty_name}</div>
+                                <div class="slot-content">
+                                    <div class="slot-room"><i class="bi bi-person me-1"></i>${s.faculty_name}</div>
+                                </div>
                             </div>`;
                         }).join('')
                         : '<p class="no-sched">No classes scheduled.</p>';
-                    return `<div class="modal-weekly-card${isToday ? ' today' : ''}">
-                        <div class="modal-weekly-label">${day}</div>
+                    return `<div class="day-card${isToday ? ' today' : ''}">
+                        <div class="day-label">
+                            <div class="text-uppercase small fw-bold mb-1" style="font-size:11px;letter-spacing:0.5px;color:${isToday ? '#fff' : '#6c757d'};">${dateLabels[day]}</div>
+                            ${day}${isToday ? ' · Today' : ''}
+                        </div>
                         ${slotsHtml}
                     </div>`;
                 }).join('') + '</div>';
