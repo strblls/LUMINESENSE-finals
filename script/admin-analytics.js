@@ -387,11 +387,22 @@ function updateCharts(labels, chartData) {
     const currents = chartData.map(d => (d && d.avg_current != null) ? d.avg_current : null);
     const powers   = chartData.map(d => (d && d.avg_power   != null) ? d.avg_power   : null);
 
+    // Global y-axis max across all data
+    var maxV = 0, maxA = 0, maxW = 0;
+    chartData.forEach(function(d) {
+        if (d && d.avg_voltage != null && d.avg_voltage > maxV) maxV = d.avg_voltage;
+        if (d && d.avg_current != null && d.avg_current > maxA) maxA = d.avg_current;
+        if (d && d.avg_power   != null && d.avg_power   > maxW) maxW = d.avg_power;
+    });
+
     // Bar chart
     barChartInstance.data.labels           = labels;
     barChartInstance.data.datasets[0].data = voltages;
     barChartInstance.data.datasets[1].data = currents;
     barChartInstance.data.datasets[2].data = powers;
+    barChartInstance.options.scales.y.max  = maxV > 0 ? maxV * 1.1 : undefined;
+    barChartInstance.options.scales.y1.max = maxA > 0 ? maxA * 1.1 : undefined;
+    barChartInstance.options.scales.y2.max = maxW > 0 ? maxW * 1.1 : undefined;
     barChartInstance.update();
 
     // Line chart
@@ -399,9 +410,12 @@ function updateCharts(labels, chartData) {
     lineChartInstance.data.datasets[0].data = voltages;
     lineChartInstance.data.datasets[1].data = currents;
     lineChartInstance.data.datasets[2].data = powers;
+    lineChartInstance.options.scales.y.max  = maxV > 0 ? maxV * 1.1 : undefined;
+    lineChartInstance.options.scales.y1.max = maxA > 0 ? maxA * 1.1 : undefined;
+    lineChartInstance.options.scales.y2.max = maxW > 0 ? maxW * 1.1 : undefined;
     lineChartInstance.update();
 
-    // Update scrollbars
+    // Update scrollbars, auto-scroll to rightmost on new data
     ['lineChart', 'barChart'].forEach(function(key) {
         var chart = key === 'lineChart' ? lineChartInstance : barChartInstance;
         var wrap = document.getElementById(key + 'ScrollWrap');
@@ -421,11 +435,11 @@ function updateCharts(labels, chartData) {
         wrap.classList.add('visible');
         var maxVal = n - WINDOW_SIZE;
         slider.max = maxVal;
-        var val = parseInt(slider.value);
-        if (val > maxVal) { slider.value = maxVal; val = maxVal; }
-        chartScrollOffset[key] = val;
-        chart.options.scales.x.min = val;
-        chart.options.scales.x.max = val + WINDOW_SIZE;
+        // Auto-scroll to rightmost (latest data)
+        slider.value = maxVal;
+        chartScrollOffset[key] = maxVal;
+        chart.options.scales.x.min = maxVal;
+        chart.options.scales.x.max = maxVal + WINDOW_SIZE;
         chart.update();
     });
 }
