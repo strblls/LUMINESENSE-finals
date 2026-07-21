@@ -183,30 +183,34 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                     $facultyCov = []; // faculty_id => [ 'sa' => [id=>name], 'subjects' => [id=>name] ]
                     $allSaNames = [];
                     $allSubjNames = [];
-                    $covSt = $conn->prepare("
+                    $covSt = @$conn->prepare("
                         SELECT jfsa.faculty_id, sa.id AS sa_id, sa.name AS sa_name,
                                jfs.subject_id, sub.name AS subj_name
                         FROM junction_faculty_subjectarea jfsa
                         JOIN subject_area sa ON sa.id = jfsa.subject_area_id
                         LEFT JOIN junction_faculty_subject jfs ON jfs.faculty_id = jfsa.faculty_id
-                        LEFT JOIN subjects sub ON sub.id = jfs.subject_id AND sub.subject_area_id = sa.id
+                        LEFT JOIN subjects sub ON sub.id = jfs.subject_id
                         ORDER BY sa.name, sub.name
                     ");
-                    $covSt->execute();
-                    $covRes = $covSt->get_result();
-                    while ($row = $covRes->fetch_assoc()) {
-                        $fid = (int)$row['faculty_id'];
-                        if (!isset($facultyCov[$fid])) {
-                            $facultyCov[$fid] = ['sa' => [], 'subjects' => []];
+                    if ($covSt) {
+                        @$covSt->execute();
+                        $covRes = @$covSt->get_result();
+                        if ($covRes) {
+                            while ($row = $covRes->fetch_assoc()) {
+                                $fid = (int)$row['faculty_id'];
+                                if (!isset($facultyCov[$fid])) {
+                                    $facultyCov[$fid] = ['sa' => [], 'subjects' => []];
+                                }
+                                $facultyCov[$fid]['sa'][(int)$row['sa_id']] = $row['sa_name'];
+                                $allSaNames[$row['sa_name']] = $row['sa_name'];
+                                if (!empty($row['subject_id'])) {
+                                    $facultyCov[$fid]['subjects'][(int)$row['subject_id']] = $row['subj_name'];
+                                    $allSubjNames[$row['subj_name']] = $row['subj_name'];
+                                }
+                            }
                         }
-                        $facultyCov[$fid]['sa'][(int)$row['sa_id']] = $row['sa_name'];
-                        $allSaNames[$row['sa_name']] = $row['sa_name'];
-                        if (!empty($row['subject_id'])) {
-                            $facultyCov[$fid]['subjects'][(int)$row['subject_id']] = $row['subj_name'];
-                            $allSubjNames[$row['subj_name']] = $row['subj_name'];
-                        }
+                        $covSt->close();
                     }
-                    $covSt->close();
                     sort($allSaNames);
                     sort($allSubjNames);
                     foreach ($classrooms as $c):
