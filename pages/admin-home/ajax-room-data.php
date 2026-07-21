@@ -44,8 +44,9 @@ $pir_active = !empty($pirRow);
 $cam_active = false;
 
 // ── 4. Current schedule (right now) ───────────────────────────────────────
-$day  = date('l');
-$time = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc()['t'];
+$row  = $conn->query("SELECT DAYNAME(CURDATE()) as day, TIME(NOW()) as t")->fetch_assoc();
+$day  = $row['day'];
+$time = $row['t'];
 $stmt = $conn->prepare("
     SELECT s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
@@ -129,7 +130,7 @@ $stmt->close();
 // ── 7. Room activity log / alerts ──────────────────────────────────────────
 $stmt = $conn->prepare("
     SELECT event_type, triggered_by, row_affected,
-           DATE_FORMAT(event_time,'%Y-%m-%d %H:%i:%s') AS event_time
+           DATE_FORMAT(CONVERT_TZ(event_time, @@session.time_zone, '+08:00'),'%Y-%m-%dT%H:%i:%s+08:00') AS event_time
     FROM lighting_logs
     WHERE classroom_id = ?
     ORDER BY event_time DESC

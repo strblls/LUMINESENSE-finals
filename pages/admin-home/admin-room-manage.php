@@ -5,8 +5,9 @@ date_default_timezone_set('Asia/Manila');
 
 function getRoomSchedules($conn, $room_id)
 {
-    $day  = date('l');
-    $time = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc()['t'];
+    $row = $conn->query("SELECT DAYNAME(CURDATE()) as day, TIME(NOW()) as t")->fetch_assoc();
+    $day  = $row['day'];
+    $time = $row['t'];
     $stmt = $conn->prepare("
         SELECT s.start_time, s.end_time,
                CONCAT(f.first_name,' ',f.last_name) AS faculty_name
@@ -17,7 +18,7 @@ function getRoomSchedules($conn, $room_id)
           AND s.end_time >= ?
         ORDER BY s.start_time
     ");
-    $stmt->bind_param('iss', $room_id, $day, $time);
+    $stmt->bind_param('isss', $room_id, $day, $time, $time);
     $stmt->execute();
     $result = $stmt->get_result();
     $rows = [];
@@ -49,8 +50,9 @@ function getRoomSchedules($conn, $room_id)
 
 function getCurrentSchedule($conn, $room_id)
 {
-    $day  = date('l');
-    $time = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc()['t'];
+    $row = $conn->query("SELECT DAYNAME(CURDATE()) as day, TIME(NOW()) as t")->fetch_assoc();
+    $day  = $row['day'];
+    $time = $row['t'];
     $stmt = $conn->prepare("
         SELECT s.start_time, s.end_time,
                s.faculty_id,
@@ -233,8 +235,9 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
                         $nextSched = null;
                         if (!$isOccupied) {
-                            $day  = date('l');
-                            $time = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc()['t'];
+                            $row  = $conn->query("SELECT DAYNAME(CURDATE()) as day, TIME(NOW()) as t")->fetch_assoc();
+                            $day  = $row['day'];
+                            $time = $row['t'];
                             $st = $conn->prepare("
                                 SELECT start_time FROM schedules 
                                 WHERE classroom_id = ? 
@@ -294,7 +297,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                                     <p class="d-flex align-items-center gap-2"><i class="bi bi-person-fill"></i> <span class="room-info-label">Current Faculty:</span> <span class="room-info-val"><?= htmlspecialchars($fName) ?></span></p>
                                 </div>
                                 <div class="dept-info-card room-info-row" style="padding: 0.5rem;">
-                                    <p class="d-flex align-items-center gap-2"><i class="bi bi-clock-fill"></i> <span class="room-info-label"><?= $isOccupied ? 'Time:' : 'Next class:' ?></span> <span class="room-info-val"><?php if ($isOccupied): ?><?= date('g:i A', strtotime($curSched['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($curSched['end_time'])) ?><?php else: ?><?= $nextSched ?? 'None scheduled' ?><?php endif; ?></span></p>
+                                    <p class="d-flex align-items-center gap-2"><i class="bi bi-clock-fill"></i> <span class="room-info-label"><?= $isOccupied ? 'Current Class:' : 'Next class:' ?></span> <span class="room-info-val"><?php if ($isOccupied): ?><?= date('g:i A', strtotime($curSched['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($curSched['end_time'])) ?><?php else: ?><?= $nextSched ?? 'None scheduled' ?><?php endif; ?></span></p>
                                 </div>
                                 <div class="dept-info-card room-info-row" style="padding: 0.5rem;">
                                     <p class="d-flex align-items-center gap-2"><i class="bi bi-lightbulb-fill"></i> <span class="room-info-label">Lighting:</span> <span class="room-info-val" style="display:inline-flex;gap:6px;align-items:center;"><span><span class="light-dot <?= $c['row1_status'] === 'on' ? 'on' : 'off' ?>" style="width:7px;height:7px;"></span> R1</span><span><span class="light-dot <?= $c['row2_status'] === 'on' ? 'on' : 'off' ?>" style="width:7px;height:7px;"></span> R2</span><span><span class="light-dot <?= $c['row3_status'] === 'on' ? 'on' : 'off' ?>" style="width:7px;height:7px;"></span> R3</span></span></p>
@@ -683,7 +686,7 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                         const timeVal = card.querySelector('.room-info-row .bi-clock-fill')?.closest('.room-info-row')?.querySelector('.room-info-val');
                         if (timeLabel && timeVal) {
                             if (isOccupied) {
-                                timeLabel.textContent = 'Time:';
+                                timeLabel.textContent = 'Current Class:';
                                 const st = cur.start_time ? new Date('2000-01-01T' + cur.start_time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : '';
                                 const et = cur.end_time ? new Date('2000-01-01T' + cur.end_time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}) : '';
                                 timeVal.textContent = st && et ? st + ' \u2013 ' + et : '\u2014';
@@ -749,13 +752,12 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
                 </div>
             </div>`;
             } else if (data.next_schedule) {
-                const dayLabel = data.next_schedule.day_name ? ' (' + data.next_schedule.day_name + ')' : ' today';
                 schedEl.innerHTML = `
             <div style="font-size:.85rem;">
                 <span style="background:#fff5d6;color:#a06800;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">
                     SCHEDULED
                 </span>
-                <p class="text-muted mt-2 mb-0">No active class right now. Next class${dayLabel}:</p>
+                <p class="text-muted mt-2 mb-0">No active schedule right now.</p>
                 <p class="bold mb-0 mt-1">${data.next_schedule.start_time} – ${data.next_schedule.end_time}</p>
                 <small class="text-muted">${data.next_schedule.faculty_name}</small>
             </div>`;
@@ -842,9 +844,9 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
             if (data.alerts && data.alerts.length > 0) {
                 const renderAlert = a => {
                     const icon = alertIconMap(a.event_type);
-                    const dt = a.event_time ? new Date(a.event_time.replace(' ', 'T')) : null;
-                    const timeStr = dt ? dt.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit',hour12:true}) + ', ' +
-                        dt.toLocaleDateString('en-US', {month:'short',day:'numeric'}) : '';
+                    const dt = a.event_time ? new Date(a.event_time) : null;
+                    const timeStr = dt ? dt.toLocaleTimeString('en-US', {timeZone:'Asia/Manila',hour:'numeric',minute:'2-digit',hour12:true}) + ', ' +
+                        dt.toLocaleDateString('en-US', {timeZone:'Asia/Manila',month:'short',day:'numeric'}) : '';
                     const triggered = (a.triggered_by || '').toLowerCase().trim();
                     const label = (a.event_type || '').replace(/_/g, ' ');
                     return `<div class="modal-timeline-item">

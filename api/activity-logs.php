@@ -25,7 +25,12 @@ $res = $conn->query("
     LIMIT 200
 ");
 if ($res) {
-    while ($row = $res->fetch_assoc()) $logs[] = $row;
+    while ($row = $res->fetch_assoc()) {
+        if (!empty($row['log_time'])) {
+            $row['log_time'] = date('Y-m-d\TH:i:s', strtotime($row['log_time'])) . '+08:00';
+        }
+        $logs[] = $row;
+    }
     $res->free();
 }
 
@@ -49,7 +54,12 @@ $res2 = $conn->query("
     LIMIT 200
 ");
 if ($res2) {
-    while ($row = $res2->fetch_assoc()) $logs[] = $row;
+    while ($row = $res2->fetch_assoc()) {
+        if (!empty($row['log_time'])) {
+            $row['log_time'] = date('Y-m-d\TH:i:s', strtotime($row['log_time'])) . '+08:00';
+        }
+        $logs[] = $row;
+    }
     $res2->free();
 }
 

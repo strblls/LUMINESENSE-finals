@@ -188,7 +188,7 @@ function event_icon(string $type): array
                 <div class="stat-row" id="statRow">
                     <div class="stat-card"
                          data-a-icon="bi-journal-text" data-a-label="Total Log Entries" data-a-val="<?= count($activity_logs) ?>"
-                         data-r-icon="bi-building"      data-r-label="Total Rooms"        data-r-val="<?= count($rooms) ?>">
+                         data-r-icon="bi-door-open"     data-r-label="Total Rooms"        data-r-val="<?= count($rooms) ?>">
                         <span class="stat-icon"><i class="bi bi-journal-text" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                         <div>
                             <div class="stat-value"><?= count($activity_logs) ?></div>
@@ -569,8 +569,8 @@ function event_icon(string $type): array
                     const typeClr = isRoom ? '#4a0078' : '#ede6f2';
                     const typeLabel = isRoom ? 'Room' : 'Admin';
                     const d = new Date(log.log_time);
-                    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    const dateStr = d.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
+                    const timeStr = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
                     const dateVal = d.toISOString().slice(0, 10);
                     const searchVal = (log.target + ' ' + log.actor + ' ' + log.action).toLowerCase().replace(/"/g, '&quot;');
                     const actionLabel = log.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -653,8 +653,8 @@ function event_icon(string $type): array
                             var html = '<div style="padding:8px 12px;">';
                             res.data.forEach(function(log) {
                                 var d = new Date(log.event_time);
-                                var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                var dateStr = d.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
+                                var timeStr = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
                                 var iconMap = {
                                     light_on: 'bi-lightbulb-fill', light_off: 'bi-lightbulb',
                                     motion_detect: 'bi-person-bounding-box', door_open: 'bi-door-open-fill',

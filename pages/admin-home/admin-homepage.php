@@ -802,7 +802,7 @@ $fm_res->free();
                                             'description' => $c['description'] ?? '',
                                             'light_status' => $c['light_status'],
                                         ]), ENT_QUOTES) ?>'>
-                                            <i class="bi bi-building room-icon"></i>
+<i class="bi bi-door-open room-icon"></i>
                                             <div class="room-info">
                                                 <div class="d-flex align-items-center gap-2">
                                                     <h5 class="mb-0"><?= htmlspecialchars($c['room_name']) ?></h5>

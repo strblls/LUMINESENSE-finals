@@ -107,6 +107,7 @@ void setup()
     Serial.begin(9600);
     Serial2.begin(4800);
     Wire.begin();
+    Serial1.begin(9600);
 
     pinMode(ROW1_PIN, OUTPUT);
     pinMode(ROW2_PIN, OUTPUT);
@@ -528,9 +529,15 @@ void readPZEM()
     double freq = pzem.frequency();
     double pf = pzem.pf();
 
-    if (isnan(voltage) || isnan(current) || isnan(power) || voltage == 0.0)
+    if (isnan(voltage) || isnan(current) || isnan(power))
     {
-        Serial.println(F("[PZEM] Read error"));
+        Serial.println(F("[PZEM] Comm fail — check AC power & wiring"));
+        return;
+    }
+
+    if (voltage == 0.0)
+    {
+        Serial.println(F("[PZEM] AC voltage reads 0 — check AC input to PZEM"));
         return;
     }
 

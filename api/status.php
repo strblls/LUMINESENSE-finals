@@ -4,6 +4,7 @@
 // Used by both dashboards for real-time display.
 
 require_once '../php/db_connect.php';
+date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 
 if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['faculty_logged_in'])) {
