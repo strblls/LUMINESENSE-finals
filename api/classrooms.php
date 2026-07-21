@@ -28,61 +28,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $rows = [];
     $timeRow = $conn->query("SELECT TIME(NOW()) as t")->fetch_assoc();
     $now = $timeRow['t'];
-    $r = $conn->query("
+    $r = @$conn->query("
         SELECT c.*, COUNT(s.id) AS schedule_count
         FROM classrooms c
         LEFT JOIN schedules s ON s.classroom_id = c.id
         GROUP BY c.id ORDER BY c.room_name
     ");
+    if (!$r) { echo json_encode(['success'=>false,'message'=>'Query failed.']); exit; }
     while ($row = $r->fetch_assoc()) {
         $rid = (int)$row['id'];
         // Current active schedule
-        $cs = $conn->query("
+        $cs = @$conn->query("
             SELECT CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
-                   s.start_time, s.end_time, s.subject
+                   s.start_time, s.end_time
             FROM schedules s
             JOIN faculty f ON f.id = s.faculty_id
             WHERE s.classroom_id = $rid AND s.day_of_week = DAYNAME(CURDATE())
               AND '$now' BETWEEN s.start_time AND s.end_time
             LIMIT 1
         ");
-        $row['current_schedule'] = $cs->fetch_assoc();
-        $cs->free();
+        $row['current_schedule'] = $cs ? $cs->fetch_assoc() : null;
+        if ($cs) $cs->free();
         // Next upcoming schedule today or future day
         $dayName = date('l');
-        $ns = $conn->query("
+        $ns = @$conn->query("
             SELECT CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
-                   s.start_time, s.subject
+                   s.start_time
             FROM schedules s
             JOIN faculty f ON f.id = s.faculty_id
             WHERE s.classroom_id = $rid AND s.day_of_week = DAYNAME(CURDATE())
               AND s.start_time > '$now'
             ORDER BY s.start_time LIMIT 1
         ");
-        $row['next_schedule'] = $ns->fetch_assoc();
+        $row['next_schedule'] = $ns ? $ns->fetch_assoc() : null;
         if ($row['next_schedule']) {
             $row['next_schedule']['day_name'] = date('l');
             $row['next_schedule']['next_date'] = date('l, F j');
         }
-        $ns->free();
+        if ($ns) $ns->free();
         if (!$row['next_schedule']) {
             $dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             $currentDayIndex = array_search($dayName, $dayOrder);
             for ($i = 1; $i <= 7; $i++) {
                 $checkDay = $dayOrder[($currentDayIndex + $i) % 7];
-                $ns2 = $conn->query("
+                $ns2 = @$conn->query("
                     SELECT CONCAT(f.first_name,' ',f.last_name) AS faculty_name,
-                           s.start_time, s.subject, '$checkDay' AS day_name
+                           s.start_time, '$checkDay' AS day_name
                     FROM schedules s
                     JOIN faculty f ON f.id = s.faculty_id
                     WHERE s.classroom_id = $rid AND s.day_of_week = '$checkDay'
                     ORDER BY s.start_time LIMIT 1
                 ");
-                $row['next_schedule'] = $ns2->fetch_assoc();
+                $row['next_schedule'] = $ns2 ? $ns2->fetch_assoc() : null;
                 if ($row['next_schedule']) {
                     $row['next_schedule']['next_date'] = date('l, F j', strtotime("next $checkDay"));
                 }
-                $ns2->free();
+                if ($ns2) $ns2->free();
                 if ($row['next_schedule']) break;
             }
         }
