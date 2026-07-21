@@ -857,62 +857,47 @@ body.contrast-bg {
     text-align: center;
 }
 
-/* ── Chart maximize button ── */
-.chart-maximize-btn {
-    background: none;
-    border: none;
-    color: var(--secondary-color-3);
-    font-size: 16px;
+/* ── Chart scrollbar ── */
+.chart-scrollbar-wrap {
+    padding: 4px 8px 0;
+    display: none;
+}
+
+.chart-scrollbar-wrap.visible {
+    display: block;
+}
+
+.chart-scrollbar {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(116,47,211,0.12);
+    outline: none;
     cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 4px;
-    transition: background 0.15s, color 0.15s;
-    line-height: 1;
-    margin-left: auto;
 }
 
-.chart-maximize-btn:hover {
-    background: rgba(116, 47, 211, 0.10);
-    color: var(--secondary-color-1);
-}
-
-/* ── Chart scroll buttons ── */
-.chart-scroll-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    background: rgba(255,255,255,0.9);
-    border: 1px solid rgba(116,47,211,0.2);
-    color: var(--secondary-color-2);
-    width: 28px;
-    height: 28px;
+.chart-scrollbar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background 0.15s, opacity 0.15s;
-    opacity: 0;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-}
-
-.chart-wrapper:hover .chart-scroll-btn {
-    opacity: 1;
-}
-
-.chart-scroll-btn:hover {
     background: var(--secondary-color-2);
-    color: #fff;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-.chart-scroll-left {
-    left: 4px;
-}
-
-.chart-scroll-right {
-    right: 4px;
+.chart-scrollbar::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--secondary-color-2);
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 /* ── Chart maximized state ── */
@@ -925,6 +910,7 @@ body.contrast-bg {
     flex-direction: column;
     background: #ffffff !important;
     animation: chartFadeIn .25s ease forwards;
+    padding: 20px 24px !important;
 }
 
 .chart-maximized .chart-wrapper {
@@ -935,6 +921,10 @@ body.contrast-bg {
 
 .chart-maximized .chart-wrapper canvas {
     min-height: 400px;
+}
+
+.chart-maximized .chart-scrollbar-wrap {
+    padding: 8px 0 0;
 }
 
 @keyframes chartFadeIn {

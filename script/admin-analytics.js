@@ -383,12 +383,6 @@ function updateCharts(labels, chartData) {
 
     var count = labels.length;
 
-    // Clamp scroll offsets after data change
-    ['lineChart', 'barChart'].forEach(function(key) {
-        var maxOffset = Math.max(0, count - WINDOW_SIZE);
-        if (chartScrollOffset[key] > maxOffset) chartScrollOffset[key] = maxOffset;
-    });
-
     const voltages = chartData.map(d => (d && d.avg_voltage != null) ? d.avg_voltage : null);
     const currents = chartData.map(d => (d && d.avg_current != null) ? d.avg_current : null);
     const powers   = chartData.map(d => (d && d.avg_power   != null) ? d.avg_power   : null);
@@ -407,43 +401,59 @@ function updateCharts(labels, chartData) {
     lineChartInstance.data.datasets[2].data = powers;
     lineChartInstance.update();
 
-    // Apply window scroll to both charts
-    applyChartWindow('barChart', barChartInstance);
-    applyChartWindow('lineChart', lineChartInstance);
+    // Update scrollbars
+    ['lineChart', 'barChart'].forEach(function(key) {
+        var chart = key === 'lineChart' ? lineChartInstance : barChartInstance;
+        var wrap = document.getElementById(key + 'ScrollWrap');
+        var slider = document.getElementById(key + 'Scroll');
+        if (!wrap || !slider) return;
+        var n = chart.data.labels.length;
+        if (n <= WINDOW_SIZE) {
+            wrap.classList.remove('visible');
+            chartScrollOffset[key] = 0;
+            if (chart.options.scales.x) {
+                chart.options.scales.x.min = undefined;
+                chart.options.scales.x.max = undefined;
+                chart.update();
+            }
+            return;
+        }
+        wrap.classList.add('visible');
+        var maxVal = n - WINDOW_SIZE;
+        slider.max = maxVal;
+        var val = parseInt(slider.value);
+        if (val > maxVal) { slider.value = maxVal; val = maxVal; }
+        chartScrollOffset[key] = val;
+        chart.options.scales.x.min = val;
+        chart.options.scales.x.max = val + WINDOW_SIZE;
+        chart.update();
+    });
 }
 
-function applyChartWindow(chartId, chart) {
+function onChartScroll(chartId, value) {
+    var chart = chartId === 'lineChart' ? lineChartInstance : barChartInstance;
     if (!chart || !chart.data || !chart.data.labels) return;
-    var count = chart.data.labels.length;
-    if (count <= WINDOW_SIZE) return;
-    var offset = chartScrollOffset[chartId] || 0;
+    var offset = parseInt(value);
+    chartScrollOffset[chartId] = offset;
     chart.options.scales.x.min = offset;
     chart.options.scales.x.max = offset + WINDOW_SIZE;
     chart.update();
-}
-
-function scrollChart(chartId, direction) {
-    var chart = chartId === 'lineChart' ? lineChartInstance : barChartInstance;
-    if (!chart || !chart.data || !chart.data.labels) return;
-    var count = chart.data.labels.length;
-    if (count <= WINDOW_SIZE) return;
-    var maxOffset = count - WINDOW_SIZE;
-    var newOffset = (chartScrollOffset[chartId] || 0) + direction;
-    if (newOffset < 0) newOffset = 0;
-    if (newOffset > maxOffset) newOffset = maxOffset;
-    chartScrollOffset[chartId] = newOffset;
-    applyChartWindow(chartId, chart);
 }
 
 // ── TOGGLE CHART MAXIMIZE ─────────────────────────────────────────────────────
 function toggleChartMaximize(cardId) {
     var card = document.getElementById(cardId);
     if (!card) return;
-    var btn = card.querySelector('.chart-maximize-btn');
+    var btn = card.querySelector('.chart-card-header .light');
+    var wrapper = card.querySelector('.chart-wrapper');
     var isMax = card.classList.toggle('chart-maximized');
     if (btn) {
         btn.innerHTML = isMax ? '<i class="bi bi-arrows-collapse"></i>' : '<i class="bi bi-arrows-expand"></i>';
         btn.title = isMax ? 'Minimize' : 'Maximize';
+    }
+    if (!isMax && wrapper) {
+        // Reset wrapper height to default on minimize
+        wrapper.style.height = '';
     }
     setTimeout(function() {
         [lineChartInstance, barChartInstance].forEach(function(ch) { if (ch) ch.resize(); });
