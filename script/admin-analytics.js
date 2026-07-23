@@ -658,13 +658,17 @@ function renderHistoryTable(rows, summary, range) {
         });
 
         var n = rows.length;
+        var occHrs = summary && summary.total_minutes
+            ? (summary.total_minutes / 60).toFixed(1)
+            : '0.0';
         if (tfoot) tfoot.innerHTML = '<tr style="font-weight:600;border-top:2px solid #e0d6f5;">'
             + '<td>Total / Avg</td>'
             + '<td class="text-center">' + totalEnergy.toFixed(4)          + '</td>'
             + '<td class="text-center">' + (totalVoltage / n).toFixed(1)   + '</td>'
             + '<td class="text-center">' + (totalCurrent / n).toFixed(3)   + '</td>'
             + '<td class="text-center">' + (totalPower   / n).toFixed(1)   + '</td>'
-            + '</tr>';
+            + '</tr>'
+            + '<tr style="font-weight:600;"><td colspan="5" class="text-center" style="padding:4px 0;color:#f59e0b;">Occupied Time: ' + occHrs + ' hrs</td></tr>';
         return;
     }
 

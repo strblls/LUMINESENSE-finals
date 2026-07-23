@@ -55,8 +55,58 @@ if ($days === 1) {
     $stmt->execute();
     $summary = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    $summary['total_sessions'] = 0;
-    $summary['total_minutes']  = 0;
+
+    // Today occupied minutes: completed sessions + active session elapsed
+    if ($cid) {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(duration_mins), 0) AS completed_mins,
+                   COUNT(*)                        AS sessions
+            FROM power_sessions
+            WHERE session_date = CURDATE()
+              AND end_time IS NOT NULL
+              AND classroom_id = ?
+        ");
+        $stmt->bind_param('i', $cid);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(duration_mins), 0) AS completed_mins,
+                   COUNT(*)                        AS sessions
+            FROM power_sessions
+            WHERE session_date = CURDATE()
+              AND end_time IS NOT NULL
+        ");
+    }
+    $stmt->execute();
+    $todaySession = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $activeMins = 0;
+    if ($cid) {
+        $stmt = $conn->prepare("
+            SELECT TIMESTAMPDIFF(MINUTE, start_time, NOW()) AS active_mins
+            FROM power_sessions
+            WHERE session_date = CURDATE()
+              AND end_time IS NULL
+              AND classroom_id = ?
+            LIMIT 1
+        ");
+        $stmt->bind_param('i', $cid);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT TIMESTAMPDIFF(MINUTE, start_time, NOW()) AS active_mins
+            FROM power_sessions
+            WHERE session_date = CURDATE()
+              AND end_time IS NULL
+            LIMIT 1
+        ");
+    }
+    $stmt->execute();
+    $activeRow = $stmt->get_result()->fetch_assoc();
+    if ($activeRow) $activeMins = (int)$activeRow['active_mins'];
+    $stmt->close();
+
+    $summary['total_sessions'] = ($todaySession['sessions'] ?? 0) + ($activeRow ? 1 : 0);
+    $summary['total_minutes']  = ($todaySession['completed_mins'] ?? 0) + $activeMins;
 
 } else {
     // Multi-day: aggregate from power_sessions within the selected range

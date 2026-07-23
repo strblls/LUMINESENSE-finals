@@ -69,7 +69,10 @@ $stmt->execute();
 $openSession = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
-if ($anyOn && !$openSession) {
+// Treat as "off" when rows are off OR readings are essentially zero
+$isOff = !$anyOn || ($voltage < 5 && $power < 1);
+
+if (!$isOff && !$openSession) {
     // ── Open new session ──
     $trigger = 'manual'; // default; Mega can pass trigger_source later
     if (!empty($data['trigger_source'])) {
@@ -89,7 +92,7 @@ if ($anyOn && !$openSession) {
     $stmt->execute();
     $stmt->close();
 
-} elseif (!$anyOn && $openSession) {
+} elseif ($isOff && $openSession) {
     // ── Close session — compute aggregates from pzem_readings ──
     $sid       = $openSession['id'];
     $startTime = $openSession['start_time'];
