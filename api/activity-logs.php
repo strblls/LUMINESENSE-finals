@@ -7,6 +7,7 @@ if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['faculty_logged_in'])
     echo json_encode(['success' => false, 'message' => 'Unauthorized.']);
     exit;
 }
+session_write_close();
 
 $logs = [];
 

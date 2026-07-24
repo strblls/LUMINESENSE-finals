@@ -210,19 +210,6 @@ void loop()
         }
     }
 
-    // PIR inactivity timeout: if no motion detected within the timeout
-    // while in SCHEDULED state, lock out PIR and turn off lights
-    if (sysState == STATE_SCHEDULED && !pirLockoutActive && pirInactivityTimeoutMs > 0 &&
-        millis() - lastPirActivity >= pirInactivityTimeoutMs)
-    {
-        Serial.println(F("[PIR] Inactivity timeout — lockout activated"));
-        setAllRows(false);
-        if (sessionActive)
-            endSession(rtc.now());
-        pirLockoutActive = true;
-        syncStateToFrontend();
-        Serial2.println("ACK:ALL:OFF");
-    }
 }
 
 // ============================================================
@@ -262,12 +249,9 @@ void handlePIR(unsigned long now)
     lastPirChange = now;
     pirState = reading;
 
-    // Tell ESP32 to log this state change to the cloud
-    Serial2.print(F("LOG_PIR:"));
-    Serial2.println(pirState ? '1' : '0');
-
     if (pirState == HIGH)
     {
+        Serial2.println("LOG_PIR:1"); // tell ESP32: motion here, log it + reset inactivity timer
         Serial.println(F("[PIR] Motion detected"));
         lastPirActivity = millis();
 
@@ -309,6 +293,7 @@ void handlePIR(unsigned long now)
     }
     else
     {
+        Serial2.println("LOG_PIR:0"); // tell ESP32: motion stopped → start 5-min inactivity timer
         Serial.println(F("[PIR] Motion stopped"));
     }
 }

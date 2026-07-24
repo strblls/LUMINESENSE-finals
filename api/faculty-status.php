@@ -12,6 +12,7 @@ if (empty($_SESSION['faculty_logged_in'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized.']); exit;
 }
+session_write_close(); // release session lock — this endpoint is read-only
 
 $cid = (int)($_GET['classroom_id'] ?? 0);
 if (!$cid) {

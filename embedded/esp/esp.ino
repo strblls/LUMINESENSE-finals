@@ -56,6 +56,7 @@ bool row3State = false;
 bool pirState          = false;
 bool lastPirState      = false;
 bool pirOverrideActive = false;
+unsigned long pirInactiveSince = 0;
 
 // ── Timing ─────────────────────────────────────────────────
 unsigned long lastDbPoll        = 0;
@@ -66,6 +67,7 @@ unsigned long lastConfigFetch = 0;
 #define DB_POLL_MS        500
 #define SCHEDULE_FETCH_MS 30000
 #define CONFIG_FETCH_MS   300000
+#define PIR_INACTIVITY_MS 300000ul // 5 minutes
 
 // ============================================================
 // SETUP
@@ -135,6 +137,15 @@ void setup() {
 void loop() {
     unsigned long now = millis();
 
+    // PIR inactivity timeout: no motion from any source for 5 min → OFF
+    if (pirOverrideActive && pirInactiveSince > 0 &&
+        now - pirInactiveSince >= PIR_INACTIVITY_MS) {
+        Serial.println(F("[PIR] Inactivity timeout — logging stopped"));
+        pirOverrideActive = false;
+        pirInactiveSince = 0;
+        pendingPirLog = 0;
+    }
+
     // heartbeat print — once per 2s instead of every single loop
     static unsigned long lastHeartbeat = 0;
     if (now - lastHeartbeat >= 2000) {
@@ -183,26 +194,13 @@ void loop() {
 // ============================================================
 // PIR HANDLER
 // ============================================================
-#define PIR_INACTIVITY_MS 300000ul // 5 minutes
-
 void handlePIR(unsigned long now) {
     static unsigned long lastPirChange = 0;
-    static unsigned long pirInactiveSince = 0;
     bool reading = digitalRead(PIR_PIN);
 
-    // Inactivity timeout: motion stopped for 5 minutes → log stopped
-    if (pirState == LOW && pirOverrideActive && pirInactiveSince > 0 &&
-        now - pirInactiveSince >= PIR_INACTIVITY_MS) {
-        Serial.println(F("[PIR] Inactivity timeout — logging stopped"));
-        pirOverrideActive = false;
-        pirInactiveSince = 0;
-        pendingPirLog = 0;
-        return;
-    }
+    if (reading == pirState) return;
 
-    if (reading == pirState) return; // no change, do nothing
-
-    if (now - lastPirChange < 2000) return; // debounce: ignore changes within 2s
+    if (now - lastPirChange < 2000) return;
 
     lastPirChange = now;
     pirState = reading;
@@ -211,15 +209,14 @@ void handlePIR(unsigned long now) {
         if (!pirOverrideActive) {
             Serial.println(F("[PIR] Motion detected!"));
             pirOverrideActive = true;
-            pendingPirLog = 1;
         }
-        pirInactiveSince = 0; // cancel pending inactivity timeout
+        pendingPirLog = 1;
+        pirInactiveSince = 0;
     }
 
     if (pirState == LOW && pirOverrideActive) {
         Serial.println(F("[PIR] Motion stopped — 5 min timeout started"));
-        pirInactiveSince = now; // start inactivity timer
-        // NOT sending pendingPirLog = 0 yet — will send after 5 min timeout
+        pirInactiveSince = now;
     }
 }
 
@@ -259,8 +256,15 @@ void handleMegaMessages() {
                 else if (msg == "ACK:ALL:ON")     { setAllRows(true); }
                 else if (msg == "ACK:ALL:OFF")    { setAllRows(false);}
                 else if (msg == "FETCH:SCHEDULE") { pendingScheduleFetch = true; }
-                else if (msg == "LOG_PIR:1")     { pendingPirLog = 1; }
-                else if (msg == "LOG_PIR:0")     { pendingPirLog = 0; }
+                else if (msg == "LOG_PIR:1") {
+                    pirOverrideActive = true;
+                    pirInactiveSince = 0;   // reset inactivity timer
+                    pendingPirLog = 1;
+                }
+                else if (msg == "LOG_PIR:0") {
+                    if (pirOverrideActive)
+                        pirInactiveSince = millis(); // start 5-min timer — does NOT immediately kill schedule
+                }
             }
         } else {
             esp32Buffer += c;
