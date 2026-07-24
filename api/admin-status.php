@@ -23,8 +23,13 @@ $ext_pending = $conn->query("
     SELECT COUNT(*) AS c FROM extension_requests WHERE status='pending'
 ")->fetch_assoc()['c'];
 
+$today_dow = date('l');
+$now_time  = date('H:i:s');
 $lights_on = $conn->query("
-    SELECT COUNT(*) AS c FROM classrooms WHERE light_status = 'on'
+    SELECT COUNT(DISTINCT s.classroom_id) AS c
+    FROM schedules s
+    WHERE s.day_of_week = '$today_dow'
+      AND '$now_time' BETWEEN s.start_time AND s.end_time
 ")->fetch_assoc()['c'];
 
 $total_rooms = $conn->query("
@@ -100,6 +105,18 @@ $r2 = $conn->query("
     LIMIT 20
 ");
 if ($r2) while ($row = $r2->fetch_assoc()) $logs[] = $row;
+
+// PIR occupancy events
+$r_pir = $conn->query("
+    SELECT CASE pl.state WHEN 1 THEN 'pir_motion' ELSE 'pir_stopped' END AS event_type,
+           'PIR' AS triggered_by, pl.created_at AS event_time,
+           c.room_name, 'room' AS log_type, NULL AS admin_name
+    FROM pir_logs pl
+    JOIN classrooms c ON c.id = pl.classroom_id
+    ORDER BY pl.created_at DESC
+    LIMIT 20
+");
+if ($r_pir) while ($row = $r_pir->fetch_assoc()) $logs[] = $row;
 
 // Admin logins (other admins only)
 $stmt = $conn->prepare("

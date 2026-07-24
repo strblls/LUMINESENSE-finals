@@ -59,6 +59,28 @@ if ($classroomId) {
     }
 }
 
+// From pir_logs (dedicated PIR motion/stopped events)
+if ($classroomId) {
+    $res3 = $conn->query("
+        SELECT
+            CASE state WHEN 1 THEN 'pir_motion' ELSE 'pir_stopped' END AS event_type,
+            'pir' AS triggered_by,
+            created_at AS event_time,
+            '' AS notes
+        FROM pir_logs
+        WHERE classroom_id = $classroomId
+    ");
+    if ($res3) {
+        while ($row = $res3->fetch_assoc()) {
+            if (!empty($row['event_time'])) {
+                $row['event_time'] = date('Y-m-d\TH:i:s', strtotime($row['event_time'])) . '+08:00';
+            }
+            $logs[] = $row;
+        }
+        $res3->free();
+    }
+}
+
 // Sort merged logs newest-first
 usort($logs, function ($a, $b) {
     return strtotime($b['event_time']) - strtotime($a['event_time']);

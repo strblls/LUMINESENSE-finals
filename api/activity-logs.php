@@ -34,6 +34,31 @@ if ($res) {
     $res->free();
 }
 
+// PIR occupancy events
+$res_pir = $conn->query("
+    SELECT
+        'room'                                                      AS log_type,
+        pl.id,
+        CASE pl.state WHEN 1 THEN 'pir_motion' ELSE 'pir_stopped' END AS action,
+        c.room_name                                                  AS target,
+        'PIR'                                                        AS actor,
+        pl.created_at                                                AS log_time,
+        ''                                                           AS notes
+    FROM pir_logs pl
+    JOIN classrooms c ON c.id = pl.classroom_id
+    ORDER BY pl.created_at DESC
+    LIMIT 200
+");
+if ($res_pir) {
+    while ($row = $res_pir->fetch_assoc()) {
+        if (!empty($row['log_time'])) {
+            $row['log_time'] = date('Y-m-d\TH:i:s', strtotime($row['log_time'])) . '+08:00';
+        }
+        $logs[] = $row;
+    }
+    $res_pir->free();
+}
+
 // Admin / approval logs
 $res2 = $conn->query("
     SELECT

@@ -433,7 +433,7 @@ function ordinal(int $number): string
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
     <!--Relative links-->
-    <link type="icon" href="../../logo.png">
+    <link rel="icon" type="image/png" href="../../images/icon.png">
 
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
@@ -1356,6 +1356,9 @@ function ordinal(int $number): string
         window._updateScheduleEnd = function(newEnd) {
             _scheduleEnd = newEnd;
             if (display) display.dataset.end = newEnd;
+            // Keep speech/beep notification in sync
+            var schedData = document.getElementById('scheduleEndData');
+            if (schedData) schedData.dataset.end = newEnd;
             tick();
         };
 
@@ -1387,6 +1390,11 @@ function ordinal(int $number): string
                         var current = _scheduleEnd || '';
                         if (data.schedule_end !== current) {
                             window._updateScheduleEnd(data.schedule_end);
+                        }
+                        // Keep notification data synced even if end time unchanged
+                        var schedData = document.getElementById('scheduleEndData');
+                        if (schedData && schedData.dataset.end !== data.schedule_end) {
+                            schedData.dataset.end = data.schedule_end;
                         }
                     } else {
                         _scheduleEnd = null;

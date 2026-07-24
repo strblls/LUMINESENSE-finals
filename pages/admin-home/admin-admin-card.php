@@ -129,7 +129,7 @@ $conn->close();
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!--Relative links-->
-    <link rel="icon" href="../../images/logo.png">
+    <link rel="icon" href="../../images/icon.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/admin-common.css">

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once '../../php/session_guard.php';
 check_faculty();
 require_once '../../php/db_connect.php';
@@ -53,7 +53,7 @@ $r = $conn->query("
 while ($row = $r->fetch_assoc())
     $schedules[] = $row;
 
-// — PIN status —
+// � PIN status �
 $has_pin = false;
 $stmt = $conn->prepare("SELECT 1 FROM faculty_permissions WHERE faculty_id = ? AND pin_hash IS NOT NULL");
 $stmt->bind_param('i', $faculty_id);
@@ -62,7 +62,7 @@ $stmt->bind_result($pin_exists);
 $has_pin = (bool)$stmt->fetch();
 $stmt->close();
 
-// — Active schedule end time (with extension) for audio notifications —
+// � Active schedule end time (with extension) for audio notifications �
 $now = date('H:i:s');
 $active_schedule_end = '';
 $stmt = $conn->prepare("
@@ -99,14 +99,14 @@ $conn->close();
         crossorigin="anonymous"></script>
 
     <!--Relative links-->
-    <link rel="icon" href="../../images/logo.png">   
+    <link rel="icon" href="../../images/icon.png">   
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
     <link rel="stylesheet" href="../../css/faculty-common.css">
     <link rel="stylesheet" href="../../css/faculty-settings.css">
 
-    <title>Profile Settings â€“ LumineSense</title>
+    <title>Profile Settings – LumineSense</title>
 </head>
 
 <body class="contrast-bg">
@@ -243,12 +243,14 @@ $conn->close();
                                         <div class="alert alert-danger">&#9888;&#65039; <?= htmlspecialchars($_SESSION['pw_error']) ?></div>
                                         <?php unset($_SESSION['pw_error']); ?>
                                     <?php endif; ?>
-                                    <form method="POST" action="../../php/change-password.php">
-                                        <div class="mb-2">
-                                            <label class="form-label">Current Password</label>
-                                            <input type="password" class="form-control" name="current_password"
-                                                placeholder="Current password" required>
-                                        </div>
+
+                                    <!-- OTP trigger button -->
+                                    <button type="button" class="light info-action-btn w-100 mb-2" data-bs-toggle="modal" data-bs-target="#changePwOtpModal">
+                                        Change Password
+                                    </button>
+
+                                    <!-- Password form — hidden until OTP verified -->
+                                    <form id="pwChangeForm" method="POST" action="../../php/change-password.php" style="display:none;">
                                         <div class="mb-2">
                                             <label class="form-label">New Password</label>
                                             <input type="password" class="form-control" name="new_password"
@@ -413,8 +415,176 @@ $conn->close();
 
         </div>
 
-        <script src="../../script/animations.js"></script>
-        <script src="../../script/toggles.js"></script>
+    <!-- OTP Verification Modal -->
+    <div class="modal fade" id="changePwOtpModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold">Verify Identity</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="otpStepSend">
+                        <p class="text-muted small">A verification code will be sent to your registered email.</p>
+                        <button type="button" class="medium w-auto px-4" id="sendOtpBtn">Send Code</button>
+                    </div>
+                    <div id="otpStepVerify" style="display:none;">
+                        <p class="text-muted small">Enter the 6-digit code sent to your email.</p>
+                        <input type="text" id="otpInput" class="form-control text-center mx-auto mb-2"
+                            maxlength="6" pattern="\d{6}" inputmode="numeric"
+                            placeholder="000000" style="font-size:1.5rem;letter-spacing:8px;max-width:200px;" autocomplete="off">
+                        <div id="otpFeedback" class="small mb-2"></div>
+                        <button type="button" class="medium w-auto px-4" id="verifyOtpBtn">Verify</button>
+                        <br>
+                        <button type="button" class="btn btn-link btn-sm text-muted mt-1" id="resendChangeOtpBtn">Resend Code</button>
+                    </div>
+                    <div id="otpStepSuccess" style="display:none;">
+                        <p class="text-success"><i class="bi bi-check-circle-fill"></i> Verified!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // OTP verification flow for password change
+    (function() {
+        var modal = document.getElementById('changePwOtpModal');
+        var stepSend = document.getElementById('otpStepSend');
+        var stepVerify = document.getElementById('otpStepVerify');
+        var stepSuccess = document.getElementById('otpStepSuccess');
+        var sendBtn = document.getElementById('sendOtpBtn');
+        var verifyBtn = document.getElementById('verifyOtpBtn');
+        var otpInput = document.getElementById('otpInput');
+        var feedback = document.getElementById('otpFeedback');
+        var resendBtn = document.getElementById('resendChangeOtpBtn');
+        var pwForm = document.getElementById('pwChangeForm');
+        var cooldown = 0;
+
+        function resetModal() {
+            stepSend.style.display = 'block';
+            stepVerify.style.display = 'none';
+            stepSuccess.style.display = 'none';
+            otpInput.value = '';
+            feedback.textContent = '';
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send Code';
+        }
+
+        modal.addEventListener('hidden.bs.modal', function() {
+            // Don't reset if already verified
+            if (stepSuccess.style.display !== 'block') resetModal();
+        });
+
+        modal.addEventListener('shown.bs.modal', function() {
+            resetModal();
+        });
+
+        sendBtn.addEventListener('click', function() {
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            fetch('../../api/send-change-otp.php', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.success) {
+                        stepSend.style.display = 'none';
+                        stepVerify.style.display = 'block';
+                        cooldown = 60;
+                        tickResend();
+                    } else {
+                        feedback.textContent = d.message || 'Failed to send.';
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = 'Send Code';
+                    }
+                })
+                .catch(function() {
+                    feedback.textContent = 'Network error.';
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send Code';
+                });
+        });
+
+        function tickResend() {
+            if (cooldown <= 0) {
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend Code';
+                return;
+            }
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Resend Code (' + cooldown + 's)';
+            cooldown--;
+            setTimeout(tickResend, 1000);
+        }
+
+        resendBtn.addEventListener('click', function() {
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Sending...';
+            fetch('../../api/send-change-otp.php', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.success) {
+                        cooldown = 60;
+                        tickResend();
+                        feedback.textContent = 'Code resent.';
+                        feedback.className = 'small mb-2 text-success';
+                    } else {
+                        feedback.textContent = d.message || 'Failed.';
+                        feedback.className = 'small mb-2 text-danger';
+                        resendBtn.disabled = false;
+                        resendBtn.textContent = 'Resend Code';
+                    }
+                })
+                .catch(function() {
+                    feedback.textContent = 'Network error.';
+                    feedback.className = 'small mb-2 text-danger';
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = 'Resend Code';
+                });
+        });
+
+        verifyBtn.addEventListener('click', function() {
+            var otp = otpInput.value.trim();
+            if (!/^\d{6}$/.test(otp)) {
+                feedback.textContent = 'Enter a valid 6-digit code.';
+                feedback.className = 'small mb-2 text-danger';
+                return;
+            }
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+            var body = new URLSearchParams();
+            body.append('otp', otp);
+            fetch('../../api/verify-change-otp.php', {
+                method: 'POST',
+                body: body
+            }).then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) {
+                    stepVerify.style.display = 'none';
+                    stepSuccess.style.display = 'block';
+                    pwForm.style.display = 'block';
+                    setTimeout(function() {
+                        var bsModal = bootstrap.Modal.getInstance(modal);
+                        if (bsModal) bsModal.hide();
+                    }, 1000);
+                } else {
+                    feedback.textContent = d.message || 'Invalid code.';
+                    feedback.className = 'small mb-2 text-danger';
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'Verify';
+                }
+            })
+            .catch(function() {
+                feedback.textContent = 'Network error.';
+                feedback.className = 'small mb-2 text-danger';
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify';
+            });
+        });
+    })();
+    </script>
+
+    <script src="../../script/animations.js"></script>
+    <script src="../../script/toggles.js"></script>
     </div>
 
     <script>

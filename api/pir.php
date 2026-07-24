@@ -60,6 +60,9 @@ if ($occupied) {
         $conn->query("
             UPDATE classrooms
             SET light_status   = 'on',
+                row1_status    = 'on',
+                row2_status    = 'on',
+                row3_status    = 'on',
                 pir_occupied   = 1,
                 pir_since      = CASE WHEN pir_occupied = 0 THEN NOW() ELSE pir_since END
             WHERE id = $cid
@@ -88,6 +91,9 @@ if ($occupied) {
     $conn->query("
         UPDATE classrooms
         SET light_status = 'off',
+            row1_status  = 'off',
+            row2_status  = 'off',
+            row3_status  = 'off',
             pir_occupied = 0,
             pir_since    = NULL
         WHERE id = $cid

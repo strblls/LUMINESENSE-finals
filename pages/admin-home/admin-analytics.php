@@ -21,7 +21,8 @@ include '../../php/handlers/analytics-handler.php';
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!--Relative links-->
-    <link rel="icon" href="../../images/logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../images/icon.png">
+    <link rel="shortcut icon" type="image/png" href="../../images/icon.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
@@ -171,12 +172,22 @@ include '../../php/handlers/analytics-handler.php';
                                     </div>
                                     <div class="room-expand-row">
                                         <i class="bi bi-clock-fill"></i>
-                                        <span class="room-info-label"><?= $room['is_occupied'] ? 'Time:' : 'Next class:' ?></span>
+                                        <span class="room-info-label"><?php
+                                            if ($room['is_occupied']):
+                                                echo 'Current class:';
+                                            elseif ($room['next_start_time']):
+                                                echo 'Next class:';
+                                            else:
+                                                echo 'Next class:';
+                                            endif;
+                                        ?></span>
                                         <span class="room-info-val">
                                             <?php if ($room['is_occupied']): ?>
                                                 <?= date('g:i A', strtotime($room['start_time'])) ?> &ndash; <?= date('g:i A', strtotime($room['end_time'])) ?>
+                                            <?php elseif ($room['next_start_time']): ?>
+                                                <?= date('g:i A', strtotime($room['next_start_time'])) ?> &ndash; <?= date('g:i A', strtotime($room['next_end_time'])) ?>
                                             <?php else: ?>
-                                                None scheduled
+                                                No classes scheduled
                                             <?php endif; ?>
                                         </span>
                                     </div>

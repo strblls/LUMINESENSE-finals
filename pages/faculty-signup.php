@@ -20,7 +20,7 @@
         crossorigin="anonymous"></script>
 
     <!--Relative links-->
-    <link rel="icon" href="../images/logo.png">
+    <link rel="icon" href="../images/icon.png">
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/containers.css">
     <link rel="stylesheet" href="../css/registration.css">

@@ -28,11 +28,14 @@ while ($row = $res->fetch_assoc()) {
 // Summary counts
 $total_rooms = $conn->query("SELECT COUNT(*) AS c FROM classrooms")->fetch_assoc()['c'];
 
-// Lights on = classrooms whose LATEST log entry is 'on'
+// Lights on = rooms with a class currently running (schedule-based)
+$today_dow = date('l');
+$now_time  = date('H:i:s');
 $lights_on = $conn->query("
-    SELECT COUNT(*) AS c FROM lighting_logs l
-    WHERE l.id IN (SELECT MAX(id) FROM lighting_logs GROUP BY classroom_id)
-    AND l.event_type = 'on'
+    SELECT COUNT(DISTINCT s.classroom_id) AS c
+    FROM schedules s
+    WHERE s.day_of_week = '$today_dow'
+      AND '$now_time' BETWEEN s.start_time AND s.end_time
 ")->fetch_assoc()['c'];
 
 // Pending faculty = email verified but not yet approved by admin
@@ -110,6 +113,22 @@ if ($r3) {
     $r3->close();
 }
 
+// ── 4. PIR occupancy events ─────────────────────────────────────
+$r4 = $conn->query("
+    SELECT
+        CASE pl.state WHEN 1 THEN 'pir_motion' ELSE 'pir_stopped' END AS event_type,
+        'PIR' AS triggered_by,
+        pl.created_at AS event_time,
+        c.room_name,
+        'room' AS log_type,
+        NULL AS admin_name
+    FROM pir_logs pl
+    JOIN classrooms c ON c.id = pl.classroom_id
+    ORDER BY pl.created_at DESC
+    LIMIT 20
+");
+if ($r4) while ($row = $r4->fetch_assoc()) $logs[] = $row;
+
 // Sort merged list newest-first
 usort($logs, fn($a, $b) => strtotime($b['event_time']) - strtotime($a['event_time']));
 $logs = array_slice($logs, 0, 10); // keep top 10
@@ -165,6 +184,8 @@ function activity_icon(array $log): array
         'light_on'       => ['bi-lightbulb-fill',     '#198754', '#d1e7dd'],
         'light_off'      => ['bi-lightbulb',           '#842029', '#f8d7da'],
         'motion_detect'  => ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+        'pir_motion'     => ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+        'pir_stopped'    => ['bi-person-bounding-box', '#5a5a5a', '#e9ecef'],
         'gesture'        => ['bi-hand-index',          '#084298', '#cfe2ff'],
         'schedule'       => ['bi-calendar-check',     '#198754', '#d1e7dd'],
         'security_alert' => ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],

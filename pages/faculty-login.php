@@ -5,8 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $loginError = $_SESSION['login_error'] ?? null;
 $signupSuccess = $_SESSION['signup_success'] ?? null;
+$loginSuccess = $_SESSION['login_success'] ?? null;
 
-unset($_SESSION['login_error'], $_SESSION['signup_success']);
+unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_success']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,6 +24,8 @@ unset($_SESSION['login_error'], $_SESSION['signup_success']);
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/icon.png">
+    <link rel="shortcut icon" type="image/png" href="../images/icon.png">
     <!--CSS files-->
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/containers.css">
@@ -48,6 +51,9 @@ unset($_SESSION['login_error'], $_SESSION['signup_success']);
             <h4 class="pb-4 semibold">Faculty Login</h4>
             <!-- SESSION MESSAGES — shown when PHP redirects back with a message -->
             <?php
+            if (!empty($loginSuccess)) {
+                echo '<div class="alert alert-success">' . htmlspecialchars($loginSuccess) . '</div>';
+            }
             if (!empty($loginError)) {
                 echo '<div class="alert alert-danger">' . htmlspecialchars($loginError) . '</div>';
             }
@@ -93,6 +99,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success']);
                             or<br>
                             <a class="medium" onclick="dissolve('faculty-signup.php')">SIGN-UP</a>
                         </div>
+                        <a class="small text-muted mt-2" onclick="dissolve('forgot-password.php')" style="cursor:pointer;">Forgot Password?</a>
                     </div>
                 </form>
 

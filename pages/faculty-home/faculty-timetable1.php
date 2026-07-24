@@ -101,6 +101,8 @@ $conn->close();
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 
+    <link rel="icon" type="image/png" sizes="32x32" href="../../images/icon.png">
+    <link rel="shortcut icon" type="image/png" href="../../images/icon.png">
     <!--CSS files-->
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">

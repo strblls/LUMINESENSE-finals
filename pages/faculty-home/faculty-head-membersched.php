@@ -224,7 +224,7 @@ foreach ($days as $day) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 
     <!--Relative links-->
-    <link type="icon" href="../../logo.png">
+    <link rel="icon" type="image/png" href="../../images/icon.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/tooltip.css">
@@ -362,6 +362,8 @@ foreach ($days as $day) {
                             <?php if (empty($slots)): ?>
                                 <p class="no-sched">No classes scheduled.</p>
                                 <?php else: foreach ($slots as $slot):
+                                    $now_time  = date('H:i:s');
+                                    $is_running = ($slot['day_of_week'] === $today && $now_time >= $slot['start_time'] && $now_time <= $slot['end_time']);
                                     $start    = date('g:i A', strtotime($slot['start_time']));
                                     $end      = date('g:i A', strtotime($slot['end_time']));
                                     $subject_label = !empty($slot['subject_name'])
@@ -395,10 +397,16 @@ foreach ($days as $day) {
                                             </div>
                                         </div>
                                         <div class="slot-actions">
-                                            <button class="btn-icon <?= $is_owner ? 'btn-icon-edit' : 'btn-icon-disabled' ?>"
-                                                title="<?= $is_owner ? 'Edit Schedule Details' : 'Restricted - assigned by another faculty head' ?>"
+                                            <button class="btn-icon <?= $is_owner ? ($is_running ? 'btn-icon-disabled' : 'btn-icon-edit') : 'btn-icon-disabled' ?>"
+                                                title="<?= $is_owner
+                                                            ? ($is_running ? 'Cannot Edit – Schedule Currently Running' : 'Edit Schedule Details')
+                                                            : 'Restricted - assigned by another faculty head'
+                                                        ?>"
                                                 onclick="<?= $is_owner
-                                                                ? "openEditScheduleModal(" . (int)$slot['id'] . ",'" . $slot['day_of_week'] . "','" . substr($slot['start_time'], 0, 5) . "','" . substr($slot['end_time'], 0, 5) . "'," . (int)$slot['classroom_id'] . "," . (int)($slot['subject_id'] ?? 0) . ",'" . htmlspecialchars($subject_label, ENT_QUOTES) . "')"
+                                                                ? ($is_running
+                                                                    ? "showRunningWarningModal()"
+                                                                    : "openEditScheduleModal(" . (int)$slot['id'] . ",'" . $slot['day_of_week'] . "','" . substr($slot['start_time'], 0, 5) . "','" . substr($slot['end_time'], 0, 5) . "'," . (int)$slot['classroom_id'] . "," . (int)($slot['subject_id'] ?? 0) . ",'" . htmlspecialchars($subject_label, ENT_QUOTES) . "')"
+                                                                  )
                                                                 : "showRestrictedModal('" . htmlspecialchars($creator_name, ENT_QUOTES) . "')"
                                                             ?>"
                                                 data-bs-toggle="tooltip"
@@ -634,6 +642,28 @@ foreach ($days as $day) {
         </div>
     </div>
 
+    <!-- Running Schedule Warning Modal -->
+    <div class="modal fade" id="runningScheduleModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header" style="background:linear-gradient(135deg,#e67e22,#f39c12);color:#fff;">
+                    <h5 class="modal-title" style="font-weight:700;">Cannot Edit</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-clock-history" style="font-size:2.5rem;color:#e67e22;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;">
+                        This schedule slot is currently running and cannot be edited.<br><br>
+                        Please wait until the class session ends before making changes.
+                    </p>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button type="button" class="medium w-100 px-3" style="background:#e67e22;" data-bs-dismiss="modal">Understood</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- View Slot Details Modal -->
     <div class="profile-details-modal modal fade" id="viewSlotModal" tabindex="-1" aria-labelledby="viewSlotLabel" aria-hidden="true">
         <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
@@ -689,6 +719,7 @@ foreach ($days as $day) {
         let deleteScheduleModal = null;
         let confirmSaveModal = null;
         let restrictedModal = null;
+        let runningScheduleModal = null;
         let overlapWarningModal = null;
         let timeValidationModal = null;
         let deleteSlotId = null;
@@ -997,6 +1028,13 @@ foreach ($days as $day) {
             }
             document.getElementById('restricted-creator-name').textContent = creatorName;
             restrictedModal.show();
+        }
+
+        function showRunningWarningModal() {
+            if (!runningScheduleModal) {
+                runningScheduleModal = new bootstrap.Modal(document.getElementById('runningScheduleModal'));
+            }
+            runningScheduleModal.show();
         }
 
         function openSlotDetails(day, startTime, endTime, room, subject) {

@@ -22,6 +22,8 @@ const char* SCHEDULE_URL     = "https://luminesense-bet.site/api/esp32-schedule.
 const char* PZEM_POST_URL    = "https://luminesense-bet.site/api/pzem_push.php";
 const char* UPDATE_ROWS_URL  = "https://luminesense-bet.site/api/esp32-update-rows.php";
 const char* SCHEDULE_FLAG_URL= "https://luminesense-bet.site/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* CONFIG_URL      = "https://luminesense-bet.site/api/esp32-config.php?token=LS_ESP32_TOKEN_2025";
+const char* PIR_LOG_URL     = "https://luminesense-bet.site/api/pir-log.php";
 
 // ── Pin Definitions ────────────────────────────────────────
 #define ROW1_PIN 25
@@ -43,6 +45,7 @@ bool httpBusy = false;
 String pendingPzem          = "";
 String esp32Buffer = "";
 bool   pendingScheduleFetch = false;
+int    pendingPirLog        = -1;  // -1 = none, 0/1 = state to log
 
 // ── Row State ──────────────────────────────────────────────
 bool row1State = false;
@@ -58,9 +61,11 @@ bool pirOverrideActive = false;
 unsigned long lastDbPoll        = 0;
 unsigned long lastScheduleFetch = 0;
 unsigned long lastFlagPoll = 0;
+unsigned long lastConfigFetch = 0;
 #define FLAG_POLL_MS 5000
-#define DB_POLL_MS        3000
+#define DB_POLL_MS        500
 #define SCHEDULE_FETCH_MS 30000
+#define CONFIG_FETCH_MS   300000
 
 // ============================================================
 // SETUP
@@ -102,6 +107,7 @@ void setup() {
         WiFi.setAutoReconnect(true);
         delay(500);
         fetchAndForwardSchedule();
+        fetchAndForwardConfig();
 
         // NTP time sync — send accurate time to Mega
         configTime(8 * 3600, 0, "pool.ntp.org", "time.nist.gov");
@@ -154,6 +160,9 @@ void loop() {
         if (pendingPzem != "") {
             forwardPzemToDb(pendingPzem);
             pendingPzem = "";
+        } else if (pendingPirLog != -1) {
+            forwardPirLog(pendingPirLog);
+            pendingPirLog = -1;
         } else if (now - lastDbPoll >= DB_POLL_MS) {
             lastDbPoll = now;
             pollDatabase();
@@ -164,6 +173,9 @@ void loop() {
             lastScheduleFetch    = now;
             pendingScheduleFetch = false;
             fetchAndForwardSchedule();
+        } else if (now - lastConfigFetch >= CONFIG_FETCH_MS) {
+            lastConfigFetch = now;
+            fetchAndForwardConfig();
         }
     }
 }
@@ -231,6 +243,8 @@ void handleMegaMessages() {
                 else if (msg == "ACK:ALL:ON")     { setAllRows(true); }
                 else if (msg == "ACK:ALL:OFF")    { setAllRows(false);}
                 else if (msg == "FETCH:SCHEDULE") { pendingScheduleFetch = true; }
+                else if (msg == "LOG_PIR:1")     { pendingPirLog = 1; }
+                else if (msg == "LOG_PIR:0")     { pendingPirLog = 0; }
             }
         } else {
             esp32Buffer += c;
@@ -344,6 +358,41 @@ void fetchAndForwardSchedule() {
 }
 
 // ============================================================
+// FETCH CONFIG AND FORWARD TO MEGA
+// ============================================================
+void fetchAndForwardConfig() {
+    if (WiFi.status() != WL_CONNECTED) return;
+    if (httpBusy) return;
+    httpBusy = true;
+
+    HTTPClient http;
+    http.begin(CONFIG_URL);
+    http.setTimeout(3000);
+    int httpCode = http.GET();
+
+    if (httpCode == 200) {
+        String payload = http.getString();
+        payload.trim();
+        Serial.print(F("[CONFIG] Payload: ")); Serial.println(payload);
+
+        StaticJsonDocument<128> doc;
+        DeserializationError err = deserializeJson(doc, payload);
+        if (!err) {
+            int timeoutMin = doc["pir_inactivity_timeout"] | 5;
+            unsigned long timeoutMs = (unsigned long)timeoutMin * 60 * 1000;
+            Serial2.println("CONFIG:PIR_TIMEOUT=" + String(timeoutMs));
+            Serial.print(F("[CONFIG] Forwarded PIR_TIMEOUT="));
+            Serial.println(timeoutMs);
+        }
+    } else {
+        Serial.print(F("[CONFIG] Fetch failed, code: ")); Serial.println(httpCode);
+    }
+
+    http.end();
+    httpBusy = false;
+}
+
+// ============================================================
 // SYNC NTP TIME TO MEGA
 // ============================================================
 void syncTimeToMega() {
@@ -397,6 +446,35 @@ void forwardPzemToDb(String jsonStr) {
         Serial.println(F("[PZEM] Posted to DB OK"));
     } else {
         Serial.print(F("[PZEM] Post failed, code: "));
+        Serial.println(httpCode);
+    }
+
+    http.end();
+    httpBusy = false;
+}
+
+
+// ============================================================
+// FORWARD PIR LOG TO DATABASE
+// ============================================================
+void forwardPirLog(int state) {
+    if (WiFi.status() != WL_CONNECTED) return;
+    if (httpBusy) return;
+    httpBusy = true;
+
+    String json = "{\"classroom_id\":3,\"state\":" + String(state) + "}";
+
+    HTTPClient http;
+    http.begin(PIR_LOG_URL);
+    http.setTimeout(3000);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-Token", "luminesense-secret-token");
+
+    int httpCode = http.POST(json);
+    if (httpCode == 200) {
+        Serial.println(F("[PIR_LOG] Logged to DB OK"));
+    } else {
+        Serial.print(F("[PIR_LOG] Post failed, code: "));
         Serial.println(httpCode);
     }
 

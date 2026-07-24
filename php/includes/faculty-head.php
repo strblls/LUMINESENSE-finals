@@ -168,6 +168,8 @@ function faculty_activity_icon(array $log): array
         'light_on'       => ['bi-lightbulb-fill',     '#198754', '#d1e7dd'],
         'light_off'      => ['bi-lightbulb',           '#842029', '#f8d7da'],
         'motion_detect'  => ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+        'pir_motion'     => ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+        'pir_stopped'    => ['bi-person-bounding-box', '#5a5a5a', '#e9ecef'],
         'gesture'        => ['bi-hand-index',          '#084298', '#cfe2ff'],
         'schedule'       => ['bi-calendar-check',     '#198754', '#d1e7dd'],
         'security_alert' => ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],

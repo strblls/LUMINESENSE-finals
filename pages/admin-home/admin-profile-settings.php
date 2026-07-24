@@ -63,7 +63,7 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Relative links -->
-    <link rel="icon" href="../../images/logo.png">
+    <link rel="icon" href="../../images/icon.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
@@ -163,12 +163,14 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                                         <div class="alert alert-danger">&#9888;&#65039; <?= htmlspecialchars($_SESSION['pw_error']) ?></div>
                                         <?php unset($_SESSION['pw_error']); ?>
                                     <?php endif; ?>
-                                    <form method="POST" action="../../php/change-password.php">
-                                        <div class="mb-2">
-                                            <label class="form-label">Current Password</label>
-                                            <input type="password" class="form-control" name="current_password"
-                                                placeholder="Current password" required>
-                                        </div>
+
+                                    <!-- OTP trigger button -->
+                                    <button type="button" class="light info-action-btn w-100 mb-2" data-bs-toggle="modal" data-bs-target="#adminChangePwOtpModal">
+                                        Change Password
+                                    </button>
+
+                                    <!-- Password form — hidden until OTP verified -->
+                                    <form id="adminPwChangeForm" method="POST" action="../../api/change_password.php" style="display:none;">
                                         <div class="mb-2">
                                             <label class="form-label">New Password</label>
                                             <input type="password" class="form-control" name="new_password"
@@ -507,6 +509,173 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
             </div>
         </div>
     </div>
+
+    <!-- OTP Verification Modal -->
+    <div class="modal fade" id="adminChangePwOtpModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold">Verify Identity</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div id="adminOtpStepSend">
+                        <p class="text-muted small">A verification code will be sent to your registered email.</p>
+                        <button type="button" class="medium w-auto px-4" id="adminSendOtpBtn">Send Code</button>
+                    </div>
+                    <div id="adminOtpStepVerify" style="display:none;">
+                        <p class="text-muted small">Enter the 6-digit code sent to your email.</p>
+                        <input type="text" id="adminOtpInput" class="form-control text-center mx-auto mb-2"
+                            maxlength="6" pattern="\d{6}" inputmode="numeric"
+                            placeholder="000000" style="font-size:1.5rem;letter-spacing:8px;max-width:200px;" autocomplete="off">
+                        <div id="adminOtpFeedback" class="small mb-2"></div>
+                        <button type="button" class="medium w-auto px-4" id="adminVerifyOtpBtn">Verify</button>
+                        <br>
+                        <button type="button" class="btn btn-link btn-sm text-muted mt-1" id="adminResendChangeOtpBtn">Resend Code</button>
+                    </div>
+                    <div id="adminOtpStepSuccess" style="display:none;">
+                        <p class="text-success"><i class="bi bi-check-circle-fill"></i> Verified!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // OTP verification flow for admin password change
+    (function() {
+        var modal = document.getElementById('adminChangePwOtpModal');
+        var stepSend = document.getElementById('adminOtpStepSend');
+        var stepVerify = document.getElementById('adminOtpStepVerify');
+        var stepSuccess = document.getElementById('adminOtpStepSuccess');
+        var sendBtn = document.getElementById('adminSendOtpBtn');
+        var verifyBtn = document.getElementById('adminVerifyOtpBtn');
+        var otpInput = document.getElementById('adminOtpInput');
+        var feedback = document.getElementById('adminOtpFeedback');
+        var resendBtn = document.getElementById('adminResendChangeOtpBtn');
+        var pwForm = document.getElementById('adminPwChangeForm');
+        var cooldown = 0;
+
+        function resetModal() {
+            stepSend.style.display = 'block';
+            stepVerify.style.display = 'none';
+            stepSuccess.style.display = 'none';
+            otpInput.value = '';
+            feedback.textContent = '';
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send Code';
+        }
+
+        modal.addEventListener('hidden.bs.modal', function() {
+            if (stepSuccess.style.display !== 'block') resetModal();
+        });
+
+        modal.addEventListener('shown.bs.modal', function() {
+            resetModal();
+        });
+
+        sendBtn.addEventListener('click', function() {
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            fetch('../../api/send-change-otp.php', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.success) {
+                        stepSend.style.display = 'none';
+                        stepVerify.style.display = 'block';
+                        cooldown = 60;
+                        tickResend();
+                    } else {
+                        feedback.textContent = d.message || 'Failed to send.';
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = 'Send Code';
+                    }
+                })
+                .catch(function() {
+                    feedback.textContent = 'Network error.';
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send Code';
+                });
+        });
+
+        function tickResend() {
+            if (cooldown <= 0) {
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend Code';
+                return;
+            }
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Resend Code (' + cooldown + 's)';
+            cooldown--;
+            setTimeout(tickResend, 1000);
+        }
+
+        resendBtn.addEventListener('click', function() {
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Sending...';
+            fetch('../../api/send-change-otp.php', { method: 'POST' })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.success) {
+                        cooldown = 60;
+                        tickResend();
+                        feedback.textContent = 'Code resent.';
+                        feedback.className = 'small mb-2 text-success';
+                    } else {
+                        feedback.textContent = d.message || 'Failed.';
+                        feedback.className = 'small mb-2 text-danger';
+                        resendBtn.disabled = false;
+                        resendBtn.textContent = 'Resend Code';
+                    }
+                })
+                .catch(function() {
+                    feedback.textContent = 'Network error.';
+                    feedback.className = 'small mb-2 text-danger';
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = 'Resend Code';
+                });
+        });
+
+        verifyBtn.addEventListener('click', function() {
+            var otp = otpInput.value.trim();
+            if (!/^\d{6}$/.test(otp)) {
+                feedback.textContent = 'Enter a valid 6-digit code.';
+                feedback.className = 'small mb-2 text-danger';
+                return;
+            }
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+            var body = new URLSearchParams();
+            body.append('otp', otp);
+            fetch('../../api/verify-change-otp.php', {
+                method: 'POST',
+                body: body
+            }).then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.success) {
+                    stepVerify.style.display = 'none';
+                    stepSuccess.style.display = 'block';
+                    pwForm.style.display = 'block';
+                    setTimeout(function() {
+                        var bsModal = bootstrap.Modal.getInstance(modal);
+                        if (bsModal) bsModal.hide();
+                    }, 1000);
+                } else {
+                    feedback.textContent = d.message || 'Invalid code.';
+                    feedback.className = 'small mb-2 text-danger';
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'Verify';
+                }
+            })
+            .catch(function() {
+                feedback.textContent = 'Network error.';
+                feedback.className = 'small mb-2 text-danger';
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify';
+            });
+        });
+    })();
+    </script>
 
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>

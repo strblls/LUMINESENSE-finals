@@ -180,7 +180,8 @@ ksort($activeDeptNames);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
     <!--Relative links -->
-    <link rel="icon" href="../../images/logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../images/icon.png">
+    <link rel="shortcut icon" type="image/png" href="../../images/icon.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
@@ -788,6 +789,8 @@ ksort($activeDeptNames);
                 'light_on': ['bi-lightbulb-fill', '#198754', '#d1e7dd'],
                 'light_off': ['bi-lightbulb', '#842029', '#f8d7da'],
                 'motion_detect': ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+                'pir_motion': ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+                'pir_stopped': ['bi-person-bounding-box', '#5a5a5a', '#e9ecef'],
                 'gesture': ['bi-hand-index', '#084298', '#cfe2ff'],
                 'schedule': ['bi-calendar-check', '#198754', '#d1e7dd'],
                 'security_alert': ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],

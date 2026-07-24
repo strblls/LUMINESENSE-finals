@@ -136,6 +136,9 @@ while ($r = $res->fetch_assoc()) {
 $stmt->close();
 
 // ── 7. Room activity log / alerts ──────────────────────────────────────────
+$alerts = [];
+
+// 7a. Lighting logs
 $stmt = $conn->prepare("
     SELECT event_type, triggered_by, row_affected,
            DATE_FORMAT(CONVERT_TZ(event_time, @@session.time_zone, '+08:00'),'%Y-%m-%dT%H:%i:%s+08:00') AS event_time
@@ -147,9 +150,34 @@ $stmt = $conn->prepare("
 $stmt->bind_param('i', $room_id);
 $stmt->execute();
 $res = $stmt->get_result();
-$alerts = [];
 while ($r = $res->fetch_assoc()) $alerts[] = $r;
 $stmt->close();
+
+// 7b. Dedicated PIR logs
+$stmt = $conn->prepare("
+    SELECT state,
+           DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+08:00'),'%Y-%m-%dT%H:%i:%s+08:00') AS event_time
+    FROM pir_logs
+    WHERE classroom_id = ?
+    ORDER BY created_at DESC
+    LIMIT 50
+");
+$stmt->bind_param('i', $room_id);
+$stmt->execute();
+$res = $stmt->get_result();
+while ($r = $res->fetch_assoc()) {
+    $alerts[] = [
+        'event_type'   => $r['state'] ? 'pir_motion' : 'pir_stopped',
+        'triggered_by' => 'pir',
+        'row_affected' => null,
+        'event_time'   => $r['event_time'],
+    ];
+}
+$stmt->close();
+
+// Sort merged alerts newest-first
+usort($alerts, fn($a, $b) => strtotime($b['event_time']) - strtotime($a['event_time']));
+$alerts = array_slice($alerts, 0, 50);
 
 //8. ── Next schedule today or future day ───────────────────────
 $stmt = $conn->prepare("

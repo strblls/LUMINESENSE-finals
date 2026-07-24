@@ -204,7 +204,8 @@ $fm_res->free();
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!--Relative links-->
-    <link rel="icon" href="../../images/logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../images/icon.png">
+    <link rel="shortcut icon" type="image/png" href="../../images/icon.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css?v=<?= time() ?>">
     <link rel="stylesheet" href="../../css/admin-common.css">
@@ -827,7 +828,7 @@ $fm_res->free();
                                     <h2 class="bold">Departments</h2>
                                 </div>
                                 <div class="d-flex mx-2 align-items-end">
-                                    <button class="light mx-2" onclick="dissolve('admin-faculty-management.php')" data-bs-toggle="tooltip" data-bs-placement="top" title="Manage departments"><i class="bi bi-box-arrow-up-right"></i></button>
+                                    <button class="light mx-2" onclick="dissolve('admin-faculty-management.php?tab=departments')" data-bs-toggle="tooltip" data-bs-placement="top" title="Manage departments"><i class="bi bi-box-arrow-up-right"></i></button>
                                 </div>
                             </div>
                             <div class="room-list px-1 mt-1" id="depts-list">
@@ -862,7 +863,7 @@ $fm_res->free();
                                     <h2 class="bold">Faculty</h2>
                                 </div>
                                 <div class="d-flex mx-2 align-items-end">
-                                    <button class="light mx-2" onclick="dissolve('admin-faculty-management.php')" data-bs-toggle="tooltip" data-bs-placement="top" title="Manage faculty members"><i class="bi bi-box-arrow-up-right"></i></button>
+                                    <button class="light mx-2" onclick="dissolve('admin-faculty-management.php?tab=faculty-directory')" data-bs-toggle="tooltip" data-bs-placement="top" title="Manage faculty members"><i class="bi bi-box-arrow-up-right"></i></button>
                                 </div>
                             </div>
                             <div class="room-list px-1 mt-1" id="faculty-list">
@@ -1194,6 +1195,8 @@ $fm_res->free();
                 'light_on': ['bi-lightbulb-fill', '#198754', '#d1e7dd'],
                 'light_off': ['bi-lightbulb', '#842029', '#f8d7da'],
                 'motion_detect': ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+                'pir_motion': ['bi-person-bounding-box', '#084298', '#cfe2ff'],
+                'pir_stopped': ['bi-person-bounding-box', '#5a5a5a', '#e9ecef'],
                 'gesture': ['bi-hand-index', '#084298', '#cfe2ff'],
                 'schedule': ['bi-calendar-check', '#198754', '#d1e7dd'],
                 'security_alert': ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
@@ -1254,8 +1257,10 @@ $fm_res->free();
                 if (!data.success) return;
 
                 // ── Update stat cards ──────────────────────────────────────────
+                const lightsEl = document.querySelector('.stat-card:nth-child(2) .stat-value');
                 const pendingEl = document.querySelector('.stat-card:nth-child(3) .stat-value');
                 const extEl = document.querySelector('.stat-card:nth-child(4) .stat-value');
+                if (lightsEl) lightsEl.textContent = data.lights_on;
                 if (pendingEl) pendingEl.textContent = data.pending;
                 if (extEl) extEl.textContent = data.ext_pending;
 

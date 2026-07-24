@@ -64,6 +64,33 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $logs[] = $row;
 $stmt->close();
 
+// ── Merge in dedicated PIR logs ─────────────────────────────────────────────
+$pir_logs = [];
+$stmt = $conn->prepare("
+    SELECT state, created_at
+    FROM pir_logs
+    WHERE classroom_id = ?
+    ORDER BY created_at DESC
+    LIMIT 7
+");
+$stmt->bind_param('i', $cid);
+$stmt->execute();
+$r = $stmt->get_result();
+while ($row = $r->fetch_assoc()) {
+    $pir_logs[] = [
+        'event_type'   => $row['state'] ? 'pir_motion' : 'pir_stopped',
+        'triggered_by' => 'pir',
+        'event_time'   => $row['created_at'],
+        'room_name'    => null,
+    ];
+}
+$stmt->close();
+
+// Merge PIR logs into main logs array, sorted newest-first
+$logs = array_merge($logs, $pir_logs);
+usort($logs, fn($a, $b) => strtotime($b['event_time']) - strtotime($a['event_time']));
+$logs = array_slice($logs, 0, 10);
+
 // ── Gesture logs (this faculty only, last 20) ─────────────────────────────────
 $faculty_id = (int)$_SESSION['faculty_id'];
 $gesture_logs = [];

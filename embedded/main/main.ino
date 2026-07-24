@@ -58,6 +58,11 @@ bool row3State = false;
 bool pirState = false;
 bool pirResetUsed = false;
 
+// ── PIR Inactivity Timeout ─────────────────────────────────
+unsigned long lastPirActivity = 0;
+bool pirLockoutActive = false;
+unsigned long pirInactivityTimeoutMs = 300000; // default 5 min, updated via CONFIG
+
 // ── Cooldown Timer ─────────────────────────────────────────
 unsigned long cooldownStart = 0;
 #define COOLDOWN_MS 30000
@@ -154,8 +159,9 @@ void setup()
         }
     }
 
-    // Ask ESP32 for schedule on boot
+    // Ask ESP32 for schedule and config on boot
     requestScheduleFromServer();
+    lastPirActivity = millis();
     Serial.println(F("=== LUMINESENSE Mega Ready ==="));
 }
 
@@ -200,7 +206,22 @@ void loop()
             setAllRows(false);
             sysState = STATE_LOCKED;
             syncStateToFrontend();
+            Serial2.println("ACK:ALL:OFF");
         }
+    }
+
+    // PIR inactivity timeout: if no motion detected within the timeout
+    // while in SCHEDULED state, lock out PIR and turn off lights
+    if (sysState == STATE_SCHEDULED && !pirLockoutActive && pirInactivityTimeoutMs > 0 &&
+        millis() - lastPirActivity >= pirInactivityTimeoutMs)
+    {
+        Serial.println(F("[PIR] Inactivity timeout — lockout activated"));
+        setAllRows(false);
+        if (sessionActive)
+            endSession(rtc.now());
+        pirLockoutActive = true;
+        syncStateToFrontend();
+        Serial2.println("ACK:ALL:OFF");
     }
 }
 
@@ -241,9 +262,25 @@ void handlePIR(unsigned long now)
     lastPirChange = now;
     pirState = reading;
 
+    // Tell ESP32 to log this state change to the cloud
+    Serial2.print(F("LOG_PIR:"));
+    Serial2.println(pirState ? '1' : '0');
+
     if (pirState == HIGH)
     {
         Serial.println(F("[PIR] Motion detected"));
+        lastPirActivity = millis();
+
+        // If in lockout, motion re-activates the system
+        if (pirLockoutActive && sysState == STATE_SCHEDULED)
+        {
+            Serial.println(F("[PIR] Motion — lockout cleared"));
+            pirLockoutActive = false;
+            setAllRows(true);
+            syncStateToFrontend();
+            return;
+        }
+
         if (sysState == STATE_SCHEDULED)
         {
             if (!row1State && !row2State && !row3State)
@@ -314,6 +351,13 @@ void handleEsp32Messages()
             if (msg.startsWith("SCHED:") || msg.startsWith("sched:"))
             {
                 parseSchedulePayload(msg.substring(6));
+                continue;
+            }
+
+            // Handle CONFIG before toUpperCase — payload has key=value
+            if (msg.startsWith("CONFIG:") || msg.startsWith("config:"))
+            {
+                parseConfigPayload(msg.substring(7));
                 continue;
             }
 
@@ -433,6 +477,8 @@ void checkSchedule()
         Serial.println(F("[SCHED] Schedule started — SCHEDULED"));
         sysState = STATE_SCHEDULED;
         pirResetUsed = false;
+        pirLockoutActive = false;
+        lastPirActivity = millis();
         // Session only starts when PIR detects motion, not on schedule start
     }
     else if (inSchedule && sysState == STATE_COOLDOWN)
@@ -515,6 +561,24 @@ void parseSchedulePayload(String payload)
     Serial.print(F("[SCHED] Loaded "));
     Serial.print(scheduleCount);
     Serial.println(F(" slot(s)"));
+}
+
+void parseConfigPayload(String payload)
+{
+    int eqPos = payload.indexOf('=');
+    if (eqPos == -1) return;
+
+    String key = payload.substring(0, eqPos);
+    key.toUpperCase();
+    String val = payload.substring(eqPos + 1);
+
+    if (key == "PIR_TIMEOUT")
+    {
+        pirInactivityTimeoutMs = (unsigned long)val.toInt();
+        Serial.print(F("[CONFIG] PIR_TIMEOUT set to "));
+        Serial.print(pirInactivityTimeoutMs);
+        Serial.println(F(" ms"));
+    }
 }
 
 // ============================================================

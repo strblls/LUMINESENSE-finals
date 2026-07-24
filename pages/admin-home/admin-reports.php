@@ -94,6 +94,8 @@ function event_icon(string $type): array
         'light_on'       => ['bi-lightbulb-fill',      '#0f5132', '#d1e7dd'],
         'light_off'      => ['bi-lightbulb',            '#842029', '#f8d7da'],
         'motion_detect'  => ['bi-person-bounding-box',  '#084298', '#cfe2ff'],
+        'pir_motion'     => ['bi-person-bounding-box',  '#084298', '#cfe2ff'],
+        'pir_stopped'    => ['bi-person-bounding-box',  '#5a5a5a', '#e9ecef'],
         'door_open'      => ['bi-door-open-fill',       '#664d03', '#fff3cd'],
         'door_close'     => ['bi-door-closed-fill',     '#5a3a00', '#ffe5b4'],
         'class_start'    => ['bi-play-circle-fill',     '#0d6e3b', '#d1e7dd'],
@@ -126,7 +128,8 @@ function event_icon(string $type): array
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!--Relative links-->
-    <link rel="icon" href="../../images/logo.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../../images/icon.png">
+    <link rel="shortcut icon" type="image/png" href="../../images/icon.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
@@ -539,6 +542,8 @@ function event_icon(string $type): array
                 light_on:       ['bi-lightbulb-fill',      '#0f5132', '#d1e7dd'],
                 light_off:      ['bi-lightbulb',            '#842029', '#f8d7da'],
                 motion_detect:  ['bi-person-bounding-box',  '#084298', '#cfe2ff'],
+                pir_motion:     ['bi-person-bounding-box',  '#084298', '#cfe2ff'],
+                pir_stopped:    ['bi-person-bounding-box',  '#5a5a5a', '#e9ecef'],
                 door_open:      ['bi-door-open-fill',       '#664d03', '#fff3cd'],
                 door_close:     ['bi-door-closed-fill',     '#5a3a00', '#ffe5b4'],
                 class_start:    ['bi-play-circle-fill',     '#0d6e3b', '#d1e7dd'],
@@ -657,7 +662,7 @@ function event_icon(string $type): array
                                 var timeStr = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
                                 var iconMap = {
                                     light_on: 'bi-lightbulb-fill', light_off: 'bi-lightbulb',
-                                    motion_detect: 'bi-person-bounding-box', door_open: 'bi-door-open-fill',
+                                    motion_detect: 'bi-person-bounding-box', pir_motion: 'bi-person-bounding-box', pir_stopped: 'bi-person-bounding-box', door_open: 'bi-door-open-fill',
                                     door_close: 'bi-door-closed-fill', class_start: 'bi-play-circle-fill',
                                     class_end: 'bi-stop-circle', issue_raised: 'bi-exclamation-triangle-fill',
                                     issue_resolved: 'bi-check-circle-fill'

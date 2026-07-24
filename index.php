@@ -14,6 +14,8 @@
         crossorigin="anonymous"></script>
 
     <!--CSS files-->
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon.png">
+    <link rel="shortcut icon" type="image/png" href="images/icon.png">
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/containers.css">
     <link rel="stylesheet" href="css/landing.css">

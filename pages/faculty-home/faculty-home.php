@@ -113,7 +113,7 @@ function mask_email(string $email): string
         crossorigin="anonymous"></script>
 
     <!--Relative links-->
-    <link rel="icon" href="../../images/logo.png">
+    <link rel="icon" href="../../images/icon.png">
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/containers.css">
     <link rel="stylesheet" href="../../css/modals.css">
@@ -686,6 +686,8 @@ function mask_email(string $email): string
         // ── System Status polling ────────────────────────────────────────────
         (function pollSystemStatus() {
             const interval = 3000;
+            const bulbOff = '../../images/bulb-off.png';
+            const bulbOn  = '../../images/bulb-on.png';
 
             function updateBadge(id, ok) {
                 const el = document.getElementById(id);
@@ -707,7 +709,52 @@ function mask_email(string $email): string
                 }
             }
 
+            async function fetchStatus() {
+                try {
+                    const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (!data.success) return;
+
+                    // ── System Status badges ──
+                    updateBadge('statusLighting', data.light_status === 'on');
+                    updateBadge('statusPIR', data.pir_occupied === true);
+
+                    // ── Sync bulb images ──
+                    for (let row = 1; row <= 3; row++) {
+                        const on = data['row' + row + '_status'] === 'on';
+                        document.querySelectorAll('.bulb-img[data-row="' + row + '"]')
+                            .forEach(img => img.src = on ? bulbOn : bulbOff);
+                    }
+
+                    // ── Sync row switches ──
+                    for (let row = 1; row <= 3; row++) {
+                        const sw = document.getElementById('row-' + row + '-switch');
+                        if (sw) sw.checked = data['row' + row + '_status'] === 'on';
+                    }
+
+                    // ── Sync All Lights text ──
+                    const allOn = data.row1_status === 'on' && data.row2_status === 'on' && data.row3_status === 'on';
+                    const allText = document.getElementById('allLightsStatus');
+                    if (allText) {
+                        allText.textContent = allOn ? 'ON' : 'OFF';
+                        allText.classList.replace(allOn ? 'off' : 'on', allOn ? 'on' : 'off');
+                    }
+                    const allContainer = document.getElementById('allLightsContainer');
+                    if (allContainer) {
+                        allContainer.classList.replace(
+                            allOn ? 'all-lights-off' : 'all-lights-on',
+                            allOn ? 'all-lights-on'  : 'all-lights-off'
+                        );
+                    }
+                } catch (e) {
+                    console.warn('Status poll error:', e);
+                }
+            }
+
             checkWebcam();
+            fetchStatus();
+            setInterval(fetchStatus, interval);
         })();
 
         // Sidebar trigger is handled by Bootstrap offcanvas attributes in the topbar.
@@ -884,6 +931,9 @@ function mask_email(string $email): string
             window._updateScheduleEnd = function(newEnd) {
                 _scheduleEnd = newEnd;
                 if (display) display.dataset.end = newEnd;
+                // Keep speech/beep notification in sync
+                var schedData = document.getElementById('scheduleEndData');
+                if (schedData) schedData.dataset.end = newEnd;
                 if (HAS_ACTIVE_SCHEDULE) unlockControls();
                 window._tickTimer();
             };
@@ -944,6 +994,8 @@ function mask_email(string $email): string
                 'light_on'       : ['bi-lightbulb-fill',            '#198754', '#d1e7dd'],
                 'light_off'      : ['bi-lightbulb',                 '#842029', '#f8d7da'],
                 'motion_detect'  : ['bi-person-bounding-box',       '#084298', '#cfe2ff'],
+                'pir_motion'     : ['bi-person-bounding-box',       '#084298', '#cfe2ff'],
+                'pir_stopped'    : ['bi-person-bounding-box',       '#5a5a5a', '#e9ecef'],
                 'gesture'        : ['bi-hand-index',                '#084298', '#cfe2ff'],
                 'schedule'       : ['bi-calendar-check',            '#198754', '#d1e7dd'],
                 'security_alert' : ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
@@ -999,6 +1051,16 @@ function mask_email(string $email): string
                     data.light_status === 'on',
                     data.schedule_active
                 );
+
+                // Poll schedule end time changes (auto-refresh timer + notifications)
+                if (data.schedule_active && data.schedule_end) {
+                    var current = typeof _scheduleEnd !== 'undefined' ? (_scheduleEnd || '') : '';
+                    if (data.schedule_end !== current) {
+                        window._updateScheduleEnd(data.schedule_end);
+                    }
+                } else if (typeof _scheduleEnd !== 'undefined' && _scheduleEnd !== null) {
+                    _scheduleEnd = null;
+                }
 
                 if (!data.logs || !data.logs.length) return;
 

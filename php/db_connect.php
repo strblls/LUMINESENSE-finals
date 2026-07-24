@@ -125,6 +125,9 @@ $conn->query("
 ");
 
 $conn->set_charset('utf8mb4');
+// Set MySQL session timezone to Asia/Manila (UTC+8) so TIMESTAMP columns
+// (event_time, pir_since, created_at, etc.) store correct local time
+$conn->query("SET time_zone = '+08:00'");
 
 // ── Runtime column migrations (safe – only adds if missing) ──────────────────
 // Helper to safely add a column if it doesn't exist
@@ -308,6 +311,8 @@ $conn->query("
 ");
 // Ensure a row for grace_minutes exists
 $conn->query("INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('grace_minutes', '0')");
+// PIR inactivity timeout (in minutes) — used by ESP32/Mega firmware
+$conn->query("INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES ('pir_inactivity_timeout', '5')");
 
 // ── Fix missing FKs on junction tables from prior schema ───────────────────
 $junction_tables = [
@@ -376,6 +381,18 @@ $conn->query("ALTER TABLE id_review_queue MODIFY COLUMN ai_match_status ENUM('ma
 
 // ── is_seeded column for admins (seeded admin = super-admin) ─────────────────
 addColIfMissing($conn, 'admins', 'is_seeded', "ENUM('1','0') DEFAULT '0'");
+
+// ── Dedicated PIR event log (every state change from Mega GPIO5) ─────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS pir_logs (
+        id            INT AUTO_INCREMENT PRIMARY KEY,
+        classroom_id  INT NOT NULL,
+        state         TINYINT(1) NOT NULL COMMENT '1=motion detected, 0=motion stopped',
+        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
+        INDEX idx_pir_logs_room (classroom_id, id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
 
 // ── Flush schedules table (end-of-semester auto-flush) ──────────────────────
 $conn->query("

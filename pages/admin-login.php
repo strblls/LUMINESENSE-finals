@@ -5,8 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $loginError = $_SESSION['login_error'] ?? null;
 $signupSuccessModal = $_SESSION['signup_success_modal'] ?? null;
+$loginSuccess = $_SESSION['login_success'] ?? null;
 
-unset($_SESSION['login_error'], $_SESSION['signup_success_modal']);
+unset($_SESSION['login_error'], $_SESSION['signup_success_modal'], $_SESSION['login_success']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,6 +24,8 @@ unset($_SESSION['login_error'], $_SESSION['signup_success_modal']);
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
         crossorigin="anonymous"></script>
 
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/icon.png">
+    <link rel="shortcut icon" type="image/png" href="../images/icon.png">
     <!--CSS files-->
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/containers.css">
@@ -48,6 +51,9 @@ unset($_SESSION['login_error'], $_SESSION['signup_success_modal']);
             <h4 class="pb-4 semibold">Administrator Login</h4>
 
             <!-- SESSION MESSAGES -->
+            <?php if (!empty($loginSuccess)): ?>
+                <div class="alert alert-success"><?= htmlspecialchars($loginSuccess) ?></div>
+            <?php endif; ?>
             <?php if (!empty($loginError)): ?>
                 <div class="alert alert-danger"><?= htmlspecialchars($loginError) ?></div>
             <?php endif; ?>
@@ -113,6 +119,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success_modal']);
                         <button type="submit" class="medium">LOGIN</button>
                         or<br>
                         <a type="button" class="medium" onclick="dissolve('admin-signup.php')">SIGN-UP</a>
+                        <a class="small text-muted d-block mt-2" onclick="dissolve('forgot-password.php')" style="cursor:pointer;">Forgot Password?</a>
                     </div>
 
                 </form>
