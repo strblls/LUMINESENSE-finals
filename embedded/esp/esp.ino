@@ -198,12 +198,14 @@ void handlePIR(unsigned long now) {
         Serial.println(F("[PIR] Motion detected!"));
         pirOverrideActive = true;
         Serial2.println("PIR:ON");
+        pendingPirLog = 1;
     }
 
     if (pirState == LOW && pirOverrideActive) {
         Serial.println(F("[PIR] Motion stopped"));
         pirOverrideActive = false;
         Serial2.println("PIR:OFF");
+        pendingPirLog = 0;
     }
 }
 
