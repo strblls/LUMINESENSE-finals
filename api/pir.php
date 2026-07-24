@@ -70,7 +70,7 @@ if ($occupied) {
         // Log the event
         $stmt = $conn->prepare("
             INSERT INTO lighting_logs (classroom_id, event_type, triggered_by)
-            VALUES (?, 'on', 'pir')
+            VALUES (?, 'on', 'PIR')
         ");
         $stmt->bind_param('i', $cid);
         $stmt->execute();
@@ -97,20 +97,29 @@ if ($occupied) {
         echo json_encode(['success' => true, 'action' => 'occupied_no_schedule']); exit;
     }
 } else {
-    // ── Room cleared ──────────────────────────────────────────────────────────
+    // ── Room cleared → end schedule ──────────────────────────────────────────
+    $conn->query("
+        UPDATE schedules
+        SET extended_until = CURTIME()
+        WHERE classroom_id = $cid
+          AND day_of_week  = '$now_day'
+          AND start_time  <= '$now_time'
+          AND (extended_until >= '$now_time' OR (extended_until IS NULL AND end_time >= '$now_time'))
+    ");
     $conn->query("
         UPDATE classrooms
-        SET light_status = 'off',
-            row1_status  = 'off',
-            row2_status  = 'off',
-            row3_status  = 'off',
-            pir_occupied = 0,
-            pir_since    = NULL
+        SET light_status   = 'off',
+            row1_status    = 'off',
+            row2_status    = 'off',
+            row3_status    = 'off',
+            pir_occupied   = 0,
+            pir_since      = NULL,
+            schedule_dirty = 1
         WHERE id = $cid
     ");
     $stmt = $conn->prepare("
         INSERT INTO lighting_logs (classroom_id, event_type, triggered_by)
-        VALUES (?, 'off', 'pir')
+        VALUES (?, 'off', 'PIR')
     ");
     $stmt->bind_param('i', $cid);
     $stmt->execute();

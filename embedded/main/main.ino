@@ -472,6 +472,13 @@ void checkSchedule()
         break;
     }
 
+    Serial.print(F("[SCHED] loaded="));
+    Serial.print(scheduleLoaded);
+    Serial.print(F(" count="));
+    Serial.print(scheduleCount);
+    Serial.print(F(" inSchedule="));
+    Serial.println(inSchedule);
+
     if (inSchedule && (sysState == STATE_OUTSIDE || sysState == STATE_LOCKED))
     {
         Serial.println(F("[SCHED] Schedule started — SCHEDULED"));

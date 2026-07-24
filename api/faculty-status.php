@@ -79,7 +79,7 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) {
     $pir_logs[] = [
         'event_type'   => $row['state'] ? 'pir_motion' : 'pir_stopped',
-        'triggered_by' => 'pir',
+        'triggered_by' => 'PIR',
         'event_time'   => $row['created_at'],
         'room_name'    => null,
     ];

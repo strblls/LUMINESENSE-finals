@@ -64,7 +64,7 @@ if ($classroomId) {
     $res3 = $conn->query("
         SELECT
             CASE state WHEN 1 THEN 'pir_motion' ELSE 'pir_stopped' END AS event_type,
-            'pir' AS triggered_by,
+            'PIR' AS triggered_by,
             created_at AS event_time,
             '' AS notes
         FROM pir_logs

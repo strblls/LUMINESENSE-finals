@@ -183,9 +183,22 @@ void loop() {
 // ============================================================
 // PIR HANDLER
 // ============================================================
+#define PIR_INACTIVITY_MS 300000ul // 5 minutes
+
 void handlePIR(unsigned long now) {
     static unsigned long lastPirChange = 0;
+    static unsigned long pirInactiveSince = 0;
     bool reading = digitalRead(PIR_PIN);
+
+    // Inactivity timeout: motion stopped for 5 minutes → log stopped
+    if (pirState == LOW && pirOverrideActive && pirInactiveSince > 0 &&
+        now - pirInactiveSince >= PIR_INACTIVITY_MS) {
+        Serial.println(F("[PIR] Inactivity timeout — logging stopped"));
+        pirOverrideActive = false;
+        pirInactiveSince = 0;
+        pendingPirLog = 0;
+        return;
+    }
 
     if (reading == pirState) return; // no change, do nothing
 
@@ -194,18 +207,19 @@ void handlePIR(unsigned long now) {
     lastPirChange = now;
     pirState = reading;
 
-    if (pirState == HIGH && !pirOverrideActive) {
-        Serial.println(F("[PIR] Motion detected!"));
-        pirOverrideActive = true;
-        Serial2.println("PIR:ON");
-        pendingPirLog = 1;
+    if (pirState == HIGH) {
+        if (!pirOverrideActive) {
+            Serial.println(F("[PIR] Motion detected!"));
+            pirOverrideActive = true;
+            pendingPirLog = 1;
+        }
+        pirInactiveSince = 0; // cancel pending inactivity timeout
     }
 
     if (pirState == LOW && pirOverrideActive) {
-        Serial.println(F("[PIR] Motion stopped"));
-        pirOverrideActive = false;
-        Serial2.println("PIR:OFF");
-        pendingPirLog = 0;
+        Serial.println(F("[PIR] Motion stopped — 5 min timeout started"));
+        pirInactiveSince = now; // start inactivity timer
+        // NOT sending pendingPirLog = 0 yet — will send after 5 min timeout
     }
 }
 
@@ -346,8 +360,11 @@ void fetchAndForwardSchedule() {
         Serial.print(F("[SCHED] Length: "));  Serial.println(payload.length());
 
         if (payload.length() > 0) {
-            Serial2.println("SCHEDULE:" + payload);
-            Serial.println(F("[SCHED] Forwarded to Mega"));
+            for (int i = 0; i < 3; i++) {
+                Serial2.println("SCHEDULE:" + payload);
+                delay(200);
+            }
+            Serial.println(F("[SCHED] Forwarded to Mega (3x)"));
         } else {
             Serial.println(F("[SCHED] Empty payload — no schedule today"));
         }
