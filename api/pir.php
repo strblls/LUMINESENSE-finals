@@ -75,6 +75,11 @@ if ($occupied) {
         $stmt->bind_param('i', $cid);
         $stmt->execute();
         $stmt->close();
+        // Log to dedicated pir_logs
+        $stmt = $conn->prepare("INSERT INTO pir_logs (classroom_id, state) VALUES (?, 1)");
+        $stmt->bind_param('i', $cid);
+        $stmt->execute();
+        $stmt->close();
         echo json_encode(['success' => true, 'action' => 'lights_on', 'schedule' => true]); exit;
     } else {
         // Person present but outside schedule — just flag, don't turn on lights
@@ -84,6 +89,11 @@ if ($occupied) {
                 pir_since    = CASE WHEN pir_occupied = 0 THEN NOW() ELSE pir_since END
             WHERE id = $cid
         ");
+        // Log to dedicated pir_logs
+        $stmt = $conn->prepare("INSERT INTO pir_logs (classroom_id, state) VALUES (?, 1)");
+        $stmt->bind_param('i', $cid);
+        $stmt->execute();
+        $stmt->close();
         echo json_encode(['success' => true, 'action' => 'occupied_no_schedule']); exit;
     }
 } else {
@@ -102,6 +112,11 @@ if ($occupied) {
         INSERT INTO lighting_logs (classroom_id, event_type, triggered_by)
         VALUES (?, 'off', 'pir')
     ");
+    $stmt->bind_param('i', $cid);
+    $stmt->execute();
+    $stmt->close();
+    // Log to dedicated pir_logs
+    $stmt = $conn->prepare("INSERT INTO pir_logs (classroom_id, state) VALUES (?, 0)");
     $stmt->bind_param('i', $cid);
     $stmt->execute();
     $stmt->close();
