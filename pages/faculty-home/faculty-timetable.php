@@ -1814,7 +1814,7 @@ function ordinal(int $number): string
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center">
-                    <i class="bi bi-file-earmark-pdf" style="font-size: 3rem; color: var(--secondary-color-2);"></i>
+                    <i class="bi bi-filetype-pdf" style="font-size: 3rem; color: var(--secondary-color-2);"></i>
                     <p class="mt-3 mb-0">Are you sure you want to export your class schedule as PDF?</p>
                 </div>
                 <div class="modal-footer d-flex flex-row flex-nowrap justify-content-between gap-2">
