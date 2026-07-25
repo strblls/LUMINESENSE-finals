@@ -414,8 +414,8 @@ function event_icon(string $type): array
                 <p id="exportModalMsg" class="mt-3 mb-0" style="font-size:14px;">Are you sure you want to export this report?</p>
             </div>
             <div id="modal-footer">
-                <button type="button" onclick="closeExportModal()" style="background:transparent;color:#888;">Cancel</button>
-                <button type="button" id="exportConfirmBtn" style="background:var(--secondary-color-2);color:#fff;">Export</button>
+                <button type="button" onclick="closeExportModal()">Cancel</button>
+                <button type="button" id="exportConfirmBtn">Export</button>
             </div>
         </div>
     </div>
