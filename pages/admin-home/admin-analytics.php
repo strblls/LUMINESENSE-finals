@@ -495,12 +495,47 @@ include '../../php/handlers/analytics-handler.php';
             })();
         </script>
         <script>
+            function syncRoomSelect(val) {
+                var sel = document.getElementById('roomSelect');
+                if (sel) sel.value = val;
+            }
+            function isRoomPrototype(rid) {
+                var r = roomData.find(function(d) { return d.id == rid; });
+                return r && r.is_prototype == 1;
+            }
+            function showNoDeviceState() {
+                var badge = document.getElementById('liveBadge');
+                if (badge) { badge.className = 'live-badge stale'; badge.innerHTML = '<span class="live-dot stale"></span> No Device'; }
+                var ids = ['liveVoltage','liveCurrent','livePower','liveEnergy','liveStatus'];
+                ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.textContent = id === 'liveStatus' ? '—' : (id === 'liveEnergy' ? '— Wh' : '— ' + (id === 'liveVoltage' ? 'V' : id === 'liveCurrent' ? 'A' : id === 'livePower' ? 'W' : '')); });
+                var dot = document.getElementById('liveStatusDot');
+                if (dot) { dot.style.background = '#ccc'; dot.classList.remove('on'); }
+                var sumIds = ['sumEnergy','sumMinutes','sumVoltage','sumCurrent','sumPower','sumCost'];
+                sumIds.forEach(function(id) { var el = document.getElementById(id); if (el) el.textContent = '—'; });
+                var tbody = document.getElementById('historyBody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No data — no device connected</td></tr>';
+                var tfoot = document.getElementById('historyFoot');
+                if (tfoot) tfoot.innerHTML = '';
+                if (typeof lineChartInstance !== 'undefined') {
+                    lineChartInstance.data.labels = ['No data'];
+                    lineChartInstance.data.datasets.forEach(function(ds) { ds.data = []; });
+                    lineChartInstance.update();
+                }
+                if (typeof barChartInstance !== 'undefined') {
+                    barChartInstance.data.labels = ['No data'];
+                    barChartInstance.data.datasets.forEach(function(ds) { ds.data = []; });
+                    barChartInstance.update();
+                }
+            }
             function deselectRoom() {
                 document.querySelectorAll('.rooms-card .stat-card.active-room').forEach(function(c) {
                     c.classList.remove('active-room');
                 });
                 var sub = document.getElementById('tabSubheading');
                 if (sub) sub.textContent = 'All Rooms Selected';
+                syncRoomSelect(0);
+                if (typeof onControlChange === 'function') onControlChange();
+                if (typeof fetchLive === 'function') fetchLive();
                 if (typeof checkPolling === 'function') checkPolling();
             }
             document.querySelectorAll('.rooms-card .stat-card').forEach(function(card) {
@@ -510,13 +545,23 @@ include '../../php/handlers/analytics-handler.php';
                     var wasActive = this.classList.contains('active-room');
                     this.classList.toggle('active-room');
                     var sub = document.getElementById('tabSubheading');
+                    var rid = this.getAttribute('data-room-id');
                     if (sub) {
                         if (wasActive) {
                             sub.textContent = 'All Rooms Selected';
+                            syncRoomSelect(0);
                         } else {
                             var nameEl = this.querySelector('.stat-value');
                             sub.textContent = nameEl ? nameEl.textContent + ' Selected' : 'Room Selected';
+                            syncRoomSelect(rid);
                         }
+                    }
+                    if (!wasActive && !isRoomPrototype(rid)) {
+                        showNoDeviceState();
+                        pausePolling();
+                    } else {
+                        if (typeof onControlChange === 'function') onControlChange();
+                        if (typeof fetchLive === 'function') fetchLive();
                     }
                     if (typeof checkPolling === 'function') checkPolling();
                 });
