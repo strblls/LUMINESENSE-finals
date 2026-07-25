@@ -15,6 +15,30 @@ $stateLabels = [
     3 => 'Locked',
 ];
 
+// ── Non-prototype room early return ───────────────────────────────────────
+if ($cid > 0) {
+    $stmt = $conn->prepare("SELECT is_prototype FROM classrooms WHERE id = ?");
+    $stmt->bind_param('i', $cid);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row || empty($row['is_prototype'])) {
+        echo json_encode([
+            'success'   => true,
+            'stale'     => true,
+            'voltage'   => 0, 'current' => 0,
+            'power'     => 0, 'power_kw' => 0,
+            'energy'    => 0,
+            'lights_on' => false,
+            'light_on'  => false,
+            'state'     => 0,
+            'state_label' => 'No Data',
+            'updated_at'  => null,
+        ]);
+        $conn->close(); exit;
+    }
+}
+
 if ($cid) {
     $stmt = $conn->prepare("
         SELECT p.*, c.room_name,

@@ -122,6 +122,21 @@ if ($tab === 'rooms') {
         $res2->free();
     }
 
+    $res3 = $conn->query("
+        SELECT
+            'room' AS log_type, pl.id,
+            CASE pl.state WHEN 1 THEN 'pir_motion' ELSE 'pir_stopped' END AS action,
+            c.room_name AS target, 'PIR' AS actor,
+            pl.created_at AS log_time, '' AS notes
+        FROM pir_logs pl
+        JOIN classrooms c ON c.id = pl.classroom_id
+        ORDER BY pl.created_at DESC LIMIT 200
+    ");
+    if ($res3) {
+        while ($row = $res3->fetch_assoc()) $activity_logs[] = $row;
+        $res3->free();
+    }
+
     usort($activity_logs, fn($a, $b) => strtotime($b['log_time']) - strtotime($a['log_time']));
 
     $html = '<h2 style="text-align:center;margin-bottom:20px;">Activity Log</h2>';

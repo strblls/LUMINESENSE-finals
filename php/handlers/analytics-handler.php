@@ -25,7 +25,8 @@ $lights_data = $conn->query(
 $rooms = [];
 $r = $conn->query("
     SELECT c.id, c.room_name, c.room_size, c.description,
-           COALESCE(l.event_type, 'off') AS light_status
+           COALESCE(l.event_type, 'off') AS light_status,
+           c.is_prototype
     FROM classrooms c
     LEFT JOIN lighting_logs l
         ON l.id = (SELECT MAX(id) FROM lighting_logs WHERE classroom_id = c.id)

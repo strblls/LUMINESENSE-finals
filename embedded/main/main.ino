@@ -262,10 +262,8 @@ void handlePIR(unsigned long now)
         Serial.println(F("[PIR] Motion detected"));
         lastPirActivity = millis();
 
-        // If in lockout, motion re-activates the system
-        if (pirLockoutActive && sysState == STATE_SCHEDULED)
+        if (sysState == STATE_OUTSIDE)
         {
-            Serial.println(F("[PIR] Motion — lockout cleared"));
             pirLockoutActive = false;
             setAllRows(true);
             saveState();

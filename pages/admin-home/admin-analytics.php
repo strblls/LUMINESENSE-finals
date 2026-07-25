@@ -148,7 +148,7 @@ include '../../php/handlers/analytics-handler.php';
                                         <i class="bi bi-door-open" style="font-size:1.5rem;color:var(--secondary-color-2);"></i>
                                     </span>
                                     <div>
-                                        <div class="stat-value"><?= htmlspecialchars($room['room_name']) ?></div>
+                                        <div class="stat-value"><?= htmlspecialchars($room['room_name']) ?><?php if (!empty($room['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></div>
                                         <p class="stat-label">Room</p>
                                     </div>
                                 </div>

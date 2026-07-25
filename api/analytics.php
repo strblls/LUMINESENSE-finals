@@ -26,6 +26,31 @@ $cid_filter  = $cid ? "AND ps.classroom_id = $cid" : "";
 $cid_filter2 = $cid ? "AND ll.classroom_id = $cid" : "";
 $cid_filter3 = $cid ? "AND pr.classroom_id = $cid" : "";
 
+// ── Non-prototype room early return ───────────────────────────────────────
+if ($cid > 0) {
+    $stmt = $conn->prepare("SELECT is_prototype FROM classrooms WHERE id = ?");
+    $stmt->bind_param('i', $cid);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row || empty($row['is_prototype'])) {
+        echo json_encode([
+            'success' => true,
+            'summary' => [
+                'total_energy_kwh' => 0, 'total_minutes' => 0,
+                'avg_voltage' => 0, 'avg_current' => 0,
+                'peak_power_w' => 0, 'est_cost_php' => 0,
+                'total_sessions' => 0, 'total_energy_wh' => 0,
+                'peak_power_kw' => 0,
+            ],
+            'daily' => [], 'hourly' => [], 'intervals' => [],
+            'heatmap' => [], 'triggers' => [], 'per_room' => [],
+            'sessions' => [], 'active_session' => null,
+        ]);
+        $conn->close(); exit;
+    }
+}
+
 // ── 1. Summary cards ─────────────────────────────────────────────────────
 if ($days === 1) {
     // Today: pull live averages directly from pzem_readings
