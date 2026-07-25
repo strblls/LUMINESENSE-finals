@@ -404,18 +404,21 @@ function event_icon(string $type): array
     </div><!-- /child-container -->
 
     <!-- ═══ EXPORT CONFIRM MODAL ═══ -->
-    <div class="notify-modal" id="exportConfirmModal" style="z-index:1060;">
-        <div class="modal-box" style="width:360px;">
-            <div id="modal-header">
-                <h6 class="bold" style="margin:0;"><i class="bi bi-download me-1"></i>Confirm Export</h6>
-            </div>
-            <div id="modal-body" class="py-4">
-                <i id="exportModalIcon" class="bi bi-filetype-csv" style="font-size:50px;color:#ff9500;"></i>
-                <p id="exportModalMsg" class="mt-3 mb-0" style="font-size:14px;">Are you sure you want to export this report?</p>
-            </div>
-            <div id="modal-footer">
-                <button type="button" onclick="closeExportModal()">Cancel</button>
-                <button type="button" id="exportConfirmBtn">Export</button>
+    <div class="profile-details-modal modal fade" id="exportConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold"><i class="bi bi-download me-2"></i>Confirm Export</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <i id="exportModalIcon" class="bi bi-filetype-csv" style="font-size: 3rem; color: var(--secondary-color-2);"></i>
+                    <p id="exportModalMsg" class="mt-3 mb-0">Are you sure you want to export this report?</p>
+                </div>
+                <div class="modal-footer d-flex flex-row flex-nowrap justify-content-between gap-2">
+                    <button type="button" class="light bold w-100" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="medium w-100" id="exportConfirmBtn">Confirm</button>
+                </div>
             </div>
         </div>
     </div>
@@ -592,22 +595,19 @@ function event_icon(string $type): array
             document.getElementById('roomLightFilter').addEventListener('change', filterRooms);
 
             function showExportModal(type) {
-                const modal = document.getElementById('exportConfirmModal');
+                const el = document.getElementById('exportConfirmModal');
                 document.getElementById('exportModalIcon').className = 'bi ' + (type === 'csv' ? 'bi-filetype-csv' : 'bi-filetype-pdf');
                 const active = document.querySelector('.timetable-btn[data-tab].active');
                 const tab = active ? active.dataset.tab : 'activity';
                 const label = tab === 'rooms' ? 'Room Activity' : 'Recent Activity';
                 document.getElementById('exportModalMsg').textContent = 'Export ' + label + ' as ' + type.toUpperCase() + '?';
                 document.getElementById('exportConfirmBtn').onclick = function() {
-                    document.getElementById('exportConfirmModal').classList.remove('active');
+                    const bs = bootstrap.Modal.getInstance(el);
+                    if (bs) bs.hide();
                     if (type === 'csv') doExportCSV();
                     else window.location.href = '../../api/export-report-pdf.php?tab=' + tab;
                 };
-                modal.classList.add('active');
-            }
-
-            function closeExportModal() {
-                document.getElementById('exportConfirmModal').classList.remove('active');
+                new bootstrap.Modal(el).show();
             }
 
             function doExportCSV() {
@@ -640,11 +640,6 @@ function event_icon(string $type): array
 
             window.exportCSV = function() { showExportModal('csv'); };
             window.exportPDF = function() { showExportModal('pdf'); };
-
-            // Close modal on overlay click
-            document.getElementById('exportConfirmModal')?.addEventListener('click', function(e) {
-                if (e.target === this) closeExportModal();
-            });
 
             /* ── Icon map (mirrors PHP event_icon) ── */
             const EVENT_ICONS = {
