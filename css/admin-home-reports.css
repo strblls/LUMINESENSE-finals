@@ -145,7 +145,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 0.5rem;
     padding: 10px 1.25rem;
     border-top: 1px solid #f3edf7;
 }
@@ -155,11 +155,12 @@
     color: #fff;
     border: none;
     border-radius: 6px;
-    padding: 5px 14px;
+    padding: 5px 0.75rem;
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.2s;
+    width: auto;
 }
 
 .activity-pagination button:disabled {
