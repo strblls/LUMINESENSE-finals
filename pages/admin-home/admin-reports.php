@@ -200,7 +200,7 @@ function event_icon(string $type): array
                         <div class="section-container timetable" style="background-color:#f8f9fa;width:320px;">
                             <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Reports Guide</h6>
                             <ol class="ps-3 mb-0" style="font-size:13px;line-height:1.7;">
-                                <li>Press <strong>Recent Activity</strong> or <strong>Room Activity</strong> in the heading to load a report.</li>
+                                <li>Press <strong>Recent Activity</strong>, <strong>Room Activity</strong>, or <strong>Issues Logged</strong> in the heading to load a report.</li>
                                 <li>Use the search bar to find entries by room, actor, or action keyword.</li>
                                 <li>Use the dropdown filters inside each tab to narrow by type or date.</li>
                                 <li>In <strong>Room Activity</strong>, click a room row to expand its recent event log.</li>
@@ -218,6 +218,10 @@ function event_icon(string $type): array
                     <button type="button" class="timetable-btn" data-tab="rooms" title="Room Activity">
                         <i class="bi bi-door-open"></i>
                         <span class="timetable-btn-title bold">Room<br>Activity</span>
+                    </button>
+                    <button type="button" class="timetable-btn" data-tab="issues" title="Issues Logged">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <span class="timetable-btn-title bold">Issues<br>Logged</span>
                     </button>
                     <button type="button" class="timetable-btn" onclick="exportCSV()" title="Export CSV">
                         <i class="bi bi-filetype-csv"></i>
@@ -265,7 +269,7 @@ function event_icon(string $type): array
             <!-- ── Default state ── -->
             <div class="default-state" id="defaultState">
                 <i class="bi bi-arrow-up-circle"></i>
-                <p>Select <strong>Recent Activity</strong> or <strong>Room Activity</strong> from the heading above to view reports.</p>
+                <p>Select <strong>Recent Activity</strong>, <strong>Room Activity</strong>, or <strong>Issues Logged</strong> from the heading above to view reports.</p>
             </div>
 
             <!-- ══ TAB: Activity Log ══ -->
@@ -416,6 +420,19 @@ function event_icon(string $type): array
                             </table>
                         </div>
                     <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- ══ TAB: Issues Logged ══ -->
+            <div class="tab-panel" id="tab-issues">
+                <div class="reports-card">
+                    <div class="reports-card-header">
+                        <h2><i class="bi bi-exclamation-triangle"></i> Issues Logged</h2>
+                    </div>
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <p>No issues logged yet.</p>
+                    </div>
                 </div>
             </div>
 
