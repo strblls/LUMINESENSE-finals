@@ -108,7 +108,7 @@ if ($state) {
         $stmt->close();
         if ($is_fresh_class) {
             $stmt = $conn->prepare("
-                INSERT INTO lighting_logs (classroom_id, event_type, triggered_by)
+                INSERT INTO class_logs (classroom_id, event_type, triggered_by)
                 VALUES (?, 'class_start', 'PIR')
             ");
             $stmt->bind_param('i', $cid);
@@ -157,7 +157,7 @@ if ($state) {
     $stmt->execute();
     $stmt->close();
     $stmt = $conn->prepare("
-        INSERT INTO lighting_logs (classroom_id, event_type, triggered_by, notes)
+        INSERT INTO class_logs (classroom_id, event_type, triggered_by, notes)
         VALUES (?, 'class_end', 'PIR', 'Schedule ended by PIR inactivity timeout')
     ");
     $stmt->bind_param('i', $cid);

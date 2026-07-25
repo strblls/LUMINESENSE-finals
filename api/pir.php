@@ -125,7 +125,7 @@ if ($occupied) {
     $stmt->execute();
     $stmt->close();
     $stmt = $conn->prepare("
-        INSERT INTO lighting_logs (classroom_id, event_type, triggered_by, notes)
+        INSERT INTO class_logs (classroom_id, event_type, triggered_by, notes)
         VALUES (?, 'class_end', 'PIR', 'Schedule ended by PIR inactivity timeout')
     ");
     $stmt->bind_param('i', $cid);

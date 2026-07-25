@@ -64,16 +64,15 @@ if ($res_pir) {
 $res_ll = $conn->query("
     SELECT
         'room'                                                      AS log_type,
-        ll.id,
-        ll.event_type                                               AS action,
+        cl.id,
+        cl.event_type                                               AS action,
         c.room_name                                                 AS target,
-        COALESCE(ll.triggered_by, 'schedule')                       AS actor,
-        ll.event_time                                               AS log_time,
-        COALESCE(ll.notes, '')                                      AS notes
-    FROM lighting_logs ll
-    JOIN classrooms c ON c.id = ll.classroom_id
-    WHERE ll.event_type IN ('class_start', 'class_end')
-    ORDER BY ll.event_time DESC
+        COALESCE(cl.triggered_by, 'schedule')                       AS actor,
+        cl.event_time                                               AS log_time,
+        COALESCE(cl.notes, '')                                      AS notes
+    FROM class_logs cl
+    JOIN classrooms c ON c.id = cl.classroom_id
+    ORDER BY cl.event_time DESC
     LIMIT 200
 ");
 if ($res_ll) {

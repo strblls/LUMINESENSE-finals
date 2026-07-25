@@ -394,6 +394,21 @@ $conn->query("
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
 
+// ── Class lifecycle logs (class_start / class_end) ──────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS class_logs (
+        id            INT AUTO_INCREMENT PRIMARY KEY,
+        classroom_id  INT NOT NULL,
+        event_type    VARCHAR(20) NOT NULL COMMENT 'class_start or class_end',
+        triggered_by  VARCHAR(50) DEFAULT NULL,
+        notes         VARCHAR(255) DEFAULT NULL,
+        event_time    DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
+        INDEX idx_class_logs_time (event_time),
+        INDEX idx_class_logs_type (event_type)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
 // ── Flush schedules table (end-of-semester auto-flush) ──────────────────────
 $conn->query("
     CREATE TABLE IF NOT EXISTS flush_schedules (
