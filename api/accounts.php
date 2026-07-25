@@ -79,11 +79,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'reject' || $action === 'revoke') {
+        // Fetch faculty email and name first
+        $stmt = $conn->prepare('SELECT email, first_name FROM faculty WHERE id = ?');
+        $stmt->bind_param('i', $faculty_id);
+        $stmt->execute();
+        $stmt->bind_result($faculty_email, $faculty_first_name);
+        $found = $stmt->fetch();
+        $stmt->close();
+
         // Soft revoke: set is_verified=0 and clear approval info
         $stmt = $conn->prepare('UPDATE faculty SET is_verified=0, approved_by=NULL, approved_at=NULL WHERE id=?');
         $stmt->bind_param('i', $faculty_id);
         $stmt->execute();
         $stmt->close();
+
+        // Send rejection email
+        if ($found && !empty($faculty_email) && !empty($faculty_first_name)) {
+            require_once '../php/mailer.php';
+            sendRejectionEmail($faculty_email, $faculty_first_name);
+        }
+
         $msg = $action === 'reject' ? 'Faculty account rejected.' : 'Faculty access revoked.';
         echo json_encode(['success' => true, 'message' => $msg]); exit;
     }

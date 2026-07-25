@@ -110,6 +110,51 @@ function sendApprovalEmail(string $to, string $name): bool
     }
 }
 
+function sendRejectionEmail(string $to, string $name): bool
+{
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host       = MAIL_HOST;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = MAIL_USERNAME;
+        $mail->Password   = MAIL_PASSWORD;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = MAIL_PORT;
+
+        $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
+        $mail->addAddress($to, $name);
+
+        $mail->isHTML(true);
+        $mail->Subject = 'LumineSense - Faculty Registration Update';
+        $mail->Body    = "
+            <div style='font-family:Arial,sans-serif;max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);'>
+                <div style='background:#1a1a2e;padding:28px 32px;text-align:center;'>
+                    <h1 style='color:#f5c518;font-size:20px;margin:0;letter-spacing:2px;'>LUMINESENSE</h1>
+                </div>
+                <div style='padding:32px;color:#333;'>
+                    <p>Hi <strong>{$name}</strong>,</p>
+                    <p>Thank you for your interest in registering for LumineSense.</p>
+                    <p>After reviewing your application, we regret to inform you that your faculty account registration has been <strong style='color:#c0392b;'>rejected</strong> by an Administrator.</p>
+                    <p>If you believe this is an error or would like further clarification, please contact the administration office.</p>
+                    <p style='font-size:13px;color:#888;'>This decision is final. You may re-register if you have the correct credentials.</p>
+                </div>
+                <div style='background:#f9f9f9;text-align:center;padding:16px;font-size:12px;color:#aaa;border-top:1px solid #eee;'>
+                    &copy; 2025 LumineSense &middot; University of Negros Occidental &ndash; Recoletos
+                </div>
+            </div>
+        ";
+        $mail->AltBody = "Hi {$name},\n\nThank you for your interest in LumineSense. After reviewing your application, your faculty account registration has been rejected by an Administrator.\n\nIf you believe this is an error, please contact the administration office.\n\nThis decision is final.";
+
+        $mail->send();
+        return true;
+
+    } catch (Exception $e) {
+        error_log('LumineSense Rejection Mailer Error: ' . $mail->ErrorInfo);
+        return false;
+    }
+}
 
 
 /**

@@ -188,6 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_early'])) {
         $conn->query("UPDATE schedules SET extended_until = CURTIME() WHERE id = $sched_id");
         $conn->query("UPDATE classrooms SET light_status = 'off', row1_status = 'off', row2_status = 'off', row3_status = 'off', schedule_dirty = 1 WHERE id = $cid");
         $conn->query("INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by) VALUES ($cid, $faculty_id, 'off', 'faculty_end_early')");
+        $conn->query("INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by, notes) VALUES ($cid, $faculty_id, 'class_end', 'faculty_end_early', 'Schedule ended early by faculty')");
 
         $_SESSION['timetable_success'] = "Class in {$room_name} ended early.";
     } else {
@@ -707,9 +708,10 @@ function ordinal(int $number): string
                                     <p class="no-sched">No classes scheduled.</p>
                                     <?php else: foreach ($slots as $slot):
                                         $start     = date('g:i A', strtotime($slot['start_time']));
-                                        $end       = date('g:i A', strtotime($slot['extended_until'] ?? $slot['end_time']));
+                                        $is_extension = $slot['extended_until'] && $slot['extended_until'] > $slot['end_time'];
+                                        $end       = date('g:i A', strtotime($is_extension ? $slot['extended_until'] : $slot['end_time']));
                                         $modal_end = date('g:i A', strtotime($slot['end_time']));
-                                        $ext       = $slot['extended_until']
+                                        $ext       = $is_extension
                                             ? date('g:i A', strtotime($slot['extended_until']))
                                             : null;
                                         $ext_status = $slot['ext_status'];

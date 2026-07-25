@@ -87,6 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $message = 'error: ' . $e->getMessage();
         }
     } elseif ($action === 'reject') {
+        $email_sent = false;
+        $mailerPath = $phpRoot . DIRECTORY_SEPARATOR . 'mailer.php';
+        $vendorDir  = dirname($phpRoot) . DIRECTORY_SEPARATOR . 'vendor';
+        $vendorAutoload = $vendorDir . DIRECTORY_SEPARATOR . 'autoload.php';
+        if (!empty($f_email) && file_exists($mailerPath) && is_dir($vendorDir) && file_exists($vendorAutoload)) {
+            require_once $mailerPath;
+            $email_sent = sendRejectionEmail($f_email, $f_name);
+        }
+
         faculty_delete_cleanup($conn, $faculty_id);
         $stmt = $conn->prepare('DELETE FROM faculty WHERE id = ?');
         $stmt->bind_param('i', $faculty_id);

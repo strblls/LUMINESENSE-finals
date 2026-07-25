@@ -65,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_early'])) {
         $conn->query("UPDATE schedules SET extended_until = CURTIME() WHERE id = $sched_id");
         $conn->query("UPDATE classrooms SET light_status = 'off', row1_status = 'off', row2_status = 'off', row3_status = 'off', schedule_dirty = 1 WHERE id = $cid");
         $conn->query("INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by) VALUES ($cid, $faculty_id, 'off', 'faculty_end_early')");
+        $conn->query("INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by, notes) VALUES ($cid, $faculty_id, 'class_end', 'faculty_end_early', 'Schedule ended early by faculty')");
 
         $_SESSION['timetable_success'] = "Class in {$room_name} ended early.";
     } else {
@@ -300,6 +301,15 @@ function mask_email(string $email): string
                                         <span class="text-danger small pin-error"></span>
                                         <button class="light pin-submit-btn">Unlock</button>
                                     </div>
+                                </div>
+                            </div>
+                            <!-- Gesture loading overlay (shown while AI model + landmarks initialize) -->
+                            <div id="gestureLoadingOverlay" class="gesture-loading-overlay" style="display:none;">
+                                <div class="gesture-loading-spinner">
+                                    <div class="spinner-border text-light" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span>Preparing gesture control…</span>
                                 </div>
                             </div>
                         </div>
@@ -1560,23 +1570,25 @@ function mask_email(string $email): string
         </div>
 
         <style>
-            .extend-modal-content { display:flex; gap:1.5rem; flex-wrap:wrap; }
-            .extend-left-div { flex:1; min-width:200px; text-align:center; }
-            .extend-right-div { flex:0 0 auto; min-width:140px; }
-            .time-elapsed-title { font-size:1rem; font-weight:700; margin-bottom:1rem; color:var(--secondary-color-2); text-transform:uppercase; letter-spacing:1px; }
-            .timer-display { font-size:2.2rem; font-weight:700; font-family:'Courier New',monospace; color:var(--secondary-color-2); display:flex; align-items:center; justify-content:center; gap:2px; }
-            .timer-input { width:50px; border:none; background:transparent; font-size:inherit; font-weight:inherit; font-family:inherit; color:inherit; text-align:center; outline:none; border-bottom:2px solid #ccc; }
-            .timer-input:focus { border-bottom-color:var(--secondary-color-2); }
-            .timer-labels { margin-top:4px; }
-            .timer-label { font-size:0.65rem; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:0.5px; }
-            .extend-description { font-size:0.85rem; color:#666; }
-            .extend-description .emphasis { color:#333; font-weight:600; }
+            .extend-modal-content { width:100%; }
+            .extend-left-div { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; }
+            .extend-right-div { min-width:150px; display:flex; align-items:center; justify-content:center; }
+            .time-elapsed-title { font-size:1.2rem; font-weight:700; text-align:center; margin-bottom:0.5rem; color:#333; }
+            .timer-display { font-size:2rem; font-weight:700; text-align:center; margin:0.5rem 0; display:flex; align-items:center; justify-content:center; gap:0.25rem; }
+            .timer-input { width:100%; font-size:3.5rem; font-weight:700; text-align:center; border:2px solid #ddd; border-radius:8px; background:#f8f9fa; color:#333; padding:0.25rem; }
+            .gesture-loading-overlay { position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.65); z-index:25; display:flex; align-items:center; justify-content:center; border-radius:8px; }
+            .gesture-loading-spinner { color:#fff; display:flex; flex-direction:column; align-items:center; gap:12px; font-size:15px; font-weight:500; }
+            .timer-input:focus { outline:none; border-color:var(--secondary-color-1,#6c5ce7); background:#fff; }
+            .timer-labels { margin-top:0.5rem; }
+            .timer-label { font-size:0.65rem; font-weight:600; color:#777; text-transform:uppercase; letter-spacing:0.5px; margin:0; flex:1; text-align:center; }
+            .extend-description { font-size:0.85rem; color:#555; text-align:center; }
+            .extend-description .emphasis { font-size:1rem; font-weight:600; color:var(--secondary-color-1,#6c5ce7); }
             .dept-info-card { background:var(--light-color); border-radius:12px; }
             @media (max-width:576px) {
-                .extend-modal-content { flex-direction:column; align-items:center; }
-                .extend-right-div { width:100%; }
-                .timer-display { font-size:1.8rem; }
-                .timer-input { width:40px; }
+                .extend-modal-content { flex-direction:column; gap:1.5rem !important; }
+                .extend-right-div { width:100%; order:-1; }
+                .timer-display { font-size:1.5rem; }
+                .timer-input { width:40px; height:40px; font-size:1.2rem; }
             }
         </style>
 

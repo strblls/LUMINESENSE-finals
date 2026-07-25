@@ -116,6 +116,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $stmt->execute();
             $stmt->close();
 
+            // Send rejection email if mailer exists
+            $vendorAutoload = $phpRoot . '/../vendor/autoload.php';
+            if (!empty($f_email) && file_exists($phpRoot . '/mailer.php') && file_exists($vendorAutoload)) {
+                require_once $phpRoot . '/mailer.php';
+                sendRejectionEmail($f_email, $f_name);
+            }
+
             $message = 'Faculty approval revoked successfully.';
             log_admin_action($conn, $_SESSION['admin_id'], 'faculty_rejected', $f_name, 'Access revoked');
 

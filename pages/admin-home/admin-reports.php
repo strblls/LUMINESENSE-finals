@@ -76,6 +76,41 @@ if ($res3) {
     $res3->free();
 }
 
+// Lighting schedule events (class_start / class_end)
+$res4 = $conn->query("
+    SELECT
+        'room'                                                      AS log_type,
+        ll.id,
+        ll.event_type                                               AS action,
+        c.room_name                                                 AS target,
+        COALESCE(ll.triggered_by, 'schedule')                       AS actor,
+        ll.event_time                                               AS log_time,
+        COALESCE(ll.notes, '')                                      AS notes,
+        COALESCE(CONCAT(f.first_name, ' ', f.last_name), '')        AS faculty_name,
+        COALESCE(sub.name, '')                                      AS subject_name,
+        COALESCE(d.name, '')                                        AS department_name
+    FROM lighting_logs ll
+    JOIN classrooms c ON c.id = ll.classroom_id
+    LEFT JOIN schedules s ON s.id = (
+        SELECT s2.id FROM schedules s2
+        WHERE s2.classroom_id = ll.classroom_id
+          AND s2.day_of_week = DAYNAME(ll.event_time)
+          AND s2.start_time <= TIME(ll.event_time)
+          AND TIME(ll.event_time) <= COALESCE(s2.extended_until, s2.end_time)
+        LIMIT 1
+    )
+    LEFT JOIN faculty f ON f.id = COALESCE(ll.faculty_id, s.faculty_id)
+    LEFT JOIN subjects sub ON sub.id = s.subject_id
+    LEFT JOIN departments d ON d.id = COALESCE(f.department_id, sub.department_id)
+    WHERE ll.event_type IN ('class_start', 'class_end')
+    ORDER BY ll.event_time DESC
+    LIMIT 200
+");
+if ($res4) {
+    while ($row = $res4->fetch_assoc()) $activity_logs[] = $row;
+    $res4->free();
+}
+
 // Sort merged list newest-first
 usort($activity_logs, fn($a, $b) => strtotime($b['log_time']) - strtotime($a['log_time']));
 
@@ -256,6 +291,7 @@ function event_icon(string $type): array
                                 <option value="room">Room Events</option>
                                 <option value="admin">Admin Actions</option>
                                 <option value="pir">PIR Events</option>
+                                <option value="class">Class Events</option>
                             </select>
                             <select id="activityDate">
                                 <option value="">All Dates</option>
@@ -541,6 +577,8 @@ function event_icon(string $type): array
                     let matchType = true;
                     if (type === 'pir') {
                         matchType = item.dataset.action && item.dataset.action.startsWith('pir_');
+                    } else if (type === 'class') {
+                        matchType = item.dataset.action && item.dataset.action.startsWith('class_');
                     } else if (type) {
                         matchType = item.dataset.type === type;
                     }

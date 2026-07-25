@@ -10,11 +10,13 @@ const webcamVideo = document.getElementById('webcamVideo');
 const webcamCanvas = document.getElementById('webcamCanvas');
 const gestureResult = document.getElementById('gestureResult');
 const accuracyBar = document.getElementById('accuracyBar');
+const loadingOverlay = document.getElementById('gestureLoadingOverlay');
 
 let recognizer = null;
 let stream = null;
 let active = false;
 let lastVideoTime = -1;
+let _landmarksFirstDrawn = false;
 
 // ── Chroma Key & Enhancement toggles ──────────────────────────────────────────
 let chromaKeyEnabled = true;
@@ -425,6 +427,12 @@ function drawLandmarks(landmarks) {
 
     if (!landmarks || landmarks.length === 0) return;
 
+    // Hide loading overlay on first successful landmark draw
+    if (!_landmarksFirstDrawn) {
+        _landmarksFirstDrawn = true;
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+    }
+
     const width = webcamCanvas.width;
     const height = webcamCanvas.height;
 
@@ -578,6 +586,9 @@ async function startWebcam() {
             enableBtn.textContent = 'Starting camera…';
         }
 
+        _landmarksFirstDrawn = false;
+        if (loadingOverlay) loadingOverlay.style.display = '';
+
         await initializeRecognizer();
 
         stream = await navigator.mediaDevices.getUserMedia({
@@ -607,6 +618,7 @@ async function startWebcam() {
 
     } catch (e) {
         console.error('startWebcam failed:', e);
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
         alert('Could not start camera.\n\nMake sure that:\n1. You have allowed camera permission for this site.\n2. No other application is using your webcam.');
         resetState();
     }
@@ -614,6 +626,7 @@ async function startWebcam() {
 
 function resetState() {
     active = false;
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
     if (stream) {
         stream.getTracks().forEach(t => t.stop());
         stream = null;

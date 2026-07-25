@@ -60,6 +60,32 @@ if ($res_pir) {
     $res_pir->free();
 }
 
+// Lighting schedule events (class_start / class_end)
+$res_ll = $conn->query("
+    SELECT
+        'room'                                                      AS log_type,
+        ll.id,
+        ll.event_type                                               AS action,
+        c.room_name                                                 AS target,
+        COALESCE(ll.triggered_by, 'schedule')                       AS actor,
+        ll.event_time                                               AS log_time,
+        COALESCE(ll.notes, '')                                      AS notes
+    FROM lighting_logs ll
+    JOIN classrooms c ON c.id = ll.classroom_id
+    WHERE ll.event_type IN ('class_start', 'class_end')
+    ORDER BY ll.event_time DESC
+    LIMIT 200
+");
+if ($res_ll) {
+    while ($row = $res_ll->fetch_assoc()) {
+        if (!empty($row['log_time'])) {
+            $row['log_time'] = date('Y-m-d\TH:i:s', strtotime($row['log_time'])) . '+08:00';
+        }
+        $logs[] = $row;
+    }
+    $res_ll->free();
+}
+
 // Admin / approval logs
 $res2 = $conn->query("
     SELECT

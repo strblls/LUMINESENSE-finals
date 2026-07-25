@@ -124,6 +124,13 @@ if ($occupied) {
     $stmt->bind_param('i', $cid);
     $stmt->execute();
     $stmt->close();
+    $stmt = $conn->prepare("
+        INSERT INTO lighting_logs (classroom_id, event_type, triggered_by, notes)
+        VALUES (?, 'class_end', 'PIR', 'Schedule ended by PIR inactivity timeout')
+    ");
+    $stmt->bind_param('i', $cid);
+    $stmt->execute();
+    $stmt->close();
     // Log to dedicated pir_logs
     $stmt = $conn->prepare("INSERT INTO pir_logs (classroom_id, state) VALUES (?, 0)");
     $stmt->bind_param('i', $cid);

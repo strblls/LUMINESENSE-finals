@@ -79,6 +79,15 @@ if ($state) {
     $has_schedule = (bool)$stmt->get_result()->fetch_assoc();
     $stmt->close();
 
+    // Read current occupancy — used to detect first motion of the session
+    $stmt = $conn->prepare("SELECT pir_occupied FROM classrooms WHERE id = ?");
+    $stmt->bind_param('i', $cid);
+    $stmt->execute();
+    $was_empty = !(bool)$stmt->get_result()->fetch_assoc()['pir_occupied'];
+    $stmt->close();
+
+    $is_fresh_class = $has_schedule && $was_empty;
+
     if ($has_schedule) {
         $conn->query("
             UPDATE classrooms
@@ -97,6 +106,15 @@ if ($state) {
         $stmt->bind_param('i', $cid);
         $stmt->execute();
         $stmt->close();
+        if ($is_fresh_class) {
+            $stmt = $conn->prepare("
+                INSERT INTO lighting_logs (classroom_id, event_type, triggered_by)
+                VALUES (?, 'class_start', 'PIR')
+            ");
+            $stmt->bind_param('i', $cid);
+            $stmt->execute();
+            $stmt->close();
+        }
     } else {
         $conn->query("
             UPDATE classrooms
@@ -134,6 +152,13 @@ if ($state) {
     $stmt = $conn->prepare("
         INSERT INTO lighting_logs (classroom_id, event_type, triggered_by)
         VALUES (?, 'off', 'PIR')
+    ");
+    $stmt->bind_param('i', $cid);
+    $stmt->execute();
+    $stmt->close();
+    $stmt = $conn->prepare("
+        INSERT INTO lighting_logs (classroom_id, event_type, triggered_by, notes)
+        VALUES (?, 'class_end', 'PIR', 'Schedule ended by PIR inactivity timeout')
     ");
     $stmt->bind_param('i', $cid);
     $stmt->execute();

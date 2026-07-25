@@ -14,7 +14,7 @@
     - PIR Sensor       : Occupancy detection (pin 5)
 
   SYSTEM STATES:
-    STATE_OUTSIDE   : Outside schedule — PIR ignored, faculty CAN toggle
+    STATE_OUTSIDE   : Outside schedule — PIR ignored, faculty CAN toggle, auto-off after inactivity timeout
     STATE_SCHEDULED : Within schedule  — PIR turns lights ON, faculty CAN toggle
     STATE_COOLDOWN  : After schedule   — 30s countdown, PIR resets ONCE, faculty CANNOT toggle
     STATE_LOCKED    : After cooldown   — lights OFF, locked until next schedule
@@ -58,7 +58,7 @@ bool row3State = false;
 bool pirState = false;
 bool pirResetUsed = false;
 
-// ── PIR Inactivity Timeout ─────────────────────────────────
+// ── PIR Inactivity Timeout (auto-off after no motion) ──────
 unsigned long lastPirActivity = 0;
 bool pirLockoutActive = false;
 unsigned long pirInactivityTimeoutMs = 300000; // default 5 min, updated via CONFIG
@@ -165,6 +165,18 @@ void setup()
     loadScheduleCache();
     loadState();
 
+    // Validate state against current schedule — force OFF if outside schedule
+    if (!isWithinSchedule(rtc.now()) && sysState != STATE_COOLDOWN)
+    {
+        Serial.println(F("[BOOT] Outside schedule — forcing lights OFF"));
+        sysState = STATE_OUTSIDE;
+        row1State = row2State = row3State = false;
+        digitalWrite(ROW1_PIN, LOW);
+        digitalWrite(ROW2_PIN, LOW);
+        digitalWrite(ROW3_PIN, LOW);
+        saveState();
+    }
+
     // Ask ESP32 for fresh schedule and config on boot
     requestScheduleFromServer();
     lastPirActivity = millis();
@@ -217,6 +229,155 @@ void loop()
         }
     }
 
+    // Inactivity auto-off: turn lights OFF after no motion for timeout period
+    if (sysState == STATE_OUTSIDE && (row1State || row2State || row3State) &&
+        millis() - lastPirActivity >= pirInactivityTimeoutMs)
+    {
+        Serial.println(F("[PIR] Inactivity timeout — lights OFF"));
+        setAllRows(false);
+        saveState();
+        syncStateToFrontend();
+    }
+
+    // Debug serial commands from USB Serial Monitor
+    handleSerialCommands();
+}
+
+void handleSerialCommands()
+{
+    static String serialBuffer = "";
+    while (Serial.available())
+    {
+        char c = Serial.read();
+        if (c == '\r') continue;
+        if (c == '\n')
+        {
+            serialBuffer.trim();
+            if (serialBuffer.length() == 0) { serialBuffer = ""; continue; }
+            String cmd = serialBuffer;
+            serialBuffer = "";
+            cmd.toUpperCase();
+
+            if (cmd == "STATUS")
+            {
+                printDebugStatus();
+            }
+            else if (cmd == "ALL:OFF")
+            {
+                Serial.println(F("[CMD] ALL:OFF"));
+                setAllRows(false);
+                pirLockoutActive = false;
+                saveState();
+                syncStateToFrontend();
+            }
+            else if (cmd == "ALL:ON")
+            {
+                Serial.println(F("[CMD] ALL:ON"));
+                setAllRows(true);
+                pirLockoutActive = false;
+                saveState();
+                syncStateToFrontend();
+            }
+            else if (cmd == "ROW1:OFF")
+            {
+                Serial.println(F("[CMD] ROW1:OFF"));
+                setRow(1, false);
+                saveState();
+                syncStateToFrontend();
+            }
+            else if (cmd == "ROW1:ON")
+            {
+                Serial.println(F("[CMD] ROW1:ON"));
+                setRow(1, true);
+                saveState();
+                syncStateToFrontend();
+            }
+            else if (cmd == "ROW2:OFF")
+            {
+                Serial.println(F("[CMD] ROW2:OFF"));
+                setRow(2, false);
+                saveState();
+                syncStateToFrontend();
+            }
+            else if (cmd == "ROW2:ON")
+            {
+                Serial.println(F("[CMD] ROW2:ON"));
+                setRow(2, true);
+                saveState();
+                syncStateToFrontend();
+            }
+            else if (cmd == "ROW3:OFF")
+            {
+                Serial.println(F("[CMD] ROW3:OFF"));
+                setRow(3, false);
+                saveState();
+                syncStateToFrontend();
+            }
+            else if (cmd == "ROW3:ON")
+            {
+                Serial.println(F("[CMD] ROW3:ON"));
+                setRow(3, true);
+                saveState();
+                syncStateToFrontend();
+            }
+            else
+            {
+                Serial.print(F("[CMD] Unknown: "));
+                Serial.println(cmd);
+            }
+        }
+        else
+        {
+            serialBuffer += c;
+        }
+    }
+}
+
+void printDebugStatus()
+{
+    Serial.println(F("═══ DEBUG STATUS ═══"));
+    Serial.print(F("State: "));
+    switch (sysState)
+    {
+    case STATE_OUTSIDE:   Serial.println(F("OUTSIDE"));   break;
+    case STATE_SCHEDULED: Serial.println(F("SCHEDULED")); break;
+    case STATE_COOLDOWN:  Serial.println(F("COOLDOWN"));  break;
+    case STATE_LOCKED:    Serial.println(F("LOCKED"));    break;
+    }
+    Serial.print(F("Rows: 1="));
+    Serial.print(row1State ? "ON" : "OFF");
+    Serial.print(F(" 2="));
+    Serial.print(row2State ? "ON" : "OFF");
+    Serial.print(F(" 3="));
+    Serial.println(row3State ? "ON" : "OFF");
+    Serial.print(F("PIR: "));
+    Serial.println(pirState ? "HIGH" : "LOW");
+    Serial.print(F("Schedule: loaded="));
+    Serial.print(scheduleLoaded);
+    Serial.print(F(" count="));
+    Serial.println(scheduleCount);
+    DateTime now = rtc.now();
+    Serial.print(F("RTC: "));
+    Serial.print(now.year());
+    Serial.print("-");
+    Serial.print(now.month());
+    Serial.print("-");
+    Serial.print(now.day());
+    Serial.print(" ");
+    Serial.print(now.hour());
+    Serial.print(":");
+    Serial.print(now.minute());
+    Serial.print(":");
+    Serial.println(now.second());
+    Serial.print(F("inSchedule="));
+    Serial.println(isWithinSchedule(now));
+    Serial.print(F("PIR inactivity timeout: "));
+    Serial.print(pirInactivityTimeoutMs / 1000);
+    Serial.println(F("s"));
+    Serial.print(F("Time since last PIR: "));
+    Serial.print((millis() - lastPirActivity) / 1000);
+    Serial.println(F("s"));
+    Serial.println(F("═════════════════════"));
 }
 
 // ============================================================
@@ -264,10 +425,8 @@ void handlePIR(unsigned long now)
 
         if (sysState == STATE_OUTSIDE)
         {
+            Serial.println(F("[PIR] Motion outside schedule — ignored"));
             pirLockoutActive = false;
-            setAllRows(true);
-            saveState();
-            syncStateToFrontend();
             return;
         }
 
