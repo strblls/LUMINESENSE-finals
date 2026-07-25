@@ -48,6 +48,43 @@ if ($tab === 'rooms') {
         $html .= '<td>' . $lastStr . '</td>';
         $html .= '<td style="color:#888;font-size:10px;">' . htmlspecialchars($room['description'] ?? '—') . '</td>';
         $html .= '</tr>';
+
+        // Fetch room logs for accordion
+        $roomId = (int)$room['id'];
+        $rname = $conn->real_escape_string($room['room_name']);
+        $logs = [];
+
+        $rl = $conn->query("SELECT event_type, triggered_by, event_time, notes FROM room_logs WHERE room_name = '$rname' ORDER BY event_time DESC LIMIT 20");
+        if ($rl) { while ($r = $rl->fetch_assoc()) $logs[] = $r; $rl->free(); }
+
+        if ($roomId) {
+            $ll = $conn->query("SELECT CASE event_type WHEN 'on' THEN 'light_on' WHEN 'off' THEN 'light_off' ELSE event_type END AS event_type, triggered_by, event_time, '' AS notes FROM lighting_logs WHERE classroom_id = $roomId ORDER BY event_time DESC LIMIT 20");
+            if ($ll) { while ($r = $ll->fetch_assoc()) $logs[] = $r; $ll->free(); }
+
+            $pl = $conn->query("SELECT CASE state WHEN 1 THEN 'pir_motion' ELSE 'pir_stopped' END AS event_type, 'PIR' AS triggered_by, created_at AS event_time, '' AS notes FROM pir_logs WHERE classroom_id = $roomId ORDER BY created_at DESC LIMIT 20");
+            if ($pl) { while ($r = $pl->fetch_assoc()) $logs[] = $r; $pl->free(); }
+        }
+
+        usort($logs, fn($a, $b) => strtotime($b['event_time']) - strtotime($a['event_time']));
+        $logs = array_slice($logs, 0, 20);
+
+        if (!empty($logs)) {
+            $html .= '<tr><td colspan="6" style="padding:0;border:none;">';
+            $html .= '<table style="margin:0 0 10px 20px;width:calc(100% - 20px);font-size:10px;">';
+            $html .= '<thead><tr style="background:#f8f9fa;"><th style="width:25%;">Time</th><th style="width:25%;">Event</th><th style="width:25%;">Triggered By</th><th style="width:25%;">Notes</th></tr></thead><tbody>';
+            foreach ($logs as $log) {
+                $lTime = date('M j, g:i A', strtotime($log['event_time']));
+                $lAction = ucwords(str_replace('_', ' ', $log['event_type']));
+                $lAction = str_replace('Pir ', 'PIR ', $lAction);
+                $html .= '<tr>';
+                $html .= '<td>' . $lTime . '</td>';
+                $html .= '<td>' . htmlspecialchars($lAction) . '</td>';
+                $html .= '<td>' . htmlspecialchars($log['triggered_by'] ?? '—') . '</td>';
+                $html .= '<td style="color:#888;">' . htmlspecialchars($log['notes'] ?? '') . '</td>';
+                $html .= '</tr>';
+            }
+            $html .= '</tbody></table></td></tr>';
+        }
     }
     $html .= '</tbody></table>';
 } else {
@@ -95,7 +132,7 @@ if ($tab === 'rooms') {
         $logDate = strtotime($log['log_time']);
         $timeStr = date('M j, Y g:i A', $logDate);
         $typeLabel = $log['log_type'] === 'room' ? 'Room' : 'Admin';
-        $actionLabel = ucwords(str_replace('_', ' ', $log['action']));
+        $actionLabel = str_replace('Pir ', 'PIR ', ucwords(str_replace('_', ' ', $log['action'])));
         $html .= '<tr>';
         $html .= '<td style="white-space:nowrap;">' . $timeStr . '</td>';
         $html .= '<td style="font-weight:600;">' . htmlspecialchars($actionLabel) . '</td>';

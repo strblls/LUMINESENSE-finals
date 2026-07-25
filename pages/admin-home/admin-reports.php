@@ -56,6 +56,26 @@ if ($res2) {
     $res2->free();
 }
 
+// PIR occupancy events
+$res3 = $conn->query("
+    SELECT
+        'room'                                                      AS log_type,
+        pl.id,
+        CASE pl.state WHEN 1 THEN 'pir_motion' ELSE 'pir_stopped' END AS action,
+        c.room_name                                                  AS target,
+        'PIR'                                                        AS actor,
+        pl.created_at                                                AS log_time,
+        ''                                                           AS notes
+    FROM pir_logs pl
+    JOIN classrooms c ON c.id = pl.classroom_id
+    ORDER BY pl.created_at DESC
+    LIMIT 200
+");
+if ($res3) {
+    while ($row = $res3->fetch_assoc()) $activity_logs[] = $row;
+    $res3->free();
+}
+
 // Sort merged list newest-first
 usort($activity_logs, fn($a, $b) => strtotime($b['log_time']) - strtotime($a['log_time']));
 
@@ -235,6 +255,7 @@ function event_icon(string $type): array
                                 <option value="">All Types</option>
                                 <option value="room">Room Events</option>
                                 <option value="admin">Admin Actions</option>
+                                <option value="pir">PIR Events</option>
                             </select>
                             <select id="activityDate">
                                 <option value="">All Dates</option>
@@ -264,6 +285,7 @@ function event_icon(string $type): array
                             ?>
                                 <div class="timeline-item"
                                     data-type="<?= $log['log_type'] ?>"
+                                    data-action="<?= htmlspecialchars($log['action']) ?>"
                                     data-date="<?= date('Y-m-d', $logDate) ?>"
                                     data-search="<?= strtolower(htmlspecialchars($log['target'] . ' ' . $log['actor'] . ' ' . $log['action'])) ?>">
                                     <div class="tl-icon" style="background:<?= $iconBg ?>; color:<?= $iconColor ?>;">
@@ -271,7 +293,7 @@ function event_icon(string $type): array
                                     </div>
                                     <div class="tl-body">
                                         <p class="tl-action">
-                                            <?= htmlspecialchars(ucwords(str_replace('_', ' ', $log['action']))) ?>
+                                            <?= htmlspecialchars(str_replace('Pir ', 'PIR ', ucwords(str_replace('_', ' ', $log['action'])))) ?>
                                             <?php if (!empty($log['target'])): ?>
                                                 &mdash; <span style="color:var(--secondary-color-3);"><?= htmlspecialchars($log['target']) ?></span>
                                             <?php endif; ?>
@@ -291,6 +313,12 @@ function event_icon(string $type): array
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
+
+                    <div class="activity-pagination" id="activityPagination">
+                        <button id="activityPrev" onclick="goActivityPage(-1)" disabled>&laquo; Prev</button>
+                        <span id="activityPageInfo">Page 1 of 1</span>
+                        <button id="activityNext" onclick="goActivityPage(1)" disabled>Next &raquo;</button>
+                    </div>
                 </div>
             </div>
 
@@ -304,6 +332,7 @@ function event_icon(string $type): array
                                 <option value="">All Lights</option>
                                 <option value="on">Lights On</option>
                                 <option value="off">Lights Off</option>
+                                <option value="pir_motion">PIR Motion</option>
                             </select>
                         </div>
                     </div>
@@ -373,6 +402,26 @@ function event_icon(string $type): array
         <?php include '../../php/includes/profile-offcanvas.php'; ?>
 
     </div><!-- /child-container -->
+
+    <!-- ═══ EXPORT CONFIRM MODAL ═══ -->
+    <div class="modal fade" id="exportConfirmModal" tabindex="-1" aria-labelledby="exportConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius:12px;">
+                <div class="modal-header" style="background:var(--secondary-color-2);color:#fff;border-radius:12px 12px 0 0;">
+                    <h6 class="modal-title bold" id="exportConfirmLabel"><i class="bi bi-download me-1"></i>Confirm Export</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <i id="exportModalIcon" class="bi bi-filetype-csv" style="font-size:2.5rem;color:var(--secondary-color-2);"></i>
+                    <p id="exportModalMsg" class="mt-3 mb-0" style="font-size:14px;">Are you sure you want to export this report?</p>
+                </div>
+                <div class="modal-footer justify-content-center" style="border-top:1px solid #f3edf7;">
+                    <button type="button" class="btn btn-sm" style="background:#f3edf7;color:#555;border:none;" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-sm" id="exportConfirmBtn" style="background:var(--secondary-color-2);color:#fff;border:none;">Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="../../script/animations.js"></script>
     <script src="../../script/toggles.js"></script>
@@ -473,7 +522,10 @@ function event_icon(string $type): array
                 });
             }
 
-            /* ── Activity Log filters ── */
+            /* ── Activity Log filters + pagination ── */
+            const ACT_PAGE_SIZE = 10;
+            let actPage = 1;
+
             function filterActivity() {
                 const q = (document.getElementById('reportsSearch')?.value || '').toLowerCase();
                 const type = document.getElementById('activityType').value;
@@ -482,16 +534,49 @@ function event_icon(string $type): array
                 const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
                 const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
 
-                document.querySelectorAll('#activityTimeline .timeline-item').forEach(item => {
+                const items = document.querySelectorAll('#activityTimeline .timeline-item');
+
+                items.forEach(item => {
                     const matchQ = !q || item.dataset.search.includes(q);
-                    const matchType = !type || item.dataset.type === type;
+                    let matchType = true;
+                    if (type === 'pir') {
+                        matchType = item.dataset.action && item.dataset.action.startsWith('pir_');
+                    } else if (type) {
+                        matchType = item.dataset.type === type;
+                    }
                     let matchDate = true;
                     if (date === 'today') matchDate = item.dataset.date === today;
                     if (date === 'week') matchDate = item.dataset.date >= weekAgo;
                     if (date === 'month') matchDate = item.dataset.date >= monthAgo;
-                    item.style.display = (matchQ && matchType && matchDate) ? '' : 'none';
+                    item.dataset.filtered = (matchQ && matchType && matchDate) ? '1' : '0';
                 });
+
+                const filtered = [...items].filter(i => i.dataset.filtered === '1');
+                const totalPages = Math.max(1, Math.ceil(filtered.length / ACT_PAGE_SIZE));
+                if (actPage > totalPages) actPage = totalPages;
+
+                const start = (actPage - 1) * ACT_PAGE_SIZE;
+                items.forEach(item => {
+                    if (item.dataset.filtered === '0') {
+                        item.style.display = 'none';
+                    } else {
+                        const idx = filtered.indexOf(item);
+                        item.style.display = (idx >= start && idx < start + ACT_PAGE_SIZE) ? '' : 'none';
+                    }
+                });
+
+                const pageInfo = document.getElementById('activityPageInfo');
+                const prevBtn = document.getElementById('activityPrev');
+                const nextBtn = document.getElementById('activityNext');
+                pageInfo.textContent = 'Page ' + actPage + ' of ' + totalPages;
+                prevBtn.disabled = actPage <= 1;
+                nextBtn.disabled = actPage >= totalPages;
             }
+
+            window.goActivityPage = function(dir) {
+                actPage += dir;
+                filterActivity();
+            };
 
             /* ── Room filters ── */
             function filterRooms() {
@@ -511,30 +596,59 @@ function event_icon(string $type): array
 
             /* ── CSV export ── */
             window.exportCSV = function() {
-                const rows = [
-                    ['Time', 'Action', 'Target', 'Actor', 'Type', 'Notes']
-                ];
-                document.querySelectorAll('#activityTimeline .timeline-item').forEach(item => {
-                    if (item.style.display === 'none') return;
-                    const tl_action = item.querySelector('.tl-action')?.innerText.trim() ?? '';
-                    const tl_meta = [...item.querySelectorAll('.tl-meta span')].map(s => s.innerText.trim()).join(' | ');
-                    const tl_notes = item.querySelector('.tl-notes')?.innerText.trim() ?? '';
-                    rows.push([tl_meta, tl_action, '', '', item.dataset.type, tl_notes]);
-                });
-                const csv = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
-                const blob = new Blob([csv], {
-                    type: 'text/csv'
-                });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `activity-log-${new Date().toISOString().slice(0, 10)}.csv`;
-                a.click();
+                const modal = new bootstrap.Modal(document.getElementById('exportConfirmModal'));
+                document.getElementById('exportModalIcon').className = 'bi bi-filetype-csv';
+                const active = document.querySelector('.timetable-btn[data-tab].active');
+                const tab = active ? active.dataset.tab : 'activity';
+                const label = tab === 'rooms' ? 'Room Activity' : 'Recent Activity';
+                document.getElementById('exportModalMsg').textContent = 'Export ' + label + ' as CSV?';
+                document.getElementById('exportConfirmBtn').onclick = function() {
+                    modal.hide();
+                    doExportCSV();
+                };
+                modal.show();
             };
 
+            function doExportCSV() {
+                const active = document.querySelector('.timetable-btn[data-tab].active');
+                const tab = active ? active.dataset.tab : 'activity';
+                let rows = [];
+                if (tab === 'rooms') {
+                    rows = [['Room', 'Light Status', 'Size', 'Total Events', 'Last Activity', 'Description']];
+                    document.querySelectorAll('#roomTable tbody .room-main-row').forEach(row => {
+                        if (row.style.display === 'none') return;
+                        rows.push([...row.querySelectorAll('td')].map(td => td.innerText.trim()));
+                    });
+                } else {
+                    rows = [['Time', 'Action', 'Target', 'Actor', 'Type', 'Notes']];
+                    document.querySelectorAll('#activityTimeline .timeline-item').forEach(item => {
+                        if (item.style.display === 'none') return;
+                        const tl_action = (item.querySelector('.tl-action')?.innerText.trim() ?? '').replace(/—/g, '-');
+                        const tl_meta = [...item.querySelectorAll('.tl-meta span')].map(s => s.innerText.trim()).join(' | ');
+                        const tl_notes = item.querySelector('.tl-notes')?.innerText.trim() ?? '';
+                        rows.push([tl_meta, tl_action, '', '', item.dataset.type, tl_notes]);
+                    });
+                }
+                const csv = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `report-${tab}-${new Date().toISOString().slice(0, 10)}.csv`;
+                a.click();
+            }
+
             window.exportPDF = function() {
-                var el = document.querySelector('.tab-btn.active, .timetable-btn[data-tab].active');
-                if (!el) return;
-                window.location.href = '../../api/export-report-pdf.php?tab=' + el.dataset.tab;
+                const modal = new bootstrap.Modal(document.getElementById('exportConfirmModal'));
+                document.getElementById('exportModalIcon').className = 'bi bi-filetype-pdf';
+                const active = document.querySelector('.timetable-btn[data-tab].active');
+                const tab = active ? active.dataset.tab : 'activity';
+                const label = tab === 'rooms' ? 'Room Activity' : 'Recent Activity';
+                document.getElementById('exportModalMsg').textContent = 'Export ' + label + ' as PDF?';
+                document.getElementById('exportConfirmBtn').onclick = function() {
+                    modal.hide();
+                    window.location.href = '../../api/export-report-pdf.php?tab=' + tab;
+                };
+                modal.show();
             };
 
             /* ── Icon map (mirrors PHP event_icon) ── */
@@ -565,6 +679,7 @@ function event_icon(string $type): array
                 const container = document.getElementById('activityTimeline');
                 if (!logs.length) {
                     container.innerHTML = '<div class="empty-state"><i class="bi bi-journal-x"></i><p>No activity logs found. Events will appear here as they are recorded.</p></div>';
+                    document.getElementById('activityPagination').style.display = 'none';
                     return;
                 }
                 container.innerHTML = logs.map(log => {
@@ -578,8 +693,8 @@ function event_icon(string $type): array
                     const timeStr = d.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
                     const dateVal = d.toISOString().slice(0, 10);
                     const searchVal = (log.target + ' ' + log.actor + ' ' + log.action).toLowerCase().replace(/"/g, '&quot;');
-                    const actionLabel = log.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                    return `<div class="timeline-item" data-type="${log.log_type}" data-date="${dateVal}" data-search="${searchVal}">
+                    const actionLabel = log.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).replace('Pir ', 'PIR ');
+                    return `<div class="timeline-item" data-type="${log.log_type}" data-action="${log.action}" data-date="${dateVal}" data-search="${searchVal}">
                         <div class="tl-icon" style="background:${iconBg}; color:${iconColor};"><i class="bi ${isRoom ? 'bi-door-open' : icon}"></i></div>
                         <div class="tl-body">
                             <p class="tl-action">${actionLabel}${log.target ? ' &mdash; <span style="color:var(--secondary-color-3);">' + log.target.replace(/"/g, '&quot;') + '</span>' : ''}</p>
@@ -617,6 +732,7 @@ function event_icon(string $type): array
             function reapplyFilters() {
                 var active = document.querySelector('.timetable-btn[data-tab].active');
                 if (active && active.dataset.tab === 'activity') {
+                    actPage = 1;
                     filterActivity();
                 } else {
                     filterRooms();
@@ -670,7 +786,7 @@ function event_icon(string $type): array
                                 var icon = iconMap[log.event_type] || 'bi-clock-history';
                                 html += '<div class="accordion-log-item">';
                                 html += '<span class="accordion-log-icon"><i class="bi ' + icon + '"></i></span>';
-                                html += '<span class="accordion-log-action">' + log.event_type.replace(/_/g, ' ') + '</span>';
+                                html += '<span class="accordion-log-action">' + log.event_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).replace('Pir ', 'PIR ') + '</span>';
                                 html += '<span class="accordion-log-time">' + timeStr + ', ' + dateStr + '</span>';
                                 if (log.triggered_by) html += '<span class="accordion-log-actor">by ' + log.triggered_by + '</span>';
                                 if (log.notes) html += '<span class="accordion-log-notes">' + log.notes + '</span>';

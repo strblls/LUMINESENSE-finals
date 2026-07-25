@@ -32,8 +32,31 @@ if (!$start_time || !$duration) {
 $end_time       = date('Y-m-d H:i:s', strtotime("$session_date $start_time") + ($duration * 60));
 $start_datetime = "$session_date $start_time";
 
-$valid_triggers = ['pir', 'schedule', 'manual'];
+$valid_triggers = ['pir', 'schedule', 'manual', 'reconcile'];
 if (!in_array($trigger, $valid_triggers)) $trigger = 'schedule';
+
+if ($trigger === 'reconcile') {
+    // Close orphaned session from blackout — use server now() as end_time
+    $upd = $conn->prepare("
+        UPDATE power_sessions
+        SET end_time = NOW(),
+            duration_mins = TIMESTAMPDIFF(MINUTE, start_time, NOW()),
+            avg_voltage = ?,
+            avg_current = ?,
+            total_energy_wh = ?,
+            trigger_source = 'reconcile'
+        WHERE classroom_id = ?
+          AND end_time IS NULL
+        LIMIT 1
+    ");
+    $upd->bind_param('dddi', $avg_voltage, $avg_current, $energy, $cid);
+    $upd->execute();
+    $affected = $upd->affected_rows;
+    $upd->close();
+    $msg = $affected > 0 ? 'Orphaned session closed' : 'No open session found';
+    echo json_encode(['success' => true, 'message' => $msg]);
+    exit;
+}
 
 // 11 params → 11-char type string: i s s s i s d d d d i
 $stmt = $conn->prepare("

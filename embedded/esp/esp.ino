@@ -24,6 +24,7 @@ const char* UPDATE_ROWS_URL  = "https://luminesense-bet.site/api/esp32-update-ro
 const char* SCHEDULE_FLAG_URL= "https://luminesense-bet.site/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 const char* CONFIG_URL      = "https://luminesense-bet.site/api/esp32-config.php?token=LS_ESP32_TOKEN_2025";
 const char* PIR_LOG_URL     = "https://luminesense-bet.site/api/pir-log.php";
+const char* SESSION_URL     = "https://luminesense-bet.site/api/post_session.php";
 
 // ── Pin Definitions ────────────────────────────────────────
 #define ROW1_PIN 25
@@ -46,6 +47,7 @@ String pendingPzem          = "";
 String esp32Buffer = "";
 bool   pendingScheduleFetch = false;
 int    pendingPirLog        = -1;  // -1 = none, 0/1 = state to log
+String pendingReconcile     = "";
 
 // ── Row State ──────────────────────────────────────────────
 bool row1State = false;
@@ -171,6 +173,9 @@ void loop() {
         if (pendingPzem != "") {
             forwardPzemToDb(pendingPzem);
             pendingPzem = "";
+        } else if (pendingReconcile != "") {
+            forwardReconcile(pendingReconcile);
+            pendingReconcile = "";
         } else if (pendingPirLog != -1) {
             forwardPirLog(pendingPirLog);
             pendingPirLog = -1;
@@ -243,6 +248,9 @@ void handleMegaMessages() {
             if (msg.startsWith("{")) {
                 pendingPzem = msg;
                 // DON'T return — just continue the while loop
+            } else if (msg.startsWith("RECONCILE:") || msg.startsWith("reconcile:")) {
+                pendingReconcile = msg.substring(10);
+                Serial.println(F("[MEGA] Reconcile pending"));
             } else {
                 msg.toUpperCase();
                 Serial.print(F("[MEGA] ")); Serial.println(msg);
@@ -498,6 +506,62 @@ void forwardPirLog(int state) {
         Serial.println(F("[PIR_LOG] Logged to DB OK"));
     } else {
         Serial.print(F("[PIR_LOG] Post failed, code: "));
+        Serial.println(httpCode);
+    }
+
+    http.end();
+    httpBusy = false;
+}
+
+
+// ============================================================
+// FORWARD RECONCILE TO DATABASE
+// ============================================================
+void forwardReconcile(String data) {
+    if (WiFi.status() != WL_CONNECTED) return;
+    // data format: date,startTime,avgV,avgC,totalWh,pzemCount
+    // Example: 2026-07-25,10:30:00,220.50,1.234,12.3456,42
+    int c1 = data.indexOf(',');
+    if (c1 == -1) return;
+    int c2 = data.indexOf(',', c1 + 1);
+    if (c2 == -1) return;
+    int c3 = data.indexOf(',', c2 + 1);
+    if (c3 == -1) return;
+    int c4 = data.indexOf(',', c3 + 1);
+    if (c4 == -1) return;
+    int c5 = data.indexOf(',', c4 + 1);
+    if (c5 == -1) return;
+
+    String sDate    = data.substring(0, c1);
+    String sTime    = data.substring(c1 + 1, c2);
+    String sAvgV    = data.substring(c2 + 1, c3);
+    String sAvgC    = data.substring(c3 + 1, c4);
+    String sTotWh   = data.substring(c4 + 1, c5);
+    String sCount   = data.substring(c5 + 1);
+
+    String json = "{\"classroom_id\":3,\"session_date\":\"" + sDate +
+                  "\",\"start_time\":\"" + sTime +
+                  "\",\"duration_mins\":0" +
+                  ",\"avg_voltage\":" + sAvgV +
+                  ",\"avg_current\":" + sAvgC +
+                  ",\"total_energy_wh\":" + sTotWh +
+                  ",\"pzem_read_count\":" + sCount +
+                  ",\"trigger_source\":\"reconcile\"}";
+
+    if (httpBusy) return;
+    httpBusy = true;
+
+    HTTPClient http;
+    http.begin(SESSION_URL);
+    http.setTimeout(3000);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-Token", "luminesense-secret-token");
+
+    int httpCode = http.POST(json);
+    if (httpCode == 200) {
+        Serial.println(F("[RECONCILE] Orphaned session closed"));
+    } else {
+        Serial.print(F("[RECONCILE] Failed, code: "));
         Serial.println(httpCode);
     }
 

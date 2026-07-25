@@ -91,7 +91,9 @@ unsigned long lastJsonStream = 0;
 
 // ── SD Card ────────────────────────────────────────────────
 bool sdAvailable = false;
-#define LOG_FILENAME "power_log.csv"
+#define POWER_LOG_FILENAME "power_log.csv"
+#define STATE_FILENAME "state.dat"
+#define SCHEDULE_CACHE_FILENAME "schedule.csv"
 
 // ── Schedule ───────────────────────────────────────────────
 struct TimeSlot
@@ -148,9 +150,9 @@ void setup()
     {
         Serial.println(F("[SD] OK"));
         sdAvailable = true;
-        if (!SD.exists(LOG_FILENAME))
+        if (!SD.exists(POWER_LOG_FILENAME))
         {
-            File f = SD.open(LOG_FILENAME, FILE_WRITE);
+            File f = SD.open(POWER_LOG_FILENAME, FILE_WRITE);
             if (f)
             {
                 f.println(F("Date,Time,Session_Duration_min,Avg_Voltage_V,Avg_Current_A,Total_Energy_Wh"));
@@ -159,7 +161,11 @@ void setup()
         }
     }
 
-    // Ask ESP32 for schedule and config on boot
+    // Load schedule and state from SD cache
+    loadScheduleCache();
+    loadState();
+
+    // Ask ESP32 for fresh schedule and config on boot
     requestScheduleFromServer();
     lastPirActivity = millis();
     Serial.println(F("=== LUMINESENSE Mega Ready ==="));
@@ -205,6 +211,7 @@ void loop()
             Serial.println(F("[STATE] Cooldown expired — LOCKED"));
             setAllRows(false);
             sysState = STATE_LOCKED;
+            saveState();
             syncStateToFrontend();
             Serial2.println("ACK:ALL:OFF");
         }
@@ -261,6 +268,7 @@ void handlePIR(unsigned long now)
             Serial.println(F("[PIR] Motion — lockout cleared"));
             pirLockoutActive = false;
             setAllRows(true);
+            saveState();
             syncStateToFrontend();
             return;
         }
@@ -273,6 +281,7 @@ void handlePIR(unsigned long now)
                 setAllRows(true);
                 if (!sessionActive)
                     startSession(rtc.now());
+                saveState();
                 syncStateToFrontend();
             }
             else
@@ -471,11 +480,13 @@ void checkSchedule()
         pirResetUsed = false;
         pirLockoutActive = false;
         lastPirActivity = millis();
+        saveState();
         // Session only starts when PIR detects motion, not on schedule start
     }
     else if (inSchedule && sysState == STATE_COOLDOWN)
     {
         sysState = STATE_SCHEDULED;
+        saveState();
     }
     else if (!inSchedule && sysState == STATE_SCHEDULED)
     {
@@ -497,6 +508,7 @@ void checkSchedule()
             // Next class starts soon — stay scheduled, keep session running
             Serial.println(F("[SCHED] Next slot in ≤5 min — staying SCHEDULED"));
             sysState = STATE_SCHEDULED;
+            saveState();
         }
         else
         {
@@ -505,6 +517,7 @@ void checkSchedule()
             sysState = STATE_COOLDOWN;
             cooldownStart = millis();
             pirResetUsed = false;
+            saveState();
             if (sessionActive)
                 endSession(now);
         }
@@ -553,6 +566,7 @@ void parseSchedulePayload(String payload)
     Serial.print(F("[SCHED] Loaded "));
     Serial.print(scheduleCount);
     Serial.println(F(" slot(s)"));
+    saveScheduleCache();
 }
 
 void parseConfigPayload(String payload)
@@ -698,6 +712,7 @@ void startSession(DateTime startTime)
     sessionDate = String(dateBuf);
     sessionStartStr = String(timeBuf);
 
+    saveState();
     Serial.print(F("[SESSION] Started: "));
     Serial.print(sessionDate);
     Serial.print(F(" "));
@@ -724,7 +739,7 @@ void endSession(DateTime endTime)
 
     if (sdAvailable)
     {
-        File logFile = SD.open(LOG_FILENAME, FILE_WRITE);
+        File logFile = SD.open(POWER_LOG_FILENAME, FILE_WRITE);
         if (logFile)
         {
             logFile.print(sessionDate);
@@ -744,8 +759,167 @@ void endSession(DateTime endTime)
     }
 
     sessionActive = false;
+    saveState();
     sessionStartEnergy = 0;
     sumVoltage = sumCurrent = sumPower = 0;
     pzemReadCount = 0;
     totalEnergy = 0;
+}
+
+// ============================================================
+// SD CARD — SCHEDULE CACHE
+// ============================================================
+void saveScheduleCache()
+{
+    if (!sdAvailable) return;
+    File f = SD.open(SCHEDULE_CACHE_FILENAME, FILE_WRITE);
+    if (!f) return;
+    f.println(F("H1,M1,H2,M2"));
+    for (int i = 0; i < scheduleCount; i++)
+    {
+        f.print(schedule[i].startH); f.print(",");
+        f.print(schedule[i].startM); f.print(",");
+        f.print(schedule[i].endH);   f.print(",");
+        f.println(schedule[i].endM);
+    }
+    f.close();
+}
+
+void loadScheduleCache()
+{
+    if (!sdAvailable) return;
+    if (!SD.exists(SCHEDULE_CACHE_FILENAME)) return;
+    File f = SD.open(SCHEDULE_CACHE_FILENAME, FILE_READ);
+    if (!f) return;
+    scheduleCount = 0;
+    int idx = 0;
+    bool firstLine = true;
+    while (f.available() && idx < MAX_SLOTS)
+    {
+        String line = f.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0) continue;
+        if (firstLine) { firstLine = false; continue; }
+        int c1 = line.indexOf(',');
+        if (c1 == -1) continue;
+        int c2 = line.indexOf(',', c1 + 1);
+        if (c2 == -1) continue;
+        int c3 = line.indexOf(',', c2 + 1);
+        if (c3 == -1) continue;
+        schedule[idx].startH = (uint8_t)line.substring(0, c1).toInt();
+        schedule[idx].startM = (uint8_t)line.substring(c1 + 1, c2).toInt();
+        schedule[idx].endH   = (uint8_t)line.substring(c2 + 1, c3).toInt();
+        schedule[idx].endM   = (uint8_t)line.substring(c3 + 1).toInt();
+        idx++;
+    }
+    f.close();
+    scheduleCount = idx;
+    scheduleLoaded = (scheduleCount > 0);
+    Serial.print(F("[SD] Loaded "));
+    Serial.print(scheduleCount);
+    Serial.println(F(" slot(s) from schedule cache"));
+}
+
+// ============================================================
+// SD CARD — STATE PERSISTENCE
+// ============================================================
+void saveState()
+{
+    if (!sdAvailable) return;
+    File f = SD.open(STATE_FILENAME, FILE_WRITE);
+    if (!f) return;
+    f.print(F("STATE=")); f.println((int)sysState);
+    f.print(F("ROW1=")); f.println(row1State ? '1' : '0');
+    f.print(F("ROW2=")); f.println(row2State ? '1' : '0');
+    f.print(F("ROW3=")); f.println(row3State ? '1' : '0');
+    f.print(F("SESSION=")); f.println(sessionActive ? '1' : '0');
+    if (sessionActive)
+    {
+        f.print(F("SDATE=")); f.println(sessionDate);
+        f.print(F("STIME=")); f.println(sessionStartStr);
+        f.print(F("SY="));   f.println(sessionStartTime.year());
+        f.print(F("SMO="));  f.println(sessionStartTime.month());
+        f.print(F("SD="));   f.println(sessionStartTime.day());
+        f.print(F("SH="));   f.println(sessionStartTime.hour());
+        f.print(F("SMN="));  f.println(sessionStartTime.minute());
+        f.print(F("SS="));   f.println(sessionStartTime.second());
+        f.print(F("SV="));   f.println(sumVoltage, 4);
+        f.print(F("SC="));   f.println(sumCurrent, 4);
+        f.print(F("SP="));   f.println(sumPower, 4);
+        f.print(F("TWH="));  f.println(totalEnergy, 4);
+        f.print(F("SEN="));  f.println(sessionStartEnergy, 4);
+        f.print(F("PCNT=")); f.println(pzemReadCount);
+    }
+    f.close();
+}
+
+void loadState()
+{
+    if (!sdAvailable) return;
+    if (!SD.exists(STATE_FILENAME)) return;
+    File f = SD.open(STATE_FILENAME, FILE_READ);
+    if (!f) return;
+    bool haveSession = false;
+    int sY = 0, sMo = 1, sD = 1, sH = 0, sMn = 0, sS = 0;
+    String sDate = "", sTime = "";
+    double sSumV = 0, sSumC = 0, sSumP = 0, sTotWh = 0, sSEn = 0;
+    int sCnt = 0;
+    while (f.available())
+    {
+        String line = f.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0) continue;
+        int eqPos = line.indexOf('=');
+        if (eqPos == -1) continue;
+        String key = line.substring(0, eqPos);
+        String val = line.substring(eqPos + 1);
+        if (key == "STATE") sysState = (SystemState)val.toInt();
+        else if (key == "ROW1") { row1State = (val == "1"); digitalWrite(ROW1_PIN, row1State ? HIGH : LOW); }
+        else if (key == "ROW2") { row2State = (val == "1"); digitalWrite(ROW2_PIN, row2State ? HIGH : LOW); }
+        else if (key == "ROW3") { row3State = (val == "1"); digitalWrite(ROW3_PIN, row3State ? HIGH : LOW); }
+        else if (key == "SESSION") haveSession = (val == "1");
+        else if (key == "SDATE") sDate = val;
+        else if (key == "STIME") sTime = val;
+        else if (key == "SY")   sY = val.toInt();
+        else if (key == "SMO")  sMo = val.toInt();
+        else if (key == "SD")   sD = val.toInt();
+        else if (key == "SH")   sH = val.toInt();
+        else if (key == "SMN")  sMn = val.toInt();
+        else if (key == "SS")   sS = val.toInt();
+        else if (key == "SV")   sSumV = val.toDouble();
+        else if (key == "SC")   sSumC = val.toDouble();
+        else if (key == "SP")   sSumP = val.toDouble();
+        else if (key == "TWH")  sTotWh = val.toDouble();
+        else if (key == "SEN")  sSEn = val.toDouble();
+        else if (key == "PCNT") sCnt = val.toInt();
+    }
+    f.close();
+    Serial.println(F("[SD] State restored from SD"));
+    if (haveSession && sY >= 2025)
+    {
+        sessionActive = true;
+        sessionStartTime = DateTime(sY, sMo, sD, sH, sMn, sS);
+        sessionDate = sDate;
+        sessionStartStr = sTime;
+        sumVoltage = sSumV;
+        sumCurrent = sSumC;
+        sumPower = sSumP;
+        totalEnergy = sTotWh;
+        sessionStartEnergy = sSEn;
+        pzemReadCount = sCnt;
+        Serial.println(F("[SD] Active session restored — reconcile needed"));
+        sendSessionReconcile();
+    }
+}
+
+void sendSessionReconcile()
+{
+    double avgV = (pzemReadCount > 0) ? (sumVoltage / pzemReadCount) : 0;
+    double avgC = (pzemReadCount > 0) ? (sumCurrent / pzemReadCount) : 0;
+    char buf[160];
+    snprintf(buf, sizeof(buf), "RECONCILE:%s,%s,%.2f,%.3f,%.4f,%d",
+             sessionDate.c_str(), sessionStartStr.c_str(),
+             avgV, avgC, totalEnergy, pzemReadCount);
+    Serial2.println(buf);
+    Serial.println(F("[SD] Reconcile sent to ESP32"));
 }
