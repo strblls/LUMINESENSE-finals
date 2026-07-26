@@ -413,21 +413,42 @@ LUMINESENSE-finals/
 
 ## 8. Embedded Firmware Summary
 
-### Arduino Mega 2560 (`embedded/main/main.ino`)
-- **State Machine:** OUTSIDE → SCHEDULED → COOLDOWN → LOCKED
-- **Schedule Parsing:** Receives `SCHEDULE:` commands from ESP32, e.g., `SCHEDULE:08:00-10:00,13:00-15:30`
-- **PZEM:** Reads every 6s via Serial1 (Modbus-like protocol)
-- **RTC:** DS3231 for schedule-aware logic (I2C)
-- **SD Card Logging:** Writes `power_log.csv` with session data
-- **Serial2:** Bidirectional bridge to ESP32 (JSON packets + command tokens)
+### ESP32 API Communication Table
+
+| Endpoint | Method | Purpose | API Type |
+|----------|--------|---------|----------|
+| ESP32 Status | GET | Fetches current light row toggles from database | Custom REST |
+| ESP32 Schedule | GET | Retrieve today's class schedule | Custom REST |
+| ESP32 Schedule Flags | GET | Check if schedule was modified | Custom REST |
+| ESP32 Update Rows | POST | Update light row states in database | Custom REST |
+| PZEM Push | POST | Post PZEM energy readings to database | Custom REST |
+| ESP32 Config | GET | Fetch system settings (e.g., PIR inactivity timeout) | Custom REST |
+| PIR Log | POST | Log PIR events and update classroom occupancy status | Custom REST |
+| Session Post | POST | Post completed session summary for reconcile/energy logging | Custom REST |
+| Web Audio API | — | Generates beep sounds for schedule marks | Browser-Native |
+| Web Speech API | — | Voice announcements for schedule marks | Browser-Native |
+| Tesseract.js | — | OCR for extracting text in uploaded ID images | Client-side Library |
 
 ### ESP32 NodeMCU-32S (`embedded/esp/esp.ino`)
 - **WiFi:** WiFiManager library, AP mode `LumineSense-Setup` / `luminesense123`
-- **HTTP Polling:** Every 3s for row states, 30s for schedule, 5s for dirty flag
-- **GPIO:** MOSFET gates on 26/27/25, PIR on 13
-- **PIR:** 2s debounce, forwards `PIR:ON` / `PIR:OFF` to Mega
-- **PZEM Relay:** Forwards Mega JSON to `api/pzem_push.php` with device token
+- **HTTP Polling:** Every 500ms for row states, 30s for schedule, 5s for dirty flag, 5min for config
+- **GPIO:** MOSFET gates on 25/26/27, PIR on 13
+- **Serial2:** Bridge to Mega on GPIO4 (RX) / GPIO2 (TX) at 4800 baud
+- **PIR:** 2s debounce, 5-minute inactivity timeout, forwards `LOG_PIR:1` / `LOG_PIR:0` to Mega
+- **PZEM Relay:** Forwards Mega JSON to `api/pzem_push.php` with device token `luminesense-secret-token`
+- **NTP Sync:** Syncs time from pool.ntp.org to Mega via `TIME:YYYY,MM,DD,HH,MM,SS`
+- **Config Fetch:** Pulls `pir_inactivity_timeout` from `api/esp32-config.php` every 5 minutes
 - **mDNS:** Responds to `http://luminesense.local`
+
+### Arduino Mega 2560 (`embedded/main/main.ino`)
+- **State Machine:** OUTSIDE → SCHEDULED → COOLDOWN → LOCKED
+- **Schedule Parsing:** Receives `SCHEDULE:` commands from ESP32, e.g., `SCHEDULE:08:00-10:00,13:00-15:30`
+- **PZEM:** Reads every 6s via Serial1 (Modbus-like protocol), streams JSON every 8s to ESP32
+- **RTC:** DS3231 for schedule-aware logic (I2C)
+- **SD Card Logging:** Writes `power_log.csv` with session data, caches schedule in `schedule.csv`, persists state in `state.dat`
+- **Serial2:** Bidirectional bridge to ESP32 (JSON packets + command tokens)
+- **Reconcile:** On boot, sends `RECONCILE:` data to ESP32 to close orphaned sessions
+- **Config:** Receives `CONFIG:PIR_TIMEOUT=<ms>` from ESP32 to set inactivity timeout
 
 ---
 

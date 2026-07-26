@@ -119,7 +119,8 @@ usort($logs, fn($a, $b) => strtotime($b['log_time']) - strtotime($a['log_time'])
 // Also return room summary counts for stat cards
 $room_count = 0;
 $lights_on = 0;
-$issue_count = 0;
+$issue_raised = 0;
+$issue_resolved = 0;
 
 $r3 = $conn->query("SELECT COUNT(*) AS cnt FROM classrooms");
 if ($r3) { $room_count = (int)$r3->fetch_assoc()['cnt']; $r3->free(); }
@@ -127,8 +128,14 @@ if ($r3) { $room_count = (int)$r3->fetch_assoc()['cnt']; $r3->free(); }
 $r4 = $conn->query("SELECT COUNT(*) AS cnt FROM classrooms c WHERE COALESCE((SELECT l.event_type FROM lighting_logs l WHERE l.classroom_id = c.id ORDER BY l.id DESC LIMIT 1),'off') = 'on'");
 if ($r4) { $lights_on = (int)$r4->fetch_assoc()['cnt']; $r4->free(); }
 
-foreach ($logs as $l) {
-    if (str_contains(strtolower($l['action']), 'issue')) $issue_count++;
+// Issue counts from room_logs
+$r5 = $conn->query("SELECT event_type, COUNT(*) AS cnt FROM room_logs WHERE event_type IN ('issue_raised','issue_resolved') GROUP BY event_type");
+if ($r5) {
+    while ($row = $r5->fetch_assoc()) {
+        if ($row['event_type'] === 'issue_raised') $issue_raised = (int)$row['cnt'];
+        elseif ($row['event_type'] === 'issue_resolved') $issue_resolved = (int)$row['cnt'];
+    }
+    $r5->free();
 }
 
 $conn->close();
@@ -140,6 +147,7 @@ echo json_encode([
         'total_logs' => count($logs),
         'total_rooms' => $room_count,
         'lights_on' => $lights_on,
-        'issues' => $issue_count,
+        'issue_raised' => $issue_raised,
+        'issue_resolved' => $issue_resolved,
     ]
 ]);

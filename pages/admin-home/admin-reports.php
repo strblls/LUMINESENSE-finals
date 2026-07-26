@@ -148,6 +148,14 @@ if ($res5) {
     $res5->free();
 }
 
+// ── Issue stats ──
+$issue_raised_count = 0;
+$issue_resolved_count = 0;
+foreach ($issues as $issue) {
+    if ($issue['event_type'] === 'issue_raised') $issue_raised_count++;
+    elseif ($issue['event_type'] === 'issue_resolved') $issue_resolved_count++;
+}
+
 $conn->close();
 
 /* ─── Icon map for event types ─── */
@@ -258,7 +266,8 @@ function event_icon(string $type): array
                 <div class="stat-row" id="statRow">
                     <div class="stat-card"
                          data-a-icon="bi-journal-text" data-a-label="Total Log Entries" data-a-val="<?= count($activity_logs) ?>"
-                         data-r-icon="bi-door-open"     data-r-label="Total Rooms"        data-r-val="<?= count($rooms) ?>">
+                         data-r-icon="bi-door-open"     data-r-label="Total Rooms"        data-r-val="<?= count($rooms) ?>"
+                         data-i-icon="bi-exclamation-triangle" data-i-label="Total Issues" data-i-val="<?= count($issues) ?>">
                         <span class="stat-icon"><i class="bi bi-journal-text" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                         <div>
                             <div class="stat-value"><?= count($activity_logs) ?></div>
@@ -267,7 +276,8 @@ function event_icon(string $type): array
                     </div>
                     <div class="stat-card"
                          data-a-icon="bi-door-open"          data-a-label="Tracked Rooms"        data-a-val="<?= count($rooms) ?>"
-                         data-r-icon="bi-lightbulb-fill"     data-r-label="Lights On"            data-r-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?>">
+                         data-r-icon="bi-lightbulb-fill"     data-r-label="Lights On"            data-r-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?>"
+                         data-i-icon="bi-exclamation-triangle-fill" data-i-label="Issue Raised" data-i-val="<?= $issue_raised_count ?>">
                         <span class="stat-icon"><i class="bi bi-door-open" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                         <div>
                             <div class="stat-value"><?= count($rooms) ?></div>
@@ -276,7 +286,8 @@ function event_icon(string $type): array
                     </div>
                     <div class="stat-card"
                          data-a-icon="bi-lightbulb-fill"         data-a-label="Lights Currently On"  data-a-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?>"
-                         data-r-icon="bi-lightbulb"             data-r-label="Lights Off"           data-r-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'off')) ?>">
+                         data-r-icon="bi-lightbulb"             data-r-label="Lights Off"           data-r-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'off')) ?>"
+                         data-i-icon="bi-check-circle-fill" data-i-label="Issue Resolved" data-i-val="<?= $issue_resolved_count ?>">
                         <span class="stat-icon"><i class="bi bi-lightbulb-fill" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
                         <div>
                             <div class="stat-value"><?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?></div>
@@ -451,8 +462,8 @@ function event_icon(string $type): array
                         <div class="filter-bar">
                             <select id="issueType">
                                 <option value="">All Issues</option>
-                                <option value="issue_raised">Open Issues</option>
-                                <option value="issue_resolved">Resolved</option>
+                                <option value="issue_raised">Issue Raised</option>
+                                <option value="issue_resolved">Issue Resolved</option>
                             </select>
                             <select id="issueDate">
                                 <option value="">All Dates</option>
@@ -494,7 +505,7 @@ function event_icon(string $type): array
                                             <span><i class="bi bi-clock"></i> <?= $timeStr ?>, <?= $dateStr ?></span>
                                             <span><i class="bi bi-person"></i> <?= htmlspecialchars($issue['triggered_by']) ?></span>
                                             <span class="tl-type-badge" style="background:<?= $isRaised ? '#842029' : '#0f5132' ?>; color:#fff;">
-                                                <?= $isRaised ? 'Open' : 'Resolved' ?>
+                                                <?= $isRaised ? 'Issue Raised' : 'Issue Resolved' ?>
                                             </span>
                                         </div>
                                         <?php if (!empty($issue['notes'])): ?>
@@ -568,6 +579,10 @@ function event_icon(string $type): array
                         if (icon) icon.className = 'bi ' + card.dataset.rIcon;
                         if (valEl) valEl.textContent = card.dataset.rVal;
                         if (labelEl) labelEl.textContent = card.dataset.rLabel;
+                    } else if (tab === 'issues') {
+                        if (icon) icon.className = 'bi ' + card.dataset.iIcon;
+                        if (valEl) valEl.textContent = card.dataset.iVal;
+                        if (labelEl) labelEl.textContent = card.dataset.iLabel;
                     } else {
                         if (icon) icon.className = 'bi ' + card.dataset.aIcon;
                         if (valEl) valEl.textContent = card.dataset.aVal;
@@ -740,7 +755,7 @@ function event_icon(string $type): array
                 document.getElementById('exportModalIcon').className = 'bi ' + (type === 'csv' ? 'bi-filetype-csv' : 'bi-filetype-pdf');
                 const active = document.querySelector('.timetable-btn[data-tab].active');
                 const tab = active ? active.dataset.tab : 'activity';
-                const label = tab === 'rooms' ? 'Room Activity' : 'Recent Activity';
+                const label = tab === 'rooms' ? 'Room Activity' : tab === 'issues' ? 'Issues Logged' : 'Recent Activity';
                 document.getElementById('exportModalMsg').textContent = 'Export ' + label + ' as ' + type.toUpperCase() + '?';
                 document.getElementById('exportConfirmBtn').onclick = function() {
                     const bs = bootstrap.Modal.getInstance(el);
@@ -760,6 +775,15 @@ function event_icon(string $type): array
                     document.querySelectorAll('#roomTable tbody .room-main-row').forEach(row => {
                         if (row.style.display === 'none') return;
                         rows.push([...row.querySelectorAll('td')].map(td => td.innerText.trim()));
+                    });
+                } else if (tab === 'issues') {
+                    rows = [['Time', 'Issue', 'Room', 'Triggered By', 'Notes']];
+                    document.querySelectorAll('#tab-issues .timeline-item').forEach(item => {
+                        if (item.style.display === 'none') return;
+                        const tl_action = (item.querySelector('.tl-action')?.innerText.trim() ?? '').replace(/—/g, '-');
+                        const tl_meta = [...item.querySelectorAll('.tl-meta span')].map(s => s.innerText.trim()).join(' | ');
+                        const tl_notes = item.querySelector('.tl-notes')?.innerText.trim() ?? '';
+                        rows.push([tl_meta, tl_action, '', '', tl_notes]);
                     });
                 } else {
                     rows = [['Time', 'Action', 'Target', 'Actor', 'Type', 'Notes']];
@@ -846,12 +870,19 @@ function event_icon(string $type): array
                     cards[0].dataset.aVal = stats.total_logs;
                     cards[1].dataset.aVal = stats.total_rooms;
                     cards[2].dataset.aVal = stats.lights_on;
+                    cards[0].dataset.iVal = (stats.issue_raised + stats.issue_resolved) || 0;
+                    cards[1].dataset.iVal = stats.issue_raised || 0;
+                    cards[2].dataset.iVal = stats.issue_resolved || 0;
                     var active = document.querySelector('.tab-btn.active, .timetable-btn[data-tab].active');
                     var tab = active ? active.dataset.tab : 'activity';
                     if (tab === 'rooms') {
                         cards[0].querySelector('.stat-value').textContent = cards[0].dataset.rVal;
                         cards[1].querySelector('.stat-value').textContent = cards[1].dataset.rVal;
                         cards[2].querySelector('.stat-value').textContent = cards[2].dataset.rVal;
+                    } else if (tab === 'issues') {
+                        cards[0].querySelector('.stat-value').textContent = cards[0].dataset.iVal;
+                        cards[1].querySelector('.stat-value').textContent = cards[1].dataset.iVal;
+                        cards[2].querySelector('.stat-value').textContent = cards[2].dataset.iVal;
                     } else {
                         cards[0].querySelector('.stat-value').textContent = stats.total_logs;
                         cards[1].querySelector('.stat-value').textContent = stats.total_rooms;
@@ -862,9 +893,12 @@ function event_icon(string $type): array
 
             function reapplyFilters() {
                 var active = document.querySelector('.timetable-btn[data-tab].active');
-                if (active && active.dataset.tab === 'activity') {
+                if (!active) return;
+                if (active.dataset.tab === 'activity') {
                     actPage = 1;
                     filterActivity();
+                } else if (active.dataset.tab === 'issues') {
+                    filterIssues();
                 } else {
                     filterRooms();
                 }
