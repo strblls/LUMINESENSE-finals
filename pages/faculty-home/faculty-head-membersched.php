@@ -426,6 +426,15 @@ foreach ($days as $day) {
                                             )">
                                                 <i class="bi bi-eye"></i>
                                             </button>
+                                            <?php if (!empty($slot['ext_status'])): ?>
+                                                <?php if ($slot['ext_status'] === 'pending'): ?>
+                                                    <span class="badge-ext-pending" title="Extension pending" data-bs-toggle="tooltip"><i class="bi bi-hourglass-bottom"></i></span>
+                                                <?php elseif ($slot['ext_status'] === 'approved'): ?>
+                                                    <span class="badge-ext-approved" title="Extension approved" data-bs-toggle="tooltip"><i class="bi bi-check-circle"></i></span>
+                                                <?php elseif ($slot['ext_status'] === 'rejected'): ?>
+                                                    <span class="badge-ext-rejected" title="Extension rejected" data-bs-toggle="tooltip"><i class="bi bi-x-circle"></i></span>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
                                             <button class="btn-icon <?= $is_owner ? 'btn-icon-del' : 'btn-icon-disabled' ?>"
                                                 title="<?= $is_owner ? 'Delete Schedule' : 'Restricted - assigned by another faculty head' ?>"
                                                 onclick="<?= $is_owner

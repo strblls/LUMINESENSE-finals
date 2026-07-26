@@ -163,7 +163,10 @@ while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 $schedules_by_day = [];
 $r = $conn->query("
     SELECT s.day_of_week, s.start_time, s.end_time, s.extended_until,
-           c.room_name, f.first_name, f.last_name
+           c.room_name, f.first_name, f.last_name,
+           (SELECT status FROM extension_requests
+            WHERE schedule_id = s.id
+            ORDER BY requested_at DESC LIMIT 1) AS ext_status
     FROM schedules s
     JOIN classrooms c ON s.classroom_id = c.id
     LEFT JOIN faculty f ON s.faculty_id = f.id

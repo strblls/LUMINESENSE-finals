@@ -600,6 +600,39 @@
     font-size: 11px;
 }
 
+.badge-ext-pending {
+    background: #fff3cd;
+    color: #856404;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.badge-ext-approved {
+    background: #d1e7dd;
+    color: #0f5132;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.badge-ext-rejected {
+    background: #f8d7da;
+    color: #842029;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
 /* ══════════════════════════════════════
            FACULTY HIERARCHY TREE
         ══════════════════════════════════════ */

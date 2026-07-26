@@ -71,13 +71,28 @@ while ($row = $reminder_candidates->fetch_assoc()) {
 
 // ── Execute extension reset when its datetime has arrived ───────────────────
 $ext_reset = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'extension_reset_datetime'");
-if ($ext_reset && $row = $ext_reset->fetch_assoc()) {
-    $ext_datetime = $row['setting_value'];
-    if ($ext_datetime && $ext_datetime <= $now) {
-        echo "[" . date('Y-m-d H:i:s') . "] Executing extension reset (scheduled: $ext_datetime)\n";
-        execute_extension_flush($conn);
-        echo "[" . date('Y-m-d H:i:s') . "] Extension reset completed\n";
-    }
+$ext_reset_exists = ($ext_reset && $row = $ext_reset->fetch_assoc());
+$ext_datetime = $ext_reset_exists ? $row['setting_value'] : null;
+
+if ($ext_datetime && $ext_datetime <= $now) {
+    echo "[" . date('Y-m-d H:i:s') . "] Executing extension reset (scheduled: $ext_datetime)\n";
+    execute_extension_flush($conn);
+    echo "[" . date('Y-m-d H:i:s') . "] Extension reset completed\n";
+    $ext_datetime = null; // force re-schedule below
+}
+
+// ── Auto-set default extension reset to upcoming Saturday 11:59 PM ──────────
+if (!$ext_datetime) {
+    $next_sat = date('Y-m-d', strtotime('next Saturday')) . ' 23:59:00';
+    $stmt = $conn->prepare("
+        INSERT INTO system_settings (setting_key, setting_value)
+        VALUES ('extension_reset_datetime', ?)
+        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+    ");
+    $stmt->bind_param('s', $next_sat);
+    $stmt->execute();
+    $stmt->close();
+    echo "[" . date('Y-m-d H:i:s') . "] Auto-set extension reset to $next_sat\n";
 }
 
 // ── Execute confirmed flushes that are due ──────────────────────────────────

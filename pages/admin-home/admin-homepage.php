@@ -1042,17 +1042,35 @@ $fm_res->free();
             if (schedules.length === 0) {
                 body.innerHTML = '<p class="cal-no-sched">No schedules for this day.</p>';
             } else {
-                body.innerHTML = schedules.map(s => `
+                body.innerHTML = schedules.map(s => {
+                    let extBadge = '';
+                    if (s.extended_until) {
+                        const extStatus = s.ext_status;
+                        let badgeCls = 'ext-badge';
+                        let badgeIcon = '';
+                        if (extStatus === 'pending') {
+                            badgeCls = 'badge-ext-pending';
+                            badgeIcon = ' <i class="bi bi-hourglass-bottom"></i>';
+                        } else if (extStatus === 'approved') {
+                            badgeCls = 'badge-ext-approved';
+                            badgeIcon = ' <i class="bi bi-check-circle"></i>';
+                        } else if (extStatus === 'rejected') {
+                            badgeCls = 'badge-ext-rejected';
+                            badgeIcon = ' <i class="bi bi-x-circle"></i>';
+                        }
+                        extBadge = ` <span class="${badgeCls}" style="font-size:11px;padding:2px 8px;display:inline-flex;align-items:center;gap:2px;">${badgeIcon} extended</span>`;
+                    }
+                    return `
                     <div class="cal-sched-item">
                         <div class="cal-sched-room"><i class="bi bi-door-open"></i> <span>${s.room_name}</span></div>
                         <div class="cal-sched-time">
                             <i class="bi bi-clock"></i> Schedule: <span>${s.start_time.slice(0,5)} – ${s.extended_until
-                                ? s.extended_until.slice(0,5) + ' <span class="ext-badge">extended</span>'
+                                ? s.extended_until.slice(0,5) + extBadge
                                 : s.end_time.slice(0,5)}</span>
                         </div>
                         <div class="cal-sched-faculty"><i class="bi bi-people"></i> Faculty: <span>${s.first_name ? s.first_name + ' ' + s.last_name : 'No faculty assigned'}</span></div>
                     </div>
-                `).join('');
+                `}).join('');
             }
 
             const isOpen = overlay.classList.contains('open') && overlay.dataset.day === String(day);
