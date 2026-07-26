@@ -41,7 +41,7 @@ if ($cid > 0) {
                 'avg_voltage' => 0, 'avg_current' => 0,
                 'peak_power_w' => 0, 'est_cost_php' => 0,
                 'total_sessions' => 0, 'total_energy_wh' => 0,
-                'peak_power_kw' => 0,
+                'peak_power_kw' => 0, 'total_anomalies' => 0,
             ],
             'daily' => [], 'hourly' => [], 'intervals' => [],
             'heatmap' => [], 'triggers' => [], 'per_room' => [],
@@ -173,6 +173,28 @@ if ($days === 1) {
 $summary['total_energy_kwh'] = round(($summary['total_energy_wh'] ?? 0) / 1000, 4);
 $summary['est_cost_php']     = round($summary['total_energy_kwh'] * 11, 2);
 $summary['peak_power_kw']    = round(($summary['peak_power_w'] ?? 0) / 1000, 4);
+
+// ── Anomaly count ──────────────────────────────────────────────────────────
+if ($cid) {
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) AS cnt FROM room_logs rl
+        JOIN classrooms c ON c.room_name = rl.room_name
+        WHERE rl.event_type = 'issue_raised'
+          AND c.id = ?
+          AND rl.event_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
+    ");
+    $stmt->bind_param('ii', $cid, $days);
+} else {
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) AS cnt FROM room_logs
+        WHERE event_type = 'issue_raised'
+          AND event_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
+    ");
+    $stmt->bind_param('i', $days);
+}
+$stmt->execute();
+$summary['total_anomalies'] = (int)$stmt->get_result()->fetch_assoc()['cnt'];
+$stmt->close();
 
 // ── 2. Daily energy chart ─────────────────────────────────────────────────
 $daily = [];

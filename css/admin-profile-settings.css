@@ -507,3 +507,43 @@
     margin-top: 6px;
     white-space: normal;
 }
+
+/* ── Forced Password Change ─────────────────────────────────────────────── */
+.forced-pw-change-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.forced-pw-change-card {
+    background: #fff;
+    border: 2px solid #e8e8e8;
+    border-radius: 16px;
+    padding: 2.5rem;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+
+.forced-pw-change-header {
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.forced-pw-change-header i {
+    font-size: 2.5rem;
+    color: var(--secondary-color-1);
+    margin-bottom: 0.75rem;
+}
+
+.forced-pw-change-header h2 {
+    color: var(--secondary-color-1);
+    font-size: 1.35rem;
+}
+
+.forced-pw-change-header p {
+    font-size: 0.85rem;
+    line-height: 1.5;
+}

@@ -81,8 +81,8 @@ CREATE TABLE `admins` (
 -- Dumping data for table `admins`
 --
 
-INSERT INTO `admins` (`id`, `last_name`, `first_name`, `middle_initial`, `email`, `password`, `is_verified`, `approved_by`, `approved_at`, `admin_role`, `otp_code`, `otp_expires_at`, `ai_match_status`, `ai_extracted_name`, `ai_confidence_note`, `created_at`, `is_seeded`) VALUES
-(1, 'Admin', 'LumineSense', '', 'admin@luminesense.edu.ph', '$2b$10$A7sF7rK8iU9dsCEGeZtUs.ju8Kjdb5Iw4alF99eEeKw6zpDhnJYSu', 1, 1, '2026-07-07 09:52:20', 'admin', NULL, NULL, NULL, NULL, NULL, '2026-07-07 09:47:10', '1'),
+INSERT INTO `admins` (`id`, `last_name`, `first_name`, `middle_initial`, `email`, `password`, `is_verified`, `approved_by`, `approved_at`, `admin_role`, `otp_code`, `otp_expires_at`, `ai_match_status`, `ai_extracted_name`, `ai_confidence_note`, `created_at`, `is_seeded`, `must_change_password`) VALUES
+(1, 'Admin', 'LumineSense', '', 'admin@luminesense.edu.ph', '$2b$10$A7sF7rK8iU9dsCEGeZtUs.ju8Kjdb5Iw4alF99eEeKw6zpDhnJYSu', 1, 1, '2026-07-07 09:52:20', 'admin', NULL, NULL, NULL, NULL, NULL, '2026-07-07 09:47:10', '1', '1'),
 (2, 'Ballesteros', 'Alexandra', 'S', 'stereoballsgrande@gmail.com', '$2y$10$SHQLFOTo8ecVWhyQr2t8q.oYGybslZ0C4d73T2jIo1JaYNnV64hY2', 1, 2, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, '2026-05-18 08:08:47', '0'),
 (3, 'Santos', 'Maria', 'R', 'principal@luminesense.edu.ph', '$2y$10$oXEo7WLKRdKy3k.nJM.pweVe5YJL7MKPJ7wM8K8H9L0P0R1S2T3U4V5', 1, 3, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, '2026-06-14 08:11:43', '0'),
 (4, 'Reyes', 'Maria', 'G', 'science_head@luminesense.edu.ph', '$2y$10$TKh8H1.PfunDstripe7nf8uO8OI2LKe9aSLBLQEJmIDLVx/KVH84a6', 1, 4, NULL, 'admin', NULL, NULL, NULL, NULL, NULL, '2026-06-14 08:11:43', '0'),

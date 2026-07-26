@@ -18,6 +18,18 @@ $stmt->bind_result($admin_email);
 $stmt->fetch();
 $stmt->close();
 
+// ── Force password change for seeded admin on first login ─────────────────
+$mcp_check = $conn->query("SELECT must_change_password FROM admins WHERE id = " . (int)$admin_id);
+if ($mcp_check && $mcp_row = $mcp_check->fetch_assoc()) {
+    if ($mcp_row['must_change_password'] === '1') {
+        $current_script = basename($_SERVER['SCRIPT_NAME'] ?? '');
+        if ($current_script !== 'admin-profile-settings.php') {
+            header('Location: admin-profile-settings.php?force=1');
+            exit;
+        }
+    }
+}
+
 // ── Fetch all classrooms for the dropdown ─────────────────────
 $rooms = [];
 $res = $conn->query("SELECT id, room_name FROM classrooms ORDER BY room_name ASC");

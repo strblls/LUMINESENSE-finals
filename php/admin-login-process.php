@@ -30,7 +30,7 @@ if ($_SESSION['admin_attempts'] >= 3) {
     exit;
 }
 
-$stmt = @$conn->prepare('SELECT id, first_name, last_name, password, is_verified, approved_by FROM admins WHERE email = ?');
+$stmt = @$conn->prepare('SELECT id, first_name, last_name, password, is_verified, approved_by, must_change_password FROM admins WHERE email = ?');
 if (!$stmt) {
     $_SESSION['login_error'] = 'Database error. Please try again.';
     header('Location: ../pages/admin-login.php');
@@ -73,6 +73,11 @@ $_SESSION['admin_name']      = $row['first_name'] . ' ' . $row['last_name'];
 $_SESSION['admin_logged_in'] = true;
 $_SESSION['role']            = 'admin';
 $_SESSION['admin_attempts']  = 0;
+
+// If the seeded admin must change password, set a flash and let admin-head.php handle redirect
+if (!empty($row['must_change_password']) && $row['must_change_password'] === '1') {
+    $_SESSION['flash'] = ['type' => 'warning', 'msg' => 'You must change your password before continuing.'];
+}
 
 // Log admin login (gracefully skip if table doesn't exist)
 $stmt = @$conn->prepare('INSERT INTO admin_login_logs (admin_id) VALUES (?)');

@@ -616,6 +616,7 @@ function renderSummaryCards(s) {
     set('sumCurrent', (s.avg_current      ?? 0).toFixed(3) + ' A');
     set('sumPower',   (s.peak_power_w     ?? 0).toFixed(1) + ' W');  // fixed: was s.peak_power
     set('sumCost',    '\u20B1' + (s.est_cost_php ?? 0).toFixed(2));  // fixed: was s.total_cost
+    set('sumAnomalies', (s.total_anomalies ?? 0) + (s.total_anomalies === 1 ? ' issue' : ' issues'));
 }
 
 // ── HISTORY TABLE ─────────────────────────────────────────────────────────────

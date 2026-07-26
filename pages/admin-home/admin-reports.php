@@ -128,6 +128,26 @@ if ($res3) {
     $res3->free();
 }
 
+// ── Issues Logged (from room_logs) ───────────────────────────
+$issues = [];
+$res5 = $conn->query("
+    SELECT
+        id,
+        event_type,
+        room_name,
+        triggered_by,
+        event_time,
+        COALESCE(notes, '') AS notes
+    FROM room_logs
+    WHERE event_type IN ('issue_raised', 'issue_resolved')
+    ORDER BY event_time DESC
+    LIMIT 200
+");
+if ($res5) {
+    while ($row = $res5->fetch_assoc()) $issues[] = $row;
+    $res5->free();
+}
+
 $conn->close();
 
 /* ─── Icon map for event types ─── */
@@ -428,10 +448,62 @@ function event_icon(string $type): array
                 <div class="reports-card">
                     <div class="reports-card-header">
                         <h2><i class="bi bi-exclamation-triangle"></i> Issues Logged</h2>
+                        <div class="filter-bar">
+                            <select id="issueType">
+                                <option value="">All Issues</option>
+                                <option value="issue_raised">Open Issues</option>
+                                <option value="issue_resolved">Resolved</option>
+                            </select>
+                            <select id="issueDate">
+                                <option value="">All Dates</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="empty-state">
-                        <i class="bi bi-inbox"></i>
-                        <p>No issues logged yet.</p>
+
+                    <div class="timeline" id="issueTimeline">
+                        <?php if (empty($issues)): ?>
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                <p>No issues logged yet. Issues will appear here when PIR detects motion outside schedule or other anomalies occur.</p>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($issues as $issue):
+                                [$icon, $iconColor, $iconBg] = event_icon($issue['event_type']);
+                                $logDate = strtotime($issue['event_time']);
+                                $dateStr = date('M j, Y', $logDate);
+                                $timeStr = date('g:i A', $logDate);
+                                $isRaised = $issue['event_type'] === 'issue_raised';
+                            ?>
+                                <div class="timeline-item"
+                                    data-type="issue"
+                                    data-action="<?= $issue['event_type'] ?>"
+                                    data-date="<?= date('Y-m-d', $logDate) ?>"
+                                    data-search="<?= strtolower(htmlspecialchars($issue['room_name'] . ' ' . $issue['notes'])) ?>">
+                                    <div class="tl-icon" style="background:<?= $iconBg ?>; color:<?= $iconColor ?>;">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                    </div>
+                                    <div class="tl-body">
+                                        <p class="tl-action">
+                                            <?= $isRaised ? 'Issue Raised' : 'Issue Resolved' ?>
+                                            &mdash; <span style="color:var(--secondary-color-3);"><?= htmlspecialchars($issue['room_name']) ?></span>
+                                        </p>
+                                        <div class="tl-meta">
+                                            <span><i class="bi bi-clock"></i> <?= $timeStr ?>, <?= $dateStr ?></span>
+                                            <span><i class="bi bi-person"></i> <?= htmlspecialchars($issue['triggered_by']) ?></span>
+                                            <span class="tl-type-badge" style="background:<?= $isRaised ? '#842029' : '#0f5132' ?>; color:#fff;">
+                                                <?= $isRaised ? 'Open' : 'Resolved' ?>
+                                            </span>
+                                        </div>
+                                        <?php if (!empty($issue['notes'])): ?>
+                                            <span class="tl-notes"><i class="bi bi-chat-left-text me-1"></i><?= htmlspecialchars($issue['notes']) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -481,6 +553,8 @@ function event_icon(string $type): array
                 /* ── Apply filters for the activated tab ── */
                 if (tab === 'activity') {
                     filterActivity();
+                } else if (tab === 'issues') {
+                    filterIssues();
                 } else {
                     filterRooms();
                 }
@@ -546,6 +620,7 @@ function event_icon(string $type): array
                     var activeEl = document.querySelector('.timetable-btn[data-tab].active');
                     if (!activeEl) return;
                     if (activeEl.dataset.tab === 'activity') filterActivity();
+                    else if (activeEl.dataset.tab === 'issues') filterIssues();
                     else filterRooms();
                 });
             }
@@ -559,6 +634,7 @@ function event_icon(string $type): array
                     var activeEl = document.querySelector('.timetable-btn[data-tab].active');
                     if (!activeEl) return;
                     if (activeEl.dataset.tab === 'activity') filterActivity();
+                    else if (activeEl.dataset.tab === 'issues') filterIssues();
                     else filterRooms();
                 });
             }
@@ -632,10 +708,32 @@ function event_icon(string $type): array
                 });
             }
 
+            /* ── Issues filters ── */
+            function filterIssues() {
+                const q = (document.getElementById('reportsSearch')?.value || '').toLowerCase();
+                const type = document.getElementById('issueType').value;
+                const date = document.getElementById('issueDate').value;
+                const today = new Date().toISOString().slice(0, 10);
+                const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+                const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+
+                document.querySelectorAll('#tab-issues .timeline-item').forEach(item => {
+                    const matchQ = !q || item.dataset.search.includes(q);
+                    const matchType = !type || item.dataset.action === type;
+                    let matchDate = true;
+                    if (date === 'today') matchDate = item.dataset.date === today;
+                    if (date === 'week') matchDate = item.dataset.date >= weekAgo;
+                    if (date === 'month') matchDate = item.dataset.date >= monthAgo;
+                    item.style.display = (matchQ && matchType && matchDate) ? '' : 'none';
+                });
+            }
+
             /* ── Attach listeners ── */
             document.getElementById('activityType').addEventListener('change', filterActivity);
             document.getElementById('activityDate').addEventListener('change', filterActivity);
             document.getElementById('roomLightFilter').addEventListener('change', filterRooms);
+            document.getElementById('issueType').addEventListener('change', filterIssues);
+            document.getElementById('issueDate').addEventListener('change', filterIssues);
 
             function showExportModal(type) {
                 const el = document.getElementById('exportConfirmModal');

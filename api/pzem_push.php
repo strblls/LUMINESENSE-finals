@@ -122,6 +122,111 @@ if (!$ok2) {
 }
 $stmt2->close();
 
+// ── Anomaly detection: dropout & spike ─────────────────────
+$any_row_on = (bool)($row1 || $row2 || $row3);
+$r = $conn->query("SELECT room_name FROM classrooms WHERE id = $cid");
+$room_name = $r && ($row = $r->fetch_assoc()) ? $row['room_name'] : '';
+
+if ($room_name) {
+
+    // Helper: most recent event_type for a given note pattern (within 1 hour)
+    $getLastEventType = function($conn, $room_name, $keyword) {
+        $stmt = $conn->prepare("
+            SELECT event_type FROM room_logs
+            WHERE room_name = ? AND notes LIKE ?
+              AND event_time > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+            ORDER BY id DESC LIMIT 1
+        ");
+        $like = "%$keyword%";
+        $stmt->bind_param('ss', $room_name, $like);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ? $row['event_type'] : null;
+    };
+
+    // ─── Dropout: lights ON but power near zero ───
+    if ($any_row_on && $power < 1.0 && $voltage > 0) {
+        $stmt = $conn->prepare("
+            SELECT COUNT(*) AS cnt FROM (
+                SELECT power FROM pzem_readings
+                WHERE classroom_id = ? ORDER BY id DESC LIMIT 3
+            ) r WHERE power < 1.0
+        ");
+        $stmt->bind_param('i', $cid);
+        $stmt->execute();
+        $confirmed = (int)$stmt->get_result()->fetch_assoc()['cnt'] >= 3;
+        $stmt->close();
+
+        if ($confirmed) {
+            $last = $getLastEventType($conn, $room_name, 'dropout');
+            if (!$last || $last === 'issue_resolved') {
+                $notes = "Energy dropout detected — lights ON but power near zero ({$power}W)";
+                $stmt = $conn->prepare("
+                    INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
+                    VALUES ('issue_raised', ?, 'PZEM', ?)
+                ");
+                $stmt->bind_param('ss', $room_name, $notes);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+    } elseif (!$any_row_on || $power >= 1.0) {
+        $last = $getLastEventType($conn, $room_name, 'dropout');
+        if ($last === 'issue_raised') {
+            $notes = "Energy dropout resolved — power at {$power}W" . ($any_row_on ? '' : ', lights OFF');
+            $stmt = $conn->prepare("
+                INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
+                VALUES ('issue_resolved', ?, 'PZEM', ?)
+            ");
+            $stmt->bind_param('ss', $room_name, $notes);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+
+    // ─── Spike: power exceeds 2× recent average ───
+    if ($power > 0 && $any_row_on) {
+        $stmt = $conn->prepare("
+            SELECT ROUND(AVG(power), 2) AS avg_pwr FROM (
+                SELECT power FROM pzem_readings
+                WHERE classroom_id = ? AND power > 1.0
+                ORDER BY id DESC LIMIT 10
+            ) r
+        ");
+        $stmt->bind_param('i', $cid);
+        $stmt->execute();
+        $avg = (float)$stmt->get_result()->fetch_assoc()['avg_pwr'];
+        $stmt->close();
+
+        if ($avg > 50 && $power > $avg * 2.0) {
+            $last = $getLastEventType($conn, $room_name, 'spike');
+            if (!$last || $last === 'issue_resolved') {
+                $notes = "Power spike detected — {$power}W vs typical ~{$avg}W";
+                $stmt = $conn->prepare("
+                    INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
+                    VALUES ('issue_raised', ?, 'PZEM', ?)
+                ");
+                $stmt->bind_param('ss', $room_name, $notes);
+                $stmt->execute();
+                $stmt->close();
+            }
+        } elseif ($avg > 50 && $power < $avg * 1.3) {
+            $last = $getLastEventType($conn, $room_name, 'spike');
+            if ($last === 'issue_raised') {
+                $notes = "Power spike resolved — power returned to {$power}W (normal)";
+                $stmt = $conn->prepare("
+                    INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
+                    VALUES ('issue_resolved', ?, 'PZEM', ?)
+                ");
+                $stmt->bind_param('ss', $room_name, $notes);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+    }
+}
+
 $conn->close();
 
 echo json_encode([

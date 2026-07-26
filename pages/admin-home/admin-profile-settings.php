@@ -19,6 +19,13 @@ if ($seed_check && $seed_row = $seed_check->fetch_assoc()) {
     $admin_is_seeded = !empty($seed_row['is_seeded']);
 }
 
+// ── Check if forced password change is required ──────────────────────────
+$must_change_pw = false;
+$mcp_check = $conn->query("SELECT must_change_password FROM admins WHERE id = " . (int)$admin_id);
+if ($mcp_check && $mcp_row = $mcp_check->fetch_assoc()) {
+    $must_change_pw = ($mcp_row['must_change_password'] === '1');
+}
+
 // ── Fetch pending flush schedule (if any) ──────────────────────────────────
 $flush_schedule = null;
 if ($admin_is_seeded) {
@@ -84,11 +91,47 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
     <?php include '../../php/includes/admin-topbar.php'; ?>
 
     <div class="parent-container">
+        <?php if (!$must_change_pw): ?>
         <?php include '../../php/includes/admin-sidebar.php'; ?>
+        <?php endif; ?>
 
         <div class="child-container homepage-modal">
             <div class="profile-wrapper">
                 <div class="profile-main-card" style="border-radius: 10px;">
+<?php if ($must_change_pw): ?>
+<!-- ═══ FORCED PASSWORD CHANGE (first login after deployment) ═══ -->
+<div class="forced-pw-change-wrap">
+    <div class="forced-pw-change-card">
+        <div class="forced-pw-change-header">
+            <i class="bi bi-shield-lock-fill"></i>
+            <h2 class="bold mb-1">Change Your Password</h2>
+            <p class="text-muted mb-0">
+                This is the default administrator account. You must set a new password before using the system.
+            </p>
+        </div>
+        <hr>
+        <?php if (!empty($_SESSION['pw_error'])): ?>
+            <div class="alert alert-danger">&#9888;&#65039; <?= htmlspecialchars($_SESSION['pw_error']) ?></div>
+            <?php unset($_SESSION['pw_error']); ?>
+        <?php endif; ?>
+        <form method="POST" action="../../api/change_password.php?force=1">
+            <div class="mb-2">
+                <label class="form-label">New Password</label>
+                <input type="password" class="form-control" name="new_password"
+                    placeholder="Min 8 characters" minlength="8" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Confirm New Password</label>
+                <input type="password" class="form-control" name="confirm_password"
+                    placeholder="Repeat new password" required>
+            </div>
+            <button type="submit" class="medium w-100 py-2">
+                <i class="bi bi-check-lg me-1"></i> Set New Password
+            </button>
+        </form>
+    </div>
+</div>
+<?php else: ?>
                     <div class="profile-layout">
 
                         <!-- Sidebar -->
@@ -443,6 +486,7 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
 
                         </div><!-- /profile-content-area -->
                     </div><!-- /profile-layout -->
+                <?php endif; ?><!-- end forced pw change -->
                 </div><!-- /profile-main-card -->
             </div><!-- /profile-wrapper -->
         </div><!-- /child-container -->

@@ -122,6 +122,17 @@ if ($state) {
                 pir_since    = CASE WHEN pir_occupied = 0 THEN NOW() ELSE pir_since END
             WHERE id = $cid
         ");
+        $r = $conn->query("SELECT room_name FROM classrooms WHERE id = $cid");
+        if ($r && ($row = $r->fetch_assoc())) {
+            $notes = 'PIR motion detected outside schedule hours';
+            $stmt = $conn->prepare("
+                INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
+                VALUES ('issue_raised', ?, 'PIR', ?)
+            ");
+            $stmt->bind_param('ss', $row['room_name'], $notes);
+            $stmt->execute();
+            $stmt->close();
+        }
     }
 } else {
     // ── Motion stopped for 5 min → end schedule, clear room ──
@@ -137,6 +148,7 @@ if ($state) {
           AND start_time  <= '$now_time'
           AND (extended_until >= '$now_time' OR (extended_until IS NULL AND end_time >= '$now_time'))
     ");
+    $schedule_was_active = $conn->affected_rows > 0;
 
     $conn->query("
         UPDATE classrooms
@@ -156,13 +168,28 @@ if ($state) {
     $stmt->bind_param('i', $cid);
     $stmt->execute();
     $stmt->close();
-    $stmt = $conn->prepare("
-        INSERT INTO class_logs (classroom_id, event_type, triggered_by, notes)
-        VALUES (?, 'class_end', 'PIR', 'Schedule ended by PIR inactivity timeout')
-    ");
-    $stmt->bind_param('i', $cid);
-    $stmt->execute();
-    $stmt->close();
+
+    if ($schedule_was_active) {
+        $stmt = $conn->prepare("
+            INSERT INTO class_logs (classroom_id, event_type, triggered_by, notes)
+            VALUES (?, 'class_end', 'PIR', 'Schedule ended by PIR inactivity timeout')
+        ");
+        $stmt->bind_param('i', $cid);
+        $stmt->execute();
+        $stmt->close();
+    } else {
+        $r = $conn->query("SELECT room_name FROM classrooms WHERE id = $cid");
+        if ($r && ($row = $r->fetch_assoc())) {
+            $notes = 'PIR inactivity timeout triggered with no active schedule';
+            $stmt = $conn->prepare("
+                INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
+                VALUES ('issue_raised', ?, 'PIR', ?)
+            ");
+            $stmt->bind_param('ss', $row['room_name'], $notes);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
 }
 
 echo json_encode(['success' => true, 'classroom_id' => $cid, 'state' => $state]);

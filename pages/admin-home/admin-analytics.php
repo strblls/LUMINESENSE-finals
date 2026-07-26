@@ -280,6 +280,18 @@ include '../../php/handlers/analytics-handler.php';
                                         <span class="summary-info-desc">Estimated cost using the national average rate of &#x20B1;11.00 per kWh.</span>
                                     </div>
                                 </div>
+                                <div class="live-stat-card">
+                                    <div class="summary-row">
+                                        <div class="live-stat-val" id="sumAnomalies">—</div>
+                                        <div class="live-stat-label">Anomalies</div>
+                                    </div>
+                                    <div class="summary-expand">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        <span class="summary-info-label">Source:</span>
+                                        <span class="summary-info-val">room_logs (issue_raised)</span>
+                                        <span class="summary-info-desc">Total energy dropouts (lights ON, power ~0W) and power spikes detected during the selected period.</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

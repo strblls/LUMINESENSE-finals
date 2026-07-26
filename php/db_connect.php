@@ -382,6 +382,9 @@ $conn->query("ALTER TABLE id_review_queue MODIFY COLUMN ai_match_status ENUM('ma
 // ── is_seeded column for admins (seeded admin = super-admin) ─────────────────
 addColIfMissing($conn, 'admins', 'is_seeded', "ENUM('1','0') DEFAULT '0'");
 
+// ── must_change_password column for forced password change on first login ────
+addColIfMissing($conn, 'admins', 'must_change_password', "ENUM('1','0') DEFAULT '0'");
+
 // ── Dedicated PIR event log (every state change from Mega GPIO5) ─────────
 $conn->query("
     CREATE TABLE IF NOT EXISTS pir_logs (
