@@ -739,7 +739,14 @@ function event_icon(string $type): array
                 document.querySelectorAll('#roomTable tbody .room-main-row').forEach(row => {
                     const matchQ = !q || (row.dataset.search && row.dataset.search.includes(q));
                     const matchLight = !light || row.dataset.light === light;
-                    row.style.display = (matchQ && matchLight) ? '' : 'none';
+                    const show = matchQ && matchLight;
+                    row.style.display = show ? '' : 'none';
+                    if (!show) {
+                        const accordionRow = row.nextElementSibling;
+                        if (accordionRow && accordionRow.classList.contains('room-accordion-row')) {
+                            accordionRow.style.display = 'none';
+                        }
+                    }
                 });
             }
 
@@ -770,18 +777,41 @@ function event_icon(string $type): array
             document.getElementById('issueType').addEventListener('change', filterIssues);
             document.getElementById('issueDate').addEventListener('change', filterIssues);
 
+            function getFilterParams() {
+                const active = document.querySelector('.timetable-btn[data-tab].active');
+                const tab = active ? active.dataset.tab : 'activity';
+                const search = document.getElementById('reportsSearch')?.value || '';
+                let type = '';
+                let date = '';
+                if (tab === 'activity') {
+                    type = document.getElementById('activityType')?.value || '';
+                    date = document.getElementById('activityDate')?.value || '';
+                } else if (tab === 'rooms') {
+                    type = document.getElementById('roomLightFilter')?.value || '';
+                } else if (tab === 'issues') {
+                    type = document.getElementById('issueType')?.value || '';
+                    date = document.getElementById('issueDate')?.value || '';
+                }
+                return { tab, search, type, date };
+            }
+
             function showExportModal(type) {
                 const el = document.getElementById('exportConfirmModal');
                 document.getElementById('exportModalIcon').className = 'bi ' + (type === 'csv' ? 'bi-filetype-csv' : 'bi-filetype-pdf');
-                const active = document.querySelector('.timetable-btn[data-tab].active');
-                const tab = active ? active.dataset.tab : 'activity';
+                const { tab, search, type: ftype, date } = getFilterParams();
                 const label = tab === 'rooms' ? 'Room Activity' : tab === 'issues' ? 'Issues Logged' : 'Recent Activity';
                 document.getElementById('exportModalMsg').textContent = 'Export ' + label + ' as ' + type.toUpperCase() + '?';
                 document.getElementById('exportConfirmBtn').onclick = function() {
                     const bs = bootstrap.Modal.getInstance(el);
                     if (bs) bs.hide();
                     if (type === 'csv') doExportCSV();
-                    else window.location.href = '../../api/export-report-pdf.php?tab=' + tab;
+                    else {
+                        var params = new URLSearchParams({ tab: tab });
+                        if (search) params.set('search', search);
+                        if (ftype) params.set('type', ftype);
+                        if (date) params.set('date', date);
+                        window.location.href = '../../api/export-report-pdf.php?' + params.toString();
+                    }
                 };
                 new bootstrap.Modal(el).show();
             }
@@ -800,10 +830,16 @@ function event_icon(string $type): array
                     rows = [['Time', 'Issue', 'Room', 'Triggered By', 'Notes']];
                     document.querySelectorAll('#tab-issues .timeline-item').forEach(item => {
                         if (item.style.display === 'none') return;
-                        const tl_action = (item.querySelector('.tl-action')?.innerText.trim() ?? '').replace(/—/g, '-');
-                        const tl_meta = [...item.querySelectorAll('.tl-meta span')].map(s => s.innerText.trim()).join(' | ');
+                        const metaSpans = [...item.querySelectorAll('.tl-meta span')];
+                        const timeStr = metaSpans[0]?.innerText.trim() ?? '';
+                        const triggeredBy = metaSpans[1]?.innerText.trim() ?? '';
+                        const actionEl = item.querySelector('.tl-action');
+                        const actionText = actionEl?.innerText.trim().replace(/\u2014/g, '|') ?? '';
+                        const parts = actionText.split('|').map(s => s.trim());
+                        const issueLabel = parts[0] ?? '';
+                        const roomName = parts[1]?.replace(/"/g, '') ?? '';
                         const tl_notes = item.querySelector('.tl-notes')?.innerText.trim() ?? '';
-                        rows.push([tl_meta, tl_action, '', '', tl_notes]);
+                        rows.push([timeStr, issueLabel, roomName, triggeredBy, tl_notes]);
                     });
                 } else {
                     rows = [['Time', 'Action', 'Target', 'Actor', 'Type', 'Notes']];

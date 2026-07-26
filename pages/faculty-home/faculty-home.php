@@ -693,21 +693,22 @@ function mask_email(string $email): string
         const FACULTY_ID = <?= (int) $faculty_id ?>;
         const HAS_ACTIVE_SCHEDULE = <?= $active_schedule ? 'true' : 'false' ?>;
 
+        // ── Helper shared by both poll loops ───────────────────────────────────
+        function updateBadge(id, ok) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const okText = el.dataset.okText;
+            const failText = el.dataset.failText;
+            el.textContent = ok ? okText : failText;
+            el.style.background = ok ? '#f9edfa' : '#2f004f';
+            el.style.color = ok ? '#2f004f' : '#ffffff';
+        }
+
         // ── System Status polling ────────────────────────────────────────────
         (function pollSystemStatus() {
             const interval = 3000;
             const bulbOff = '../../images/bulb-off.png';
             const bulbOn  = '../../images/bulb-on.png';
-
-            function updateBadge(id, ok) {
-                const el = document.getElementById(id);
-                if (!el) return;
-                const okText = el.dataset.okText;
-                const failText = el.dataset.failText;
-                el.textContent = ok ? okText : failText;
-                el.style.background = ok ? '#f9edfa' : '#2f004f';
-                el.style.color = ok ? '#2f004f' : '#ffffff';
-            }
 
             async function checkWebcam() {
                 try {

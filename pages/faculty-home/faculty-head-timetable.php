@@ -145,6 +145,15 @@ foreach ($departments as $dept) {
     $dept_has_coverage[$did] = $has;
 }
 
+// Determine which faculty members have assigned subject areas in each department
+$faculty_assignment_map = [];
+foreach ($dept_data as $data) {
+    foreach ($data['members'] as $member) {
+        $fid = (int)$member['id'];
+        $faculty_assignment_map[$fid] = !empty($member['subject_area_ids']);
+    }
+}
+
 // All subject areas for per-faculty assignment
 $subject_areas = [];
 $r = $conn->query("
@@ -716,12 +725,40 @@ $current_sched = 'No class right now';
         </div>
     </div>
 
+    <!-- No Subject Area Assigned Warning Modal -->
+    <div class="modal fade" id="noAssignmentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header modal-header-warning">
+                    <h5 class="modal-title">No Subject Area Assigned</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;color:#e67e22;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;">
+                        This faculty member has no subject area assigned under this department. Please assign subject areas first before viewing their schedule.
+                    </p>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button type="button" class="medium w-100" data-bs-dismiss="modal">Understood</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const deptHasCoverage = <?= json_encode($dept_has_coverage) ?>;
+        const facultyHasAssignment = <?= json_encode($faculty_assignment_map) ?>;
         let noCoverageModal = null;
+        let noAssignmentModal = null;
 
         function checkDeptCoverage(deptId, facultyId) {
-            if (deptHasCoverage[deptId]) {
+            if (!facultyHasAssignment[facultyId]) {
+                if (!noAssignmentModal) {
+                    noAssignmentModal = new bootstrap.Modal(document.getElementById('noAssignmentModal'));
+                }
+                noAssignmentModal.show();
+            } else if (deptHasCoverage[deptId]) {
                 window.location.href = 'faculty-head-membersched.php?faculty_id=' + facultyId + '&department_id=' + deptId;
             } else {
                 if (!noCoverageModal) {
