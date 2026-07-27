@@ -987,7 +987,8 @@ function event_icon(string $type): array
                     .then(function(r) { return r.json(); })
                     .then(function(res) {
                         if (res.success && res.data.length) {
-                            var html = '<div style="padding:8px 12px;">';
+                            var html = '<div class="accordion-search-wrap"><input type="text" class="accordion-search" placeholder="Search this room\'s logs..." /></div>';
+                            html += '<div class="accordion-log-list">';
                             res.data.forEach(function(log) {
                                 var d = new Date(log.event_time);
                                 var dateStr = d.toLocaleDateString('en-US', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
@@ -1010,6 +1011,17 @@ function event_icon(string $type): array
                             });
                             html += '</div>';
                             content.innerHTML = html;
+                            var searchInput = content.querySelector('.accordion-search');
+                            var logList = content.querySelector('.accordion-log-list');
+                            if (searchInput && logList) {
+                                searchInput.addEventListener('input', function() {
+                                    var q = this.value.toLowerCase();
+                                    var items = logList.querySelectorAll('.accordion-log-item');
+                                    for (var i = 0; i < items.length; i++) {
+                                        items[i].style.display = items[i].textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
+                                    }
+                                });
+                            }
                         } else {
                             content.innerHTML = '<div style="padding:12px;text-align:center;color:#999;font-size:13px;">No recent activity for this room.</div>';
                         }

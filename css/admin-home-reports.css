@@ -655,3 +655,27 @@
     font-style: italic;
 }
 
+.accordion-search-wrap {
+    padding: 8px 12px;
+    border-bottom: 1px solid #ede8f3;
+}
+
+.accordion-search {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: var(--font-primary);
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.accordion-search:focus {
+    border-color: var(--secondary-color-3);
+}
+
+.accordion-log-list {
+    padding: 8px 12px;
+}
+
