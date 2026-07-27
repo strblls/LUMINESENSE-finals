@@ -58,33 +58,30 @@ if ($tab === 'rooms') {
                 'off'
             ) AS light_status,
             (
-                SELECT COUNT(*) FROM (
-                    SELECT id FROM room_logs WHERE room_name = c.room_name
-                    UNION ALL
-                    SELECT id FROM lighting_logs WHERE classroom_id = c.id
-                    UNION ALL
-                    SELECT id FROM pir_logs WHERE classroom_id = c.id
-                    UNION ALL
-                    SELECT id FROM class_logs WHERE classroom_id = c.id
-                ) AS all_events
+                COALESCE((SELECT COUNT(*) FROM room_logs WHERE room_name = c.room_name), 0) +
+                COALESCE((SELECT COUNT(*) FROM lighting_logs WHERE classroom_id = c.id), 0) +
+                COALESCE((SELECT COUNT(*) FROM pir_logs WHERE classroom_id = c.id), 0) +
+                COALESCE((SELECT COUNT(*) FROM class_logs WHERE classroom_id = c.id), 0)
             ) AS total_events,
             (
-                SELECT MAX(log_time) FROM (
-                    SELECT event_time AS log_time FROM room_logs WHERE room_name = c.room_name
-                    UNION ALL
-                    SELECT event_time AS log_time FROM lighting_logs WHERE classroom_id = c.id
-                    UNION ALL
-                    SELECT created_at AS log_time FROM pir_logs WHERE classroom_id = c.id
-                    UNION ALL
-                    SELECT event_time AS log_time FROM class_logs WHERE classroom_id = c.id
-                ) AS all_times
+                GREATEST(
+                    COALESCE((SELECT MAX(event_time) FROM room_logs WHERE room_name = c.room_name), '1970-01-01 00:00:00'),
+                    COALESCE((SELECT MAX(event_time) FROM lighting_logs WHERE classroom_id = c.id), '1970-01-01 00:00:00'),
+                    COALESCE((SELECT MAX(created_at) FROM pir_logs WHERE classroom_id = c.id), '1970-01-01 00:00:00'),
+                    COALESCE((SELECT MAX(event_time) FROM class_logs WHERE classroom_id = c.id), '1970-01-01 00:00:00')
+                )
             ) AS last_event
         FROM classrooms c
         $whereClause
         ORDER BY c.room_name ASC
     ");
     if ($res) {
-        while ($row = $res->fetch_assoc()) $rooms[] = $row;
+        while ($row = $res->fetch_assoc()) {
+            if ($row['last_event'] === '1970-01-01 00:00:00') {
+                $row['last_event'] = null;
+            }
+            $rooms[] = $row;
+        }
         $res->free();
     }
 
