@@ -17,3 +17,10 @@ define('DEVICE_TOKEN', 'luminesense-secret-token');
 
 // ID encryption key
 define('ID_ENCRYPTION_KEY', 'SL7iGyu1apH0jn8HZ3JS5Ax+QPtFbtmJJqqnk1VQbbE=');
+
+// Anomaly detection thresholds (tune for your power scale)
+define('DROPOUT_POWER_THRESHOLD', 0.2);  // Watts — power below this with lights ON is a dropout
+define('DROPOUT_CONFIRM_COUNT',   3);    // Consecutive readings to confirm dropout
+define('SPIKE_MIN_AVG_POWER',     0.5);  // Watts — minimum rolling avg to consider spike
+define('SPIKE_RAISE_RATIO',       2.0);  // Multiple of avg to trigger spike
+define('SPIKE_RESOLVE_RATIO',     1.3);  // Multiple of avg to clear spike

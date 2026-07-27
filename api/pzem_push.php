@@ -146,16 +146,16 @@ if ($room_name) {
     };
 
     // ─── Dropout: lights ON but power near zero ───
-    if ($any_row_on && $power < 1.0 && $voltage > 0) {
+    if ($any_row_on && $power < DROPOUT_POWER_THRESHOLD && $voltage > 0) {
         $stmt = $conn->prepare("
             SELECT COUNT(*) AS cnt FROM (
                 SELECT power FROM pzem_readings
-                WHERE classroom_id = ? ORDER BY id DESC LIMIT 3
-            ) r WHERE power < 1.0
+                WHERE classroom_id = ? ORDER BY id DESC LIMIT " . DROPOUT_CONFIRM_COUNT . "
+            ) r WHERE power < " . DROPOUT_POWER_THRESHOLD . "
         ");
         $stmt->bind_param('i', $cid);
         $stmt->execute();
-        $confirmed = (int)$stmt->get_result()->fetch_assoc()['cnt'] >= 3;
+        $confirmed = (int)$stmt->get_result()->fetch_assoc()['cnt'] >= DROPOUT_CONFIRM_COUNT;
         $stmt->close();
 
         if ($confirmed) {
@@ -171,7 +171,7 @@ if ($room_name) {
                 $stmt->close();
             }
         }
-    } elseif (!$any_row_on || $power >= 1.0) {
+    } elseif (!$any_row_on || $power >= DROPOUT_POWER_THRESHOLD) {
         $last = $getLastEventType($conn, $room_name, 'dropout');
         if ($last === 'issue_raised') {
             $notes = "Energy dropout resolved — power at {$power}W" . ($any_row_on ? '' : ', lights OFF');
@@ -185,12 +185,12 @@ if ($room_name) {
         }
     }
 
-    // ─── Spike: power exceeds 2× recent average ───
+    // ─── Spike: power exceeds N× recent average ───
     if ($power > 0 && $any_row_on) {
         $stmt = $conn->prepare("
             SELECT ROUND(AVG(power), 2) AS avg_pwr FROM (
                 SELECT power FROM pzem_readings
-                WHERE classroom_id = ? AND power > 1.0
+                WHERE classroom_id = ? AND power > " . DROPOUT_POWER_THRESHOLD . "
                 ORDER BY id DESC LIMIT 10
             ) r
         ");
@@ -199,7 +199,7 @@ if ($room_name) {
         $avg = (float)$stmt->get_result()->fetch_assoc()['avg_pwr'];
         $stmt->close();
 
-        if ($avg > 50 && $power > $avg * 2.0) {
+        if ($avg > SPIKE_MIN_AVG_POWER && $power > $avg * SPIKE_RAISE_RATIO) {
             $last = $getLastEventType($conn, $room_name, 'spike');
             if (!$last || $last === 'issue_resolved') {
                 $notes = "Power spike detected — {$power}W vs typical ~{$avg}W";
@@ -211,7 +211,7 @@ if ($room_name) {
                 $stmt->execute();
                 $stmt->close();
             }
-        } elseif ($avg > 50 && $power < $avg * 1.3) {
+        } elseif ($avg > SPIKE_MIN_AVG_POWER && $power < $avg * SPIKE_RESOLVE_RATIO) {
             $last = $getLastEventType($conn, $room_name, 'spike');
             if ($last === 'issue_raised') {
                 $notes = "Power spike resolved — power returned to {$power}W (normal)";
