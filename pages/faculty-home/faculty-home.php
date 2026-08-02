@@ -491,7 +491,7 @@ $lighting_blocked = $lighting_reason !== null;
                                         <i class="bi bi-stop-circle me-1"></i> End Early
                                     </button>
                                 <?php endif; ?>
-                                    <button class="light text-nowrap" data-bs-toggle="modal" onclick="dissolve('faculty-timetable.php')">View Schedule</button>
+                                    <button class="light text-nowrap" data-bs-toggle="modal" data-bs-target="#viewScheduleModal">View Schedule</button>
                             </div>
                         </div>
 
@@ -1006,6 +1006,8 @@ $lighting_blocked = $lighting_reason !== null;
         </div>
     </div>
 
+    <script src="../../js/lib/animations.js"></script>
+    <script src="../../js/lib/toggles.js"></script>
     <script src="../../js/lib/tooltip.js"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 
