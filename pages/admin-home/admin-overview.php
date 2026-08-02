@@ -337,7 +337,7 @@ for ($i = 0; $i < 10; $i++) {
                             <div class="hrooms-list" id="hroomsList">
                                 <?php foreach ($rooms as $r):
                                     $live   = !empty($r['is_live']);
-                                    $accent = $live ? 'accent-live' : ($r['status'] === 'occupied' ? 'accent-occupied' : ($r['status'] === 'scheduled' ? 'accent-scheduled' : 'accent-vacant'));
+                                    $accent = $r['status'] === 'occupied' ? 'accent-occupied' : ($r['status'] === 'scheduled' ? 'accent-scheduled' : 'accent-vacant');
                                     $badgeLabel = $live ? 'Live' : ($r['status'] === 'occupied' ? 'Occupied' : ($r['status'] === 'scheduled' ? 'Scheduled' : 'Vacant'));
                                     $badgeClass = 'badge-' . strtolower($badgeLabel);
                                     $fac    = $r['faculty_name'] !== '' ? $r['faculty_name'] : '-';
@@ -354,18 +354,18 @@ for ($i = 0; $i < 10; $i++) {
                                     data-sa="<?= h(strtolower($r['subject_area'])) ?>"
                                     data-subjects="<?= h(strtolower($r['subject'])) ?>">
                                     <div class="room-card-accent <?= $accent ?>"></div>
-                                    <div class="hroom-inner">
-                                        <div class="room-card-body hroom-body">
-                                            <div class="room-card-header">
-                                                <div>
-                                                    <h2 class="room-card-name"><?= h($r['room_name']) ?><?php if (!empty($r['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></h2>
-                                                    <div class="room-card-section">
-                                                        <?= ucfirst(h($r['room_size'])) ?> room
-                                                        <?php if (!empty($r['description'])): ?> &middot; <?= h($r['description']) ?><?php endif; ?>
-                                                    </div>
+                                    <div class="room-card-body">
+                                        <div class="room-card-header">
+                                            <div>
+                                                <h2 class="room-card-name"><?= h($r['room_name']) ?><?php if (!empty($r['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></h2>
+                                                <div class="room-card-section">
+                                                    <?= ucfirst(h($r['room_size'])) ?> room
+                                                    <?php if (!empty($r['description'])): ?> &middot; <?= h($r['description']) ?><?php endif; ?>
                                                 </div>
-                                                <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
                                             </div>
+                                            <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
+                                        </div>
+                                        <div class="room-expand">
                                             <div class="device-strip">
                                                 <div class="dev-left">
                                                     <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
@@ -388,11 +388,15 @@ for ($i = 0; $i < 10; $i++) {
                                                     <?php endfor; ?>
                                                 </div>
                                             </div>
-                                            <div class="dept-info-card room-info-row" style="padding:0.5rem;">
-                                                <p class="d-flex align-items-center gap-2"><i class="bi bi-person-fill"></i> <span class="room-info-label">Current Faculty:</span> <span class="room-info-val"><?= h($fac) ?></span></p>
+                                            <div class="room-expand-row">
+                                                <i class="bi bi-person-fill"></i>
+                                                <span class="room-info-label">Faculty:</span>
+                                                <span class="room-info-val"><?= h($fac) ?></span>
                                             </div>
-                                            <div class="dept-info-card room-info-row" style="padding:0.5rem;">
-                                                <p class="d-flex align-items-center gap-2"><i class="bi bi-clock-fill"></i> <span class="room-info-label"><?= $timeLabel ?></span> <span class="room-info-val"><?= h($timeVal) ?></span></p>
+                                            <div class="room-expand-row">
+                                                <i class="bi bi-clock-fill"></i>
+                                                <span class="room-info-label"><?= $timeLabel ?></span>
+                                                <span class="room-info-val"><?= h($timeVal) ?></span>
                                             </div>
                                         </div>
                                         <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
