@@ -94,9 +94,9 @@ if (isset($conn) && $conn instanceof mysqli) {
     </div>
 </div>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!---
      PAGE TIMEOUT OVERLAY (1 min inactivity)
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+- -->
 <div id="pageTimeoutOverlay" class="page-timeout-overlay" style="display:none;">
     <div class="page-timeout-modal">
         <i class="bi bi-clock-history" style="font-size:2.5rem;color:var(--secondary-color-4);margin-bottom:0.75rem;"></i>
@@ -104,7 +104,7 @@ if (isset($conn) && $conn instanceof mysqli) {
         <p class="schedule-ended-text">Enter your PIN to continue using controls.</p>
         <div class="mt-3 d-flex flex-column align-items-center gap-2">
             <input type="password" id="timeoutPinInput" maxlength="4" pattern="\d*" inputmode="numeric"
-                   class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="â€¢â€¢â€¢â€¢">
+                   class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="****">
             <div><span id="timeoutPinError" class="text-danger small"></span></div>
             <button class="light" id="timeoutPinSubmit">Unlock</button>
         </div>
