@@ -389,13 +389,15 @@ for ($i = 0; $i < 10; $i++) {
                             </div>
                         </div>
                         <div class="overview-pane overview-pane-rooms">
-                            <div class="section-heading">Room Management<span class="sub"> All Rooms</span></div>
+                            <div class="section-heading d-flex align-items-center justify-content-between">Room Management<span class="sub"> All Rooms</span>
+                                <button type="button" class="light expand-all-btn" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
+                            </div>
                             <div class="hrooms-list" id="hroomsList">
                                 <?php foreach ($rooms as $r):
                                     $live   = !empty($r['is_live']);
                                     $accent = $r['status'] === 'occupied' ? 'accent-occupied' : ($r['status'] === 'scheduled' ? 'accent-scheduled' : 'accent-vacant');
-                                    $badgeLabel = $live ? 'Live' : ($r['status'] === 'occupied' ? 'Occupied' : ($r['status'] === 'scheduled' ? 'Scheduled' : 'Vacant'));
-                                    $badgeClass = 'badge-' . strtolower($badgeLabel);
+                                    $badgeLabel = $r['status'] === 'occupied' ? 'Occupied' : ($r['status'] === 'scheduled' ? 'Scheduled' : 'Vacant');
+                                    $badgeClass = 'badge-' . strtolower($r['status']);
                                     $fac    = $r['faculty_name'] !== '' ? $r['faculty_name'] : '-';
                                     $v = $r['voltage_v'] !== null ? number_format($r['voltage_v'], 1) : '—';
                                     $a = $r['current_a'] !== null ? number_format($r['current_a'], 3) : '—';
@@ -419,6 +421,7 @@ for ($i = 0; $i < 10; $i++) {
                                                         <?php if (!empty($r['description'])): ?> &middot; <?= h($r['description']) ?><?php endif; ?>
                                                     </div>
                                                 </div>
+                                                <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                                 <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
                                             </div>
                                             <div class="room-expand">
@@ -429,9 +432,6 @@ for ($i = 0; $i < 10; $i++) {
                                                             <span class="dev-pzem">
                                                                 V <b><?= $v ?></b> &middot; A <b><?= $a ?></b> &middot; W <b><?= $w ?></b>
                                                             </span>
-                                                        <?php endif; ?>
-                                                        <?php if (!empty($r['pir_occupied'])): ?>
-                                                            <span class="dev-occ"><i class="bi bi-person-fill"></i> Occupied</span>
                                                         <?php endif; ?>
                                                     </div>
                                                     <div class="row-bars">
@@ -444,18 +444,17 @@ for ($i = 0; $i < 10; $i++) {
                                                         <?php endfor; ?>
                                                     </div>
                                                 </div>
-                                                <div class="room-expand-row">
+                                                <div class="dept-info-card room-info-row">
                                                     <i class="bi bi-person-fill"></i>
                                                     <span class="room-info-label">Faculty:</span>
                                                     <span class="room-info-val"><?= h($fac) ?></span>
                                                 </div>
-                                                <div class="room-expand-row">
+                                                <div class="dept-info-card room-info-row">
                                                     <i class="bi bi-clock-fill"></i>
                                                     <span class="room-info-label"><?= $timeLabel ?></span>
                                                     <span class="room-info-val"><?= h($timeVal) ?></span>
                                                 </div>
                                             </div>
-                                            <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -507,6 +506,8 @@ for ($i = 0; $i < 10; $i++) {
                 </div>
 
                 */ ?>
+
+                <?php /*
                 <!-- ═══════════ SECTION 2 · ROOM MANAGEMENT — COMMENTED OUT FOR NOW ═══════════ -->
                 <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
                     <!-- Rooms at a glance (functioning first) — combined with management -->

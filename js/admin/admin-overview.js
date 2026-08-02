@@ -595,6 +595,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchEl = document.getElementById('roomSearch');
     if (searchEl) searchEl.addEventListener('input', applyFilters);
 
+    // Expand / collapse all room details
+    const expandBtn = document.getElementById('expandAllRoomsBtn');
+    const hroomsList = document.getElementById('hroomsList');
+    if (expandBtn && hroomsList) {
+        expandBtn.addEventListener('click', function () {
+            const expanded = hroomsList.classList.toggle('expanded');
+            expandBtn.classList.toggle('expanded', expanded);
+            expandBtn.innerHTML = expanded
+                ? '<i class="bi bi-chevron-up"></i> Collapse all'
+                : '<i class="bi bi-chevron-down"></i> Expand all';
+        });
+    }
+
     // Panel hover
     const panels = ['panelGuide', 'panelStatus', 'panelSchedule', 'panelPeriod', 'panelMetric'];
     const timers = {};

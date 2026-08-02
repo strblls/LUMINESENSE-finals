@@ -38,6 +38,7 @@
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
+    align-items: start;
 }
 
 @media (max-width: 1600px) {
@@ -97,17 +98,56 @@
     gap: 8px;
 }
 
+.hroom-row .room-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
 .hroom-row .room-card-name {
+    padding: 3px;
     font-size: 15px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1.25;
 }
 
 .hroom-row .room-card-section {
     font-size: 11.5px;
+    color: var(--muted-dark);
+    margin-top: 2px;
 }
 
 .hroom-row .room-status-badge {
-    font-size: 10px;
-    padding: 3px 10px;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Sparkline centered in the middle of the room-card-header */
+.hroom-spark {
+    flex-shrink: 0;
+    width: 90px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    background: #fbf9fe;
+    border-radius: 8px;
+    border: 1px solid #ece4f4;
+}
+
+.hroom-spark canvas {
+    width: 100% !important;
+    height: 100% !important;
 }
 
 /* Expandable details — hidden until hover, like the room slicers */
@@ -122,7 +162,8 @@
     pointer-events: none;
 }
 
-.hroom-row:hover .room-expand {
+.hroom-row:hover .room-expand,
+.hrooms-list.expanded .hroom-row .room-expand {
     max-height: 200px;
     opacity: 1;
     padding: 0.4rem 0 0.4rem 0;
@@ -154,30 +195,48 @@
 }
 
 /* Faculty / next-class rows inside the expand */
-.hroom-row .room-expand-row {
+.hroom-row .dept-info-card.room-info-row {
     font-size: 11.5px;
+    padding: 3px 6px;
 }
 
-.hroom-row .room-expand-row i {
+.hroom-row .dept-info-card.room-info-row i {
     font-size: 12px;
 }
 
-/* Sparkline anchored to the bottom of the card */
-.hroom-spark {
-    width: 100%;
-    height: 60px;
-    margin-top: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 10px;
-    background: #fbf9fe;
-    border-top: 1px solid #ece4f4;
+.hroom-row .dept-info-card.room-info-row .room-info-label {
+    color: var(--secondary-color-2);
 }
 
-.hroom-spark canvas {
-    width: 100% !important;
-    height: 100% !important;
+.hroom-row .dept-info-card.room-info-row .room-info-val {
+    color: var(--secondary-color-1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Expand-all button in the rooms pane header */
+.expand-all-btn {
+    width: auto !important;
+    margin: 0 !important;
+    padding: 2px 0.75rem !important;
+    font-size: 11px;
+    letter-spacing: .04em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.expand-all-btn i {
+    font-size: 11px;
+    transition: transform .3s ease;
+}
+
+.hrooms-list.expanded ~ .expand-all-btn i,
+.expand-all-btn.expanded i {
+    transform: rotate(180deg);
 }
 
 /* Hide leftover hroom-only elements (no longer used) */
@@ -296,7 +355,7 @@
     box-shadow: 0 4px 18px rgba(47, 0, 79, 0.10);
     cursor: pointer;
     border: 2px solid transparent;
-    transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease, border-color .18s ease;
+    transition: transform .18s cubic-bezier(.34, 1.56, .64, 1), box-shadow .18s ease, border-color .18s ease;
     display: flex;
     flex-direction: column;
     gap: 8px;
