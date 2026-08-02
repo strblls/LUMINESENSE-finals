@@ -11,6 +11,142 @@
     margin-bottom: 1rem !important;
 }
 
+/* ── New overview tier: two-column split ── */
+.overview-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+    align-items: stretch;
+}
+
+.overview-pane-chart {
+    min-width: 0;
+}
+
+.overview-pane-rooms {
+    min-width: 0;
+}
+
+@media (max-width: 1100px) {
+    .overview-split {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Horizontal room rows inside the overview tier */
+.hrooms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.hroom-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 4px 18px rgba(47, 0, 79, 0.10);
+    border: 2px solid transparent;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease, border-color .18s ease;
+}
+
+.hroom-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(47, 0, 79, 0.18);
+}
+
+.hroom-row.active-room {
+    border-color: var(--secondary-color-2);
+    box-shadow: 0 0 0 2px rgba(88, 7, 143, 0.25);
+}
+
+.hroom-accent {
+    width: 5px;
+    align-self: stretch;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.hroom-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.hroom-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.hroom-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1.2;
+}
+
+.hroom-faculty {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    min-height: 14px;
+}
+
+.hroom-faculty i {
+    font-size: 11px;
+    color: var(--secondary-color-2);
+}
+
+.hroom-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.hroom-live {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--secondary-color-1);
+}
+
+.hroom-live b {
+    color: var(--secondary-color-2);
+}
+
+.hroom-time {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.hroom-spark {
+    width: 120px;
+    height: 40px;
+    flex-shrink: 0;
+}
+
+.hroom-spark canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
 .overview-heading .timetable-btn {
     color: #fff;
 }

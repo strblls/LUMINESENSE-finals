@@ -10,6 +10,7 @@ let currentPeriod = 7;
 let currentMetric = 'all';
 let lineChartInstance = null;
 let barChartInstance = null;
+let overviewLineInstance = null;
 const sparkCharts = {};
 
 const COLORS = {
@@ -132,6 +133,57 @@ function buildLineChart(labels, rows) {
     });
 }
 
+// ── Overview tier line graph (all V/A/W, like admin-analytics.php) ──────
+function buildOverviewLineChart() {
+    const ctx = document.getElementById('overviewLineChart');
+    if (!ctx || !window.Chart) return;
+    if (overviewLineInstance) overviewLineInstance.destroy();
+    const rows = CHART_DAILY || [];
+    const labels = rows.map(r => r.label);
+    overviewLineInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Voltage (V)', data: rows.map(r => r.avg_voltage), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
+                { label: 'Current (A)', data: rows.map(r => r.avg_current), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
+                { label: 'Power (W)', data: rows.map(r => r.avg_power), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { font: { family: 'Poppins', size: 10 }, boxWidth: 12, padding: 12 },
+                    onClick: function (e, legendItem, legend) {
+                        const meta = legend.chart.getDatasetMeta(legendItem.datasetIndex);
+                        meta.hidden = meta.hidden === null ? !legend.chart.data.datasets[legendItem.datasetIndex].hidden : null;
+                        const axisId = legend.chart.data.datasets[legendItem.datasetIndex].yAxisID;
+                        if (axisId && legend.chart.options.scales[axisId]) {
+                            legend.chart.options.scales[axisId].display = !meta.hidden;
+                        }
+                        legend.chart.update();
+                        const labelEl = document.getElementById('overviewLineMetricLabel');
+                        if (labelEl) {
+                            const visible = legend.chart.data.datasets.filter(function (ds, i) { return !legend.chart.getDatasetMeta(i).hidden; }).map(function (ds) { return ds.label; });
+                            labelEl.textContent = visible.length === legend.chart.data.datasets.length ? 'All Metrics' : visible.join(', ');
+                        }
+                    },
+                },
+            },
+            scales: {
+                x: { ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+                y: { type: 'linear', display: true, position: 'left', title: { display: false }, ticks: { color: '#742fd3', font: { family: 'Poppins', size: 10 } }, grid: { color: 'rgba(47,0,79,0.07)' } },
+                y1: { type: 'linear', display: true, position: 'left', title: { display: false }, ticks: { color: '#f59e0b', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+                y2: { type: 'linear', display: true, position: 'right', title: { display: false }, ticks: { color: '#16a34a', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+            },
+        },
+    });
+}
+
 function buildBarChart(labels, rows) {
     const ctx = document.getElementById('barChart');
     if (!ctx || !window.Chart) return;
@@ -233,7 +285,7 @@ function selectRoom(id, silent) {
         return;
     }
     currentRoomId = rid;
-    document.querySelectorAll('.spark-card, .room-card').forEach(c => {
+    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(c => {
         c.classList.toggle('active-room', c.getAttribute('data-room-id') == rid);
     });
     const room = (ROOMS || []).find(r => r.id == rid);
@@ -244,7 +296,7 @@ function selectRoom(id, silent) {
 
 function deselectRoom() {
     currentRoomId = null;
-    document.querySelectorAll('.spark-card, .room-card').forEach(c => c.classList.remove('active-room'));
+    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(c => c.classList.remove('active-room'));
     const sub = document.getElementById('tabSubheading');
     if (sub) sub.textContent = 'All Rooms Selected';
     renderLiveReadings();
@@ -257,14 +309,14 @@ function applyFilters() {
     const subjVal = (document.querySelector('#subjectFilterMenu .filter-option.active') || {}).dataset?.value || '';
     const searchVal = ((document.getElementById('roomSearch') || {}).value || '').toLowerCase();
 
-    document.querySelectorAll('.spark-card, .room-card').forEach(card => {
+    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(card => {
         let show = true;
         if (statusVal) show = show && (card.dataset.status || '') === statusVal.toLowerCase();
         if (deptVal) show = show && (card.dataset.departments || '').toLowerCase().includes(deptVal.toLowerCase());
         if (subjVal) show = show && (card.dataset.subjects || '').toLowerCase().includes(subjVal.toLowerCase());
         if (searchVal) {
             const roomMatch = (card.dataset.room || '').includes(searchVal);
-            const facEl = card.querySelector('.spark-card-faculty, .room-info-val');
+            const facEl = card.querySelector('.spark-card-faculty, .room-info-val, .hroom-faculty');
             const facMatch = facEl ? facEl.textContent.toLowerCase().includes(searchVal) : false;
             show = show && (roomMatch || facMatch);
         }
@@ -514,11 +566,12 @@ function updateCardLighting(roomId, r1, r2, r3) {
 document.addEventListener('DOMContentLoaded', function () {
     drawAllSparks();
     renderLiveReadings();
+    buildOverviewLineChart();
     updateMainCharts();
     renderHistoryTable();
 
     // Room selection
-    document.querySelectorAll('.spark-card').forEach(card => {
+    document.querySelectorAll('.spark-card, .hroom-row').forEach(card => {
         card.addEventListener('click', () => selectRoom(card.getAttribute('data-room-id')));
     });
     document.querySelectorAll('.room-card').forEach(card => {

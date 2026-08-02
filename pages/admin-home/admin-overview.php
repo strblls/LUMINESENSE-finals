@@ -213,9 +213,10 @@ for ($i = 0; $i < 10; $i++) {
                             <div class="section-container timetable" style="background-color:#f8f9fa;width:340px;">
                                 <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Rooms &amp; Analytics Guide</h6>
                                 <ol class="ps-3 mb-0" style="font-size:12px;line-height:1.7;">
-                                    <li><strong>At a glance</strong> — functioning (LIVE) rooms are shown first, then by status: Occupied → Scheduled → Vacant.</li>
+                                    <li><strong>Room Management</strong> — the rooms at a glance are combined here with the management grid.</li>
+                                    <li>Functioning (LIVE) rooms are shown first, then by status: Occupied → Scheduled → Vacant.</li>
                                     <li>Each room card shows all three light rows (R1/R2/R3), current faculty, live V/A/W, and a 7-day energy sparkline.</li>
-                                    <li>Click a room card to filter the analytics section below to that room.</li>
+                                    <li>Click a room card here to select it and filter the analytics section below to that room.</li>
                                     <li>Use <strong>Inspect</strong> for the room detail modal (timetable, lighting override, alerts).</li>
                                     <li>Period / Metric filters drive the charts and history table.</li>
                                 </ol>
@@ -319,8 +320,58 @@ for ($i = 0; $i < 10; $i++) {
                     </div>
                 </div>
 
-                <!-- ═══════════ SECTION 1 · OVERVIEW TIER ═══════════ -->
-                <div class="section-heading">Overview <span class="sub">— summary &amp; functioning rooms first</span></div>
+                <!-- ═══════════ NEW OVERVIEW TIER · LINE GRAPH + ROOMS ═══════════ -->
+                <div class="section-heading">Overview <span class="sub">— V/A/W trend &amp; rooms at a glance</span></div>
+                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
+                    <div class="overview-split">
+                        <div class="overview-pane overview-pane-chart">
+                            <div class="card-white" style="height:100%;">
+                                <div class="chart-card-header">
+                                    <h3 class="chart-card-title bold">Line Graph</h3>
+                                    <div class="chart-header-actions"><span class="summary-label" id="overviewLineMetricLabel">All Metrics</span></div>
+                                </div>
+                                <div class="chart-wrapper" style="height:340px;"><canvas id="overviewLineChart"></canvas></div>
+                            </div>
+                        </div>
+                        <div class="overview-pane overview-pane-rooms">
+                            <div class="section-heading" style="margin-top:0;">Rooms <span class="sub">— click a room to select it for analytics</span></div>
+                            <div class="hrooms-list" id="hroomsList">
+                                <?php foreach ($rooms as $r):
+                                    $live   = !empty($r['is_live']);
+                                    $accent = $live ? 'accent-live' : ($r['status'] === 'occupied' ? 'accent-occupied' : ($r['status'] === 'scheduled' ? 'accent-scheduled' : 'accent-vacant'));
+                                    $fac    = $r['faculty_name'] !== '' ? $r['faculty_name'] : '—';
+                                    $v = $r['voltage_v'] !== null ? number_format($r['voltage_v'], 1) : '—';
+                                    $a = $r['current_a'] !== null ? number_format($r['current_a'], 3) : '—';
+                                    $w = $r['power_w']   !== null ? number_format($r['power_w'], 1)   : '—';
+                                    $t = $r['status'] === 'occupied' ? $r['current_time'] : ($r['next_time'] !== '' ? 'next: ' . $r['next_time'] : 'No classes scheduled');
+                                ?>
+                                <div class="hroom-row" data-room-id="<?= $r['id'] ?>"
+                                    data-room="<?= h(strtolower($r['room_name'])) ?>"
+                                    data-status="<?= h($live ? 'live' : $r['status']) ?>"
+                                    data-departments="<?= h(strtolower($r['dept'])) ?>"
+                                    data-sa="<?= h(strtolower($r['subject_area'])) ?>"
+                                    data-subjects="<?= h(strtolower($r['subject'])) ?>">
+                                    <div class="hroom-accent <?= $accent ?>"></div>
+                                    <div class="hroom-body">
+                                        <div class="hroom-top">
+                                            <span class="hroom-name"><?= h($r['room_name']) ?><?php if (!empty($r['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></span>
+                                            <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
+                                        </div>
+                                        <div class="hroom-faculty"><i class="bi bi-person-fill"></i><?= h($fac) ?></div>
+                                        <div class="hroom-meta">
+                                            <span class="hroom-live">V <b><?= $v ?></b> &middot; A <b><?= $a ?></b> &middot; W <b><?= $w ?></b></span>
+                                            <span class="hroom-time"><?= h($t) ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <?php /* ═══════════ SECTION 1 · OVERVIEW TIER (OLD) — COMMENTED OUT FOR NOW ═══════════
 
                 <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
                     <!-- Summary quick cards with spark trends -->
@@ -360,8 +411,13 @@ for ($i = 0; $i < 10; $i++) {
                         </div>
                     </div>
 
-                    <!-- Rooms at a glance (functioning first) -->
-                    <div class="section-heading" style="margin-top:6px;">Rooms <span class="sub">— click to focus analytics</span></div>
+                </div>
+
+                */ ?>
+                <?php /* ═══════════ SECTION 2 · ROOM MANAGEMENT — COMMENTED OUT FOR NOW ═══════════
+                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
+                    <!-- Rooms at a glance (functioning first) — combined with management -->
+                    <div class="section-heading" style="margin-top:0;">Rooms <span class="sub">— click a room to select it for analytics</span></div>
                     <div class="rooms-strip" id="roomsStrip">
                         <?php foreach ($rooms as $r):
                             $live   = !empty($r['is_live']);
@@ -373,6 +429,7 @@ for ($i = 0; $i < 10; $i++) {
                             $t = $r['status'] === 'occupied' ? $r['current_time'] : ($r['next_time'] !== '' ? 'next: ' . $r['next_time'] : 'No classes scheduled');
                         ?>
                         <div class="spark-card" data-room-id="<?= $r['id'] ?>"
+                            data-room="<?= h(strtolower($r['room_name'])) ?>"
                             data-status="<?= h($live ? 'live' : $r['status']) ?>"
                             data-departments="<?= h(strtolower($r['dept'])) ?>"
                             data-sa="<?= h(strtolower($r['subject_area'])) ?>"
@@ -404,11 +461,7 @@ for ($i = 0; $i < 10; $i++) {
                         </div>
                         <?php endforeach; ?>
                     </div>
-                </div>
 
-                <!-- ═══════════ SECTION 2 · ROOM MANAGEMENT ═══════════ -->
-                <div class="section-heading">Room Management</div>
-                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
                     <div class="rooms-grid" id="roomsGrid">
                         <?php foreach ($rooms as $r):
                             $live   = !empty($r['is_live']);
@@ -494,6 +547,9 @@ for ($i = 0; $i < 10; $i++) {
                         </div>
                     </div>
                 </div>
+
+                */ ?>
+                <?php /* end old Section 2 */ ?>
 
                 <!-- ═══════════ SECTION 3 · ANALYTICS ═══════════ -->
                 <div class="section-heading">Analytics</div>
