@@ -155,12 +155,15 @@ $lighting_blocked = $lighting_reason !== null;
                 <div class="group-container gap-3">
 
                     <!-- Gesture Detection -->
-                    <div id="gestureSection" style="background-color: #f8f9fa;" class="section-container p-2">
+                    <div id="gestureSection" style="background-color: #f8f9fa;" class="section-container p-2" data-gesture-blocked="<?= $gesture_blocked ? '1' : '0' ?>">
                         <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">Gesture Detection</h2>
                             </div>
                             <div class="d-flex mx-2 align-items-end gap-1">
+                                <button class="light" id="gestureTestBtn" onclick="toggleGestureTestMode()" title="Test Mode: temporarily bypass the schedule lock so you can test gestures" data-bs-tooltip>
+                                    <i class="bi bi-bug me-1"></i>Test
+                                </button>
                                 <button class="light" id="refreshBtn" title="Refresh" data-bs-toggle="tooltip">
                                     <i class="bi bi-arrow-clockwise"></i>
                                 </button>
@@ -201,6 +204,16 @@ $lighting_blocked = $lighting_reason !== null;
                                         <span class="gesture-row-pill" id="rowPill1" data-row="1">Row 1</span>
                                         <span class="gesture-row-pill" id="rowPill2" data-row="2">Row 2</span>
                                         <span class="gesture-row-pill" id="rowPill3" data-row="3">Row 3</span>
+                                    </div>
+
+                                    <!-- Stacked command queue -->
+                                    <div id="stackQueueWrap" class="stack-queue-wrap w-100" style="display:none;">
+                                        <div class="d-flex align-items-center justify-content-between w-100 mb-1">
+                                            <span class="text-muted" style="font-size:0.78rem;">Command Queue:</span>
+                                            <span class="stack-queue-count" id="stackQueueCount">0/5</span>
+                                        </div>
+                                        <div id="pendingStackQueue" class="stack-queue w-100"></div>
+                                        <span class="text-muted" style="font-size:0.7rem;">Hold <strong>👍 Thumbs Up</strong> to confirm all queued commands, or <strong>✊ Fist</strong> to clear.</span>
                                     </div>
 
                                     <!-- Result label -->
@@ -593,6 +606,14 @@ $lighting_blocked = $lighting_reason !== null;
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-3">
+                    <div class="gesture-guide-banner mb-3 p-2">
+                        <i class="bi bi-stack me-1"></i>
+                        <strong>Stack &amp; Confirm:</strong>
+                        Queue up to <strong>5 commands</strong> using either one or <strong>both hands</strong> (e.g. Pointing Up with the left hand and Victory with the right hand at the same time).
+                        Commands are added in order and shown in the Command Queue.
+                        Finish with a single <strong>👍 Thumbs Up</strong> to execute the entire stack at once,
+                        or <strong>✊ Closed Fist</strong> to clear the queue. The queue auto-cancels after 15 seconds of inactivity.
+                    </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0;">
 
                         <!-- 1 Finger - Row 1 -->
@@ -655,12 +676,13 @@ $lighting_blocked = $lighting_reason !== null;
                                 <img src="../../images/closed-fist.png" alt="Closed fist">
                             </div>
                             <div class="gesture-guide-text">
-                                <h4 class="bold">Turn all rows of lights OFF</h4>
+                                <h4 class="bold">Turn all rows of lights OFF / Clear queue</h4>
                                 <strong>Closed Fist</strong>
                                 <span>To perform:
                                     <ul>
                                         <li>Curl all fingers tightly into a fist with no fingers extended.</li>
-                                        <li>Perform the confirmation gesture to formally execute gesture.</li>
+                                        <li>If commands are queued, this clears the Command Queue.</li>
+                                        <li>If no commands are queued, this turns all rows of lights OFF.</li>
                                     </ul>
                                 </span>
                             </div>
@@ -696,8 +718,8 @@ $lighting_blocked = $lighting_reason !== null;
                                 <span>To perform:
                                     <ul>
                                         <li>Close all fingers into a fist with only the thumb pointing upward.</li>
-                                        <li>Use this gesture to confirm and execute the currently detected gesture command.</li>
-                                        <li>For example, if the system detects a "pointing up" gesture, it will wait for you to perform the "thumbs up" gesture to confirm that you want to turn the 1st row of lights ON or OFF.</li>
+                                        <li>Use this gesture to confirm and execute ALL queued commands at once.</li>
+                                        <li>For example, queue "Row 1 ON" (pointing up) and "Row 2 ON" (victory), then give a thumbs up to turn both rows on together. You can also use both hands to queue two commands at the same time.</li>
                                     </ul>
                                 </span>
                             </div>

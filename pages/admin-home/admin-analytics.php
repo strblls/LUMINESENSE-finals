@@ -139,6 +139,52 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                     </aside>
 
                     <div class="analytics-sidebar">
+
+                        <!-- - Energy saved widget - -->
+                        <div class="card-white savings-card" id="savingsCard">
+                            <div class="chart-card-header">
+                                <h3 class="chart-card-title bold"><i class="bi bi-flower1 me-1" style="color:var(--secondary-color-2);"></i>Energy Saved</h3>
+                                <div class="chart-header-actions">
+                                    <span class="summary-label" id="savingsPeriodLabel">&mdash;</span>
+                                    <button class="light" onclick="openSavingsModal()" title="View calculation">
+                                        <i class="bi bi-arrows-expand"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="savings-value-row">
+                                <div class="savings-value" id="savingsValue">&mdash;</div>
+                                <span class="savings-badge neutral" id="savingsBadge">
+                                    <i class="bi bi-dash-lg"></i> No data
+                                </span>
+                            </div>
+                            <p class="savings-sub">vs. the previous equal-length period</p>
+                            <button type="button" class="savings-details-btn" onclick="toggleSavingsExpand()">
+                                <span><i class="bi bi-calculator me-1"></i> View calculation</span>
+                                <i class="bi bi-chevron-down savings-chevron" id="savingsChevron"></i>
+                            </button>
+                            <div class="savings-expand" id="savingsExpand">
+                                <div class="savings-expand-row">
+                                    <span class="summary-info-label">Formula:</span>
+                                    <span class="summary-info-val">Saved % = (prev &minus; current) &divide; prev &times; 100</span>
+                                </div>
+                                <div class="savings-expand-row">
+                                    <span class="summary-info-label">Current:</span>
+                                    <span class="summary-info-val" id="savingsCurrent">&mdash;</span>
+                                </div>
+                                <div class="savings-expand-row">
+                                    <span class="summary-info-label">Previous:</span>
+                                    <span class="summary-info-val" id="savingsPrev">&mdash;</span>
+                                </div>
+                                <div class="savings-expand-row">
+                                    <span class="summary-info-label">Change:</span>
+                                    <span class="summary-info-val" id="savingsDelta">&mdash;</span>
+                                </div>
+                                <div class="savings-expand-desc" id="savingsDesc">
+                                    Compares the current period's energy against the immediately preceding window of equal length, using the selected room and range.
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="card-white rooms-card">
                             <h3 class="rooms-title">Rooms <span class="rooms-deselect" onclick="deselectRoom()" title="Deselect room" data-bs-toggle="tooltip" data-bs-placement="auto">&times;</span></h3>
                             <?php foreach ($rooms as $room): ?>
@@ -343,7 +389,7 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                 <div class="chart-grid">
                     <div class="card-white" id="lineGraphCard">
                         <div class="chart-card-header">
-                            <h3 class="chart-card-title bold">Line Graph</h3>
+                            <h3 class="chart-card-title bold" id="lineChartTitle">Line Graph</h3>
                             <div class="chart-header-actions">
                                 <span class="summary-label" id="lineMetricLabel">All Metrics</span>
                                 <button class="light" onclick="toggleChartMaximize('lineGraphCard')" title="Maximize">
@@ -362,7 +408,7 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                     </div>
                     <div class="card-white" id="barGraphCard">
                         <div class="chart-card-header">
-                            <h3 class="chart-card-title bold">Vertical Bar Graph</h3>
+                            <h3 class="chart-card-title bold" id="barChartTitle">Vertical Bar Graph</h3>
                             <div class="chart-header-actions">
                                 <span class="summary-label" id="barMetricLabel">All Metrics</span>
                                 <button class="light" onclick="toggleChartMaximize('barGraphCard')" title="Maximize">
@@ -439,6 +485,75 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                                 <i class="bi bi-table"></i>
                                 <span>History Table</span>
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Energy saved calculation modal -->
+        <div class="modal fade" id="savingsModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+                    <div class="modal-header" style="background:var(--secondary-color-1);color:#fff;padding:12px 20px;">
+                        <h6 class="modal-title bold"><i class="bi bi-flower1 me-1"></i>Energy Saved Calculation</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-3">
+                        <div class="savings-modal-hero">
+                            <div class="savings-modal-value" id="savingsModalValue">&mdash;</div>
+                            <span class="savings-modal-badge neutral" id="savingsModalBadge"><i class="bi bi-dash-lg"></i> No data</span>
+                        </div>
+                        <div class="savings-modal-compare">
+                            <div class="savings-modal-col">
+                                <div class="savings-modal-col-label">Current period</div>
+                                <div class="savings-modal-col-value" id="savingsModalCurrent">&mdash;</div>
+                                <div class="savings-modal-bar-wrap"><div class="savings-modal-bar" id="savingsModalCurrentBar"></div></div>
+                            </div>
+                            <div class="savings-modal-col">
+                                <div class="savings-modal-col-label">Previous period</div>
+                                <div class="savings-modal-col-value" id="savingsModalPrev">&mdash;</div>
+                                <div class="savings-modal-bar-wrap"><div class="savings-modal-bar prev" id="savingsModalPrevBar"></div></div>
+                            </div>
+                        </div>
+                        <div class="savings-modal-formula">
+                            <span class="summary-info-label">Formula:</span>
+                            <span class="summary-info-val">Saved % = (prev &minus; current) &divide; prev &times; 100</span>
+                        </div>
+                        <p class="savings-modal-note mb-0" id="savingsModalNote">&mdash;</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issue detail modal -->
+        <div class="modal fade" id="issueDetailModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+                    <div class="modal-header" style="background:#842029;color:#fff;padding:12px 20px;">
+                        <h6 class="modal-title bold"><i class="bi bi-exclamation-triangle-fill me-1"></i>Issue Details</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-3">
+                        <div class="issue-detail-row">
+                            <span class="issue-detail-label">Status:</span>
+                            <span class="issue-detail-status" id="issueStatus">Issue Raised</span>
+                        </div>
+                        <div class="issue-detail-row">
+                            <span class="issue-detail-label">Room:</span>
+                            <span class="issue-detail-val" id="issueRoom">&mdash;</span>
+                        </div>
+                        <div class="issue-detail-row">
+                            <span class="issue-detail-label">Source:</span>
+                            <span class="issue-detail-val" id="issueSource">&mdash;</span>
+                        </div>
+                        <div class="issue-detail-row">
+                            <span class="issue-detail-label">Detected:</span>
+                            <span class="issue-detail-val" id="issueTime">&mdash;</span>
+                        </div>
+                        <div class="issue-detail-row issue-detail-notes">
+                            <span class="issue-detail-label">Notes:</span>
+                            <span class="issue-detail-val" id="issueNotes">&mdash;</span>
                         </div>
                     </div>
                 </div>

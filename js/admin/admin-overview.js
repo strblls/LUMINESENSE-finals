@@ -6,7 +6,7 @@
 
 // ── State ────────────────────────────────────────────────────────────────
 let currentRoomId = null;
-let currentPeriod = 7;
+let currentPeriod = 1;
 let currentMetric = 'all';
 let lineChartInstance = null;
 let barChartInstance = null;
@@ -175,7 +175,7 @@ function buildOverviewLineChart() {
     if (!ctx || !window.Chart) return;
     if (overviewLineInstance) overviewLineInstance.destroy();
 
-    const rows = CHART_DAILY || [];
+    const rows = currentPeriod === 1 ? (CHART_TODAY || []) : (CHART_DAILY || []);
     const labels = rows.map(r => r.label);
     const datasets = [];
     const selected = currentRoomId;
@@ -344,6 +344,7 @@ function setPeriod(el, days) {
     currentPeriod = parseInt(days, 10);
     updateMainCharts();
     renderHistoryTable();
+    buildOverviewLineChart();
     closePanel('panelPeriod');
 }
 
@@ -734,9 +735,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const btn = document.querySelector('[data-panel="' + id + '"]');
         const panel = document.getElementById(id);
         if (!btn || !panel) return;
+        const heading = panel.closest('.overview-heading, .room-manage-header');
         timers[id] = null;
-        function open() { if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; } panel.classList.add('show'); }
-        function close() { if (timers[id]) clearTimeout(timers[id]); timers[id] = setTimeout(function () { panel.classList.remove('show'); }, 150); }
+        function open() {
+            if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
+            panel.classList.add('show');
+            if (heading) heading.style.zIndex = '1050';
+        }
+        function close() {
+            if (timers[id]) clearTimeout(timers[id]);
+            timers[id] = setTimeout(function () {
+                panel.classList.remove('show');
+                if (heading) heading.style.zIndex = '';
+            }, 150);
+        }
         btn.addEventListener('mouseenter', open);
         btn.addEventListener('focus', open);
         panel.addEventListener('mouseenter', open);

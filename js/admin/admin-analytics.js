@@ -28,14 +28,148 @@ const sampleSummary = {
     est_cost_php:     0,
 };
 
+// ── Issue markers (shared plugin state + helpers) ─────────────────────────────
+let currentIssues = [];
+
+const issueMarkerPlugin = {
+    id: 'issueMarker',
+    afterDraw: function(chart) {
+        if (!currentIssues || !currentIssues.length) return;
+        var chartArea = chart.chartArea;
+        var xScale = chart.scales.x;
+        if (!chartArea || !xScale) return;
+        var ctx = chart.ctx;
+        for (var i = 0; i < currentIssues.length; i++) {
+            if (!currentIssues[i]) continue;
+            var x = xScale.getPixelForValue(i);
+            if (x < chartArea.left || x > chartArea.right) continue;
+            drawIssueMarker(ctx, x, chartArea.top + 12);
+        }
+    }
+};
+
+function drawIssueMarker(ctx, x, y) {
+    var r = 7;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, y - r);
+    ctx.lineTo(x - r, y + r * 0.8);
+    ctx.lineTo(x + r, y + r * 0.8);
+    ctx.closePath();
+    ctx.fillStyle = '#dc3545';
+    ctx.shadowColor = 'rgba(220,53,69,0.45)';
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y - r * 0.3);
+    ctx.lineTo(x, y + r * 0.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y + r * 0.45, 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.restore();
+}
+
+function getIssueIndexAtEvent(e, chart) {
+    if (!currentIssues || !currentIssues.length) return null;
+    var chartArea = chart.chartArea;
+    if (!chartArea) return null;
+    var pos = Chart.helpers.getRelativePosition(e, chart);
+    if (pos.x < chartArea.left || pos.x > chartArea.right) return null;
+    if (pos.y < chartArea.top || pos.y > chartArea.bottom) return null;
+    var xScale = chart.scales.x;
+    if (!xScale) return null;
+    var best = null, bestDist = 16;
+    currentIssues.forEach(function(issue, i) {
+        if (!issue) return;
+        var px = xScale.getPixelForValue(i);
+        var d = Math.abs(px - pos.x);
+        if (d < bestDist) { bestDist = d; best = i; }
+    });
+    return best;
+}
+
+function onChartClick(e, active, chart) {
+    var idx = getIssueIndexAtEvent(e, chart);
+    if (idx != null && currentIssues[idx]) openIssueModal(currentIssues[idx]);
+}
+
+function onChartHover(e, active, chart) {
+    var idx = getIssueIndexAtEvent(e, chart);
+    if (chart.canvas) chart.canvas.style.cursor = idx != null ? 'pointer' : 'default';
+}
+
+function mapIssues(issues, range, labels) {
+    currentIssues = [];
+    if (!issues || !issues.length || !labels || !labels.length) return;
+    range = parseInt(range);
+    var mapped = new Array(labels.length).fill(null);
+    issues.forEach(function(issue) {
+        var idx = -1;
+        if (range === 1) {
+            var t = (issue.event_time || '').slice(11, 16);
+            idx = labels.indexOf(t);
+            if (idx === -1) {
+                var best = -1, bestDiff = Infinity;
+                labels.forEach(function(l, i) {
+                    if (!/^\d{2}:\d{2}$/.test(l)) return;
+                    var diff = timeLabelDiff(t, l);
+                    if (diff < bestDiff) { bestDiff = diff; best = i; }
+                });
+                idx = best;
+            }
+        } else {
+            var d = formatLabelDate(issue.event_time);
+            idx = labels.indexOf(d);
+            if (idx === -1 && labels.length) {
+                var first = parseLabelDate(labels[0]);
+                var target = new Date(issue.event_time);
+                var diff = Math.round((target.getTime() - first.getTime()) / 86400000);
+                if (diff >= 0 && diff < labels.length) idx = diff;
+            }
+        }
+        if (idx >= 0 && idx < mapped.length) mapped[idx] = issue;
+    });
+    currentIssues = mapped;
+}
+
+function timeLabelDiff(a, b) {
+    var p = function(s) { var x = s.split(':'); return parseInt(x[0]) * 60 + parseInt(x[1]); };
+    return Math.abs(p(a) - p(b));
+}
+
+function parseLabelDate(label) {
+    var parts = String(label).split(' ');
+    var months = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+    return new Date(2026, months[parts[1]] || 0, parseInt(parts[2]) || 1);
+}
+
+function formatLabelDate(dt) {
+    var d = new Date(dt);
+    if (isNaN(d.getTime())) return '';
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return days[d.getDay()] + ' ' + months[d.getMonth()] + ' ' + String(d.getDate()).padStart(2, '0');
+}
+
+const METRIC_LABELS = { voltage: 'Voltage', current: 'Current', power: 'Power' };
+const CHART_TITLES   = { lineGraphCard: 'lineChartTitle', barGraphCard: 'barChartTitle' };
+
 // ── Chart instances ───────────────────────────────────────────────────────────
 const barChartInstance = new Chart(document.getElementById('barChart'), {
     type: 'bar',
+    plugins: [issueMarkerPlugin],
     data: {
         labels: [],
         datasets: [
             {
                 label: 'Voltage (V)',
+                metric: 'voltage',
                 data: [],
                 backgroundColor: 'rgba(116,47,211,0.85)',
                 borderRadius: 4,
@@ -44,6 +178,7 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
             },
             {
                 label: 'Current (A)',
+                metric: 'current',
                 data: [],
                 backgroundColor: 'rgba(245,158,11,0.85)',
                 borderRadius: 4,
@@ -52,6 +187,7 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
             },
             {
                 label: 'Power (W)',
+                metric: 'power',
                 data: [],
                 backgroundColor: 'rgba(22,163,74,0.85)',
                 borderRadius: 4,
@@ -63,6 +199,8 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
     options: {
         responsive: true,
         maintainAspectRatio: false,
+        onClick: onChartClick,
+        onHover: onChartHover,
         plugins: {
             legend: {
                 position: 'top',
@@ -79,6 +217,7 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
                         labelEl.textContent = visible.length === chart.data.datasets.length ? 'All Metrics' : visible.join(', ');
                     }
                     syncVawFromLegend();
+                    updateChartTitles();
                 }
             },
         },
@@ -118,11 +257,13 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
 
 const lineChartInstance = new Chart(document.getElementById('lineChart'), {
     type: 'line',
+    plugins: [issueMarkerPlugin],
     data: {
         labels: [],
         datasets: [
             {
                 label: 'Voltage (V)',
+                metric: 'voltage',
                 data: [],
                 borderColor: '#742fd3',
                 backgroundColor: 'rgba(116,47,211,0.10)',
@@ -133,6 +274,7 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
             },
             {
                 label: 'Current (A)',
+                metric: 'current',
                 data: [],
                 borderColor: '#f59e0b',
                 backgroundColor: 'rgba(245,158,11,0.10)',
@@ -144,6 +286,7 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
             },
             {
                 label: 'Power (W)',
+                metric: 'power',
                 data: [],
                 borderColor: '#16a34a',
                 backgroundColor: 'rgba(22,163,74,0.10)',
@@ -158,6 +301,8 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
     options: {
         responsive: true,
         maintainAspectRatio: false,
+        onClick: onChartClick,
+        onHover: onChartHover,
         plugins: {
             legend: {
                 position: 'top',
@@ -178,6 +323,7 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
                         labelEl.textContent = visible.length === chart.data.datasets.length ? 'All Metrics' : visible.join(', ');
                     }
                     syncVawFromLegend();
+                    updateChartTitles();
                 }
             },
         },
@@ -351,6 +497,35 @@ function syncMetricLabel(chart, id) {
     labelEl.textContent = visible.length === chart.data.datasets.length ? 'All Metrics' : visible.join(', ');
 }
 
+// Dynamic chart titles, mirroring admin-overview's updateOverviewLineTitle().
+// e.g. "Readings of All Rooms", "Voltage and Power Readings of SEL 1".
+function updateChartTitles() {
+    var charts = [lineChartInstance, barChartInstance];
+    charts.forEach(function(chart) {
+        if (!chart || !chart.data) return;
+        var titleId = chart === lineChartInstance ? 'lineChartTitle' : 'barChartTitle';
+        var titleEl = document.getElementById(titleId);
+        if (!titleEl) return;
+
+        var metricNames = chart.data.datasets
+            .filter(function(ds, i) { return !chart.getDatasetMeta(i).hidden; })
+            .map(function(ds) { return METRIC_LABELS[ds.metric] || ds.label; });
+
+        var cid = getCid();
+        var roomsLabel = 'All Rooms';
+        if (cid > 0) {
+            var r = roomData.find(function(x) { return x.id == cid; });
+            roomsLabel = r ? r.room_name : 'Room';
+        }
+
+        if (!metricNames.length || metricNames.length === 3) {
+            titleEl.textContent = 'Readings of ' + roomsLabel;
+        } else {
+            titleEl.textContent = metricNames.join(' and ') + ' Readings of ' + roomsLabel;
+        }
+    });
+}
+
 function setMetric(el, metric) {
     el.parentElement.querySelectorAll('.dept-member-filter-item').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
@@ -393,6 +568,7 @@ function setMetric(el, metric) {
     } else if (formulas[metric]) {
         infoText.innerHTML = '<span class="metric-formula">' + formulas[metric] + '</span>';
     }
+    updateChartTitles();
     checkPolling();
 }
 
@@ -594,12 +770,17 @@ async function onControlChange() {
             renderHistoryTable(data.daily, data.summary, range);
         }
 
+        renderSavings(data.savings, range);
+        mapIssues(data.issues, range, chartLabels);
+
         updateCharts(chartLabels, chartData);
 
     } catch (err) {
         console.error('[Analytics]', err);
         showError();
         renderSummaryCards(sampleSummary);
+        currentIssues = [];
+        renderSavings(null, range);
         updateCharts(sampleDaily.map(d => d.label), sampleDaily);
         renderHistoryTable(sampleDaily, sampleSummary, range);
     } finally {
@@ -617,6 +798,122 @@ function renderSummaryCards(s) {
     set('sumPower',   (s.peak_power_w     ?? 0).toFixed(1) + ' W');  // fixed: was s.peak_power
     set('sumCost',    '\u20B1' + (s.est_cost_php ?? 0).toFixed(2));  // fixed: was s.total_cost
     set('sumAnomalies', (s.total_anomalies ?? 0) + (s.total_anomalies === 1 ? ' issue' : ' issues'));
+}
+
+// ── ENERGY SAVED WIDGET ───────────────────────────────────────────────────────
+function renderSavings(s, range) {
+    s = s || {};
+    var cur  = (typeof s.current_kwh === 'number') ? s.current_kwh : 0;
+    var prev = (typeof s.prev_kwh === 'number') ? s.prev_kwh : 0;
+
+    var periodEl = document.getElementById('savingsPeriodLabel');
+    if (periodEl) periodEl.textContent = (range == 1) ? 'Today' : 'Last ' + range + ' days';
+
+    var valueEl = document.getElementById('savingsValue');
+    var badgeEl = document.getElementById('savingsBadge');
+    var descEl  = document.getElementById('savingsDesc');
+
+    var set = function(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; };
+    set('savingsCurrent', cur.toFixed(2) + ' kWh');
+    set('savingsPrev',    prev.toFixed(2) + ' kWh');
+    set('savingsDelta',   ((cur - prev >= 0) ? '+' : '') + (cur - prev).toFixed(2) + ' kWh');
+
+    if (s.pct == null || prev <= 0) {
+        if (valueEl) valueEl.textContent = '\u2014';
+        if (badgeEl) { badgeEl.className = 'savings-badge neutral'; badgeEl.innerHTML = '<i class="bi bi-dash-lg"></i> No baseline'; }
+        if (descEl)  descEl.textContent  = 'Not enough historical data for the previous period to compute a comparison.';
+        fillSavingsModal(null, range);
+        return;
+    }
+
+    var saved = s.direction === 'saved';
+    var abs   = Math.abs(s.pct);
+    if (valueEl) valueEl.textContent = abs.toFixed(1) + '%';
+    if (badgeEl) {
+        badgeEl.className = 'savings-badge ' + (saved ? 'saved' : 'increase');
+        badgeEl.innerHTML = saved
+            ? '<i class="bi bi-arrow-down-right"></i> Energy saved'
+            : '<i class="bi bi-arrow-up-right"></i> Energy increased';
+    }
+    if (descEl) {
+        descEl.textContent = saved
+            ? 'Used ' + abs.toFixed(1) + '% less energy than the previous equal-length period.'
+            : 'Used ' + abs.toFixed(1) + '% more energy than the previous equal-length period.';
+    }
+    fillSavingsModal(s, range);
+}
+
+function fillSavingsModal(s, range) {
+    var mVal   = document.getElementById('savingsModalValue');
+    var mBadge = document.getElementById('savingsModalBadge');
+    var mCur   = document.getElementById('savingsModalCurrent');
+    var mPrev  = document.getElementById('savingsModalPrev');
+    var mCurBar  = document.getElementById('savingsModalCurrentBar');
+    var mPrevBar = document.getElementById('savingsModalPrevBar');
+    var mNote  = document.getElementById('savingsModalNote');
+
+    if (s && s.pct != null && (s.prev_kwh > 0)) {
+        var saved = s.direction === 'saved';
+        var cur   = s.current_kwh || 0;
+        var prev  = s.prev_kwh || 0;
+        var maxV  = Math.max(cur, prev, 0.001);
+        if (mVal) mVal.textContent = Math.abs(s.pct).toFixed(1) + '%';
+        if (mBadge) {
+            mBadge.className = 'savings-modal-badge ' + (saved ? 'saved' : 'increase');
+            mBadge.innerHTML = saved
+                ? '<i class="bi bi-arrow-down-right"></i> Energy saved'
+                : '<i class="bi bi-arrow-up-right"></i> Energy increased';
+        }
+        if (mCur) mCur.textContent = cur.toFixed(2) + ' kWh';
+        if (mPrev) mPrev.textContent = prev.toFixed(2) + ' kWh';
+        if (mCurBar) mCurBar.style.width = (cur / maxV * 100) + '%';
+        if (mPrevBar) mPrevBar.style.width = (prev / maxV * 100) + '%';
+        if (mNote) {
+            mNote.innerHTML = '<strong>' + ((range == 1) ? 'Today' : 'Last ' + range + ' days') + '</strong> compared against the previous '
+                + ((range == 1) ? 'day (same hour)' : 'equal-length window') + '. Current <strong>' + cur.toFixed(2) + ' kWh</strong> vs previous <strong>'
+                + prev.toFixed(2) + ' kWh</strong> \u2014 a ' + Math.abs(s.pct).toFixed(1) + '% '
+                + (saved ? 'decrease' : 'increase') + '.';
+        }
+    } else {
+        if (mVal) mVal.textContent = '\u2014';
+        if (mBadge) { mBadge.className = 'savings-modal-badge neutral'; mBadge.innerHTML = '<i class="bi bi-dash-lg"></i> No baseline'; }
+        if (mCur) mCur.textContent = '\u2014';
+        if (mPrev) mPrev.textContent = '\u2014';
+        if (mCurBar) mCurBar.style.width = '0%';
+        if (mPrevBar) mPrevBar.style.width = '0%';
+        if (mNote) mNote.textContent = 'Not enough historical data for the previous period to compute a comparison.';
+    }
+}
+
+function openSavingsModal() {
+    var modal = new bootstrap.Modal(document.getElementById('savingsModal'));
+    modal.show();
+}
+
+function toggleSavingsExpand() {
+    var exp  = document.getElementById('savingsExpand');
+    var chev = document.getElementById('savingsChevron');
+    if (!exp) return;
+    exp.classList.toggle('open');
+    if (chev) chev.style.transform = exp.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+// ── ISSUE DETAIL MODAL ────────────────────────────────────────────────────────
+function openIssueModal(issue) {
+    if (!issue) return;
+    var set = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+    set('issueRoom',   issue.room_name || '\u2014');
+    set('issueSource', issue.triggered_by || '\u2014');
+    set('issueTime',   issue.event_time ? new Date(issue.event_time).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '\u2014');
+    set('issueNotes',  issue.notes || 'No additional notes.');
+    var status = document.getElementById('issueStatus');
+    if (status) {
+        var resolved = issue.event_type === 'issue_resolved';
+        status.textContent = resolved ? 'Resolved' : 'Issue Raised';
+        status.className = 'issue-detail-status ' + (resolved ? 'resolved' : 'raised');
+    }
+    var modal = new bootstrap.Modal(document.getElementById('issueDetailModal'));
+    modal.show();
 }
 
 // ── HISTORY TABLE ─────────────────────────────────────────────────────────────
@@ -966,6 +1263,9 @@ function showNoDeviceState() {
     if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No data \u2014 no device connected</td></tr>';
     var tfoot = document.getElementById('historyFoot');
     if (tfoot) tfoot.innerHTML = '';
+    currentIssues = [];
+    var sr = document.getElementById('periodSelect');
+    renderSavings(null, sr ? parseInt(sr.value) : 7);
     if (typeof lineChartInstance !== 'undefined') {
         lineChartInstance.data.labels = ['No data'];
         lineChartInstance.data.datasets.forEach(function(ds) { ds.data = []; });
@@ -976,6 +1276,7 @@ function showNoDeviceState() {
         barChartInstance.data.datasets.forEach(function(ds) { ds.data = []; });
         barChartInstance.update();
     }
+    updateChartTitles();
 }
 function deselectRoom() {
     document.querySelectorAll('.rooms-card .stat-card.active-room').forEach(function(c) {

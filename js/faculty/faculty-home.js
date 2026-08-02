@@ -542,6 +542,49 @@ function toggleGestureMaximize() {
     setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
 }
 
+// ── Temporary gesture TEST MODE ───────────────────────────────────────────────
+// Bypasses the schedule-based lock so gestures can be tested without an active
+// schedule. This is a dev/testing aid only; it is not persisted.
+let gestureTestMode = false;
+
+function toggleGestureTestMode() {
+    const section = document.getElementById('gestureSection');
+    const btn = document.getElementById('gestureTestBtn');
+    const content = document.getElementById('gestureControlsContent');
+    const enableBtn = document.getElementById('enableCameraBtn');
+    const scheduleOverlay = document.getElementById('gestureScheduleOverlay');
+    const pinOverlay = document.getElementById('gesturePinOverlay');
+
+    gestureTestMode = !gestureTestMode;
+    const originallyBlocked = section && section.dataset.gestureBlocked === '1';
+
+    if (gestureTestMode) {
+        // Unlock the controls and dismiss all gesture overlays
+        if (content) { content.style.filter = ''; content.style.pointerEvents = ''; }
+        if (enableBtn) { enableBtn.disabled = false; enableBtn.removeAttribute('title'); }
+        if (scheduleOverlay) scheduleOverlay.style.display = 'none';
+        if (pinOverlay) pinOverlay.style.display = 'none';
+        if (btn) {
+            btn.classList.add('active');
+            btn.innerHTML = '<i class="bi bi-bug-fill me-1"></i>Test ON';
+        }
+    } else {
+        // Restore the original locked/blocked state
+        if (originallyBlocked) {
+            if (content) { content.style.filter = 'blur(6px)'; content.style.pointerEvents = 'none'; }
+            if (enableBtn) { enableBtn.disabled = true; enableBtn.setAttribute('title', 'No active schedule'); }
+            if (scheduleOverlay) scheduleOverlay.style.display = '';
+        } else {
+            if (content) { content.style.filter = ''; content.style.pointerEvents = ''; }
+            if (scheduleOverlay) scheduleOverlay.style.display = 'none';
+        }
+        if (btn) {
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="bi bi-bug me-1"></i>Test';
+        }
+    }
+}
+
 function syncRowPills() {
     [1, 2, 3].forEach(function (r) {
         var sw = document.getElementById('row-' + r + '-switch');

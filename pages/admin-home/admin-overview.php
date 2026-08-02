@@ -307,8 +307,8 @@ for ($i = 0; $i < 10; $i++) {
                                 <div class="dept-member-filter">
                                     <div class="dept-member-filter-header">Filter by Period</div>
                                     <div class="dept-member-filter-list">
-                                        <div class="dept-member-filter-item active" onclick="setPeriod(this, 7)">Last 7 days</div>
-                                        <div class="dept-member-filter-item" onclick="setPeriod(this, 1)">Today</div>
+                                        <div class="dept-member-filter-item active" onclick="setPeriod(this, 1)">Today</div>
+                                        <div class="dept-member-filter-item" onclick="setPeriod(this, 7)">Last 7 days</div>
                                         <div class="dept-member-filter-item" onclick="setPeriod(this, 14)">Last 14 days</div>
                                         <div class="dept-member-filter-item" onclick="setPeriod(this, 30)">Last 30 days</div>
                                     </div>
@@ -344,9 +344,36 @@ for ($i = 0; $i < 10; $i++) {
                         <div class="card-white" style="height:100%;">
                             <div class="chart-card-header">
                                 <h3 class="chart-card-title bold" id="overviewLineTitle">Line Graph</h3>
-                                <div class="chart-header-actions"><span class="summary-label" id="overviewLineMetricLabel">All Metrics</span></div>
+                                <div class="chart-header-actions">
+                                    <span class="summary-label" id="overviewLineMetricLabel">All Metrics</span>
+                                    <button type="button" class="light w-auto" onclick="window.location.href='admin-analytics.php'" title="Open full Analytics">
+                                        <i class="bi bi-graph-up-arrow"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="chart-wrapper" style="height:340px;"><canvas id="overviewLineChart"></canvas></div>
+                            <div class="overview-log-zone">
+                                <div class="breakdown-title-row" style="margin-top:18px;margin-bottom:8px;">
+                                    <span class="breakdown-title bold" id="historyTitle">Today's History</span>
+                                </div>
+                                <div class="history-table-wrapper">
+                                    <table class="breakdown-table">
+                                        <thead id="historyHead">
+                                            <tr>
+                                                <th style="text-align:left;">Time</th>
+                                                <th>Energy (Wh)</th>
+                                                <th>Voltage (V)</th>
+                                                <th>Current (A)</th>
+                                                <th>Power (W)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="historyBody">
+                                            <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
+                                        </tbody>
+                                        <tfoot id="historyFoot"></tfoot>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -464,259 +491,6 @@ for ($i = 0; $i < 10; $i++) {
                     </div>
                 </div>
 
-                <?php /* ═══════════ SECTION 1 · OVERVIEW TIER (OLD) — COMMENTED OUT FOR NOW ═══════════
-
-                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
-                    <!-- Summary quick cards with spark trends -->
-                    <div class="summary-sparks-grid mb-3" id="summarySparks">
-                        <?php
-                        $cards = [
-                            ['id' => 'sumEnergy',  'label' => 'Total Energy',  'unit' => 'kWh', 'key' => 'energy',  'spark' => 'sparkSummary.energy'],
-                            ['id' => 'sumMinutes', 'label' => 'Occupied',      'unit' => 'hrs', 'key' => 'minutes', 'spark' => 'sparkSummary.minutes'],
-                            ['id' => 'sumVoltage', 'label' => 'Avg Voltage',   'unit' => 'V',   'key' => 'voltage', 'spark' => 'sparkSummary.voltage'],
-                            ['id' => 'sumCurrent', 'label' => 'Avg Current',   'unit' => 'A',   'key' => 'current', 'spark' => 'sparkSummary.current'],
-                            ['id' => 'sumPower',   'label' => 'Peak Power',    'unit' => 'W',   'key' => 'power',   'spark' => 'sparkSummary.power'],
-                            ['id' => 'sumCost',    'label' => 'Est. Cost',     'unit' => 'PHP', 'key' => 'cost',    'spark' => 'sparkSummary.cost'],
-                        ];
-                        foreach ($cards as $c):
-                            $val = match ($c['key']) {
-                                'energy'  => $summary['total_energy_kwh'] . ' kWh',
-                                'minutes' => round($summary['total_minutes'] / 60, 1) . ' hrs',
-                                'voltage' => $summary['avg_voltage'] . ' V',
-                                'current' => $summary['avg_current'] . ' A',
-                                'power'   => $summary['peak_power_w'] . ' W',
-                                'cost'    => '&#x20B1;' . $summary['est_cost_php'],
-                            };
-                        ?>
-                        <div class="summary-spark-card">
-                            <span class="spark-label"><?= h($c['label']) ?></span>
-                            <span class="spark-value"><?= $val ?></span>
-                            <div class="spark-canvas-wrap"><canvas id="sumSpark_<?= h($c['id']) ?>"></canvas></div>
-                            <span class="spark-sub">7-day trend</span>
-                        </div>
-                        <?php endforeach; ?>
-                        <div class="summary-spark-card" style="border-top-color:#c0004e;">
-                            <span class="spark-label">Anomalies</span>
-                            <span class="spark-value"><?= $summary['total_anomalies'] ?></span>
-                            <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:34px;">
-                                <span style="font-size:10px;color:#c0004e;font-weight:600;">issues in selected period</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                */ ?>
-
-                <?php /*
-                <!-- ═══════════ SECTION 2 · ROOM MANAGEMENT — COMMENTED OUT FOR NOW ═══════════ -->
-                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
-                    <!-- Rooms at a glance (functioning first) — combined with management -->
-                    <div class="section-heading" style="margin-top:0;">Rooms <span class="sub">— click a room to select it for analytics</span></div>
-                    <div class="rooms-strip" id="roomsStrip">
-                        <?php foreach ($rooms as $r):
-                            $live   = !empty($r['is_live']);
-                            $accent = $live ? 'accent-live' : ($r['status'] === 'occupied' ? 'accent-occupied' : ($r['status'] === 'scheduled' ? 'accent-scheduled' : 'accent-vacant'));
-                            $fac    = $r['faculty_name'] !== '' ? $r['faculty_name'] : '—';
-                            $v = $r['voltage_v'] !== null ? number_format($r['voltage_v'], 1) : '—';
-                            $a = $r['current_a'] !== null ? number_format($r['current_a'], 3) : '—';
-                            $w = $r['power_w']   !== null ? number_format($r['power_w'], 1)   : '—';
-                            $t = $r['status'] === 'occupied' ? $r['current_time'] : ($r['next_time'] !== '' ? 'next: ' . $r['next_time'] : 'No classes scheduled');
-                        ?>
-                        <div class="spark-card" data-room-id="<?= $r['id'] ?>"
-                            data-room="<?= h(strtolower($r['room_name'])) ?>"
-                            data-status="<?= h($live ? 'live' : $r['status']) ?>"
-                            data-departments="<?= h(strtolower($r['dept'])) ?>"
-                            data-sa="<?= h(strtolower($r['subject_area'])) ?>"
-                            data-subjects="<?= h(strtolower($r['subject'])) ?>">
-                            <div class="spark-card-accent <?= $accent ?>"></div>
-                            <div class="spark-card-top">
-                                <div>
-                                    <div class="spark-card-name"><?= h($r['room_name']) ?><?php if (!empty($r['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></div>
-                                    <div class="spark-card-size"><?= h($r['room_size']) ?> room</div>
-                                </div>
-                                <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
-                            </div>
-                            <div class="spark-card-faculty"><i class="bi bi-person-fill"></i><?= h($fac) ?></div>
-                            <div class="spark-card-meta">
-                                <span class="spark-card-live">V <b><?= $v ?></b> &middot; A <b><?= $a ?></b> &middot; W <b><?= $w ?></b></span>
-                                <span class="spark-time"><?= h($t) ?></span>
-                            </div>
-                            <div class="row-bars">
-                                <?php for ($row = 1; $row <= 3; $row++):
-                                    $st = $r['row' . $row . '_status']; ?>
-                                <div class="row-bar-item">
-                                    <span class="row-bar-label">R<?= $row ?></span>
-                                    <span class="row-bar <?= $st === 'on' ? 'on' : '' ?>"></span>
-                                    <span class="row-bar-state <?= $st === 'on' ? 'on' : '' ?>"><?= strtoupper($st) ?></span>
-                                </div>
-                                <?php endfor; ?>
-                            </div>
-                            <div class="spark-canvas-wrap"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-
-                    <div class="rooms-grid" id="roomsGrid">
-                        <?php foreach ($rooms as $r):
-                            $live   = !empty($r['is_live']);
-                            $curSched = null;
-                            $fName  = $r['faculty_name'] !== '' ? $r['faculty_name'] : '-';
-                            $badgeLabel = $live ? 'Live' : ($r['status'] === 'occupied' ? 'Occupied' : ($r['status'] === 'scheduled' ? 'Scheduled' : 'Vacant'));
-                            $badgeClass = 'badge-' . strtolower($badgeLabel);
-                            $accentClass = 'accent-' . ($live ? 'live' : $r['status']);
-                            $timeLabel = $r['status'] === 'occupied' ? 'Current Class:' : 'Next class:';
-                            $timeVal   = $r['status'] === 'occupied' ? $r['current_time'] : ($r['next_time'] !== '' ? $r['next_time'] : 'None scheduled');
-                        ?>
-                        <div class="room-card" data-room-id="<?= $r['id'] ?>"
-                            data-room="<?= h(strtolower($r['room_name'])) ?>"
-                            data-status="<?= h($live ? 'live' : $r['status']) ?>"
-                            data-departments="<?= h(strtolower($r['dept'])) ?>"
-                            data-sa="<?= h(strtolower($r['subject_area'])) ?>"
-                            data-subjects="<?= h(strtolower($r['subject'])) ?>">
-                            <div class="room-card-accent <?= $accentClass ?>"></div>
-                            <div class="room-card-body">
-                                <div class="room-card-header">
-                                    <div>
-                                        <h2 class="room-card-name"><?= h($r['room_name']) ?></h2>
-                                        <div class="room-card-section">
-                                            <?= ucfirst(h($r['room_size'])) ?> room
-                                            <?php if (!empty($r['description'])): ?> &middot; <?= h($r['description']) ?><?php endif; ?>
-                                        </div>
-                                    </div>
-                                    <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
-                                </div>
-
-                                <div class="device-strip">
-                                    <div class="dev-left">
-                                        <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
-                                        <?php if ($live): ?>
-                                        <span class="dev-pzem">
-                                            V <b><?= number_format($r['voltage_v'], 1) ?></b>
-                                            A <b><?= number_format($r['current_a'], 3) ?></b>
-                                            W <b><?= number_format($r['power_w'], 1) ?></b>
-                                        </span>
-                                        <?php endif; ?>
-                                        <?php if (!empty($r['pir_occupied'])): ?>
-                                        <span class="dev-occ"><i class="bi bi-person-fill"></i> Occupied</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="row-bars">
-                                        <?php for ($row = 1; $row <= 3; $row++):
-                                            $st = $r['row' . $row . '_status']; ?>
-                                        <div class="row-bar-item">
-                                            <span class="row-bar-label">R<?= $row ?></span>
-                                            <span class="row-bar <?= $st === 'on' ? 'on' : '' ?>"></span>
-                                        </div>
-                                        <?php endfor; ?>
-                                    </div>
-                                </div>
-
-                                <div class="dept-info-card room-info-row" style="padding:0.5rem;">
-                                    <p class="d-flex align-items-center gap-2"><i class="bi bi-person-fill"></i> <span class="room-info-label">Current Faculty:</span> <span class="room-info-val"><?= h($fName) ?></span></p>
-                                </div>
-                                <div class="dept-info-card room-info-row" style="padding:0.5rem;">
-                                    <p class="d-flex align-items-center gap-2"><i class="bi bi-clock-fill"></i> <span class="room-info-label"><?= $timeLabel ?></span> <span class="room-info-val"><?= h($timeVal) ?></span></p>
-                                </div>
-                            </div>
-                            <div class="room-card-actions">
-                                <div class="d-flex align-items-center room-icons gap-1">
-                                    <button class="btn-icon btn-icon-edit" title="Edit"
-                                        onclick="openEditModal(<?= $r['id'] ?>, '<?= h(addslashes($r['room_name'])) ?>', '<?= h($r['room_size']) ?>', '<?= h(addslashes($r['description'])) ?>')">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn-icon btn-icon-del" title="Delete"
-                                        onclick="openDeleteModal(<?= $r['id'] ?>, '<?= h(addslashes($r['room_name'])) ?>')">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                                <button class="light" onclick="openRoomModal(<?= $r['id'] ?>)">Inspect</button>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-
-                        <div class="room-card" style="border:2px dashed #bbb;background:transparent;box-shadow:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:#aaa;min-height:200px;"
-                            onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()">
-                            <i class="bi bi-plus-circle" style="font-size:2rem;"></i>
-                            <span style="font-size:1rem;font-weight:600;">Add Room</span>
-                        </div>
-                    </div>
-                </div>
-
-                
-                <?php /* end old Section 2 */ ?>
-
-                <!-- ═══════════ SECTION 3 · ANALYTICS ═══════════ -->
-                <div class="section-heading">Analytics</div>
-                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
-                    <div class="overview-analytics-grid">
-                        <aside class="analytics-sidebar">
-                            <div class="live-card">
-                                <div class="live-card-header">
-                                    <span class="chart-card-title bold">Live Readings</span>
-                                    <span class="live-badge" id="liveBadge"><span class="live-dot"></span> Live</span>
-                                </div>
-                                <div class="live-readings-row">
-                                    <div class="live-readings-group" id="vawGroup">
-                                        <div class="live-stat-card" data-metric="voltage">
-                                            <div class="live-stat-val" id="liveVoltage">- V</div>
-                                            <div class="live-stat-label">Voltage</div>
-                                        </div>
-                                        <div class="live-stat-card" data-metric="current">
-                                            <div class="live-stat-val" id="liveCurrent">- A</div>
-                                            <div class="live-stat-label">Current</div>
-                                        </div>
-                                        <div class="live-stat-card" data-metric="power">
-                                            <div class="live-stat-val" id="livePower">- W</div>
-                                            <div class="live-stat-label">Power</div>
-                                        </div>
-                                    </div>
-                                    <div class="live-readings-group vaw-group">
-                                        <div class="live-stat-card">
-                                            <div class="live-stat-val" id="liveEnergy">- Wh</div>
-                                            <div class="live-stat-label">Energy (session)</div>
-                                        </div>
-                                        <div class="live-stat-card">
-                                            <div class="live-stat-row"><span class="live-status-dot" id="liveStatusDot"></span><span class="live-stat-val" id="liveStatus">-</span></div>
-                                            <div class="live-stat-label">Light Status</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="metric-info"><span class="metric-info-text">Voltage, Current, and Power readings drive Energy (Wh). <span class="metric-formula">Energy (Wh) = Power (W) &times; Time (h)</span></span></div>
-                            </div>
-                        </aside>
-                        <main class="analytics-main">
-                            <div class="chart-grid" style="height:340px;">
-                                <div class="card-white" id="lineGraphCard">
-                                    <div class="chart-card-header">
-                                        <h3 class="chart-card-title bold">Line Graph</h3>
-                                        <div class="chart-header-actions"><span class="summary-label" id="lineMetricLabel">All Metrics</span></div>
-                                    </div>
-                                    <div class="chart-wrapper"><canvas id="lineChart"></canvas></div>
-                                </div>
-                                <div class="card-white" id="barGraphCard">
-                                    <div class="chart-card-header">
-                                        <h3 class="chart-card-title bold">Vertical Bar Graph</h3>
-                                        <div class="chart-header-actions"><span class="summary-label" id="barMetricLabel">All Metrics</span></div>
-                                    </div>
-                                    <div class="chart-wrapper"><canvas id="barChart"></canvas></div>
-                                </div>
-                            </div>
-                            <div class="card-white" id="historyCard">
-                                <div class="breakdown-header" style="margin-top:18px;margin-bottom:14px;">
-                                    <div class="breakdown-title-row"><span class="breakdown-title bold" id="historyTitle">7-Day History</span></div>
-                                    <div class="history-table-wrapper">
-                                        <table class="breakdown-table">
-                                            <thead id="historyHead"></thead>
-                                            <tbody id="historyBody"></tbody>
-                                            <tfoot id="historyFoot"></tfoot>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </main>
-                    </div>
-                </div>
 
             </div><!-- /page-content -->
         </div><!-- /child-container -->

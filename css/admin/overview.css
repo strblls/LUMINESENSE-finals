@@ -349,6 +349,34 @@
     background: var(--accent-yellow);
 }
 
+/* ── Overview chart pane ── */
+.overview-pane-chart .chart-header-actions .light {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.overview-pane-chart .chart-header-actions .light i {
+    font-size: 14px;
+}
+
+/* History / log table inside the overview chart card */
+.overview-log-zone .history-table-wrapper {
+    max-height: 260px;
+}
+
+.overview-log-zone .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
 .overview-title-band {
     color: #fff;
     background-color: var(--secondary-color-1);

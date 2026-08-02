@@ -1036,3 +1036,308 @@ body.contrast-bg {
     line-height: 1.5;
 }
 
+/* ═══════════════════════════════════════════════
+   ENERGY SAVED WIDGET
+   ═══════════════════════════════════════════════ */
+.savings-card {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: visible;
+    border-top: 4px solid var(--secondary-color-2);
+}
+
+.savings-card .chart-card-header {
+    margin-bottom: 4px;
+}
+
+.savings-value-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.savings-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--secondary-color-1);
+}
+
+.savings-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: .02em;
+    white-space: nowrap;
+}
+
+.savings-badge.saved {
+    background: rgba(22, 163, 74, 0.12);
+    color: #16a34a;
+}
+
+.savings-badge.increase {
+    background: rgba(220, 53, 69, 0.12);
+    color: #dc3545;
+}
+
+.savings-badge.neutral {
+    background: rgba(108, 117, 125, 0.12);
+    color: #6c757d;
+}
+
+.savings-sub {
+    margin: 0;
+    font-size: 11px;
+    color: var(--muted, #888);
+}
+
+.savings-details-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 2px;
+    padding: 7px 12px;
+    border: 1px solid rgba(116, 47, 211, 0.22);
+    border-radius: 8px;
+    background: #f8f1ff;
+    color: var(--secondary-color-2);
+    font-family: var(--font-primary, 'Poppins', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.savings-details-btn:hover {
+    background: #efe3ff;
+    border-color: var(--secondary-color-2);
+}
+
+.savings-chevron {
+    transition: transform 0.25s ease;
+}
+
+.savings-expand {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.savings-expand.open {
+    max-height: 240px;
+    opacity: 1;
+    padding: 8px 2px 0;
+}
+
+.savings-expand-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 12px;
+    padding: 3px 0;
+    color: var(--secondary-color-1);
+}
+
+.savings-expand-row .summary-info-label {
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.savings-expand-row .summary-info-val {
+    font-size: 12px;
+    white-space: normal;
+}
+
+.savings-expand-desc {
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: #666;
+    padding: 8px 10px;
+    background: #f9f3fc;
+    border-radius: 6px;
+}
+
+/* ── Savings calculation modal ── */
+.savings-modal-hero {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.savings-modal-value {
+    font-size: 2.6rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--secondary-color-1);
+}
+
+.savings-modal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.savings-modal-badge.saved {
+    background: rgba(22, 163, 74, 0.12);
+    color: #16a34a;
+}
+
+.savings-modal-badge.increase {
+    background: rgba(220, 53, 69, 0.12);
+    color: #dc3545;
+}
+
+.savings-modal-badge.neutral {
+    background: rgba(108, 117, 125, 0.12);
+    color: #6c757d;
+}
+
+.savings-modal-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.savings-modal-col {
+    background: #faf5ff;
+    border: 1px solid rgba(116, 47, 211, 0.12);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.savings-modal-col-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--secondary-color-2);
+    margin-bottom: 6px;
+}
+
+.savings-modal-col-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    margin-bottom: 8px;
+}
+
+.savings-modal-bar-wrap {
+    height: 10px;
+    border-radius: 6px;
+    background: rgba(116, 47, 211, 0.10);
+    overflow: hidden;
+}
+
+.savings-modal-bar {
+    height: 100%;
+    width: 0;
+    border-radius: 6px;
+    background: var(--secondary-color-2);
+    transition: width 0.4s ease;
+}
+
+.savings-modal-bar.prev {
+    background: #f59e0b;
+}
+
+.savings-modal-formula {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 12px;
+    padding: 10px 12px;
+    background: #f9f3fc;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.savings-modal-formula .summary-info-label {
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.savings-modal-formula .summary-info-val {
+    font-size: 12px;
+}
+
+.savings-modal-note {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #666;
+}
+
+/* ═══════════════════════════════════════════════
+   ISSUE DETAIL MODAL
+   ═══════════════════════════════════════════════ */
+.issue-detail-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f3edf7;
+    font-size: 13px;
+}
+
+.issue-detail-row:last-child {
+    border-bottom: none;
+}
+
+.issue-detail-label {
+    flex-shrink: 0;
+    width: 78px;
+    font-weight: 700;
+    color: var(--secondary-color-2);
+    font-size: 12px;
+}
+
+.issue-detail-val {
+    color: var(--secondary-color-1);
+    word-break: break-word;
+}
+
+.issue-detail-notes {
+    align-items: flex-start;
+}
+
+.issue-detail-status {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: .03em;
+}
+
+.issue-detail-status.raised {
+    background: rgba(220, 53, 69, 0.12);
+    color: #dc3545;
+}
+
+.issue-detail-status.resolved {
+    background: rgba(22, 163, 74, 0.12);
+    color: #16a34a;
+}
+
+

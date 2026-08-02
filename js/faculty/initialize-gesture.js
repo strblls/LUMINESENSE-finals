@@ -65,38 +65,60 @@ function setProgressStyle(gesture, confidence) {
     accuracyBar.setAttribute('aria-valuenow', String(w));
 }
 
-// ── Gesture → Row State Machine with 900ms Debounce and 👍 Confirmation ──
+// ── Gesture → Stackable Command Queue with 👍 Confirmation & Two-Hand Input ──
 const DEBOUNCE_MS = 400;
 const CONFIRM_TIMEOUT_MS = 15000;
 const GESTURE_ACCURACY_THRESHOLD = 70; // was 80
 const GESTURE_DECAY_THRESHOLD = 60;    // was 70
 const DROPOUT_TOLERANCE_MS = 350;       // Allow 350ms of flicker/dropout before resetting timer
 const ROW_GESTURE = { Pointing_Up: 1, Victory: 2, ILoveYou: 3 };
+const MAX_STACK_SIZE = 5;               // Max queued commands before confirmation
+const HAND_STALE_MS = 1500;             // Forget a hand after this long without detection
 
-let _lastGesture = 'No Gesture';
-let _heldSince = null;
-let _actioned = false;
-let _dropoutStart = null;   // Tracks when a gesture dropout began
+// Per-hand state machines so both hands can queue commands independently.
+const handStates = new Map();
+let _stackId = 0;
 
-let pendingAction = null; // null or { gesture: 'Open_Palm', action: 'all_on', label: 'All Lights ON', row: null }
+// Stacked (queued) commands, executed in FIFO order on the final 👍 confirmation.
+let pendingStack = [];  // [{ id, gesture, action, label, row }]
 let pendingTimeout = null;
+let _lastStackFeedbackAt = 0; // Tracks when the last transient queue message was shown
+
+function getHandState(key) {
+    let st = handStates.get(key);
+    if (!st) {
+        st = { lastGesture: 'No Gesture', heldSince: null, actioned: false, dropoutStart: null, lastSeen: Date.now() };
+        handStates.set(key, st);
+    }
+    return st;
+}
+
+function showStackFeedback(html) {
+    if (!gestureResult) return;
+    gestureResult.innerHTML = html;
+    _lastStackFeedbackAt = Date.now();
+}
 
 // Smoothed prediction to filter frame-by-frame noise (hysteresis + EMA filter)
 let _lastGestureRaw = 'No Gesture';
 let _smoothedConfidence = 0;
 
 function updatePillsState() {
+    const pendingRows = new Set();
+    let allAffected = false;
+
+    for (const it of pendingStack) {
+        if (it.action === 'all_on' || it.action === 'all_off') allAffected = true;
+        else if (it.action === 'toggle_row') pendingRows.add(it.row);
+    }
+
     [1, 2, 3].forEach(r => {
         const p = document.getElementById(`rowPill${r}`);
         if (!p) return;
         p.classList.remove('pending', 'confirmed');
 
-        if (pendingAction) {
-            if (pendingAction.action === 'all_on' || pendingAction.action === 'all_off') {
-                p.classList.add('pending');
-            } else if (pendingAction.action === 'toggle_row' && pendingAction.row === r) {
-                p.classList.add('pending');
-            }
+        if (allAffected || pendingRows.has(r)) {
+            p.classList.add('pending');
         }
     });
     if (typeof window.syncRowPills === 'function') window.syncRowPills();
@@ -130,71 +152,112 @@ function flashAllPills() {
     }, 1200);
 }
 
-async function executePendingAction() {
-    if (!pendingAction) return;
+function pushAction(gesture, action, label, row) {
+    pendingStack.push({ id: ++_stackId, gesture, action, label, row });
+    updatePillsState();
+    renderStackQueue();
+    startPendingTimeout();
+}
 
-    const form = new FormData();
-    if (typeof CLASSROOM_ID !== 'undefined') form.append('classroom_id', CLASSROOM_ID);
-    form.append('triggered_by', 'gesture');
+function renderStackQueue() {
+    const q = document.getElementById('pendingStackQueue');
+    const wrap = document.getElementById('stackQueueWrap');
+    const count = document.getElementById('stackQueueCount');
 
-    const action = pendingAction.action;
-    const row = pendingAction.row;
-    const gesture = pendingAction.gesture;
+    if (!q) return;
 
-    // Reset pendingAction BEFORE carrying out visual cues, so updatePillsState knows it's resolved
-    const resolvedAction = pendingAction;
-    pendingAction = null;
+    if (pendingStack.length === 0) {
+        q.innerHTML = '';
+        if (wrap) wrap.style.display = 'none';
+        if (count) count.textContent = `0/${MAX_STACK_SIZE}`;
+        return;
+    }
+
+    if (wrap) wrap.style.display = '';
+    if (count) count.textContent = `${pendingStack.length}/${MAX_STACK_SIZE}`;
+
+    const chipClass = it => {
+        if (it.action === 'all_on') return 'chip-on';
+        if (it.action === 'all_off') return 'chip-off';
+        return 'chip-row';
+    };
+
+    q.innerHTML = pendingStack.map((it, idx) => {
+        const cls = chipClass(it);
+        return `<span class="stack-chip ${cls}" title="${it.gesture.replace(/_/g, ' ')}"><span class="chip-index">${idx + 1}</span>${it.label}</span>`;
+    }).join('');
+}
+
+async function executePendingStack() {
+    if (!pendingStack.length) return;
+
+    const stack = pendingStack.slice();
+    pendingStack = [];
     clearPendingTimeout();
 
-    if (action === 'all_on') {
-        form.append('row', 'all'); form.append('state', 'on');
-        document.querySelectorAll('.bulb-img').forEach(img => img.src = '../../images/bulb-on.png');
-        ['row-1-switch', 'row-2-switch', 'row-3-switch'].forEach(id => {
-            const sw = document.getElementById(id); if (sw) sw.checked = true;
+    // Read the current switch states as the baseline, then simulate the whole
+    // stack locally to compute the correct final state of every row.
+    const getSwitch = r => {
+        const sw = document.getElementById(`row-${r}-switch`);
+        return sw ? sw.checked : false;
+    };
+    const initial = { 1: getSwitch(1), 2: getSwitch(2), 3: getSwitch(3) };
+    const final = { ...initial };
+
+    for (const it of stack) {
+        if (it.action === 'all_on') {
+            final[1] = final[2] = final[3] = true;
+        } else if (it.action === 'all_off') {
+            final[1] = final[2] = final[3] = false;
+        } else if (it.action === 'toggle_row') {
+            final[it.row] = !final[it.row];
+        }
+    }
+
+    const overallOn = final[1] || final[2] || final[3];
+
+    // Update UI switches, bulbs and badge to the final state
+    for (let r = 1; r <= 3; r++) {
+        const sw = document.getElementById(`row-${r}-switch`);
+        if (sw) sw.checked = final[r];
+        document.querySelectorAll(`.bulb-img[data-row="${r}"]`).forEach(img => {
+            img.src = final[r] ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
         });
-        _updateAllLightsBadge(true);
+    }
+    _updateAllLightsBadge(overallOn);
+
+    // Visual flash for affected rows
+    const flashRows = new Set();
+    let flashAll = false;
+    for (const it of stack) {
+        if (it.action === 'toggle_row') flashRows.add(it.row);
+        else flashAll = true;
+    }
+    if (flashAll) {
         flashAllPills();
-        await fetch('../../api/lights.php', { method: 'POST', body: form });
-        if (typeof logGestureEvent === 'function') logGestureEvent('Open_Palm – all ON');
+    } else {
+        flashRows.forEach(flashPill);
+    }
 
-    } else if (action === 'all_off') {
-        form.append('row', 'all'); form.append('state', 'off');
-        document.querySelectorAll('.bulb-img').forEach(img => img.src = '../../images/bulb-off.png');
-        ['row-1-switch', 'row-2-switch', 'row-3-switch'].forEach(id => {
-            const sw = document.getElementById(id); if (sw) sw.checked = false;
-        });
-        _updateAllLightsBadge(false);
-        flashAllPills();
-        await fetch('../../api/lights.php', { method: 'POST', body: form });
-        if (typeof logGestureEvent === 'function') logGestureEvent('Closed_Fist – all OFF');
-
-    } else if (action === 'toggle_row') {
-        const sw = document.getElementById(`row-${row}-switch`);
-        const newState = sw ? !sw.checked : true;
-        if (sw) sw.checked = newState;
-        document.querySelectorAll(`.bulb-img[data-row="${row}"]`).forEach(img => {
-            img.src = newState ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
-        });
-
-        // Dynamically recalculate and update the overall badge immediately on gesture toggle
-        const sw1 = document.getElementById('row-1-switch');
-        const sw2 = document.getElementById('row-2-switch');
-        const sw3 = document.getElementById('row-3-switch');
-        const overallOn = (sw1 && sw1.checked) || (sw2 && sw2.checked) || (sw3 && sw3.checked);
-        _updateAllLightsBadge(overallOn);
-
-        flashPill(row);
-        form.append('row', String(row));
-        form.append('state', newState ? 'on' : 'off');
+    // Persist only the rows whose final state actually changed
+    const changedRows = [1, 2, 3].filter(r => initial[r] !== final[r]);
+    for (const r of changedRows) {
+        const form = new FormData();
+        if (typeof CLASSROOM_ID !== 'undefined') form.append('classroom_id', CLASSROOM_ID);
+        form.append('triggered_by', 'gesture');
+        form.append('row', String(r));
+        form.append('state', final[r] ? 'on' : 'off');
         form.append('new_global_light_status', overallOn ? 'on' : 'off');
         await fetch('../../api/lights.php', { method: 'POST', body: form });
-        if (typeof logGestureEvent === 'function') logGestureEvent(`Thumb_Up – row ${row} ${newState ? 'ON' : 'OFF'}`);
     }
 
-    // Temporary nice UI visual notification
-    if (gestureResult) {
-        gestureResult.innerHTML = `<span class="text-success bold">✔ CONFIRMED: ${resolvedAction.label}</span>`;
+    if (typeof logGestureEvent === 'function') {
+        logGestureEvent(`Stack (${stack.length}): ${stack.map(it => it.label).join(' + ')}`);
     }
+
+    renderStackQueue();
+    updatePillsState();
+    showStackFeedback(`<span class="text-success bold">✔ CONFIRMED: ${stack.length} command${stack.length > 1 ? 's' : ''} executed</span>`);
 }
 
 function clearPendingTimeout() {
@@ -207,12 +270,12 @@ function clearPendingTimeout() {
 function startPendingTimeout() {
     clearPendingTimeout();
     pendingTimeout = setTimeout(() => {
-        if (pendingAction) {
-            if (gestureResult) {
-                gestureResult.innerHTML = `<span class="text-danger bold">✘ Cancelled: ${pendingAction.label} (Timed out)</span>`;
-            }
-            pendingAction = null;
+        if (pendingStack.length) {
+            const n = pendingStack.length;
+            showStackFeedback(`<span class="text-danger bold">✘ Cancelled: ${n} queued command${n > 1 ? 's' : ''} (Timed out)</span>`);
+            pendingStack = [];
             updatePillsState();
+            renderStackQueue();
         }
     }, CONFIRM_TIMEOUT_MS);
 }
@@ -226,11 +289,14 @@ function _updateAllLightsBadge(isOn) {
     if (sLight) { sLight.textContent = isOn ? 'ON' : 'OFF'; sLight.className = isOn ? 'text-success' : 'text-danger'; }
 }
 
-function processGesture(gesture, confidence) {
+function processHand(handKey, gesture, confidence) {
+    const st = getHandState(handKey);
+    st.lastSeen = Date.now();
+
     let activeGesture = gesture;
 
-    // Apply Schmitt trigger (hysteresis) to prevent flickering near 80%
-    const threshold = (_lastGesture && _lastGesture !== 'No Gesture' && _lastGesture === gesture)
+    // Apply Schmitt trigger (hysteresis) to prevent flickering near the threshold
+    const threshold = (st.lastGesture && st.lastGesture !== 'No Gesture' && st.lastGesture === gesture)
         ? GESTURE_DECAY_THRESHOLD
         : GESTURE_ACCURACY_THRESHOLD;
 
@@ -238,109 +304,139 @@ function processGesture(gesture, confidence) {
         activeGesture = 'No Gesture';
     }
 
-    // Real-time console debugging to trace recognition and timer state
+    // Real-time console debugging to trace recognition and timer state per hand
     if (gesture !== 'No Gesture') {
-        const heldTime = _heldSince ? (Date.now() - _heldSince) : 0;
-        console.log(`[MediaPipe Debug] Raw: "${gesture}" (${confidence.toFixed(1)}%), Active: "${activeGesture}", Last: "${_lastGesture}", Held: ${heldTime}ms`);
+        const heldTime = st.heldSince ? (Date.now() - st.heldSince) : 0;
+        console.log(`[MediaPipe Debug][${handKey}] Raw: "${gesture}" (${confidence.toFixed(1)}%), Active: "${activeGesture}", Last: "${st.lastGesture}", Held: ${heldTime}ms`);
     }
 
     // Handle gesture transitions with a dropout grace period
-    if (activeGesture !== _lastGesture) {
+    if (activeGesture !== st.lastGesture) {
         if (activeGesture === 'No Gesture') {
             // Start grace period for temporary dropouts
-            if (!_dropoutStart) {
-                _dropoutStart = Date.now();
+            if (!st.dropoutStart) {
+                st.dropoutStart = Date.now();
             }
             // Only reset state if the dropout lasts longer than the tolerance window
-            if (Date.now() - _dropoutStart >= DROPOUT_TOLERANCE_MS) {
-                _lastGesture = 'No Gesture';
-                _heldSince = Date.now();
-                _actioned = false;
-                _dropoutStart = null;
+            if (Date.now() - st.dropoutStart >= DROPOUT_TOLERANCE_MS) {
+                st.lastGesture = 'No Gesture';
+                st.heldSince = Date.now();
+                st.actioned = false;
+                st.dropoutStart = null;
             }
         } else {
             // Transitioned to a new valid gesture: reset hold state immediately
-            _lastGesture = activeGesture;
-            _heldSince = Date.now();
-            _actioned = false;
-            _dropoutStart = null;
+            st.lastGesture = activeGesture;
+            st.heldSince = Date.now();
+            st.actioned = false;
+            st.dropoutStart = null;
             return;
         }
     } else {
         // Active gesture matches the last gesture: clear any active dropout timer
-        _dropoutStart = null;
+        st.dropoutStart = null;
     }
 
-    // Once held for DEBOUNCE_MS and it's a valid action gesture
-    if (!_actioned && _lastGesture && _lastGesture !== 'No Gesture' && (Date.now() - _heldSince) >= DEBOUNCE_MS) {
-        _actioned = true;
-
-        if (_lastGesture === 'Thumb_Up') {
-            if (pendingAction) {
-                executePendingAction();
-            } else {
-                if (gestureResult) {
-                    gestureResult.innerHTML = `<span class="text-info bold">No action pending to confirm!</span>`;
-                }
-            }
-        } else if (_lastGesture === 'Open_Palm') {
-            pendingAction = { gesture: 'Open_Palm', action: 'all_on', label: 'All Lights ON', row: null };
-            updatePillsState();
-            startPendingTimeout();
-        } else if (_lastGesture === 'Closed_Fist') {
-            pendingAction = { gesture: 'Closed_Fist', action: 'all_off', label: 'All Lights OFF', row: null };
-            updatePillsState();
-            startPendingTimeout();
-        } else if (ROW_GESTURE[_lastGesture] !== undefined) {
-            const rowNum = ROW_GESTURE[_lastGesture];
-            const sw = document.getElementById(`row-${rowNum}-switch`);
-            const currentState = sw && sw.checked;
-            const targetStateLabel = currentState ? 'OFF' : 'ON';
-            pendingAction = {
-                gesture: _lastGesture,
-                action: 'toggle_row',
-                row: rowNum,
-                label: `Turn Row ${rowNum} ${targetStateLabel}`
-            };
-            updatePillsState();
-            startPendingTimeout();
-        }
-    }
-
-    // Stage updates for UI when an action is pending
-    if (pendingAction) {
-        if (activeGesture === 'No Gesture') {
-            if (gestureResult) {
-                gestureResult.innerHTML = `<span class="text-confirm bold">👍 Confirm ${pendingAction.label}?</span> <span style="font-size:0.75rem; color:#6c757d;">(Hold 👍 to confirm)</span>`;
-            }
-        } else if (activeGesture !== 'Thumb_Up') {
-            if (gestureResult) {
-                gestureResult.innerHTML = `<span class="text-confirm bold">👍 Confirm ${pendingAction.label}?</span>`;
-            }
-        }
+    // Once held for DEBOUNCE_MS, this hand registers its command
+    if (!st.actioned && st.lastGesture && st.lastGesture !== 'No Gesture' && (Date.now() - st.heldSince) >= DEBOUNCE_MS) {
+        st.actioned = true;
+        handleActionGesture(handKey, st.lastGesture);
     }
 }
 
+function handleActionGesture(handKey, gesture) {
+    // 👍 from either hand confirms the whole stack
+    if (gesture === 'Thumb_Up') {
+        if (pendingStack.length) {
+            executePendingStack();
+        } else {
+            showStackFeedback(`<span class="text-info bold">No command queued to confirm!</span>`);
+        }
+        return;
+    }
 
-function updateGestureView(gesture, confidence) {
-    const cleanGesture = (gesture && gesture !== 'None') ? gesture : 'No Gesture';
+    // ✊ clears a non-empty stack; otherwise queues "all lights OFF"
+    if (gesture === 'Closed_Fist') {
+        if (pendingStack.length) {
+            const n = pendingStack.length;
+            pendingStack = [];
+            clearPendingTimeout();
+            updatePillsState();
+            renderStackQueue();
+            showStackFeedback(`<span class="text-danger bold">✘ Cleared ${n} queued command${n > 1 ? 's' : ''} (✊ Fist)</span>`);
+        } else {
+            pushAction('Closed_Fist', 'all_off', 'All Lights OFF', null);
+        }
+        return;
+    }
+
+    if (pendingStack.length >= MAX_STACK_SIZE) {
+        showStackFeedback(`<span class="text-warning bold">Stack full (${MAX_STACK_SIZE}/${MAX_STACK_SIZE}) — 👍 confirm or ✊ clear</span>`);
+        return;
+    }
+
+    if (gesture === 'Open_Palm') {
+        pushAction('Open_Palm', 'all_on', 'All Lights ON', null);
+        showStackFeedback(`<span class="text-confirm bold">📥 Queued: All Lights ON (${pendingStack.length}/${MAX_STACK_SIZE})</span>`);
+    } else if (ROW_GESTURE[gesture] !== undefined) {
+        const rowNum = ROW_GESTURE[gesture];
+        const sw = document.getElementById(`row-${rowNum}-switch`);
+        const currentState = sw && sw.checked;
+        const targetStateLabel = currentState ? 'OFF' : 'ON';
+        pushAction(gesture, 'toggle_row', `Row ${rowNum} ${targetStateLabel}`, rowNum);
+        showStackFeedback(`<span class="text-confirm bold">📥 Queued: Row ${rowNum} ${targetStateLabel} (${pendingStack.length}/${MAX_STACK_SIZE})</span>`);
+    }
+}
+
+function updateGestureView(handDetections) {
+    // Best detection across all hands drives the progress bar & gesture image
+    let best = null;
+    for (const h of handDetections) {
+        if (!best || h.confidence > best.confidence) best = h;
+    }
+
+    const cleanGesture = best ? ((best.gesture && best.gesture !== 'None') ? best.gesture : 'No Gesture') : 'No Gesture';
+    const confidence = best ? best.confidence : 0;
 
     // Apply low-pass filter (Exponential Moving Average) continuously to stabilize fluctuations
     _smoothedConfidence = _smoothedConfidence * 0.65 + confidence * 0.35;
     _lastGestureRaw = cleanGesture;
 
     setProgressStyle(cleanGesture, _smoothedConfidence);
-    processGesture(cleanGesture, _smoothedConfidence);
+
+    // Process each detected hand independently (two-hand input support)
+    if (handDetections.length > 0) {
+        for (const h of handDetections) {
+            processHand(h.key, h.gesture, h.confidence);
+        }
+    } else {
+        // No hands on screen: let per-hand dropout logic settle
+        for (const key of [...handStates.keys()]) {
+            processHand(key, 'No Gesture', 0);
+        }
+    }
+
+    // Forget hands that have not been seen for a while
+    const now = Date.now();
+    for (const [key, st] of handStates) {
+        if (now - st.lastSeen > HAND_STALE_MS) handStates.delete(key);
+    }
 
     updateGestureImage(cleanGesture);
 
-    if (!pendingAction) {
+    if (!pendingStack.length) {
         if (gestureResult) {
             if (cleanGesture === 'No Gesture' || _smoothedConfidence < 30) {
                 gestureResult.textContent = '—';
             } else {
                 gestureResult.textContent = cleanGesture.replace(/_/g, ' ');
             }
+        }
+    } else if (now - _lastStackFeedbackAt > 900) {
+        // Idle prompt while a stack is waiting for the final 👍
+        if (gestureResult) {
+            const n = pendingStack.length;
+            gestureResult.innerHTML = `<span class="text-confirm bold">👍 Confirm ${n} queued command${n > 1 ? 's' : ''}? (Hold 👍)</span>`;
         }
     }
 }
@@ -361,11 +457,11 @@ function updateGestureImage(gesture) {
     const heading = document.getElementById('gestureListHeading');
     if (!list || !img || !heading) return;
 
-    if (pendingAction) {
+    if (pendingStack.length) {
         img.src = GESTURE_IMAGES.Thumb_Up;
         img.style.display = '';
         list.style.display = 'none';
-        heading.textContent = 'Confirm Action';
+        heading.textContent = `Confirm Action (${pendingStack.length}/${MAX_STACK_SIZE})`;
         return;
     }
 
@@ -550,24 +646,42 @@ async function predictLoop() {
 
             const results = recognizer.recognizeForVideo(inputSource, now);
 
-            let bestGesture = 'No Gesture';
-            let bestConfidence = 0;
+            // Collect one detection per hand so both hands can queue commands
+            const handDetections = [];
+            const handLandmarks = results.landmarks || results.handLandmarks || [];
 
             if (results.gestures && results.gestures.length > 0) {
-                for (const hand_gestures of results.gestures) {
-                    if (hand_gestures && hand_gestures.length > 0) {
-                        const top = hand_gestures[0];
-                        const score = Math.round(top.score * 100);
-                        if (score > bestConfidence) {
-                            bestGesture = (top.categoryName || top.category_name || '').replace(/\s+/g, '');
-                            bestConfidence = score;
+                for (let i = 0; i < results.gestures.length; i++) {
+                    const hand_gestures = results.gestures[i];
+                    if (!hand_gestures || hand_gestures.length === 0) continue;
+
+                    const top = hand_gestures[0];
+                    const score = Math.round(top.score * 100);
+                    const gestureName = (top.categoryName || top.category_name || '').replace(/\s+/g, '');
+
+                    // Stable per-hand identity: prefer handedness label, fall back to
+                    // the horizontal centroid of the hand landmarks.
+                    let handKey = '';
+                    if (results.handedness && results.handedness[i] && results.handedness[i][0]) {
+                        handKey = results.handedness[i][0].categoryName
+                            || results.handedness[i][0].displayName
+                            || '';
+                    }
+                    if (!handKey) {
+                        const lm = handLandmarks[i];
+                        if (lm && lm.length) {
+                            let sx = 0;
+                            for (const p of lm) sx += p.x;
+                            handKey = (sx / lm.length) < 0.5 ? 'Left' : 'Right';
                         }
                     }
+                    if (!handKey) handKey = `hand_${i}`;
+
+                    handDetections.push({ key: handKey, gesture: gestureName, confidence: score });
                 }
             }
 
-            updateGestureView(bestGesture, bestConfidence);
-            const handLandmarks = results.landmarks || results.handLandmarks;
+            updateGestureView(handDetections);
             drawLandmarks(handLandmarks);
 
         } catch (e) {
@@ -645,7 +759,14 @@ function resetState() {
     const wc = document.getElementById('statusWebcam');
     if (wc) { wc.textContent = 'Disabled'; wc.className = 'text-muted'; }
 
-    updateGestureView('No Gesture', 0);
+    // Reset any queued commands and per-hand state machines
+    clearPendingTimeout();
+    pendingStack = [];
+    handStates.clear();
+    renderStackQueue();
+    updatePillsState();
+
+    updateGestureView([]);
     const ctx = webcamCanvas.getContext('2d');
     ctx.clearRect(0, 0, webcamCanvas.width, webcamCanvas.height);
 }

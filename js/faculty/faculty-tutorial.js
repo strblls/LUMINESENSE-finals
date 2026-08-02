@@ -14,7 +14,7 @@
             {
                 selector: '#gestureSection',
                 title: 'Gesture Detection',
-                desc: 'Control your classroom lights using hand gestures via webcam. Enable the camera and try gestures like pointing up (Row 1), victory sign (Row 2), ILY sign (Row 3), open palm (all on), or fist (all off).',
+                desc: 'Control your classroom lights using hand gestures via webcam. Queue up to 5 commands with one or both hands (pointing up = Row 1, victory = Row 2, ILY = Row 3, open palm = all on, fist = all off/clear), then hold a thumbs up to confirm the whole stack.',
                 position: 'bottom'
             },
             {

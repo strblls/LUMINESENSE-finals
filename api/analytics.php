@@ -46,6 +46,8 @@ if ($cid > 0) {
             'daily' => [], 'hourly' => [], 'intervals' => [],
             'heatmap' => [], 'triggers' => [], 'per_room' => [],
             'sessions' => [], 'active_session' => null,
+            'savings' => ['current_kwh' => 0, 'prev_kwh' => 0, 'pct' => null, 'direction' => 'saved'],
+            'issues' => [],
         ]);
         $conn->close(); exit;
     }
@@ -195,6 +197,110 @@ if ($cid) {
 $stmt->execute();
 $summary['total_anomalies'] = (int)$stmt->get_result()->fetch_assoc()['cnt'];
 $stmt->close();
+
+// - 1b. Energy saved: current window vs previous equal-length window --------
+$savings = ['current_kwh' => 0, 'prev_kwh' => 0, 'pct' => null, 'direction' => 'saved'];
+
+if ($days === 1) {
+    // Today (up to the current hour) vs yesterday (up to the same hour)
+    if ($cid) {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(ROUND(SUM(power) * (3/3600), 4), 0) AS energy_wh
+            FROM pzem_readings
+            WHERE recorded_at >= CURDATE()
+              AND recorded_at < CURDATE() + INTERVAL 1 HOUR
+              AND classroom_id = ?
+        ");
+        $stmt->bind_param('i', $cid);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(ROUND(SUM(power) * (3/3600), 4), 0) AS energy_wh
+            FROM pzem_readings
+            WHERE recorded_at >= CURDATE()
+              AND recorded_at < CURDATE() + INTERVAL 1 HOUR
+        ");
+    }
+    $stmt->execute();
+    $curWh = (float)$stmt->get_result()->fetch_assoc()['energy_wh'];
+    $stmt->close();
+
+    if ($cid) {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(ROUND(SUM(power) * (3/3600), 4), 0) AS energy_wh
+            FROM pzem_readings
+            WHERE recorded_at >= CURDATE() - INTERVAL 1 DAY
+              AND recorded_at < CURDATE() - INTERVAL 1 DAY + INTERVAL 1 HOUR
+              AND classroom_id = ?
+        ");
+        $stmt->bind_param('i', $cid);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(ROUND(SUM(power) * (3/3600), 4), 0) AS energy_wh
+            FROM pzem_readings
+            WHERE recorded_at >= CURDATE() - INTERVAL 1 DAY
+              AND recorded_at < CURDATE() - INTERVAL 1 DAY + INTERVAL 1 HOUR
+        ");
+    }
+    $stmt->execute();
+    $prevWh = (float)$stmt->get_result()->fetch_assoc()['energy_wh'];
+    $stmt->close();
+} else {
+    // Current window matches the summary aggregation bounds
+    $curStart  = "DATE_SUB(CURDATE(), INTERVAL {$days} DAY)";
+    $prevStart = "DATE_SUB(CURDATE(), INTERVAL " . (2 * $days + 1) . " DAY)";
+
+    if ($cid) {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(total_energy_wh), 0) AS energy_wh
+            FROM power_sessions
+            WHERE session_date >= $curStart
+              AND end_time IS NOT NULL
+              AND classroom_id = ?
+        ");
+        $stmt->bind_param('i', $cid);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(total_energy_wh), 0) AS energy_wh
+            FROM power_sessions
+            WHERE session_date >= $curStart
+              AND end_time IS NOT NULL
+        ");
+    }
+    $stmt->execute();
+    $curWh = (float)$stmt->get_result()->fetch_assoc()['energy_wh'];
+    $stmt->close();
+
+    if ($cid) {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(total_energy_wh), 0) AS energy_wh
+            FROM power_sessions
+            WHERE session_date >= $prevStart
+              AND session_date < $curStart
+              AND end_time IS NOT NULL
+              AND classroom_id = ?
+        ");
+        $stmt->bind_param('i', $cid);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(total_energy_wh), 0) AS energy_wh
+            FROM power_sessions
+            WHERE session_date >= $prevStart
+              AND session_date < $curStart
+              AND end_time IS NOT NULL
+        ");
+    }
+    $stmt->execute();
+    $prevWh = (float)$stmt->get_result()->fetch_assoc()['energy_wh'];
+    $stmt->close();
+}
+
+$savings['current_kwh'] = round($curWh / 1000, 4);
+$savings['prev_kwh']    = round($prevWh / 1000, 4);
+if ($prevWh > 0) {
+    $pct = ($prevWh - $curWh) / $prevWh * 100;
+    $savings['pct']       = round($pct, 1);
+    $savings['direction'] = $pct >= 0 ? 'saved' : 'increase';
+}
 
 // - 2. Daily energy chart -------------------------
 $daily = [];
@@ -556,10 +662,50 @@ if ($days === 1) {
     $stmt->close();
 }
 
+// - 10. Issues raised within the selected window -------------------
+$issues = [];
+if ($cid) {
+    $stmt = $conn->prepare("
+        SELECT rl.id, rl.event_type, rl.room_name, rl.triggered_by, rl.event_time,
+               COALESCE(rl.notes, '') AS notes
+        FROM room_logs rl
+        JOIN classrooms c ON c.room_name = rl.room_name
+        WHERE rl.event_type = 'issue_raised'
+          AND c.id = ?
+          AND rl.event_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        ORDER BY rl.event_time ASC
+    ");
+    $stmt->bind_param('ii', $cid, $days);
+} else {
+    $stmt = $conn->prepare("
+        SELECT id, event_type, room_name, triggered_by, event_time,
+               COALESCE(notes, '') AS notes
+        FROM room_logs
+        WHERE event_type = 'issue_raised'
+          AND event_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        ORDER BY event_time ASC
+    ");
+    $stmt->bind_param('i', $days);
+}
+$stmt->execute();
+$r = $stmt->get_result();
+while ($row = $r->fetch_assoc()) {
+    $issues[] = [
+        'id'           => (int)$row['id'],
+        'event_type'   => $row['event_type'],
+        'room_name'    => $row['room_name'],
+        'triggered_by' => $row['triggered_by'],
+        'event_time'   => $row['event_time'],
+        'notes'        => $row['notes'],
+    ];
+}
+$stmt->close();
+
 echo json_encode([
     'success'        => true,
     'range'          => $days,
     'summary'        => $summary,
+    'savings'        => $savings,
     'daily'          => $daily,
     'hourly'         => $hourly,
     'intervals'      => $intervals,
@@ -568,4 +714,5 @@ echo json_encode([
     'per_room'       => $per_room,
     'sessions'       => $sessions,
     'active_session' => $active_session,
+    'issues'         => $issues,
 ]);
