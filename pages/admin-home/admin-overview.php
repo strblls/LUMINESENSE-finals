@@ -9,223 +9,404 @@ function h($s)
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   STATIC MODE — mock/preview data.
-   Everything between [STATIC_BEGIN] and [STATIC_END] is hardcoded so the
-   combined overview design can be reviewed before live wiring.
-   ▸ Send "Banana" to replace this block with live DB queries.
+   LIVE MODE — all data below is read from the database.
+   Rooms come from classrooms + pzem_live + schedules/faculty/subjects.
+   Chart data comes from pzem_readings / power_sessions.
    ═══════════════════════════════════════════════════════════════════════════ */
-// [STATIC_BEGIN]
-$STATIC_MODE = true;
+$STATIC_MODE = false;
 
-// ── Rooms — ordered functioning-first (live → occupied → scheduled → vacant → name)
-$rooms = [
-    [
-        'id' => 3,
-        'room_name' => 'SEL 1',
-        'room_size' => 'medium',
-        'description' => 'Lecture',
-        'is_prototype' => 1,
-        'row1_status' => 'on',
-        'row2_status' => 'on',
-        'row3_status' => 'off',
-        'light_status' => 'on',
-        'pir_occupied' => 1,
-        'voltage_v' => 221.9,
-        'current_a' => 0.054,
-        'power_w' => 7.6,
-        'energy_wh' => 0.044,
-        'fresh_secs' => 12,
-        'is_live' => true,
-        'status' => 'occupied',
-        'faculty_name' => 'Jaz Entapa',
-        'current_time' => '10:30 AM – 12:00 PM',
-        'next_time' => '',
-        'dept' => 'Science',
-        'subject_area' => 'Sciences',
-        'subject' => 'Physics',
-        'spark' => [0.0, 0.1, 0.3, 0.6, 1.1, 1.9, 2.6],
-        'sparkV' => [220.5, 220.9, 221.2, 221.5, 221.8, 221.9, 222.0],
-        'sparkA' => [0.042, 0.045, 0.048, 0.050, 0.052, 0.053, 0.054],
-        'sparkW' => [5.1, 5.8, 6.4, 6.9, 7.2, 7.4, 7.6],
-        'schedules' => [
-            ['day_of_week' => 'Monday',    'start_time' => '10:30 AM', 'end_time' => '12:00 PM', 'faculty_name' => 'Jaz Entapa'],
-            ['day_of_week' => 'Wednesday', 'start_time' => '01:00 PM', 'end_time' => '02:30 PM', 'faculty_name' => 'Jaz Entapa'],
-            ['day_of_week' => 'Friday',    'start_time' => '08:00 AM', 'end_time' => '09:30 AM', 'faculty_name' => 'Jimar Intapa'],
-        ],
-        'alerts' => [
-            ['event_type' => 'light_on',     'triggered_by' => 'admin',   'event_time' => '2026-08-02 10:30:00'],
-            ['event_type' => 'class_start',  'triggered_by' => 'schedule', 'event_time' => '2026-08-02 10:30:00'],
-            ['event_type' => 'pir_motion',   'triggered_by' => 'PIR',     'event_time' => '2026-08-02 10:28:41'],
-        ],
-    ],
-    [
-        'id' => 9,
-        'room_name' => 'SEL 2',
-        'room_size' => 'large',
-        'description' => 'Laboratories',
-        'is_prototype' => 1,
-        'row1_status' => 'on',
-        'row2_status' => 'on',
-        'row3_status' => 'off',
-        'light_status' => 'on',
-        'pir_occupied' => 0,
-        'voltage_v' => 230.1,
-        'current_a' => 0.031,
-        'power_w' => 4.2,
-        'energy_wh' => 0.010,
-        'fresh_secs' => 8,
-        'is_live' => true,
-        'status' => 'vacant',
-        'faculty_name' => '',
-        'current_time' => '',
-        'next_time' => '01:00 PM – 03:00 PM',
-        'dept' => 'TLE',
-        'subject_area' => 'Vocational',
-        'subject' => 'Electronics',
-        'spark' => [0.4, 0.2, 0.1, 0.0, 0.3, 0.1, 0.0],
-        'sparkV' => [228.5, 229.0, 229.3, 229.6, 229.8, 230.0, 230.1],
-        'sparkA' => [0.028, 0.029, 0.029, 0.030, 0.030, 0.031, 0.031],
-        'sparkW' => [3.6, 3.8, 3.9, 4.0, 4.1, 4.2, 4.2],
-        'schedules' => [
-            ['day_of_week' => 'Tuesday',   'start_time' => '01:00 PM', 'end_time' => '03:00 PM', 'faculty_name' => 'August Uno'],
-            ['day_of_week' => 'Thursday',  'start_time' => '01:00 PM', 'end_time' => '03:00 PM', 'faculty_name' => 'August Uno'],
-        ],
-        'alerts' => [
-            ['event_type' => 'light_on',   'triggered_by' => 'admin',   'event_time' => '2026-08-02 09:12:00'],
-            ['event_type' => 'door_open',  'triggered_by' => 'sensor',  'event_time' => '2026-08-02 09:10:22'],
-        ],
-    ],
-    [
-        'id' => 15,
-        'room_name' => 'SEL 4',
-        'room_size' => 'small',
-        'description' => 'Discussion',
-        'is_prototype' => 0,
-        'row1_status' => 'off',
-        'row2_status' => 'off',
-        'row3_status' => 'off',
-        'light_status' => 'off',
-        'pir_occupied' => 0,
-        'voltage_v' => null,
-        'current_a' => null,
-        'power_w' => null,
-        'energy_wh' => null,
-        'fresh_secs' => null,
-        'is_live' => false,
-        'status' => 'scheduled',
-        'faculty_name' => '',
-        'current_time' => '',
-        'next_time' => 'Tue, Aug 4 · 08:00 AM',
-        'dept' => 'Mathematics',
-        'subject_area' => 'Mathematics',
-        'subject' => 'Algebra',
-        'spark' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        'sparkV' => [219.0, 219.5, 220.0, 220.2, 220.6, 221.0, 221.2],
-        'sparkA' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        'sparkW' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        'schedules' => [
-            ['day_of_week' => 'Tuesday',  'start_time' => '08:00 AM', 'end_time' => '09:30 AM', 'faculty_name' => 'Jimar Intapa'],
-            ['day_of_week' => 'Thursday', 'start_time' => '10:00 AM', 'end_time' => '11:30 AM', 'faculty_name' => 'Jimar Intapa'],
-        ],
-        'alerts' => [],
-    ],
-    [
-        'id' => 12,
-        'room_name' => 'SEL 3',
-        'room_size' => 'medium',
-        'description' => 'Lecture',
-        'is_prototype' => 0,
-        'row1_status' => 'off',
-        'row2_status' => 'off',
-        'row3_status' => 'off',
-        'light_status' => 'off',
-        'pir_occupied' => 0,
-        'voltage_v' => null,
-        'current_a' => null,
-        'power_w' => null,
-        'energy_wh' => null,
-        'fresh_secs' => null,
-        'is_live' => false,
-        'status' => 'vacant',
-        'faculty_name' => '',
-        'current_time' => '',
-        'next_time' => '',
-        'dept' => 'English',
-        'subject_area' => 'Languages',
-        'subject' => 'Literature',
-        'spark' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        'sparkV' => [217.5, 218.0, 218.4, 218.8, 219.2, 219.5, 219.8],
-        'sparkA' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        'sparkW' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        'schedules' => [
-            ['day_of_week' => 'Monday',   'start_time' => '07:30 AM', 'end_time' => '09:00 AM', 'faculty_name' => 'Sofia Santos'],
-            ['day_of_week' => 'Friday',   'start_time' => '02:00 PM', 'end_time' => '03:30 PM', 'faculty_name' => 'Sofia Santos'],
-        ],
-        'alerts' => [
-            ['event_type' => 'issue_raised', 'triggered_by' => 'system', 'event_time' => '2026-08-01 14:00:00'],
-        ],
-    ],
-];
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function fmtTime($t) {
+    return $t ? date('g:i A', strtotime($t)) : '';
+}
 
-// ── Summary quick cards ──
+function fmtDow($dow) {
+    $map = ['Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6, 'Sunday' => 0];
+    return $map[$dow] ?? 1;
+}
+
+// ── Base rooms with live PZEM data ───────────────────────────────────────────
+$roomRows = [];
+$r = $conn->query("
+    SELECT c.id, c.room_name, c.room_size, c.description, c.is_prototype,
+           c.row1_status, c.row2_status, c.row3_status, c.light_status, c.pir_occupied,
+           p.voltage_v, p.current_a, p.power_w, p.energy_wh,
+           TIMESTAMPDIFF(SECOND, p.updated_at, NOW()) AS fresh_secs
+    FROM classrooms c
+    LEFT JOIN pzem_live p ON p.classroom_id = c.id
+    ORDER BY c.room_name
+");
+while ($row = $r->fetch_assoc()) $roomRows[$row['id']] = $row;
+
+// ── All schedules with faculty names ─────────────────────────────────────────
+$schedRows = [];
+$rs = $conn->query("
+    SELECT s.classroom_id, s.day_of_week, s.start_time, s.end_time, s.subject_id,
+           CONCAT(f.first_name, ' ', f.last_name) AS faculty_name
+    FROM schedules s
+    LEFT JOIN faculty f ON f.id = s.faculty_id
+    ORDER BY s.classroom_id, FIELD(s.day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'), s.start_time
+");
+while ($row = $rs->fetch_assoc()) $schedRows[$row['classroom_id']][] = $row;
+
+// ── Subject / subject-area / department lookup ───────────────────────────────
+$subjectMap = [];
+$rs2 = $conn->query("
+    SELECT sub.id AS subject_id,
+           TRIM(sub.name) AS subject_name,
+           TRIM(COALESCE(sa.name, '')) AS sa_name,
+           TRIM(COALESCE(d.name, '')) AS dept_name
+    FROM subjects sub
+    LEFT JOIN subject_area sa ON sa.id = sub.subject_area_id
+    LEFT JOIN departments d ON d.id = sub.department_id
+");
+while ($row = $rs2->fetch_assoc()) $subjectMap[$row['subject_id']] = $row;
+
+// ── Per-room 7-day daily aggregates (energy / V / A / W) ─────────────────────
+$dailyByRoom = [];
+$rd = $conn->query("
+    SELECT classroom_id, DATE(recorded_at) AS d,
+           ROUND(SUM(power) * (3/3600), 4) AS energy_wh,
+           ROUND(AVG(voltage), 1) AS avg_voltage,
+           ROUND(AVG(current), 3) AS avg_current,
+           ROUND(AVG(power), 2) AS avg_power
+    FROM pzem_readings
+    WHERE recorded_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+    GROUP BY classroom_id, DATE(recorded_at)
+");
+while ($row = $rd->fetch_assoc()) $dailyByRoom[$row['classroom_id']][$row['d']] = $row;
+
+// ── Per-room per-minute data for today ───────────────────────────────────────
+$todayByRoom = [];
+$rt = $conn->query("
+    SELECT classroom_id, HOUR(recorded_at) AS hr, MINUTE(recorded_at) AS mn,
+           ROUND(AVG(voltage), 1) AS avg_voltage,
+           ROUND(AVG(current), 3) AS avg_current,
+           ROUND(AVG(power), 2) AS avg_power
+    FROM pzem_readings
+    WHERE DATE(recorded_at) = CURDATE()
+    GROUP BY classroom_id, hr, mn
+    ORDER BY hr, mn
+");
+while ($row = $rt->fetch_assoc()) $todayByRoom[$row['classroom_id']][] = $row;
+
+// ── Per-room 30-day daily series (for single-room multi-day chart) ───────────
+$dailySeriesByRoom = [];
+$rsd = $conn->query("
+    SELECT classroom_id, DATE(recorded_at) AS d,
+           ROUND(AVG(voltage), 1) AS avg_voltage,
+           ROUND(AVG(current), 3) AS avg_current,
+           ROUND(AVG(power), 2) AS avg_power
+    FROM pzem_readings
+    WHERE recorded_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+    GROUP BY classroom_id, DATE(recorded_at)
+");
+while ($row = $rsd->fetch_assoc()) $dailySeriesByRoom[$row['classroom_id']][$row['d']] = $row;
+
+// ── Alerts: lighting_logs + room_logs (last 7 days) ──────────────────────────
+$alertsByRoom = [];
+$ra = $conn->query("
+    SELECT classroom_id, event_type, triggered_by, event_time
+    FROM lighting_logs
+    WHERE event_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ORDER BY event_time DESC
+");
+while ($row = $ra->fetch_assoc()) $alertsByRoom[$row['classroom_id']][] = $row;
+$rb = $conn->query("
+    SELECT c.id AS classroom_id, rl.event_type, rl.triggered_by, rl.event_time
+    FROM room_logs rl
+    JOIN classrooms c ON c.room_name = rl.room_name
+    WHERE rl.event_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+    ORDER BY rl.event_time DESC
+");
+while ($row = $rb->fetch_assoc()) $alertsByRoom[$row['classroom_id']][] = $row;
+
+// ── Assemble rooms ───────────────────────────────────────────────────────────
+$nowTime = date('H:i:s');
+$todayDow = (int)date('w');
+$last7 = [];
+for ($i = 6; $i >= 0; $i--) $last7[] = date('Y-m-d', strtotime("-$i days"));
+
+$rooms = [];
+foreach ($roomRows as $rid => $room) {
+    $scheds = $schedRows[$rid] ?? [];
+    $current = null;
+    $nextToday = null;
+    $nextAny = null;
+    $nextAnyTs = null;
+
+    foreach ($scheds as $s) {
+        // Current class (today, now between start/end)
+        if ($s['day_of_week'] === date('l') && $s['start_time'] <= $nowTime && $nowTime <= $s['end_time']) {
+            if (!$current) $current = $s;
+        }
+        // Next class later today
+        if ($s['day_of_week'] === date('l') && $s['start_time'] > $nowTime) {
+            if (!$nextToday || $s['start_time'] < $nextToday['start_time']) $nextToday = $s;
+        }
+        // Next occurrence of this day+time across the week
+        $ts = strtotime('+'.((fmtDow($s['day_of_week']) - $todayDow + 7) % 7).' days '.$s['start_time']);
+        if ($ts !== false && $ts > time() && (!$nextAnyTs || $ts < $nextAnyTs)) {
+            $nextAnyTs = $ts;
+            $nextAny = $s;
+        }
+    }
+
+    $faculty = '';
+    $current_time = '';
+    $next_time = '';
+    $status = 'vacant';
+    if ($current) {
+        $status = 'occupied';
+        $faculty = $current['faculty_name'] ?? '';
+        $current_time = fmtTime($current['start_time']) . ' – ' . fmtTime($current['end_time']);
+    } elseif ($nextToday) {
+        $status = 'scheduled';
+        $faculty = $nextToday['faculty_name'] ?? '';
+        $next_time = fmtTime($nextToday['start_time']) . ' – ' . fmtTime($nextToday['end_time']);
+    } elseif ($nextAny) {
+        $status = 'scheduled';
+        $faculty = $nextAny['faculty_name'] ?? '';
+        $next_time = date('D, M j · g:i A', $nextAnyTs);
+    }
+
+    // Subject info from the active/upcoming schedule (fallback: first schedule)
+    $subj = null;
+    foreach (array_filter([$current, $nextToday, $nextAny]) as $s) {
+        if ($s && !empty($s['subject_id']) && isset($subjectMap[$s['subject_id']])) { $subj = $subjectMap[$s['subject_id']]; break; }
+    }
+
+    $is_live = ($room['fresh_secs'] !== null && (int)$room['fresh_secs'] <= 60);
+
+    // 7-day sparklines
+    $spark = []; $sparkV = []; $sparkA = []; $sparkW = [];
+    foreach ($last7 as $d) {
+        $day = $dailyByRoom[$rid][$d] ?? null;
+        $spark[]  = $day ? (float)$day['energy_wh']   : 0;
+        $sparkV[] = $day ? (float)$day['avg_voltage'] : 0;
+        $sparkA[] = $day ? (float)$day['avg_current'] : 0;
+        $sparkW[] = $day ? (float)$day['avg_power']   : 0;
+    }
+
+    // Per-minute series for today (single-room chart + scrollbar)
+    $todayLabels = []; $todayV = []; $todayA = []; $todayW = [];
+    foreach ($todayByRoom[$rid] ?? [] as $m) {
+        $hh = str_pad((int)$m['hr'], 2, '0', STR_PAD_LEFT);
+        $mm = str_pad((int)$m['mn'], 2, '0', STR_PAD_LEFT);
+        $todayLabels[] = $hh . ':' . $mm;
+        $todayV[] = (float)$m['avg_voltage'];
+        $todayA[] = (float)$m['avg_current'];
+        $todayW[] = (float)$m['avg_power'];
+    }
+
+    // Daily series for the last 30 days (single-room multi-day chart)
+    $dailyLabels = []; $dailyV = []; $dailyA = []; $dailyW = [];
+    for ($i = 29; $i >= 0; $i--) {
+        $d = date('Y-m-d', strtotime("-$i days"));
+        $day = $dailySeriesByRoom[$rid][$d] ?? null;
+        $dailyLabels[] = date('D M d', strtotime($d));
+        $dailyV[] = $day && $day['avg_voltage'] !== null ? (float)$day['avg_voltage'] : null;
+        $dailyA[] = $day && $day['avg_current'] !== null ? (float)$day['avg_current'] : null;
+        $dailyW[] = $day && $day['avg_power']   !== null ? (float)$day['avg_power']   : null;
+    }
+
+    // Weekly timetable (formatted for the modal)
+    $weekly = [];
+    foreach ($scheds as $s) {
+        $weekly[] = [
+            'day_of_week'  => $s['day_of_week'],
+            'start_time'   => fmtTime($s['start_time']),
+            'end_time'     => fmtTime($s['end_time']),
+            'faculty_name' => $s['faculty_name'] ?? '',
+        ];
+    }
+
+    $rooms[] = [
+        'id'            => $rid,
+        'room_name'     => $room['room_name'],
+        'room_size'     => $room['room_size'],
+        'description'   => $room['description'],
+        'is_prototype'  => $room['is_prototype'],
+        'row1_status'   => $room['row1_status'],
+        'row2_status'   => $room['row2_status'],
+        'row3_status'   => $room['row3_status'],
+        'light_status'  => $room['light_status'],
+        'pir_occupied'  => $room['pir_occupied'],
+        'voltage_v'     => $room['voltage_v'] !== null ? (float)$room['voltage_v'] : null,
+        'current_a'     => $room['current_a'] !== null ? (float)$room['current_a'] : null,
+        'power_w'       => $room['power_w']   !== null ? (float)$room['power_w']   : null,
+        'energy_wh'     => $room['energy_wh'] !== null ? (float)$room['energy_wh'] : null,
+        'fresh_secs'    => $room['fresh_secs'] !== null ? (int)$room['fresh_secs'] : null,
+        'is_live'       => $is_live,
+        'status'        => $status,
+        'faculty_name'  => $faculty,
+        'current_time'  => $current_time,
+        'next_time'     => $next_time,
+        'dept'          => $subj['dept_name']     ?? '',
+        'subject_area'  => $subj['sa_name']       ?? '',
+        'subject'       => $subj['subject_name']  ?? '',
+        'spark'         => $spark,
+        'sparkV'        => $sparkV,
+        'sparkA'        => $sparkA,
+        'sparkW'        => $sparkW,
+        'todayLabels'   => $todayLabels,
+        'todayV'        => $todayV,
+        'todayA'        => $todayA,
+        'todayW'        => $todayW,
+        'dailyLabels'   => $dailyLabels,
+        'dailyV'        => $dailyV,
+        'dailyA'        => $dailyA,
+        'dailyW'        => $dailyW,
+        'schedules'     => $weekly,
+        'alerts'        => array_slice($alertsByRoom[$rid] ?? [], 0, 6),
+    ];
+}
+
+// Order: live → occupied → scheduled → vacant → name
+usort($rooms, function ($a, $b) {
+    $score = function ($r) {
+        if ($r['is_live']) return 0;
+        if ($r['status'] === 'occupied') return 1;
+        if ($r['status'] === 'scheduled') return 2;
+        return 3;
+    };
+    $sa = $score($a); $sb = $score($b);
+    if ($sa !== $sb) return $sa <=> $sb;
+    return strcmp($a['room_name'], $b['room_name']);
+});
+
+// ── Summary quick cards (30-day window) ───────────────────────────────────────
 $summary = [
-    'total_energy_kwh' => 1.284,
-    'total_minutes'    => 452,
-    'avg_voltage'      => 222.5,
-    'avg_current'      => 0.052,
-    'peak_power_w'     => 13.8,
-    'est_cost_php'     => 14.12,
-    'total_anomalies'  => 2,
+    'total_energy_kwh' => 0,
+    'total_minutes'    => 0,
+    'avg_voltage'      => 0,
+    'avg_current'      => 0,
+    'peak_power_w'     => 0,
+    'est_cost_php'     => 0,
+    'total_anomalies'  => 0,
 ];
+$res = $conn->query("
+    SELECT COALESCE(SUM(duration_mins),0) AS minutes,
+           ROUND(COALESCE(SUM(total_energy_wh),0),2) AS energy_wh,
+           ROUND(COALESCE(AVG(avg_voltage),0),1) AS avg_voltage,
+           ROUND(COALESCE(AVG(avg_current),0),3) AS avg_current,
+           ROUND(COALESCE(MAX(peak_power),0),2) AS peak_power_w
+    FROM power_sessions
+    WHERE session_date >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+      AND end_time IS NOT NULL
+");
+if ($row = $res->fetch_assoc()) {
+    $summary['total_energy_kwh'] = round($row['energy_wh'] / 1000, 4);
+    $summary['total_minutes']    = (int)$row['minutes'];
+    $summary['avg_voltage']      = (float)$row['avg_voltage'];
+    $summary['avg_current']      = (float)$row['avg_current'];
+    $summary['peak_power_w']     = (float)$row['peak_power_w'];
+    $summary['est_cost_php']     = round($row['energy_wh'] / 1000 * 11, 2);
+}
+$res = $conn->query("SELECT COUNT(*) AS c FROM room_logs WHERE event_type = 'issue_raised' AND event_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+if ($row = $res->fetch_assoc()) $summary['total_anomalies'] = (int)$row['c'];
 
-// 7-day mini trends for the summary cards
-$sparkSummary = [
-    'energy'  => [0.0, 0.1, 0.4, 0.9, 1.4, 2.1, 3.2],
-    'minutes' => [20, 35, 60, 90, 120, 150, 180],
-    'voltage' => [220.1, 221.3, 222.0, 221.5, 222.2, 223.0, 222.5],
-    'current' => [0.040, 0.045, 0.050, 0.048, 0.052, 0.055, 0.052],
-    'power'   => [5.2, 6.1, 7.4, 8.0, 10.2, 11.5, 12.1],
-    'cost'    => [0.0, 1.1, 2.4, 4.9, 7.7, 11.5, 14.1],
-];
+// ── 7-day mini trends for the summary cards ───────────────────────────────────
+$sparkSummary = ['energy' => [], 'minutes' => [], 'voltage' => [], 'current' => [], 'power' => [], 'cost' => []];
+$dayAgg = [];
+$res = $conn->query("
+    SELECT DATE(recorded_at) AS d,
+           ROUND(SUM(power) * (3/3600), 4) AS energy_wh,
+           ROUND(AVG(voltage),1) AS avg_voltage,
+           ROUND(AVG(current),3) AS avg_current,
+           ROUND(AVG(power),2) AS avg_power
+    FROM pzem_readings
+    WHERE recorded_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+    GROUP BY DATE(recorded_at)
+");
+while ($row = $res->fetch_assoc()) $dayAgg[$row['d']] = $row;
+$res = $conn->query("
+    SELECT session_date AS d, COALESCE(SUM(duration_mins),0) AS minutes
+    FROM power_sessions
+    WHERE session_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) AND end_time IS NOT NULL
+    GROUP BY session_date
+");
+while ($row = $res->fetch_assoc()) $dayAgg[$row['d']]['minutes'] = (int)$row['minutes'];
 
-// ── Chart data: multi-day aggregate ──
+$costAcc = 0;
+foreach ($last7 as $d) {
+    $day = $dayAgg[$d] ?? [];
+    $wh = (float)($day['energy_wh'] ?? 0);
+    $costAcc += $wh / 1000 * 11;
+    $sparkSummary['energy'][]  = $wh;
+    $sparkSummary['minutes'][] = (int)($day['minutes'] ?? 0);
+    $sparkSummary['voltage'][] = (float)($day['avg_voltage'] ?? 0);
+    $sparkSummary['current'][] = (float)($day['avg_current'] ?? 0);
+    $sparkSummary['power'][]   = (float)($day['avg_power'] ?? 0);
+    $sparkSummary['cost'][]    = round($costAcc, 2);
+}
+
+// ── Chart data: multi-day aggregate (30 days, sliced client-side) ─────────────
 $chartDaily = [];
-$d_energy = [0.0, 0.1, 0.4, 0.9, 1.4, 2.1, 3.2];
-$d_volt   = [220.1, 221.3, 222.0, 221.5, 222.2, 223.0, 222.5];
-$d_curr   = [0.040, 0.045, 0.050, 0.048, 0.052, 0.055, 0.052];
-$d_power  = [5.2, 6.1, 7.4, 8.0, 10.2, 11.5, 12.1];
-$d_sess   = [0, 1, 2, 3, 4, 5, 6];
-$d_mins   = [0, 18, 42, 61, 92, 118, 146];
-for ($i = 6; $i >= 0; $i--) {
-    $t = strtotime("-$i days");
+$sessByDay = [];
+$res = $conn->query("
+    SELECT session_date AS d, COUNT(*) AS sessions, COALESCE(SUM(duration_mins),0) AS minutes,
+           ROUND(COALESCE(SUM(total_energy_wh),0),2) AS energy_wh
+    FROM power_sessions
+    WHERE session_date >= DATE_SUB(CURDATE(), INTERVAL 29 DAY) AND end_time IS NOT NULL
+    GROUP BY session_date
+");
+while ($row = $res->fetch_assoc()) $sessByDay[$row['d']] = $row;
+$pzByDay = [];
+$res = $conn->query("
+    SELECT DATE(recorded_at) AS d,
+           ROUND(AVG(voltage),1) AS avg_voltage,
+           ROUND(AVG(current),3) AS avg_current,
+           ROUND(AVG(power),2) AS avg_power
+    FROM pzem_readings
+    WHERE recorded_at >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+    GROUP BY DATE(recorded_at)
+");
+while ($row = $res->fetch_assoc()) $pzByDay[$row['d']] = $row;
+for ($i = 29; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $sess = $sessByDay[$date] ?? null;
+    $pz   = $pzByDay[$date] ?? null;
     $chartDaily[] = [
-        'date'        => date('Y-m-d', $t),
-        'label'       => date('D M d', $t),
-        'energy_wh'   => $d_energy[6 - $i],
-        'energy_kwh'  => round($d_energy[6 - $i] / 1000, 4),
-        'sessions'    => $d_sess[6 - $i],
-        'minutes'     => $d_mins[6 - $i],
-        'avg_voltage' => $d_volt[6 - $i],
-        'avg_current' => $d_curr[6 - $i],
-        'avg_power'   => $d_power[6 - $i],
+        'date'        => $date,
+        'label'       => date('D M d', strtotime($date)),
+        'energy_wh'   => $sess ? (float)$sess['energy_wh'] : 0,
+        'energy_kwh'  => $sess ? round($sess['energy_wh'] / 1000, 4) : 0,
+        'sessions'    => $sess ? (int)$sess['sessions'] : 0,
+        'minutes'     => $sess ? (int)$sess['minutes'] : 0,
+        'avg_voltage' => $pz && $pz['avg_voltage'] !== null ? (float)$pz['avg_voltage'] : null,
+        'avg_current' => $pz && $pz['avg_current'] !== null ? (float)$pz['avg_current'] : null,
+        'avg_power'   => $pz && $pz['avg_power']   !== null ? (float)$pz['avg_power']   : null,
     ];
 }
 
-// ── Chart data: today (5-min interval slots) ──
+// ── Chart data: today (per-minute records) ────────────────────────────────────
 $chartToday = [];
-$t0 = strtotime('today 08:00');
-for ($i = 0; $i < 10; $i++) {
+$res = $conn->query("
+    SELECT HOUR(recorded_at) AS hr, MINUTE(recorded_at) AS mn,
+           ROUND(AVG(voltage),1) AS avg_voltage,
+           ROUND(AVG(current),3) AS avg_current,
+           ROUND(AVG(power),2) AS avg_power,
+           ROUND(SUM(power) * (3/3600), 4) AS energy_wh,
+           COUNT(*) AS reading_count
+    FROM pzem_readings
+    WHERE DATE(recorded_at) = CURDATE()
+    GROUP BY hr, mn
+    ORDER BY hr, mn
+");
+while ($row = $res->fetch_assoc()) {
+    $hh = str_pad((int)$row['hr'], 2, '0', STR_PAD_LEFT);
+    $mm = str_pad((int)$row['mn'], 2, '0', STR_PAD_LEFT);
     $chartToday[] = [
-        'label'         => date('H:i', $t0 + $i * 600),
-        'time'          => date('H:i', $t0 + $i * 600),
-        'avg_voltage'   => round(221.9 + ($i % 3) * 0.4, 1),
-        'avg_current'   => 0.05,
-        'avg_power'     => round(6.0 + $i * 0.7, 1),
-        'energy_wh'     => round(0.02 * ($i + 1), 4),
-        'reading_count' => 3,
+        'label'         => $hh . ':' . $mm,
+        'time'          => $hh . ':' . $mm,
+        'avg_voltage'   => (float)$row['avg_voltage'],
+        'avg_current'   => (float)$row['avg_current'],
+        'avg_power'     => (float)$row['avg_power'],
+        'energy_wh'     => (float)$row['energy_wh'],
+        'reading_count' => (int)$row['reading_count'],
     ];
 }
-// [STATIC_END]
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -331,9 +512,7 @@ for ($i = 0; $i < 10; $i++) {
                                 </div>
                             </div>
                         </div>
-                        <?php if (!empty($STATIC_MODE)): ?>
-                            <span class="static-note ms-2"><i class="bi bi-database-exclamation"></i> Static preview</span>
-                        <?php endif; ?>
+                        <span class="static-note ms-2 live"><i class="bi bi-database-check"></i> Live data</span>
                     </div>
                 </div>
 
@@ -352,27 +531,10 @@ for ($i = 0; $i < 10; $i++) {
                                 </div>
                             </div>
                             <div class="chart-wrapper" style="height:340px;"><canvas id="overviewLineChart"></canvas></div>
-                            <div class="overview-log-zone">
-                                <div class="breakdown-title-row" style="margin-top:18px;margin-bottom:8px;">
-                                    <span class="breakdown-title bold" id="historyTitle">Today's History</span>
-                                </div>
-                                <div class="history-table-wrapper">
-                                    <table class="breakdown-table">
-                                        <thead id="historyHead">
-                                            <tr>
-                                                <th style="text-align:left;">Time</th>
-                                                <th>Energy (Wh)</th>
-                                                <th>Voltage (V)</th>
-                                                <th>Current (A)</th>
-                                                <th>Power (W)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="historyBody">
-                                            <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
-                                        </tbody>
-                                        <tfoot id="historyFoot"></tfoot>
-                                    </table>
-                                </div>
+                            <div class="chart-scrollbar-wrap" id="overviewLineScrollWrap">
+                                <input type="range" class="chart-scrollbar" id="overviewLineScroll" min="0" max="0" value="0" oninput="onOverviewChartScroll(this.value)">
+                                <div class="chart-scroll-tip" id="overviewLineScrollTip"></div>
+                                <div class="chart-scroll-pending" id="overviewLineScrollPending"></div>
                             </div>
                         </div>
                     </div>
@@ -620,7 +782,7 @@ for ($i = 0; $i < 10; $i++) {
                                     <div class="override-panel-header">
                                         <i class="bi bi-shield-lock-fill"></i>
                                         <span>Admin Override</span>
-                                        <span class="override-live-badge" id="overrideLiveBadge">STATIC</span>
+                                        <span class="override-live-badge" id="overrideLiveBadge">LIVE</span>
                                     </div>
                                     <div class="override-master-row">
                                         <div class="override-master-left">
@@ -647,7 +809,7 @@ for ($i = 0; $i < 10; $i++) {
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
-                                    <div class="override-footer-note"><i class="bi bi-info-circle"></i> Static preview — toggles update locally only.</div>
+                                    <div class="override-footer-note"><i class="bi bi-info-circle"></i> Override toggles persist to the room immediately.</div>
                                 </div>
                             </div>
                         </div>
@@ -683,7 +845,6 @@ for ($i = 0; $i < 10; $i++) {
         const SPARK_SUMMARY = <?= json_encode($sparkSummary, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const CHART_DAILY = <?= json_encode($chartDaily, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const CHART_TODAY = <?= json_encode($chartToday, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-        const STATIC_MODE = <?= !empty($STATIC_MODE) ? 'true' : 'false' ?>;
     </script>
     <script src="../../js/admin/admin-overview.js"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>

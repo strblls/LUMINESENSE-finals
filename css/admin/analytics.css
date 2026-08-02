@@ -1445,8 +1445,7 @@ body.contrast-bg {
 
 .findings-anomalies {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 8px;
     padding: 10px 12px;
     background: rgba(220, 53, 69, 0.06);
@@ -1454,11 +1453,66 @@ body.contrast-bg {
     border-radius: 10px;
 }
 
+.findings-anomalies-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
 .findings-anomalies-label {
     font-size: 12px;
     font-weight: 700;
     color: #dc3545;
-    margin-right: 4px;
+    white-space: nowrap;
+}
+
+.findings-anomalies-search {
+    position: relative;
+    flex: 1;
+    max-width: 260px;
+    margin-left: auto;
+}
+
+.findings-anomalies-search .bi-search {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9a8bb0;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.findings-anomalies-search input {
+    width: 100%;
+    padding: 6px 10px 6px 27px;
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    border-radius: 8px;
+    background: #fff;
+    color: #333;
+    font-family: var(--font-primary, 'Poppins', sans-serif);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.findings-anomalies-search input::placeholder {
+    color: #b0a5c4;
+}
+
+.findings-anomalies-search input:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.10);
+}
+
+.findings-anomalies-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 116px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .findings-anomaly-chip {

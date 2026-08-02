@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════
    js/admin/admin-overview.js — Combined "Rooms & Analytics" page
-   Drives the static preview. When STATIC_MODE is removed (after "Banana"),
-   ROOMS/SUMMARY/CHART_* will come from live queries but this wiring stays.
+   All data comes live from the DB via the PHP page. This wiring drives
+   the room cards, the overview line chart, and the per-minute scrollbar.
    ═══════════════════════════════════════════════════════════════════════ */
 
 // ── State ────────────────────────────────────────────────────────────────
@@ -12,6 +12,12 @@ let lineChartInstance = null;
 let barChartInstance = null;
 let overviewLineInstance = null;
 const sparkCharts = {};
+
+// ── Chart window scroll state (Today / per-minute view) ──────────────────
+const OVERVIEW_WINDOW_SIZE = 15;
+var overviewScrollOffset = 0;
+var overviewScrollHovered = false;
+var overviewLabels = [];
 
 const COLORS = {
     voltage: '#2f004f',
@@ -184,13 +190,19 @@ function buildOverviewLineChart() {
     if (selected === 0) {
         // No rooms selected → empty chart
     } else if (room) {
-        const n = Math.max((room.sparkV || []).length, (room.sparkA || []).length, (room.sparkW || []).length);
-        const pad = (arr) => { const a = (arr || []).slice(); while (a.length < n) a.push(null); return a; };
+        // Single room: use that room's own series (per-minute today, or daily)
+        const v = currentPeriod === 1 ? (room.todayV || []) : (room.dailyV || []).slice(-currentPeriod);
+        const a = currentPeriod === 1 ? (room.todayA || []) : (room.dailyA || []).slice(-currentPeriod);
+        const w = currentPeriod === 1 ? (room.todayW || []) : (room.dailyW || []).slice(-currentPeriod);
+        const roomLabels = currentPeriod === 1 ? (room.todayLabels || []) : (room.dailyLabels || []).slice(-currentPeriod);
+        const n = Math.max(v.length, a.length, w.length);
+        const pad = (arr) => { const x = (arr || []).slice(); while (x.length < n) x.push(null); return x; };
         datasets.push(
-            { label: room.room_name + ' · Voltage (V)', metric: 'voltage', data: pad(room.sparkV), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
-            { label: room.room_name + ' · Current (A)', metric: 'current', data: pad(room.sparkA), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
-            { label: room.room_name + ' · Power (W)', metric: 'power', data: pad(room.sparkW), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
+            { label: room.room_name + ' · Voltage (V)', metric: 'voltage', data: pad(v), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
+            { label: room.room_name + ' · Current (A)', metric: 'current', data: pad(a), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
+            { label: room.room_name + ' · Power (W)', metric: 'power', data: pad(w), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
         );
+        if (roomLabels.length) labels.splice(0, labels.length, ...roomLabels);
     } else {
         datasets.push(
             { label: 'Voltage (V)', metric: 'voltage', data: rows.map(r => r.avg_voltage), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
@@ -236,6 +248,76 @@ function buildOverviewLineChart() {
         },
     });
     updateOverviewLineTitle();
+    updateOverviewScrollbar();
+}
+
+// ── Overview chart horizontal scrollbar (Today / per-minute only) ────────
+function updateOverviewScrollbar() {
+    const wrap = document.getElementById('overviewLineScrollWrap');
+    const slider = document.getElementById('overviewLineScroll');
+    const tipEl = document.getElementById('overviewLineScrollTip');
+    const pendingEl = document.getElementById('overviewLineScrollPending');
+    if (!wrap || !slider || !overviewLineInstance) return;
+
+    const chart = overviewLineInstance;
+    const n = chart.data.labels.length;
+    const isToday = currentPeriod === 1;
+
+    if (!isToday || n <= OVERVIEW_WINDOW_SIZE) {
+        wrap.classList.remove('visible');
+        overviewScrollOffset = 0;
+        if (chart.options.scales.x) {
+            chart.options.scales.x.min = undefined;
+            chart.options.scales.x.max = undefined;
+            chart.update();
+        }
+        return;
+    }
+
+    wrap.classList.add('visible');
+    overviewLabels = chart.data.labels;
+    const maxVal = n - OVERVIEW_WINDOW_SIZE;
+    slider.max = maxVal;
+
+    if (overviewScrollHovered) {
+        const currentVal = parseInt(slider.value);
+        if (currentVal < maxVal && pendingEl) pendingEl.classList.add('show');
+    } else {
+        slider.value = maxVal;
+        overviewScrollOffset = maxVal;
+        chart.options.scales.x.min = maxVal;
+        chart.options.scales.x.max = maxVal + OVERVIEW_WINDOW_SIZE;
+        chart.update();
+        if (pendingEl) pendingEl.classList.remove('show');
+    }
+}
+
+function updateOverviewScrollTip() {
+    const tipEl = document.getElementById('overviewLineScrollTip');
+    const slider = document.getElementById('overviewLineScroll');
+    if (!tipEl || !slider) return;
+    const offset = parseInt(slider.value);
+    const label = overviewLabels[offset] || '';
+    tipEl.textContent = label;
+    tipEl.classList.add('show');
+    const pct = slider.max > 0 ? (offset / slider.max) * 100 : 0;
+    tipEl.style.left = 'calc(' + pct + '% + ' + (4 - pct * 0.08) + 'px)';
+    tipEl.style.transform = 'translateX(-50%)';
+}
+
+function onOverviewChartScroll(value) {
+    if (!overviewLineInstance || !overviewLineInstance.data || !overviewLineInstance.data.labels) return;
+    const offset = parseInt(value);
+    overviewScrollOffset = offset;
+    overviewLineInstance.options.scales.x.min = offset;
+    overviewLineInstance.options.scales.x.max = offset + OVERVIEW_WINDOW_SIZE;
+    overviewLineInstance.update();
+    updateOverviewScrollTip();
+    const pendingEl = document.getElementById('overviewLineScrollPending');
+    if (pendingEl) {
+        const slider = document.getElementById('overviewLineScroll');
+        if (slider && parseInt(slider.value) >= parseInt(slider.max)) pendingEl.classList.remove('show');
+    }
 }
 
 // Dynamic line-graph title based on the shown metrics + selected rooms.
@@ -297,7 +379,7 @@ function buildBarChart(labels, rows) {
 
 function updateMainCharts() {
     const isToday = currentPeriod === 1;
-    const rows = isToday ? (CHART_TODAY || []) : (CHART_DAILY || []);
+    const rows = isToday ? (CHART_TODAY || []) : (CHART_DAILY || []).slice(-currentPeriod);
     const labels = rows.map(r => r.label);
     buildLineChart(labels, rows);
     buildBarChart(labels, rows);
@@ -307,43 +389,12 @@ function updateMainCharts() {
     if (bm) bm.textContent = currentMetric === 'all' ? 'All Metrics' : currentMetric.charAt(0).toUpperCase() + currentMetric.slice(1);
 }
 
-// ── History table ────────────────────────────────────────────────────────
-function renderHistoryTable() {
-    const thead = document.getElementById('historyHead');
-    const tbody = document.getElementById('historyBody');
-    const tfoot = document.getElementById('historyFoot');
-    const title = document.getElementById('historyTitle');
-    if (!thead || !tbody) return;
-
-    const isToday = currentPeriod === 1;
-    if (title) title.textContent = isToday ? "Today's History" : currentPeriod + '-Day History';
-
-    if (isToday) {
-        thead.innerHTML = '<tr><th style="text-align:left;">Time</th><th>Energy (Wh)</th><th>Voltage (V)</th><th>Current (A)</th><th>Power (W)</th></tr>';
-        const rows = CHART_TODAY || [];
-        tbody.innerHTML = rows.length
-            ? rows.map(r => '<tr><td>' + r.time + '</td><td>' + r.energy_wh.toFixed(4) + '</td><td>' + r.avg_voltage.toFixed(1) + '</td><td>' + r.avg_current.toFixed(3) + '</td><td>' + r.avg_power.toFixed(1) + '</td></tr>').join('')
-            : '<tr><td colspan="5" class="text-center text-muted">No readings recorded today.</td></tr>';
-        tfoot.innerHTML = '';
-    } else {
-        thead.innerHTML = '<tr><th style="text-align:left;">Date</th><th>Sessions</th><th>Occupied Time</th><th>Energy (Wh)</th><th>Energy (kWh)</th></tr>';
-        const rows = CHART_DAILY || [];
-        tbody.innerHTML = rows.map(r => {
-            const hrs = r.minutes ? (r.minutes / 60).toFixed(1) : '0.0';
-            return '<tr><td>' + r.label + '</td><td>' + r.sessions + '</td><td>' + hrs + ' hrs</td><td>' + r.energy_wh.toFixed(2) + '</td><td>' + r.energy_kwh.toFixed(4) + '</td></tr>';
-        }).join('');
-        const totalWh = rows.reduce((s, r) => s + r.energy_wh, 0);
-        tfoot.innerHTML = '<tr><td>Total</td><td colspan="2">' + (SUMMARY ? SUMMARY.total_minutes / 60 : 0).toFixed(1) + ' hrs</td><td>' + totalWh.toFixed(2) + '</td><td>' + (totalWh / 1000).toFixed(4) + '</td></tr>';
-    }
-}
-
 // ── Period / Metric ──────────────────────────────────────────────────────
 function setPeriod(el, days) {
     document.querySelectorAll('#panelPeriod .dept-member-filter-item').forEach(i => i.classList.remove('active'));
     if (el) el.classList.add('active');
     currentPeriod = parseInt(days, 10);
     updateMainCharts();
-    renderHistoryTable();
     buildOverviewLineChart();
     closePanel('panelPeriod');
 }
@@ -458,7 +509,8 @@ function bindFilterMenu(menuId) {
 
 // ── Export ───────────────────────────────────────────────────────────────
 function exportCSV() {
-    const rows = currentPeriod === 1 ? (CHART_TODAY || []) : (CHART_DAILY || []);
+    const dailyRows = currentPeriod > 1 ? (CHART_DAILY || []).slice(-currentPeriod) : (CHART_DAILY || []);
+    const rows = currentPeriod === 1 ? (CHART_TODAY || []) : dailyRows;
     if (!rows.length) { alert('No data to export.'); return; }
     let csv = currentPeriod === 1
         ? 'Time,Energy (Wh),Voltage (V),Current (A),Power (W)\n'
@@ -621,7 +673,7 @@ function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// ── Lighting override (local, static mode) ───────────────────────────────
+// ── Lighting override (persisted via api/lights.php) ─────────────────────
 let rowState = { 1: false, 2: false, 3: false };
 const rowBulbs = { 1: [0, 1, 2], 2: [3, 4, 5], 3: [6, 7, 8] };
 
@@ -630,11 +682,15 @@ function setBulb(index, on) {
     if (img) img.src = on ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
 }
 
+function rowGlobalState() {
+    return (rowState[1] || rowState[2] || rowState[3]) ? 'on' : 'off';
+}
+
 function toggleRow(row, on) {
     rowState[row] = on;
     rowBulbs[row].forEach(i => setBulb(i, on));
     syncAllLightsLabel();
-    sendLightingUpdate();
+    sendLightingUpdate(row, on ? 'on' : 'off');
 }
 
 function toggleAllLights() {
@@ -646,12 +702,24 @@ function toggleAllLights() {
         if (sw) sw.checked = anyOff;
     }
     syncAllLightsLabel();
-    sendLightingUpdate();
+    sendLightingUpdate('all', anyOff ? 'on' : 'off');
 }
 
-function sendLightingUpdate() {
-    // Static mode — mirror to the room cards only.
-    updateCardLighting(currentRoomId, rowState[1], rowState[2], rowState[3]);
+function sendLightingUpdate(row, state) {
+    const cid = currentRoomId;
+    if (!cid) return;
+    const body = new URLSearchParams();
+    body.append('classroom_id', cid);
+    body.append('row', row);
+    body.append('state', state);
+    body.append('triggered_by', 'admin');
+    if (row !== 'all') body.append('new_global_light_status', rowGlobalState());
+    fetch('../../api/lights.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+    }).catch(function () {});
+    updateCardLighting(cid, rowState[1], rowState[2], rowState[3]);
     renderLiveReadings();
 }
 
@@ -688,7 +756,6 @@ document.addEventListener('DOMContentLoaded', function () {
     renderLiveReadings();
     buildOverviewLineChart();
     updateMainCharts();
-    renderHistoryTable();
     updateSelectionUI();
 
     // Room selection
@@ -714,6 +781,25 @@ document.addEventListener('DOMContentLoaded', function () {
     ['statusFilterMenu'].forEach(bindFilterMenu);
     const searchEl = document.getElementById('roomSearch');
     if (searchEl) searchEl.addEventListener('input', applyFilters);
+
+    // Overview chart scrollbar hover
+    const ovWrap = document.getElementById('overviewLineScrollWrap');
+    const ovSlider = document.getElementById('overviewLineScroll');
+    if (ovWrap && ovSlider) {
+        ovWrap.addEventListener('mouseenter', function () {
+            overviewScrollHovered = true;
+            const tipEl = document.getElementById('overviewLineScrollTip');
+            if (tipEl) tipEl.classList.add('show');
+            updateOverviewScrollTip();
+        });
+        ovWrap.addEventListener('mouseleave', function () {
+            overviewScrollHovered = false;
+            const tipEl = document.getElementById('overviewLineScrollTip');
+            if (tipEl) tipEl.classList.remove('show');
+            const p = document.getElementById('overviewLineScrollPending');
+            if (p) p.classList.remove('show');
+        });
+    }
 
     // Expand / collapse all room details
     const expandBtn = document.getElementById('expandAllRoomsBtn');

@@ -380,12 +380,29 @@ function handleActionGesture(handKey, gesture) {
         showStackFeedback(`<span class="text-confirm bold">📥 Queued: All Lights ON (${pendingStack.length}/${MAX_STACK_SIZE})</span>`);
     } else if (ROW_GESTURE[gesture] !== undefined) {
         const rowNum = ROW_GESTURE[gesture];
-        const sw = document.getElementById(`row-${rowNum}-switch`);
-        const currentState = sw && sw.checked;
-        const targetStateLabel = currentState ? 'OFF' : 'ON';
+        // Compute the row's effective state AFTER the already-queued commands,
+        // so repeating a row gesture alternates its target (ON/OFF/ON/...).
+        const effectiveState = simulateRowState(rowNum);
+        const targetStateLabel = effectiveState ? 'OFF' : 'ON';
         pushAction(gesture, 'toggle_row', `Row ${rowNum} ${targetStateLabel}`, rowNum);
         showStackFeedback(`<span class="text-confirm bold">📥 Queued: Row ${rowNum} ${targetStateLabel} (${pendingStack.length}/${MAX_STACK_SIZE})</span>`);
     }
+}
+
+// Simulates what a row's state will be after all currently queued commands run.
+function simulateRowState(row) {
+    const sw = document.getElementById(`row-${row}-switch`);
+    let state = sw ? sw.checked : false;
+    for (const it of pendingStack) {
+        if (it.action === 'all_on') {
+            state = true;
+        } else if (it.action === 'all_off') {
+            state = false;
+        } else if (it.action === 'toggle_row' && it.row === row) {
+            state = !state;
+        }
+    }
+    return state;
 }
 
 function updateGestureView(handDetections) {

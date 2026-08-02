@@ -1199,17 +1199,55 @@ function findingsItem(icon, color, html) {
     return div;
 }
 
+var findingsIssuesCache = [];
+
 function renderFindingsAnomalies(issues) {
     var wrap = document.getElementById('findingsAnomalies');
     if (!wrap) return;
+    findingsIssuesCache = issues || [];
     wrap.innerHTML = '';
-    if (!issues || !issues.length) { wrap.style.display = 'none'; return; }
+    if (!findingsIssuesCache.length) { wrap.style.display = 'none'; return; }
     wrap.style.display = 'flex';
+
+    var header = document.createElement('div');
+    header.className = 'findings-anomalies-header';
+
     var label = document.createElement('span');
     label.className = 'findings-anomalies-label';
-    label.innerHTML = '<i class="bi bi-bell-fill me-1"></i>Open issues:';
-    wrap.appendChild(label);
-    issues.forEach(function(issue) {
+    label.innerHTML = '<i class="bi bi-bell-fill me-1"></i>Open issues';
+
+    var searchWrap = document.createElement('div');
+    searchWrap.className = 'findings-anomalies-search';
+    var searchIcon = document.createElement('i');
+    searchIcon.className = 'bi bi-search';
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search room or issue...';
+    searchInput.setAttribute('aria-label', 'Search open issues');
+    searchInput.addEventListener('input', function() { renderFindingsAnomalyChips(searchInput.value); });
+    searchWrap.appendChild(searchIcon);
+    searchWrap.appendChild(searchInput);
+
+    header.appendChild(label);
+    header.appendChild(searchWrap);
+    wrap.appendChild(header);
+
+    var body = document.createElement('div');
+    body.className = 'findings-anomalies-body';
+    body.id = 'findingsAnomaliesBody';
+    wrap.appendChild(body);
+    renderFindingsAnomalyChips('');
+}
+
+function renderFindingsAnomalyChips(query) {
+    var body = document.getElementById('findingsAnomaliesBody');
+    if (!body) return;
+    body.innerHTML = '';
+    var q = (query || '').toLowerCase().trim();
+    findingsIssuesCache.forEach(function(issue) {
+        var haystack = ((issue.room_name || '') + ' ' + (issue.triggered_by || '')
+            + ' ' + (issue.event_time || '')).toLowerCase();
+        if (q && haystack.indexOf(q) === -1) return;
         var chip = document.createElement('button');
         chip.type = 'button';
         chip.className = 'findings-anomaly-chip';
@@ -1217,7 +1255,7 @@ function renderFindingsAnomalies(issues) {
             + (issue.room_name || 'Room') + ' \u00B7 ' + (issue.triggered_by || '')
             + ' \u00B7 ' + (issue.event_time ? issue.event_time.slice(0, 16).replace('T', ' ') : '');
         chip.onclick = function() { openIssueModal(issue); };
-        wrap.appendChild(chip);
+        body.appendChild(chip);
     });
 }
 
