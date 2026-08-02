@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $page_title = 'Admin Review';
 require_once __DIR__ . "/../../src/Includes/admin-head.php";
 

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $page_title = 'Analytics';
 require_once __DIR__ . "/../../src/Includes/admin-head.php";
 include __DIR__ . "/../../src/Handlers/analytics-handler.php";

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . "/../../src/Session/session_guard.php";
 if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['faculty_logged_in'])) {
     header('Location: ' . ($_SESSION['role'] === 'faculty' ? '../faculty-login.php' : '../admin-login.php'));

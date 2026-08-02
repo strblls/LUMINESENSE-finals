@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once __DIR__ . "/../../src/Session/session_guard.php";
 check_faculty();
 require_once __DIR__ . "/../../src/Config/db_connect.php";

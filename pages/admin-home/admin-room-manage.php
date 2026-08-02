@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $page_title = 'Room Management';
 require_once __DIR__ . "/../../src/Includes/admin-head.php";
 date_default_timezone_set('Asia/Manila');

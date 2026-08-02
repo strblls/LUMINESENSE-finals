@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (empty($_SESSION['reset_email'])) {
     header('Location: forgot-password.php');

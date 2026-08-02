@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 date_default_timezone_set('Asia/Manila');
 require_once __DIR__ . "/../../src/Session/session_guard.php";
 check_faculty();

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $page_title = 'Dashboard';
 require_once __DIR__ . "/../../src/Includes/admin-head.php";
 

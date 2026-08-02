@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $page_title = 'Report Management';
 require_once __DIR__ . "/../../src/Includes/admin-head.php";
 require_once __DIR__ . "/../../src/Handlers/admin-handlers.php";

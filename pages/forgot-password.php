@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 $error = $_SESSION['reset_error'] ?? null;
 unset($_SESSION['reset_error']);

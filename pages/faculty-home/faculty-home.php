@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $page_title = 'Faculty Dashboard';
 
 require_once __DIR__ . "/../../src/Session/session_guard.php";
