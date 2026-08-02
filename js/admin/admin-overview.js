@@ -21,6 +21,8 @@ const COLORS = {
     lineFill: 'rgba(88, 7, 143, 0.10)',
 };
 
+const METRIC_LABELS = { voltage: 'Voltage', current: 'Current', power: 'Power' };
+
 // ── Sparkline helper ────────────────────────────────────────────────────
 function drawSpark(canvasId, data, color) {
     const el = document.getElementById(canvasId);
@@ -185,15 +187,15 @@ function buildOverviewLineChart() {
         const n = Math.max((room.sparkV || []).length, (room.sparkA || []).length, (room.sparkW || []).length);
         const pad = (arr) => { const a = (arr || []).slice(); while (a.length < n) a.push(null); return a; };
         datasets.push(
-            { label: room.room_name + ' · Voltage (V)', data: pad(room.sparkV), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
-            { label: room.room_name + ' · Current (A)', data: pad(room.sparkA), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
-            { label: room.room_name + ' · Power (W)', data: pad(room.sparkW), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
+            { label: room.room_name + ' · Voltage (V)', metric: 'voltage', data: pad(room.sparkV), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
+            { label: room.room_name + ' · Current (A)', metric: 'current', data: pad(room.sparkA), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
+            { label: room.room_name + ' · Power (W)', metric: 'power', data: pad(room.sparkW), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
         );
     } else {
         datasets.push(
-            { label: 'Voltage (V)', data: rows.map(r => r.avg_voltage), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
-            { label: 'Current (A)', data: rows.map(r => r.avg_current), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
-            { label: 'Power (W)', data: rows.map(r => r.avg_power), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
+            { label: 'Voltage (V)', metric: 'voltage', data: rows.map(r => r.avg_voltage), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
+            { label: 'Current (A)', metric: 'current', data: rows.map(r => r.avg_current), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
+            { label: 'Power (W)', metric: 'power', data: rows.map(r => r.avg_power), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
         );
     }
 
@@ -216,6 +218,7 @@ function buildOverviewLineChart() {
                             legend.chart.options.scales[axisId].display = !meta.hidden;
                         }
                         legend.chart.update();
+                        updateOverviewLineTitle();
                         const labelEl = document.getElementById('overviewLineMetricLabel');
                         if (labelEl) {
                             const visible = legend.chart.data.datasets.filter(function (ds, i) { return !legend.chart.getDatasetMeta(i).hidden; }).map(function (ds) { return ds.label; });
@@ -232,6 +235,39 @@ function buildOverviewLineChart() {
             },
         },
     });
+    updateOverviewLineTitle();
+}
+
+// Dynamic line-graph title based on the shown metrics + selected rooms.
+// e.g. "Readings of All Rooms", "Voltage and Power Readings of SEL 1",
+//      "Power Readings of SEL 3".
+function updateOverviewLineTitle() {
+    const titleEl = document.getElementById('overviewLineTitle');
+    if (!titleEl) return;
+
+    const chart = overviewLineInstance;
+    let metricNames = [];
+    if (chart) {
+        metricNames = chart.data.datasets
+            .filter((ds, i) => !chart.getDatasetMeta(i).hidden)
+            .map(ds => METRIC_LABELS[ds.metric] || ds.metric);
+    }
+
+    let roomsLabel = 'All Rooms';
+    if (currentRoomId === 0) {
+        roomsLabel = 'No Rooms';
+    } else if (currentRoomId > 0) {
+        const r = (ROOMS || []).find(x => x.id == currentRoomId);
+        roomsLabel = r ? r.room_name : 'Room';
+    }
+
+    if (!metricNames.length) {
+        titleEl.textContent = 'Readings of ' + roomsLabel;
+    } else if (metricNames.length === 3) {
+        titleEl.textContent = 'Readings of ' + roomsLabel;
+    } else {
+        titleEl.textContent = metricNames.join(' and ') + ' Readings of ' + roomsLabel;
+    }
 }
 
 function buildBarChart(labels, rows) {
@@ -362,6 +398,7 @@ function updateSelectionUI() {
 
     renderLiveReadings();
     buildOverviewLineChart();
+    updateOverviewLineTitle();
 }
 
 function selectRoom(id) {
@@ -651,6 +688,7 @@ document.addEventListener('DOMContentLoaded', function () {
     buildOverviewLineChart();
     updateMainCharts();
     renderHistoryTable();
+    updateSelectionUI();
 
     // Room selection
     document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(card => {

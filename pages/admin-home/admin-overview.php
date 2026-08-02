@@ -331,8 +331,6 @@ for ($i = 0; $i < 10; $i++) {
                                 </div>
                             </div>
                         </div>
-                        <input type="text" id="roomSearch" class="form-control" placeholder="Search room or faculty..."
-                            style="max-width:300px;">
                     </div>
 
                     <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1" style="padding:6px 0;">
@@ -387,28 +385,36 @@ for ($i = 0; $i < 10; $i++) {
                     </div>
                 </div>
 
-                <!-- ═══════════ NEW OVERVIEW TIER · LINE GRAPH + ROOMS ═══════════ -->
+                <!-- ═══════════ OVERVIEW TIER · LINE GRAPH ═══════════ -->
                 <div class="section-heading">Overview</div>
                 <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
-                    <div class="overview-split">
-                        <div class="overview-pane overview-pane-chart">
-                            <div class="card-white" style="height:100%;">
-                                <div class="chart-card-header">
-                                    <h3 class="chart-card-title bold">Line Graph</h3>
-                                    <div class="chart-header-actions"><span class="summary-label" id="overviewLineMetricLabel">All Metrics</span></div>
-                                </div>
-                                <div class="chart-wrapper" style="height:340px;"><canvas id="overviewLineChart"></canvas></div>
+                    <div class="overview-pane overview-pane-chart">
+                        <div class="card-white" style="height:100%;">
+                            <div class="chart-card-header">
+                                <h3 class="chart-card-title bold" id="overviewLineTitle">Line Graph</h3>
+                                <div class="chart-header-actions"><span class="summary-label" id="overviewLineMetricLabel">All Metrics</span></div>
+                            </div>
+                            <div class="chart-wrapper" style="height:340px;"><canvas id="overviewLineChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══════════ ROOM MANAGEMENT · ROOMS PANE ═══════════ -->
+                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
+                    <div class="overview-pane overview-pane-rooms">
+                        <div class="section-heading d-flex align-items-center justify-content-between room-manage-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <span>Room Management</span><span class="sub" id="roomsSelLabel"> All Rooms</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="text" id="roomSearch" class="form-control" placeholder="Search room or faculty..."
+                                    style="max-width:220px;">
+                                <button type="button" class="light expand-all-btn" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
+                                <button type="button" class="light expand-all-btn" id="selectAllRoomsBtn" title="Select / unselect all rooms"><i class="bi bi-check2-all"></i> Select all</button>
+                                <button type="button" class="light expand-all-btn" id="addRoomBtn" title="Add a new room" onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()"><i class="bi bi-plus-lg"></i> Add Room</button>
                             </div>
                         </div>
-                        <div class="overview-pane overview-pane-rooms">
-                            <div class="section-heading d-flex align-items-center justify-content-between">Room Management<span class="sub" id="roomsSelLabel"> All Rooms</span>
-                                <div class="d-flex align-items-center gap-2">
-                                    <button type="button" class="light expand-all-btn" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
-                                    <button type="button" class="light expand-all-btn" id="selectAllRoomsBtn" title="Select / unselect all rooms"><i class="bi bi-check2-all"></i> Select all</button>
-                                    <button type="button" class="light expand-all-btn" id="addRoomBtn" title="Add a new room" onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()"><i class="bi bi-plus-lg"></i> Add Room</button>
-                                </div>
-                            </div>
-                            <div class="hrooms-list" id="hroomsList">
+                        <div class="hrooms-list" id="hroomsList">
                                 <?php foreach ($rooms as $r):
                                     $live   = !empty($r['is_live']);
                                     $accent = $r['status'] === 'occupied' ? 'accent-occupied' : ($r['status'] === 'scheduled' ? 'accent-scheduled' : 'accent-vacant');
