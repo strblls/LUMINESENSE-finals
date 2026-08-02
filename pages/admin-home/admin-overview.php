@@ -386,7 +386,7 @@ for ($i = 0; $i < 10; $i++) {
                 </div>
 
                 <!-- ═══════════ OVERVIEW TIER · LINE GRAPH ═══════════ -->
-                <div class="section-heading">Overview</div>
+                <div class="section-heading mb-2">Overview</div>
                 <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
                     <div class="overview-pane overview-pane-chart">
                         <div class="card-white" style="height:100%;">
@@ -400,7 +400,7 @@ for ($i = 0; $i < 10; $i++) {
                 </div>
 
                 <!-- ═══════════ ROOM MANAGEMENT · ROOMS PANE ═══════════ -->
-                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
+                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-1);">
                     <div class="overview-pane overview-pane-rooms">
                         <div class="section-heading d-flex align-items-center justify-content-between room-manage-header">
                             <div class="d-flex align-items-center gap-2">
