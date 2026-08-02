@@ -25,6 +25,7 @@ function updateBadge(id, ok) {
 
     async function fetchStatus() {
         try {
+            if (!CLASSROOM_ID) return;
             const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
             if (!res.ok) return;
             const data = await res.json();
@@ -91,6 +92,7 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
 
     async function fetchLocks() {
         try {
+            if (!CLASSROOM_ID) return;
             const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}&check_lock=1`);
             if (!res.ok) return;
             const data = await res.json();
@@ -149,6 +151,7 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
 
     function flushGestureEvents() {
         if (gestureEvents.length === 0) return;
+        if (!CLASSROOM_ID) { gestureEvents = []; return; }
         var batch = gestureEvents.splice(0);
         var form = new FormData();
         form.append('classroom_id', CLASSROOM_ID);
@@ -166,6 +169,7 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
 
     async function fetchGestureStatus() {
         try {
+            if (!CLASSROOM_ID) return;
             const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
             if (!res.ok) return;
             const data = await res.json();
@@ -211,6 +215,7 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
 
     async function fetchActivities() {
         try {
+            if (!CLASSROOM_ID) return;
             const res = await fetch(`../../api/activity-logs.php?classroom_id=${CLASSROOM_ID}`);
             if (!res.ok) return;
             const data = await res.json();

@@ -3,15 +3,15 @@
         const isHead = !!(window.lumiIsHead);
         const map = isHead
             ? {
-                'faculty-home.php'           => 0,
-                'faculty-timetable.php'      => 1,
-                'faculty-head-timetable.php' => 2,
-                'faculty-profile-settings.php' => 3,
+                'faculty-home.php': 0,
+                'faculty-timetable.php': 1,
+                'faculty-head-timetable.php': 2,
+                'faculty-profile-settings.php': 3,
             }
             : {
-                'faculty-home.php'           => 0,
-                'faculty-timetable.php'      => 1,
-                'faculty-profile-settings.php' => 2,
+                'faculty-home.php': 0,
+                'faculty-timetable.php': 1,
+                'faculty-profile-settings.php': 2,
             };
         const index = map[page];
         if (index !== null && index !== undefined) {

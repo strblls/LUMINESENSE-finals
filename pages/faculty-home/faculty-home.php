@@ -1006,15 +1006,15 @@ $lighting_blocked = $lighting_reason !== null;
         </div>
     </div>
 
+    <?php include __DIR__ . "/../../src/Includes/faculty-sidebar.php"; ?>
+    </div>
+    </div>
+</div>
+
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
     <script src="../../js/lib/tooltip.js"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
-
-        <?php include __DIR__ . "/../../src/Includes/faculty-sidebar.php"; ?>
-    </div>
-    </div>
-</div>
 </body>
 
 </html>
