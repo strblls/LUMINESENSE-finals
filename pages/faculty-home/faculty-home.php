@@ -60,6 +60,69 @@ $sched_res = $conn->query("
 if ($sched_res) {
     while ($srow = $sched_res->fetch_assoc()) $schedules[] = $srow;
 }
+
+// Handle end early POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['end_early'])) {
+    $sched_id = (int)$_POST['end_early'];
+
+    $stmt = $conn->prepare("
+        SELECT s.classroom_id, c.room_name
+        FROM schedules s
+        JOIN classrooms c ON c.id = s.classroom_id
+        WHERE s.id = ? AND s.faculty_id = ?
+    ");
+    $stmt->bind_param('ii', $sched_id, $faculty_id);
+    $stmt->execute();
+    $stmt->bind_result($cid, $room_name);
+    $has_row = $stmt->fetch();
+    $stmt->close();
+
+    if ($has_row && $cid) {
+        $conn->query("UPDATE schedules SET extended_until = CURTIME() WHERE id = $sched_id");
+        $conn->query("UPDATE classrooms SET light_status = 'off', row1_status = 'off', row2_status = 'off', row3_status = 'off', schedule_dirty = 1 WHERE id = $cid");
+        $conn->query("INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by) VALUES ($cid, $faculty_id, 'off', 'faculty_end_early')");
+        $conn->query("INSERT INTO class_logs (classroom_id, event_type, triggered_by, notes) VALUES ($cid, 'class_end', 'faculty_end_early', 'Schedule ended early by faculty')");
+
+        $_SESSION['timetable_success'] = "Class in {$room_name} ended early.";
+    } else {
+        $_SESSION['timetable_error'] = 'Schedule not found or access denied.';
+    }
+
+    header('Location: faculty-home.php');
+    exit;
+}
+
+// ── Classroom light_status ────────────────────────────────────────────────────
+$light_status = 'off';
+$row1_status = 'off';
+$row2_status = 'off';
+$row3_status = 'off';
+$stmt = $conn->prepare("SELECT light_status, row1_status, row2_status, row3_status FROM classrooms WHERE id = ? LIMIT 1");
+$stmt->bind_param('i', $classroom_id);
+$stmt->execute();
+$stmt->bind_result($light_status, $row1_status, $row2_status, $row3_status);
+$stmt->fetch();
+$stmt->close();
+
+// ── Masked email helper ───────────────────────────────────────────────────────
+function mask_email(string $email): string
+{
+    [$local, $domain] = explode('@', $email, 2);
+    $visible = min(2, strlen($local));
+    return substr($local, 0, $visible) . str_repeat('*', max(1, strlen($local) - $visible)) . '@' . $domain;
+}
+
+// ── Overlay hierarchy helper ──────────────────────────────────────────────────
+function get_overlay_reason($has_sched, $permitted, $active) {
+    if (!$has_sched) return 'no_schedule';
+    if (!$permitted) return 'admin_restricted';
+    if (!$active)    return 'schedule_ended';
+    return null;
+}
+$gesture_reason   = get_overlay_reason($has_any_schedule, $permissions['gesture_control'],  $active_schedule);
+$lighting_reason  = get_overlay_reason($has_any_schedule, $permissions['lighting_control'], $active_schedule);
+$gesture_blocked  = $gesture_reason !== null;
+$lighting_blocked = $lighting_reason !== null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -85,6 +148,408 @@ if ($sched_res) {
 
     <div class="d-flex flex-row" style="width:100%;flex:1;position:relative;">
         <div class="child-container gap-3" style="flex:1;min-width:0;">
+
+            <div class="main-container homepage gap-3">
+
+                <!-- COLUMN 1 - GESTURE DETECTION -->
+                <div class="group-container gap-3">
+
+                    <!-- Gesture Detection -->
+                    <div id="gestureSection" style="background-color: #f8f9fa;" class="section-container p-2">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">Gesture Detection</h2>
+                            </div>
+                            <div class="d-flex mx-2 align-items-end gap-1">
+                                <button class="light" id="refreshBtn" title="Refresh" data-bs-toggle="tooltip">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <button class="light" data-bs-toggle="modal" data-bs-target="#gestureHelpModal" title="Gesture Guide" data-bs-tooltip>
+                                    <i class="bi bi-question-circle"></i>
+                                </button>
+                                <button class="light" id="gestureMaximizeBtn" onclick="toggleGestureMaximize()" title="Maximize" data-bs-toggle="tooltip">
+                                    <i class="bi bi-arrows-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="gestureControlsWrapper" style="position: relative;">
+                            <div id="gestureControlsContent"
+                                <?= $gesture_blocked ? 'style="filter:blur(6px);pointer-events:none;"' : '' ?>>
+
+                                <!-- Camera feed -->
+                                <div class="gesture-camera d-flex flex-row align-items-center justify-content-center"
+                                    style="position: relative;">
+                                    <button id="enableCameraBtn" class="btn btn-primary btn-sm" style="z-index: 10;" <?= $gesture_blocked ? 'disabled title="No active schedule"' : '' ?>>
+                                        <i class="bi bi-camera-video me-1"></i>Enable Camera
+                                    </button>
+                                    <button id="disableCameraBtn" class="btn btn-secondary btn-sm"
+                                        style="display:none; position: absolute; bottom: 8px; right: 8px; z-index: 10;">
+                                        <i class="bi bi-camera-video-off me-1"></i>Disable Camera
+                                    </button>
+                                    <video id="webcamVideo" autoplay playsinline
+                                        style="display:none; width:100%; height:100%; object-fit:cover; border-radius:8px; transform: scaleX(-1);"></video>
+                                    <canvas id="webcamCanvas"
+                                        style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:8px; pointer-events:none; transform: scaleX(-1);"></canvas>
+                                </div>
+
+                                <!-- Row selector pills + result + accuracy -->
+                                <div class="gesture-response d-flex px-2 flex-column align-items-start justify-content-start gap-2">
+
+                                    <!-- Row indicator pills -->
+                                    <div class="gesture-row-pills w-100 d-flex justify-content-center gap-2 mt-1">
+                                        <span class="gesture-row-pill" id="rowPill1" data-row="1">Row 1</span>
+                                        <span class="gesture-row-pill" id="rowPill2" data-row="2">Row 2</span>
+                                        <span class="gesture-row-pill" id="rowPill3" data-row="3">Row 3</span>
+                                    </div>
+
+                                    <!-- Result label -->
+                                    <div class="d-flex align-items-center gap-1">
+                                        <span class="text-muted" style="font-size:0.85rem;">Detected:</span>
+                                        <span class="bold mx-1" id="gestureResult">&mdash;</span>
+                                    </div>
+
+                                    <!-- Gesture image (visible only when maximized) -->
+                                    <div id="gestureImageContainer" class="gesture-image-container w-100" style="display:none;">
+                                        <div class="gesture-list-heading" id="gestureListHeading">Available Gestures</div>
+                                        <div id="gestureImageList" class="gesture-image-list">
+                                            <div class="gesture-list-item" data-gesture="Pointing_Up">
+                                                <img src="../../images/pointing-up.png" alt="Pointing Up">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Pointing Up</span>
+                                                    <span class="gesture-list-desc">Toggle Row 1 ON/OFF</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="Victory">
+                                                <img src="../../images/victory.png" alt="Victory">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Victory</span>
+                                                    <span class="gesture-list-desc">Toggle Row 2 ON/OFF</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="ILoveYou">
+                                                <img src="../../images/ily.png" alt="I Love You">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">I Love You</span>
+                                                    <span class="gesture-list-desc">Toggle Row 3 ON/OFF</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="Open_Palm">
+                                                <img src="../../images/open-palm.png" alt="Open Palm">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Open Palm</span>
+                                                    <span class="gesture-list-desc">Turn all lights ON</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="Closed_Fist">
+                                                <img src="../../images/closed-fist.png" alt="Closed Fist">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Closed Fist</span>
+                                                    <span class="gesture-list-desc">Turn all lights OFF</span>
+                                                </div>
+                                            </div>
+                                            <div class="gesture-list-item" data-gesture="Thumb_Up">
+                                                <img src="../../images/thumbs-up.png" alt="Thumbs Up">
+                                                <div class="gesture-list-info">
+                                                    <span class="gesture-list-name">Thumbs Up</span>
+                                                    <span class="gesture-list-desc">Confirm pending action</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <img id="gestureImage" src="" alt="Detected gesture" style="display:none;">
+                                    </div>
+
+                                    <!-- Action buttons -->
+                                    <div class="w-100 d-flex justify-content-center">
+                                        <div class="gesture-toggle-group d-flex">
+                                            <button class="light toggle-btn active" id="chromaKeyToggle" onclick="toggleChromaKey()" title="Highlight hand and dim the background - On by default" data-bs-toggle="tooltip" data-bs-placement="top">
+                                                <i class="bi bi-brightness-high me-1"></i> Chroma
+                                            </button>
+                                            <button class="light toggle-btn active" id="enhanceToggle" onclick="toggleEnhance()" title="Boost contrast, brightness &amp; saturation - On by default" data-bs-toggle="tooltip" data-bs-placement="top">
+                                                <i class="bi bi-sliders me-1"></i> Enhance
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <!-- Gesture overlay (hierarchy: no_schedule > admin_restricted > schedule_ended) -->
+                            <div id="gestureScheduleOverlay" class="schedule-ended-overlay" <?= $gesture_reason ? '' : 'style="display:none;"' ?>>
+                                <div class="schedule-ended-modal" id="gestNoSched" style="display:<?= $gesture_reason === 'no_schedule' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-calendar-x schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">No Schedule Assigned</h5>
+                                    <p class="schedule-ended-text">You don't have a schedule yet. Please contact your Faculty Head to get assigned.</p>
+                                </div>
+                                <div class="schedule-ended-modal" id="gestAdminRestr" style="display:<?= $gesture_reason === 'admin_restricted' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-shield-lock schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">Access Restricted</h5>
+                                    <p class="schedule-ended-text">Your access has been restricted by the administrator.</p>
+                                </div>
+                                <div class="schedule-ended-modal" id="gestSchedEnded" style="display:<?= $gesture_reason === 'schedule_ended' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-lock-fill schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">Access Locked</h5>
+                                    <p class="schedule-ended-text">Your schedule has ended. Controls are now locked.</p>
+                                </div>
+                            </div>
+                            <!-- Gesture PIN overlay (when active + PIN set + not yet verified) -->
+                            <div id="gesturePinOverlay" class="schedule-ended-overlay" style="display:none;">
+                                <div class="schedule-ended-modal">
+                                    <i class="bi bi-shield-lock schedule-ended-icon" style="color:var(--secondary-color-4);"></i>
+                                    <h5 class="schedule-ended-title">PIN Required</h5>
+                                    <p class="schedule-ended-text">Enter your PIN to access Gesture Control.</p>
+                                    <div class="mt-2 d-flex flex-column align-items-center gap-1">
+                                        <input type="password" class="form-control text-center pin-input" maxlength="4" pattern="\d*" inputmode="numeric" placeholder="****">
+                                        <span class="text-danger small pin-error"></span>
+                                        <button class="light pin-submit-btn">Unlock</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Gesture loading overlay (shown while AI model + landmarks initialize) -->
+                            <div id="gestureLoadingOverlay" class="gesture-loading-overlay" style="display:none;">
+                                <div class="gesture-loading-spinner">
+                                    <div class="spinner-border text-light" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span>Preparing gesture control...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Status -->
+                    <div style="background-color: #f8f9fa;" class="section-container p-2">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">System Status</h2>
+                            </div>
+                        </div>
+                        <div class="activity-list system-status px-2 gap-2 max-width">
+                            <?php
+                            $statuses = [
+                                ['label' => 'Server',         'id' => 'statusServer',   'ok' => true,                          'ok_text' => 'Connected',           'fail_text' => 'Disconnected'],
+                                ['label' => 'Lighting System', 'id' => 'statusLighting', 'ok' => ($light_status === 'on'),      'ok_text' => 'Active',              'fail_text' => 'No active lights'],
+                                ['label' => 'Webcam',         'id' => 'statusWebcam',   'ok' => false,                         'ok_text' => 'Active',              'fail_text' => 'Disabled'],
+                                ['label' => 'PIR Sensor',     'id' => 'statusPIR',      'ok' => false,                         'ok_text' => 'Detecting motion',    'fail_text' => 'No motion detected'],
+                            ];
+                            foreach ($statuses as $s):
+                                $bg_color = $s['ok'] ? '#f9edfa' : '#2f004f';
+                                $text_color = $s['ok'] ? '#2f004f' : '#ffffff';
+                            ?>
+                                <div class="d-flex justify-content-between align-items-center py-1" style="border-bottom:1px solid #eee;">
+                                    <h5 class="mb-0" style="font-size:13px;"><?= $s['label'] ?></h5>
+                                    <span id="<?= $s['id'] ?>" data-ok-text="<?= $s['ok_text'] ?>" data-fail-text="<?= $s['fail_text'] ?>"
+                                        style="font-size:12px; padding:2px 10px; border-radius:20px; font-weight:600;
+                                        background:<?= $bg_color ?>;
+                                        color:<?= $text_color ?>;">
+                                        <?= $s['ok'] ? $s['ok_text'] : $s['fail_text'] ?>
+                                    </span>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div><!-- /col 1 -->
+
+                <!-- COLUMN 2 - LIGHTING -->
+                <div class="group-container gap-3">
+
+                    <!-- Lighting Grid -->
+                    <div style="background-color: #f8f9fa;" class="fit-width section-container p-2">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">Lighting Grid</h2>
+                            </div>
+                        </div>
+                        <?php
+                        $b1 = ($row1_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
+                        $b2 = ($row2_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
+                        $b3 = ($row3_status === 'on' && $active_schedule) ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
+                        ?>
+                        <!-- Lighting controls container -->
+                        <div id="lightingControlsWrapper" style="position: relative;">
+                            <div class="d-flex flex-row align-items-center justify-content-center" id="lightingControlsContent"
+                                <?= $lighting_blocked ? 'style="filter:blur(6px);pointer-events:none;"' : '' ?>>
+                            <div class="lighting-grid">
+                                <img src="<?= $b1 ?>" class="bulb-img" data-row="1">
+                                <img src="<?= $b1 ?>" class="bulb-img" data-row="1">
+                                <img src="<?= $b1 ?>" class="bulb-img" data-row="1">
+                                <hr class="w-100">
+                                <img src="<?= $b2 ?>" class="bulb-img" data-row="2">
+                                <img src="<?= $b2 ?>" class="bulb-img" data-row="2">
+                                <img src="<?= $b2 ?>" class="bulb-img" data-row="2">
+                                <hr class="w-100">
+                                <img src="<?= $b3 ?>" class="bulb-img" data-row="3">
+                                <img src="<?= $b3 ?>" class="bulb-img" data-row="3">
+                                <img src="<?= $b3 ?>" class="bulb-img" data-row="3">
+                                <hr class="w-100">
+                            </div>
+                            <div class="p-3">
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <label class="form-check-label" for="row-1-switch">Row 1</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="row-1-switch"
+                                            <?= ($row1_status === 'on' && $active_schedule) ? 'checked' : '' ?>
+                                            <?= $lighting_blocked ? 'disabled' : '' ?>>
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <label class="form-check-label" for="row-2-switch">Row 2</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="row-2-switch"
+                                            <?= ($row2_status === 'on' && $active_schedule) ? 'checked' : '' ?>
+                                            <?= $lighting_blocked ? 'disabled' : '' ?>>
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <label class="form-check-label" for="row-3-switch">Row 3</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="row-3-switch"
+                                            <?= ($row3_status === 'on' && $active_schedule) ? 'checked' : '' ?>
+                                            <?= $lighting_blocked ? 'disabled' : '' ?>>
+                                    </div>
+                                </div>
+                                <br>
+                                <div class="d-flex flex-column align-items-center gap-1">
+                                    <h5 class="bold">All Lights</h5>
+                                    <h4 id="allLightsStatus"
+                                        class="bold <?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?>">
+                                        <?= ($light_status === 'on' && $active_schedule) ? 'ON' : 'OFF' ?>
+                                    </h4>
+                                    <div id="allLightsContainer"
+                                        class="all-lights-<?= ($light_status === 'on' && $active_schedule) ? 'on' : 'off' ?>"
+                                        style="display:flex; align-items:center; justify-content:center; <?= $lighting_blocked ? 'pointer-events:none; opacity:0.4;' : '' ?>">
+                                        <i class="bi bi-power" id="all-lights" style="line-height:1; display:flex; align-items:center; justify-content:center;"></i>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                            <!-- Lighting overlay (hierarchy: no_schedule > admin_restricted > schedule_ended) -->
+                            <div id="scheduleEndOverlay" class="schedule-ended-overlay" <?= $lighting_reason ? '' : 'style="display:none;"' ?>>
+                                <div class="schedule-ended-modal" id="lightNoSched" style="display:<?= $lighting_reason === 'no_schedule' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-calendar-x schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">No Schedule Assigned</h5>
+                                    <p class="schedule-ended-text">You don't have a schedule yet. Please contact your Faculty Head to get assigned.</p>
+                                </div>
+                                <div class="schedule-ended-modal" id="lightAdminRestr" style="display:<?= $lighting_reason === 'admin_restricted' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-shield-lock schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">Access Restricted</h5>
+                                    <p class="schedule-ended-text">Your access has been restricted by the administrator.</p>
+                                </div>
+                                <div class="schedule-ended-modal" id="lightSchedEnded" style="display:<?= $lighting_reason === 'schedule_ended' ? 'block' : 'none' ?>">
+                                    <i class="bi bi-lock-fill schedule-ended-icon"></i>
+                                    <h5 class="schedule-ended-title">Access Locked</h5>
+                                    <p class="schedule-ended-text">Your schedule has ended. Controls are now locked.</p>
+                                </div>
+                            </div>
+                            <!-- Lighting PIN overlay (when active + PIN set + not yet verified) -->
+                            <div id="lightingPinOverlay" class="schedule-ended-overlay" style="display:none;">
+                                <div class="schedule-ended-modal">
+                                    <i class="bi bi-shield-lock schedule-ended-icon" style="color:var(--secondary-color-4);"></i>
+                                    <h5 class="schedule-ended-title">PIN Required</h5>
+                                    <p class="schedule-ended-text">Enter your PIN to access Lighting Control.</p>
+                                    <div class="mt-2 d-flex flex-column align-items-center gap-1">
+                                        <input type="password" class="form-control text-center pin-input" maxlength="4" pattern="\d*" inputmode="numeric" placeholder="****">
+                                        <span class="text-danger small pin-error"></span>
+                                        <button class="light pin-submit-btn">Unlock</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div><!-- /col 2 -->
+
+                <!-- COLUMN 3 - TIME LEFT + RECENT ACTIVITIES -->
+                <div class="group-container recent-activities gap-3">
+
+                    <!-- Time Left (moved from Column 2) -->
+                    <div style="background-color: #f8f9fa;" class="section-container">
+                        <div class="gap-1 align-items-center">
+                            <div class="section-topbar mx-2 justify-content-between">
+                                <div>
+                                    <h2 class="bold">Time Left</h2>
+                                    <h2 class="medium fs-6">until end of class</h2>
+                                </div>
+
+                            </div>
+                            <div class="subsection-container d-flex flex-column mx-1 align-items-center justify-content-center">
+                                <?php if ($active_schedule): ?>
+                                    <?php
+                                    $end = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
+                                    ?>
+                                    <h1 class="bold display-1 p-2" id="timerDisplay" style="color: var(--secondary-color-2);" data-end="<?= htmlspecialchars($end) ?>" >
+                                        --:--:--
+                                    </h1>
+                                <?php else: ?>
+                                    <h1 class="bold display-1 p-2" id="timerDisplay" style="color: var(--secondary-color-2);">00:00:00</h1>
+                                <?php endif; ?>
+                            </div>
+                            <div class="d-flex flex-row flex-nowrap mx-2 align-items-center justify-content-center gap-2">
+                                <?php if ($active_schedule): ?>
+                                    <button class="light text-nowrap" data-bs-toggle="modal" data-bs-target="#extendModal">
+                                        <i class="bi bi-clock-history me-1"></i> Extend
+                                    </button>
+                                    <button class="danger text-nowrap" onclick="openEndEarlyModal(<?= $active_schedule['id'] ?>, '<?= htmlspecialchars($active_schedule['room_name']) ?>')">
+                                        <i class="bi bi-stop-circle me-1"></i> End Early
+                                    </button>
+                                <?php endif; ?>
+                                    <button class="light text-nowrap" data-bs-toggle="modal" onclick="dissolve('faculty-timetable.php')">View Schedule</button>
+                            </div>
+                        </div>
+
+                        <?php if (!$active_schedule): ?>
+                            <p class="text-muted text-center mt-2 mb-1">No active class schedule right now.</p>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Recent Activities -->
+                    <div style="background-color: #f8f9fa;" class="section-container recents" style="min-height: 420px;">
+                        <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
+                            <div class="d-flex mx-2 align-items-start">
+                                <h2 class="bold">Recent Activities</h2>
+                            </div>
+                            <div class="d-flex mx-2 align-items-end">
+                                <button class="light mx-2" data-bs-toggle="modal"
+                                    data-bs-target="#activityDetailsModal">Details</button>
+                            </div>
+                        </div>
+                        <div class="gap-2">
+                            <div class="activity-list px-2 max-width" id="activityTimeline">
+                                <?php if (empty($logs)): ?>
+                                    <p class="text-muted">No recent activity yet.</p>
+                                    <?php else:
+                                    foreach ($logs as $log):
+                                        $iconData = faculty_activity_icon($log);
+                                    ?>
+                                        <div class="timeline-item">
+                                            <div class="tl-icon" style="background:<?= $iconData['bg'] ?>; color:<?= $iconData['color'] ?>;">
+                                                <i class="bi <?= $iconData['icon'] ?>"></i>
+                                            </div>
+                                            <div class="tl-body">
+                                                <p class="tl-action">
+                                                    <?= htmlspecialchars($iconData['label']) ?>
+                                                    <?php if (!empty($log['room_name'])): ?>
+                                                        &mdash; <span style="color:var(--secondary-color-3);"><?= htmlspecialchars($log['room_name']) ?></span>
+                                                    <?php endif; ?>
+                                                </p>
+                                                <div class="tl-meta" style="flex-wrap: wrap; row-gap: 2px;">
+                                                    <span><i class="bi bi-clock"></i> <?= date('g:i A', strtotime($log['event_time'])) ?>, <?= date('M j', strtotime($log['event_time'])) ?></span>
+                                                    <?php if (!empty($log['triggered_by'])): ?>
+                                                        <span><i class="bi bi-toggle-on"></i> <?= htmlspecialchars(ucfirst($log['triggered_by'])) ?></span>
+                                                    <?php endif; ?>
+                                                    <span class="tl-type-badge" style="background:<?= $iconData['typeBg'] ?>; color:<?= $iconData['typeClr'] ?>;"><?= $iconData['typeLabel'] ?></span>
+                                                </div>
+                                                <?php if (!empty($iconData['notes'])): ?>
+                                                    <span class="tl-notes"><i class="bi bi-chat-left-text me-1"></i><?= htmlspecialchars($iconData['notes']) ?></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div> <?php endforeach;
+                                        endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!-- /col 3 -->
+
+            </div>
 
     <link rel="stylesheet" href="../../css/pages/faculty-home.css">
 
