@@ -90,19 +90,25 @@
 }
 
 .hroom-row .room-card-body {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+        "header spark"
+        "expand expand"
+        "actions actions";
+    gap: 8px;
+    padding: 12px 16px 10px;
     flex: 1;
     min-width: 0;
-    padding: 12px 16px 10px;
-    gap: 8px;
 }
 
 .hroom-row .room-card-header {
+    grid-area: header;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: flex-start;
+    justify-content: flex-start;
     gap: 10px;
+    min-width: 0;
 }
 
 .hroom-row .room-card-name {
@@ -131,11 +137,13 @@
     flex-shrink: 0;
 }
 
-/* Sparkline centered in the middle of the room-card-header */
+/* Sparkline — sits in the header row (right side) pre-hover, moves to the bottom on hover */
 .hroom-spark {
-    flex-shrink: 0;
-    width: 90px;
+    grid-area: spark;
+    min-width: 0;
+    width: 100%;
     height: 40px;
+    align-self: center;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -143,6 +151,7 @@
     background: #fbf9fe;
     border-radius: 8px;
     border: 1px solid #ece4f4;
+    transition: height .3s ease, grid-template-areas .3s ease;
 }
 
 .hroom-spark canvas {
@@ -152,6 +161,7 @@
 
 /* Expandable details — hidden until hover, like the room slicers */
 .hroom-row .room-expand {
+    grid-area: expand;
     max-height: 0;
     opacity: 0;
     overflow: hidden;
@@ -168,6 +178,49 @@
     opacity: 1;
     padding: 0.4rem 0 0.4rem 0;
     pointer-events: auto;
+}
+
+/* Hover: badge back to the right of the header, sparkline to the bottom, actions shown */
+.hroom-row:hover .room-card-body,
+.hrooms-list.expanded .hroom-row .room-card-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "header"
+        "expand"
+        "spark"
+        "actions";
+}
+
+.hroom-row:hover .room-card-header,
+.hrooms-list.expanded .hroom-row .room-card-header {
+    justify-content: space-between;
+}
+
+.hroom-row:hover .hroom-spark,
+.hrooms-list.expanded .hroom-row .hroom-spark {
+    height: 60px;
+    width: 100%;
+    align-self: stretch;
+}
+
+.hroom-row .room-card-actions {
+    grid-area: actions;
+    display: none;
+    gap: 8px;
+    padding: 0;
+    align-items: center;
+}
+
+.hroom-row:hover .room-card-actions,
+.hrooms-list.expanded .hroom-row .room-card-actions {
+    display: flex;
+}
+
+.hroom-row .room-card-actions .light {
+    flex: 1;
+    margin: 0;
+    padding: 4px 0;
+    width: auto;
 }
 
 /* Compact device strip reuse */
@@ -196,8 +249,8 @@
 
 /* Faculty / next-class rows inside the expand */
 .hroom-row .dept-info-card.room-info-row {
-    font-size: 11.5px;
-    padding: 3px 6px;
+    font-size: 13.48px;
+    padding: 15px 6px;
 }
 
 .hroom-row .dept-info-card.room-info-row i {

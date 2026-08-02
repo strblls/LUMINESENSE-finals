@@ -421,9 +421,9 @@ for ($i = 0; $i < 10; $i++) {
                                                         <?php if (!empty($r['description'])): ?> &middot; <?= h($r['description']) ?><?php endif; ?>
                                                     </div>
                                                 </div>
-                                                <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                                 <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
                                             </div>
+                                            <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                             <div class="room-expand">
                                                 <div class="device-strip">
                                                     <div class="dev-left">
@@ -444,16 +444,29 @@ for ($i = 0; $i < 10; $i++) {
                                                         <?php endfor; ?>
                                                     </div>
                                                 </div>
-                                                <div class="dept-info-card room-info-row">
+                                                <div class="dept-info-card room-info-row mb-2">
                                                     <i class="bi bi-person-fill"></i>
                                                     <span class="room-info-label">Faculty:</span>
                                                     <span class="room-info-val"><?= h($fac) ?></span>
                                                 </div>
-                                                <div class="dept-info-card room-info-row">
+                                                <div class="dept-info-card room-info-row mb-2">
                                                     <i class="bi bi-clock-fill"></i>
                                                     <span class="room-info-label"><?= $timeLabel ?></span>
                                                     <span class="room-info-val"><?= h($timeVal) ?></span>
                                                 </div>
+                                            </div>
+                                            <div class="room-card-actions">
+                                                <div class="d-flex align-items-center room-icons gap-1">
+                                                    <button class="btn-icon btn-icon-edit" title="Edit"
+                                                        onclick="openEditModal(<?= $r['id'] ?>, '<?= h(addslashes($r['room_name'])) ?>', '<?= h($r['room_size']) ?>', '<?= h(addslashes($r['description'])) ?>')">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button class="btn-icon btn-icon-del" title="Delete"
+                                                        onclick="openDeleteModal(<?= $r['id'] ?>, '<?= h(addslashes($r['room_name'])) ?>')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                                <button class="light" onclick="openRoomModal(<?= $r['id'] ?>)">Inspect</button>
                                             </div>
                                         </div>
                                     </div>
