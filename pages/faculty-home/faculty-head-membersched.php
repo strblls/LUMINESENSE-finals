@@ -356,7 +356,7 @@ foreach ($days as $day) {
                         <div class="day-card <?= $is_today ? 'today' : '' ?>">
                             <div class="day-label">
                                 <div class="text-uppercase small fw-bold mb-1" style="font-size:11px;letter-spacing:0.5px;color:<?= $is_today ? '#fff' : '#6c757d' ?>;"><?= $day_date_map[$day] ?? '' ?></div>
-                                <?= $day ?> <?= $is_today ? 'Â· Today' : '' ?>
+                                <?= $day ?> <?= $is_today ? '· Today' : '' ?>
                             </div>
 
                             <?php if (empty($slots)): ?>
