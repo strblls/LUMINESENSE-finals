@@ -44,6 +44,9 @@ $rooms = [
         'subject_area' => 'Sciences',
         'subject' => 'Physics',
         'spark' => [0.0, 0.1, 0.3, 0.6, 1.1, 1.9, 2.6],
+        'sparkV' => [220.5, 220.9, 221.2, 221.5, 221.8, 221.9, 222.0],
+        'sparkA' => [0.042, 0.045, 0.048, 0.050, 0.052, 0.053, 0.054],
+        'sparkW' => [5.1, 5.8, 6.4, 6.9, 7.2, 7.4, 7.6],
         'schedules' => [
             ['day_of_week' => 'Monday',    'start_time' => '10:30 AM', 'end_time' => '12:00 PM', 'faculty_name' => 'Jaz Entapa'],
             ['day_of_week' => 'Wednesday', 'start_time' => '01:00 PM', 'end_time' => '02:30 PM', 'faculty_name' => 'Jaz Entapa'],
@@ -80,6 +83,9 @@ $rooms = [
         'subject_area' => 'Vocational',
         'subject' => 'Electronics',
         'spark' => [0.4, 0.2, 0.1, 0.0, 0.3, 0.1, 0.0],
+        'sparkV' => [228.5, 229.0, 229.3, 229.6, 229.8, 230.0, 230.1],
+        'sparkA' => [0.028, 0.029, 0.029, 0.030, 0.030, 0.031, 0.031],
+        'sparkW' => [3.6, 3.8, 3.9, 4.0, 4.1, 4.2, 4.2],
         'schedules' => [
             ['day_of_week' => 'Tuesday',   'start_time' => '01:00 PM', 'end_time' => '03:00 PM', 'faculty_name' => 'August Uno'],
             ['day_of_week' => 'Thursday',  'start_time' => '01:00 PM', 'end_time' => '03:00 PM', 'faculty_name' => 'August Uno'],
@@ -114,6 +120,9 @@ $rooms = [
         'subject_area' => 'Mathematics',
         'subject' => 'Algebra',
         'spark' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        'sparkV' => [219.0, 219.5, 220.0, 220.2, 220.6, 221.0, 221.2],
+        'sparkA' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        'sparkW' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         'schedules' => [
             ['day_of_week' => 'Tuesday',  'start_time' => '08:00 AM', 'end_time' => '09:30 AM', 'faculty_name' => 'Jimar Intapa'],
             ['day_of_week' => 'Thursday', 'start_time' => '10:00 AM', 'end_time' => '11:30 AM', 'faculty_name' => 'Jimar Intapa'],
@@ -145,6 +154,9 @@ $rooms = [
         'subject_area' => 'Languages',
         'subject' => 'Literature',
         'spark' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        'sparkV' => [217.5, 218.0, 218.4, 218.8, 219.2, 219.5, 219.8],
+        'sparkA' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        'sparkW' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         'schedules' => [
             ['day_of_week' => 'Monday',   'start_time' => '07:30 AM', 'end_time' => '09:00 AM', 'faculty_name' => 'Sofia Santos'],
             ['day_of_week' => 'Friday',   'start_time' => '02:00 PM', 'end_time' => '03:30 PM', 'faculty_name' => 'Sofia Santos'],
@@ -256,10 +268,10 @@ for ($i = 0; $i < 10; $i++) {
 
     <div class="parent-container">
         <div class="child-container">
-            <div class="page-content">
+            <div>
 
                 <!-- ═══════════ MERGED HEADER BAR ═══════════ -->
-                <div class="main-container overview-heading d-flex align-items-center justify-content-between w-auto">
+                <div class="main-container overview-heading d-flex align-items-center justify-content-between w-auto p-0">
                     <div class="d-flex align-items-center gap-2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);">
                         <button type="button" class="timetable-btn ms-2" data-panel="panelGuide" title="Guide">
                             <i class="bi bi-info-lg"></i><span class="timetable-btn-title bold">Guide</span>
@@ -376,7 +388,7 @@ for ($i = 0; $i < 10; $i++) {
                 </div>
 
                 <!-- ═══════════ NEW OVERVIEW TIER · LINE GRAPH + ROOMS ═══════════ -->
-                <div class="section-heading">Overview <span class="sub">— V/A/W trend &amp; rooms at a glance</span></div>
+                <div class="section-heading">Overview</div>
                 <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
                     <div class="overview-split">
                         <div class="overview-pane overview-pane-chart">
@@ -389,8 +401,12 @@ for ($i = 0; $i < 10; $i++) {
                             </div>
                         </div>
                         <div class="overview-pane overview-pane-rooms">
-                            <div class="section-heading d-flex align-items-center justify-content-between">Room Management<span class="sub"> All Rooms</span>
-                                <button type="button" class="light expand-all-btn" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
+                            <div class="section-heading d-flex align-items-center justify-content-between">Room Management<span class="sub" id="roomsSelLabel"> All Rooms</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="light expand-all-btn" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
+                                    <button type="button" class="light expand-all-btn" id="selectAllRoomsBtn" title="Select / unselect all rooms"><i class="bi bi-check2-all"></i> Select all</button>
+                                    <button type="button" class="light expand-all-btn" id="addRoomBtn" title="Add a new room" onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()"><i class="bi bi-plus-lg"></i> Add Room</button>
+                                </div>
                             </div>
                             <div class="hrooms-list" id="hroomsList">
                                 <?php foreach ($rooms as $r):
@@ -425,7 +441,7 @@ for ($i = 0; $i < 10; $i++) {
                                             </div>
                                             <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                             <div class="room-expand">
-                                                <div class="device-strip">
+                                                <div class="device-strip mb-2">
                                                     <div class="dev-left">
                                                         <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
                                                         <?php if ($live): ?>

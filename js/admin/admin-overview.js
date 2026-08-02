@@ -51,6 +51,36 @@ function drawSpark(canvasId, data, color) {
     });
 }
 
+// ── Per-room VAW sparkline (Voltage / Current / Power, 3 lines) ────────
+function drawVawSpark(canvasId, room) {
+    const el = document.getElementById(canvasId);
+    if (!el || !window.Chart) return;
+    if (sparkCharts[canvasId]) sparkCharts[canvasId].destroy();
+    const v = (room && room.sparkV) || [];
+    const a = (room && room.sparkA) || [];
+    const w = (room && room.sparkW) || [];
+    const n = Math.max(v.length, a.length, w.length);
+    const labels = Array.from({ length: n }, (_, i) => i);
+    sparkCharts[canvasId] = new Chart(el, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { data: v, borderColor: COLORS.voltage, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
+                { data: a, borderColor: COLORS.current, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
+                { data: w, borderColor: COLORS.power, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            scales: { x: { display: false }, y: { display: false } },
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        },
+    });
+}
+
 // ── Draw all summary + per-room sparklines ──────────────────────────────
 function drawAllSparks() {
     const s = SPARK_SUMMARY || {};
@@ -66,7 +96,7 @@ function drawAllSparks() {
         drawSpark('sumSpark_' + id, s[mapping[id].key], mapping[id].color);
     });
     (ROOMS || []).forEach(room => {
-        drawSpark('sparkCanvas' + room.id, room.spark, room.is_live ? '#16a34a' : '#9f9f9f');
+        drawVawSpark('sparkCanvas' + room.id, room);
     });
 }
 
@@ -77,14 +107,16 @@ function liveRooms() {
 
 function renderLiveReadings() {
     let src = null;
-    if (currentRoomId) {
+    if (currentRoomId === 0) {
+        src = null;
+    } else if (currentRoomId) {
         src = (ROOMS || []).find(r => r.id == currentRoomId) || null;
     }
     let v = null, a = null, w = null, e = null, on = false;
     if (src) {
         v = src.voltage_v; a = src.current_a; w = src.power_w; e = src.energy_wh;
         on = src.light_status === 'on' || src.row1_status === 'on' || src.row2_status === 'on' || src.row3_status === 'on';
-    } else {
+    } else if (currentRoomId !== 0) {
         const live = liveRooms();
         const l = live.length;
         if (l) {
@@ -134,22 +166,40 @@ function buildLineChart(labels, rows) {
 }
 
 // ── Overview tier line graph (all V/A/W, like admin-analytics.php) ──────
+// Respects the room selection: all rooms → aggregate CHART_DAILY,
+// single room → that room's VAW series, none → empty.
 function buildOverviewLineChart() {
     const ctx = document.getElementById('overviewLineChart');
     if (!ctx || !window.Chart) return;
     if (overviewLineInstance) overviewLineInstance.destroy();
+
     const rows = CHART_DAILY || [];
     const labels = rows.map(r => r.label);
+    const datasets = [];
+    const selected = currentRoomId;
+    const room = selected > 0 ? (ROOMS || []).find(r => r.id == selected) : null;
+
+    if (selected === 0) {
+        // No rooms selected → empty chart
+    } else if (room) {
+        const n = Math.max((room.sparkV || []).length, (room.sparkA || []).length, (room.sparkW || []).length);
+        const pad = (arr) => { const a = (arr || []).slice(); while (a.length < n) a.push(null); return a; };
+        datasets.push(
+            { label: room.room_name + ' · Voltage (V)', data: pad(room.sparkV), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
+            { label: room.room_name + ' · Current (A)', data: pad(room.sparkA), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
+            { label: room.room_name + ' · Power (W)', data: pad(room.sparkW), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
+        );
+    } else {
+        datasets.push(
+            { label: 'Voltage (V)', data: rows.map(r => r.avg_voltage), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
+            { label: 'Current (A)', data: rows.map(r => r.avg_current), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
+            { label: 'Power (W)', data: rows.map(r => r.avg_power), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
+        );
+    }
+
     overviewLineInstance = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels,
-            datasets: [
-                { label: 'Voltage (V)', data: rows.map(r => r.avg_voltage), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
-                { label: 'Current (A)', data: rows.map(r => r.avg_current), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
-                { label: 'Power (W)', data: rows.map(r => r.avg_power), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false },
-            ],
-        },
+        data: { labels, datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -278,28 +328,60 @@ function setMetric(el, metric) {
 }
 
 // ── Room selection ───────────────────────────────────────────────────────
-function selectRoom(id, silent) {
+// currentRoomId: null = all rooms selected (default), 0 = none, >0 = single.
+function updateSelectionUI() {
+    const allSel = currentRoomId === null;
+    const noneSel = currentRoomId === 0;
+    const room = !noneSel && !allSel ? (ROOMS || []).find(r => r.id == currentRoomId) : null;
+
+    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(c => {
+        const rid = c.getAttribute('data-room-id');
+        c.classList.toggle('active-room', !noneSel && (allSel || rid == currentRoomId));
+    });
+
+    const sub = document.getElementById('tabSubheading');
+    const label = document.getElementById('roomsSelLabel');
+    if (noneSel) {
+        if (sub) sub.textContent = 'No Rooms Selected';
+        if (label) label.textContent = ' None';
+    } else if (room) {
+        if (sub) sub.textContent = room.room_name + ' Selected';
+        if (label) label.textContent = ' ' + room.room_name;
+    } else {
+        if (sub) sub.textContent = 'All Rooms Selected';
+        if (label) label.textContent = ' All Rooms';
+    }
+
+    const selBtn = document.getElementById('selectAllRoomsBtn');
+    if (selBtn) {
+        selBtn.innerHTML = allSel
+            ? '<i class="bi bi-x-lg"></i> Unselect all'
+            : '<i class="bi bi-check2-all"></i> Select all';
+        selBtn.classList.toggle('expanded', noneSel);
+    }
+
+    renderLiveReadings();
+    buildOverviewLineChart();
+}
+
+function selectRoom(id) {
     const rid = parseInt(id, 10);
     if (currentRoomId === rid) {
         deselectRoom();
         return;
     }
     currentRoomId = rid;
-    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(c => {
-        c.classList.toggle('active-room', c.getAttribute('data-room-id') == rid);
-    });
-    const room = (ROOMS || []).find(r => r.id == rid);
-    const sub = document.getElementById('tabSubheading');
-    if (sub) sub.textContent = (room ? room.room_name : 'Room') + ' Selected';
-    renderLiveReadings();
+    updateSelectionUI();
 }
 
 function deselectRoom() {
     currentRoomId = null;
-    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(c => c.classList.remove('active-room'));
-    const sub = document.getElementById('tabSubheading');
-    if (sub) sub.textContent = 'All Rooms Selected';
-    renderLiveReadings();
+    updateSelectionUI();
+}
+
+function toggleSelectAll() {
+    currentRoomId = (currentRoomId === null) ? 0 : null;
+    updateSelectionUI();
 }
 
 // ── Filters (status / dept / subject / search) ──────────────────────────
@@ -571,15 +653,14 @@ document.addEventListener('DOMContentLoaded', function () {
     renderHistoryTable();
 
     // Room selection
-    document.querySelectorAll('.spark-card, .hroom-row').forEach(card => {
-        card.addEventListener('click', () => selectRoom(card.getAttribute('data-room-id')));
-    });
-    document.querySelectorAll('.room-card').forEach(card => {
+    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(card => {
         card.addEventListener('click', (e) => {
-            if (e.target.closest('.room-icons') || e.target.closest('.light')) return;
+            if (e.target.closest('.room-icons') || e.target.closest('.light') || e.target.closest('.room-card-actions')) return;
             selectRoom(card.getAttribute('data-room-id'));
         });
     });
+    const selectAllBtn = document.getElementById('selectAllRoomsBtn');
+    if (selectAllBtn) selectAllBtn.addEventListener('click', toggleSelectAll);
 
     // Metric cards in live readings
     document.querySelectorAll('#vawGroup .live-stat-card[data-metric]').forEach(card => {
@@ -630,6 +711,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (roomModalEl) {
         roomModalEl.addEventListener('hidden.bs.modal', function () {
             currentRoomId = null;
+            updateSelectionUI();
         });
     }
 
