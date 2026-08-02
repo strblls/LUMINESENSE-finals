@@ -17,6 +17,14 @@ ini_set('display_errors', 0);
 use LumineSense\Services\Logger;
 
 set_error_handler(function (int $severity, string $message, string $file, int $line): bool {
+    // Respect @ suppression (e.g. @new mysqli(...) on DB connect failure).
+    if (error_reporting() === 0) {
+        return false;
+    }
+    // Never fatal if the logger isn't autoloadable (e.g. stale vendor/ on deploy).
+    if (!class_exists('LumineSense\\Services\\Logger')) {
+        return false;
+    }
     $map = [
         E_WARNING           => 'warning',
         E_NOTICE            => 'notice',
@@ -27,31 +35,45 @@ set_error_handler(function (int $severity, string $message, string $file, int $l
         E_RECOVERABLE_ERROR => 'error',
     ];
     $level = $map[$severity] ?? 'warning';
-    Logger::{$level}('PHP ' . strtoupper($level), [
-        'message' => $message,
-        'file'    => $file,
-        'line'    => $line,
-    ]);
+    try {
+        Logger::{$level}('PHP ' . strtoupper($level), [
+            'message' => $message,
+            'file'    => $file,
+            'line'    => $line,
+        ]);
+    } catch (\Throwable $e) {
+        // Never let the logger break the request.
+    }
     return true;
 });
 
 set_exception_handler(function (\Throwable $e): void {
-    Logger::error('Uncaught exception', [
-        'message' => $e->getMessage(),
-        'file'    => $e->getFile(),
-        'line'    => $e->getLine(),
-        'trace'   => $e->getTraceAsString(),
-    ]);
+    if (class_exists('LumineSense\\Services\\Logger')) {
+        try {
+            Logger::error('Uncaught exception', [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                'trace'   => $e->getTraceAsString(),
+            ]);
+        } catch (\Throwable $ignored) {
+        }
+    }
 });
 
 register_shutdown_function(function (): void {
     $err = error_get_last();
     if ($err !== null && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
-        Logger::critical('PHP fatal error', [
-            'message' => $err['message'],
-            'file'    => $err['file'],
-            'line'    => $err['line'],
-        ]);
+        if (class_exists('LumineSense\\Services\\Logger')) {
+            try {
+                Logger::critical('PHP fatal error', [
+                    'message' => $err['message'],
+                    'file'    => $err['file'],
+                    'line'    => $err['line'],
+                ]);
+            } catch (\Throwable $ignored) {
+            }
+        }
     }
 });
 

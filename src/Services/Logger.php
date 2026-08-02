@@ -5,6 +5,7 @@ use Monolog\Level;
 use Monolog\Logger as MonologLogger;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Handler\StreamHandler;
+use Monolog\Handler\NullHandler;
 
 /**
  * Logger.php
@@ -14,6 +15,11 @@ use Monolog\Handler\StreamHandler;
  * Writes to logs/app.log with daily rotation (30 days kept),
  * plus a separate error.log for warnings and above so errors
  * are easy to tail/filter.
+ *
+ * FAIL-SAFE: if the log directory can't be created/written
+ * (e.g. read-only hosting), it silently falls back to a
+ * NullHandler so logging can NEVER cause a 500 or break a
+ * request.
  *
  * Usage from anywhere (autoloaded via PSR-4):
  *   LumineSense\Services\Logger::error('message', ['ctx' => $x]);
@@ -30,17 +36,25 @@ final class Logger
             return self::$instance;
         }
 
-        $logDir = __DIR__ . '/../../logs';
-        if (!is_dir($logDir)) {
-            @mkdir($logDir, 0775, true);
-        }
-
         $logger = new MonologLogger('luminesense');
 
-        // Daily-rotating full log (all levels)
-        $logger->pushHandler(new RotatingFileHandler($logDir . '/app.log', 30, Level::Debug));
-        // Error-only log, separate file
-        $logger->pushHandler(new StreamHandler($logDir . '/error.log', Level::Warning));
+        try {
+            $logDir = __DIR__ . '/../../logs';
+            if (!is_dir($logDir)) {
+                @mkdir($logDir, 0775, true);
+            }
+            if (!is_writable($logDir)) {
+                throw new \RuntimeException('Log directory not writable: ' . $logDir);
+            }
+
+            // Daily-rotating full log (all levels)
+            $logger->pushHandler(new RotatingFileHandler($logDir . '/app.log', 30, Level::Debug));
+            // Error-only log, separate file
+            $logger->pushHandler(new StreamHandler($logDir . '/error.log', Level::Warning));
+        } catch (\Throwable $e) {
+            // Never let logging break the app — write to PHP's own error log as a last resort.
+            $logger->pushHandler(new NullHandler(Level::Debug));
+        }
 
         self::$instance = $logger;
         return $logger;
@@ -48,10 +62,14 @@ final class Logger
 
     public static function __callStatic(string $method, array $arguments): void
     {
-        if (!method_exists(self::instance(), $method)) {
-            return;
+        try {
+            $logger = self::instance();
+            if (method_exists($logger, $method)) {
+                $logger->{$method}(...$arguments);
+            }
+        } catch (\Throwable $e) {
+            // Ignore logging failures entirely.
         }
-        self::instance()->{$method}(...$arguments);
     }
 
     public static function setLogger(MonologLogger $logger): void
