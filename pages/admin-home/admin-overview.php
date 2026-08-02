@@ -375,9 +375,9 @@ for ($i = 0; $i < 10; $i++) {
                             <div class="d-flex align-items-center gap-2">
                                 <input type="text" id="roomSearch" class="form-control" placeholder="Search room or faculty..."
                                     style="max-width:220px;">
-                                <button type="button" class="light expand-all-btn" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
-                                <button type="button" class="light expand-all-btn" id="selectAllRoomsBtn" title="Select / unselect all rooms"><i class="bi bi-check2-all"></i> Select all</button>
-                                <button type="button" class="medium expand-all-btn" id="addRoomBtn" title="Add a new room" onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()"><i class="bi bi-plus-lg"></i> Add Room</button>
+                                <button type="button" class="light expand-all-btn w-auto" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
+                                <button type="button" class="light expand-all-btn w-auto" id="selectAllRoomsBtn" title="Select / unselect all rooms"><i class="bi bi-check2-all"></i> Select all</button>
+                                <button type="button" class="medium" id="addRoomBtn" title="Add a new room" onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()"><i class="bi bi-plus-lg"></i> Add Room</button>
                             </div>
                         </div>
                         <div class="hrooms-list" id="hroomsList">
