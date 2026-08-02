@@ -1,0 +1,405 @@
+/* ══════════════════════════════════════════════════════════════
+   admin/overview.css  —  Combined "Rooms & Analytics" page
+   Scoped additions layered on top of room-manage.css + analytics.css
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Page header (merged single heading bar) ── */
+.overview-heading {
+    position: relative;
+    background-color: var(--secondary-color-2);
+    border-radius: 12px;
+    margin-bottom: 1rem !important;
+}
+
+.overview-heading .timetable-btn {
+    color: #fff;
+}
+
+.overview-heading .timetable-btn:hover {
+    color: var(--accent-yellow);
+}
+
+.overview-title-band {
+    color: #fff;
+    background-color: var(--secondary-color-1);
+    border-radius: 5px;
+    overflow: hidden;
+    padding: 8px 24px;
+    text-align: center;
+    min-width: 260px;
+}
+
+.overview-title-band h2 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.overview-title-band p {
+    font-size: 12px;
+    color: var(--accent-yellow);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin: 0;
+}
+
+/* ── Section headings ── */
+.section-heading .sub {
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+/* ── Summary quick cards with spark trends ── */
+.summary-sparks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.summary-spark-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px 14px 8px;
+    box-shadow: 0 4px 18px rgba(47, 0, 79, 0.10);
+    border-top: 4px solid var(--secondary-color-2);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.summary-spark-card .spark-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--muted);
+}
+
+.summary-spark-card .spark-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.summary-spark-card .spark-sub {
+    font-size: 10px;
+    color: var(--muted-dark);
+}
+
+.summary-spark-card .spark-canvas-wrap {
+    height: 34px;
+    width: 100%;
+}
+
+.summary-spark-card .spark-canvas-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ── Per-room spark strip ── */
+.rooms-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 14px;
+}
+
+.spark-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 4px 18px rgba(47, 0, 79, 0.10);
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease, border-color .18s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.spark-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 26px rgba(47, 0, 79, 0.18);
+}
+
+.spark-card.active-room {
+    border-color: var(--secondary-color-2);
+    box-shadow: 0 0 0 2px rgba(88, 7, 143, 0.25);
+}
+
+.spark-card-accent {
+    height: 5px;
+    border-radius: 4px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+
+.spark-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.spark-card-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1.2;
+}
+
+.spark-card-size {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: capitalize;
+}
+
+/* Device pill */
+.device-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    padding: 2px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.device-pill.live {
+    background: rgba(22, 163, 74, 0.12);
+    color: #16a34a;
+}
+
+.device-pill.live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #16a34a;
+    animation: pulse-live 1.6s infinite;
+}
+
+.device-pill.none {
+    background: rgba(108, 108, 108, 0.14);
+    color: #6c6c6c;
+}
+
+.spark-card-faculty {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    min-height: 16px;
+}
+
+.spark-card-faculty i {
+    font-size: 12px;
+    color: var(--secondary-color-2);
+}
+
+.spark-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.spark-card-live {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--secondary-color-1);
+}
+
+.spark-card-live b {
+    color: var(--secondary-color-2);
+}
+
+.spark-time {
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+/* Row light bars (R1 R2 R3) */
+.row-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.row-bar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+    min-width: 0;
+}
+
+.row-bar-item .row-bar-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: var(--muted);
+}
+
+.row-bar-item .row-bar {
+    width: 100%;
+    max-width: 26px;
+    height: 26px;
+    border-radius: 5px;
+    background: #ece4f4;
+    border: 1px solid #ddd3e8;
+    transition: background .25s, box-shadow .25s;
+}
+
+.row-bar-item .row-bar.on {
+    background: linear-gradient(180deg, #facc15, #f0a500);
+    border-color: #e6a300;
+    box-shadow: 0 0 8px rgba(250, 204, 21, 0.55);
+}
+
+.row-bar-item .row-bar-state {
+    font-size: 8px;
+    font-weight: 700;
+    color: #aaa;
+}
+
+.row-bar-item .row-bar-state.on {
+    color: #a06800;
+}
+
+/* Sparkline canvas */
+.spark-canvas-wrap {
+    height: 36px;
+    width: 100%;
+    margin-top: 2px;
+}
+
+.spark-canvas-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ── Device strip inside the management room card ── */
+.device-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: #fbf9fe;
+    border-radius: 8px;
+    padding: 6px 10px;
+    border: 1px solid #ece4f4;
+}
+
+.device-strip .dev-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.device-strip .dev-pzem {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: var(--secondary-color-1);
+}
+
+.device-strip .dev-pzem b {
+    color: var(--secondary-color-2);
+}
+
+.device-strip .row-bars {
+    flex: 1;
+    max-width: 150px;
+    margin: 0;
+}
+
+.device-strip .row-bar {
+    height: 20px;
+    max-width: 20px;
+}
+
+.device-strip .row-bar-label {
+    font-size: 7px;
+}
+
+.device-strip .dev-occ {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #0a7a45;
+    font-weight: 600;
+}
+
+/* Live lighting indicator on cards (override small dot from room-manage) */
+.room-live-faculty {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ── Status filter chip for LIVE ── */
+.badge-live {
+    background: rgba(22, 163, 74, 0.12);
+    color: #16a34a;
+}
+
+.accent-live {
+    background: linear-gradient(90deg, #16a34a, #4ade80);
+}
+
+/* ── Analytics section keep stacked on one scroll ── */
+.overview-analytics-grid {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .overview-analytics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Static-mode note banner ── */
+.static-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #a06800;
+    background: #fff5d6;
+    border: 1px dashed #e6c35c;
+    border-radius: 20px;
+    padding: 3px 12px;
+}
+
+/* ── Compact live readings row reused in section 3 ── */
