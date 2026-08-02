@@ -1,0 +1,9 @@
+.topbar-greeting,
+.topbar-user-info {
+    transition: opacity 0.3s ease;
+}
+.topbar-greeting.hidden,
+.topbar-user-info.hidden {
+    opacity: 0;
+    pointer-events: none;
+}

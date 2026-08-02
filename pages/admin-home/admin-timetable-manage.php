@@ -1,7 +1,7 @@
-<?php
+﻿<?php
 $page_title = 'Schedule Management';
-require_once '../../php/includes/admin-head.php';
-require_once '../../php/handlers/admin-handlers.php';
+require_once __DIR__ . "/../../src/Includes/admin-head.php";
+require_once __DIR__ . "/../../src/Handlers/admin-handlers.php";
 
 /** @var string $initials */
 /** @var string $admin_name */
@@ -85,7 +85,7 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Schedule Management – LumineSense</title>
+    <title>Schedule Management - LumineSense</title>
 
     <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -98,18 +98,18 @@ $conn->close();
 
     <!--Relative links-->
     <link rel="icon" href="../../images/icon.png">
-    <link rel="stylesheet" href="../../css/global.css">
-    <link rel="stylesheet" href="../../css/containers.css">
-    <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/admin-common.css">
-    <link rel="stylesheet" href="../../css/admin-timetable.css">
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/base/containers.css">
+    <link rel="stylesheet" href="../../css/base/modals.css">
+    <link rel="stylesheet" href="../../css/admin/common.css">
+    <link rel="stylesheet" href="../../css/admin/timetable.css">
 </head>
 
 <body class="contrast-bg">
-    <?php include '../../php/includes/admin-topbar.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/admin-topbar.php"; ?>
 
 
-    <!-- ═══ PAGE CONTENT ═══ -->
+    <!-- â•â•â• PAGE CONTENT â•â•â• -->
     <div class="profile-wrapper page-content flex-column">
         <div class="px-4 pt-3">
             <button class="light mb-3"
@@ -222,7 +222,7 @@ $conn->close();
         </div><!-- /schedule-card -->
     </div><!-- /page-content -->
 
-    <!-- ═══ CONFIRM / DISCARD BAR ═══ -->
+    <!-- â•â•â• CONFIRM / DISCARD BAR â•â•â• -->
     <div class="confirm-bar" id="confirmBar">
         <p><i class="bi bi-info-circle me-2"></i>Schedule updated successfully.</p>
         <button class="btn-discard" onclick="discardChanges()">Dismiss</button>
@@ -231,7 +231,7 @@ $conn->close();
         </button>
     </div>
 
-    <!-- ═══ ADD / EDIT MODAL ═══ -->
+    <!-- â•â•â• ADD / EDIT MODAL â•â•â• -->
     <div class="sched-modal modal fade" id="schedModal" tabindex="-1"
         aria-labelledby="schedModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -269,7 +269,7 @@ $conn->close();
                     <div class="form-group mb-3">
                         <label class="form-label-sm">Faculty</label>
                         <select class="form-ctrl" id="slotFaculty">
-                            <option value="">— Select Faculty —</option>
+                            <option value="">- Select Faculty -</option>
                             <?php foreach ($faculty_list as $f): ?>
                                 <option value="<?= $f['id'] ?>"><?= htmlspecialchars($f['full_name']) ?></option>
                             <?php endforeach; ?>
@@ -287,7 +287,7 @@ $conn->close();
         </div>
     </div>
 
-    <!-- ═══ DELETE CONFIRM MODAL ═══ -->
+    <!-- â•â•â• DELETE CONFIRM MODAL â•â•â• -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content" style="overflow:hidden;border:none;">
@@ -311,13 +311,13 @@ $conn->close();
         </div>
     </div>
 
-    <?php include '../../php/includes/admin-sidebar.php'; ?>
-    <?php include '../../php/includes/profile-offcanvas.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/admin-sidebar.php"; ?>
+    <?php include __DIR__ . "/../../src/Includes/profile-offcanvas.php"; ?>
 
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/toggles.js"></script>
-    <script src="../../script/admin-timetable.js"></script>
-    <script src="../../script/faculty-tutorial.js"></script>
+    <script src="../../js/lib/animations.js"></script>
+    <script src="../../js/lib/toggles.js"></script>
+    <script src="../../js/admin/admin-timetable.js"></script>
+    <script src="../../js/faculty/faculty-tutorial.js"></script>
 
 </body>
 

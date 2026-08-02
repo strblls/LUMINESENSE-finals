@@ -1,14 +1,14 @@
-<?php
+﻿<?php
 $page_title = 'Faculty Profile';
-require_once '../../php/includes/admin-head.php';
-require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
+require_once __DIR__ . "/../../src/Includes/admin-head.php";
+require_once __DIR__ . "/../../src/Handlers/admin-handlers.php";
 /** @var string $initials */
 /** @var string $admin_name */
 /** @var string $admin_email */
 /** @var int $admin_id */
 
 
-// Guard — must have a faculty ID
+// Guard - must have a faculty ID
 $faculty_id = (int)($_GET['id'] ?? 0);
 if (!$faculty_id) {
     header('Location: admin-faculty-approvals.php');
@@ -159,19 +159,19 @@ $conn->close();
     <link rel="icon" type="image/png" sizes="32x32" href="../../images/icon.png">
     <link rel="shortcut icon" type="image/png" href="../../images/icon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link rel="stylesheet" href="../../css/global.css">
-    <link rel="stylesheet" href="../../css/containers.css">
-    <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/admin-common.css">
-    <link rel="stylesheet" href="../../css/faculty-settings.css">
-    <link rel="stylesheet" href="../../css/admin-profile-settings.css">
-    <link rel="stylesheet" href="../../css/faculty-timetable.css">
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/base/containers.css">
+    <link rel="stylesheet" href="../../css/base/modals.css">
+    <link rel="stylesheet" href="../../css/admin/common.css">
+    <link rel="stylesheet" href="../../css/faculty/settings.css">
+    <link rel="stylesheet" href="../../css/admin/profile-settings.css">
+    <link rel="stylesheet" href="../../css/faculty/timetable.css">
 
     <title>Faculty Profile - LumineSense</title>
 </head>
 
 <body class="contrast-bg">
-    <?php include '../../php/includes/admin-topbar.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/admin-topbar.php"; ?>
 
 
 
@@ -371,173 +371,23 @@ $conn->close();
         </div>
     </div><!-- /page-shell -->
 
-    <!-- Status select inline style (minimal, blends with topbar) -->
-    <style>
-        .faculty-status-select {
-            appearance: none;
-            -webkit-appearance: none;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1.5px solid rgba(255, 255, 255, 0.4);
-            border-radius: 20px;
-            color: #fff;
-            font-family: var(--font-primary, 'Poppins', sans-serif);
-            font-size: 0.82rem;
-            font-weight: 600;
-            padding: 4px 28px 4px 12px;
-            cursor: pointer;
-            outline: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            transition: background 0.2s, border-color 0.2s;
-        }
-
-        .faculty-status-select:hover {
-            background-color: rgba(255, 255, 255, 0.22);
-            border-color: #fff;
-        }
-
-        .faculty-status-select option {
-            background: #2f004f;
-            color: #fff;
-        }
-
-        /* Coverage */
-        .coverage-section {
-            font-size: 0.8rem;
-        }
-
-        .coverage-label {
-            font-weight: 600;
-            color: #000;
-            margin-right: 4px;
-        }
-
-        .coverage-badge {
-            font-size: 0.75rem;
-            font-weight: 500;
-            padding: 3px 10px;
-            border-radius: 12px;
-            margin-right: 4px;
-            margin-bottom: 2px;
-            background-color: var(--secondary-color-1);
-            color: #fff;
-        }
-
-        /* Toast */
-        .toast-wrap {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 9999;
-        }
-
-        .toast-msg {
-            background: var(--secondary-color-1, #2f004f);
-            color: #fff;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-            display: none;
-        }
-
-        .toast-msg.show {
-            display: block;
-            animation: fadeInUp 0.3s ease, fadeOut 0.4s ease 2.2s forwards;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeOut {
-            to {
-                opacity: 0;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="../../css/pages/admin-faculty-card.css">
 
     <!-- Toast -->
     <div class="toast-wrap">
         <div class="toast-msg" id="toastMsg"></div>
     </div>
 
-    <script>
-        function showToast(msg) {
-            const t = document.getElementById('toastMsg');
-            t.textContent = msg;
-            t.classList.remove('show');
-            void t.offsetWidth;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2700);
-        }
 
-        function updateStatus(val) {
-            showToast('Status updated to: ' + val);
-        }
 
-        // function saveEdit() {
-        //     const name = document.getElementById('editName').value.trim();
-        //     const dept = document.getElementById('editDept').value.trim();
-        //     const status = document.getElementById('editStatusModal').value;
+    <?php include __DIR__ . "/../../src/Includes/admin-sidebar.php"; ?>
+    <?php include __DIR__ . "/../../src/Includes/profile-offcanvas.php"; ?>
 
-        //     if (!name) {
-        //         alert('Please enter a name.');
-        //         return;
-        //     }
+    <script src="../../js/lib/animations.js"></script>
+    <script src="../../js/lib/toggles.js"></script>
 
-        //     // Update profile card
-        //     document.getElementById('profileName').textContent = name;
-        //     document.getElementById('profileDept').textContent = dept;
-        //     const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-        //     document.getElementById('profileAvatarText').textContent = initials;
-
-        //     // Sync status dropdown if present
-        //     const statusSelect = document.getElementById('facultyStatusSelect');
-        //     if (statusSelect) {
-        //         statusSelect.value = status;
-        //     }
-
-        //     bootstrap.Modal.getInstance(document.getElementById('editFacultyModal')).hide();
-        //     showToast('Faculty details saved successfully.');
-        // }
-    </script>
-
-    <?php include '../../php/includes/admin-sidebar.php'; ?>
-    <?php include '../../php/includes/profile-offcanvas.php'; ?>
-
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/toggles.js"></script>
-
-    <script>
-        function savePermission(permission, value) {
-            const form = new FormData();
-            form.append('faculty_id', <?= $faculty_id ?>);
-            form.append('permission', permission);
-            form.append('value', value ? 1 : 0);
-
-            fetch('../../api/permissions.php', {
-                    method: 'POST',
-                    body: form
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) showToast('Permission updated!');
-                    else showToast('Failed to update permission.');
-                });
-        }
-    </script>
-    <script src="../../script/faculty-tutorial.js"></script>
+    <script src="../../js/admin/admin-faculty-card.js"></script>
+    <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 
 </html>

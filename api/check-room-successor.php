@@ -1,5 +1,5 @@
 <?php
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 if (empty($_SESSION['faculty_logged_in'])) {

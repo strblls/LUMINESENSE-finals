@@ -3,7 +3,7 @@
 // GET ?classroom_id=X&range=7|14|30
 // Returns energy summary, daily chart, heatmap, trigger breakdown, per-session detail
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 
@@ -26,7 +26,7 @@ $cid_filter  = $cid ? "AND ps.classroom_id = $cid" : "";
 $cid_filter2 = $cid ? "AND ll.classroom_id = $cid" : "";
 $cid_filter3 = $cid ? "AND pr.classroom_id = $cid" : "";
 
-// ── Non-prototype room early return ───────────────────────────────────────
+// - Non-prototype room early return --------------------
 if ($cid > 0) {
     $stmt = $conn->prepare("SELECT is_prototype FROM classrooms WHERE id = ?");
     $stmt->bind_param('i', $cid);
@@ -51,7 +51,7 @@ if ($cid > 0) {
     }
 }
 
-// ── 1. Summary cards ─────────────────────────────────────────────────────
+// - 1. Summary cards ---------------------------
 if ($days === 1) {
     // Today: pull live averages directly from pzem_readings
     if ($cid) {
@@ -174,7 +174,7 @@ $summary['total_energy_kwh'] = round(($summary['total_energy_wh'] ?? 0) / 1000, 
 $summary['est_cost_php']     = round($summary['total_energy_kwh'] * 11, 2);
 $summary['peak_power_kw']    = round(($summary['peak_power_w'] ?? 0) / 1000, 4);
 
-// ── Anomaly count ──────────────────────────────────────────────────────────
+// - Anomaly count -----------------------------
 if ($cid) {
     $stmt = $conn->prepare("
         SELECT COUNT(*) AS cnt FROM room_logs rl
@@ -196,7 +196,7 @@ $stmt->execute();
 $summary['total_anomalies'] = (int)$stmt->get_result()->fetch_assoc()['cnt'];
 $stmt->close();
 
-// ── 2. Daily energy chart ─────────────────────────────────────────────────
+// - 2. Daily energy chart -------------------------
 $daily = [];
 for ($i = $days - 1; $i >= 0; $i--) {
     $date = date('Y-m-d', strtotime("-{$i} days"));
@@ -269,7 +269,7 @@ for ($i = $days - 1; $i >= 0; $i--) {
     ];
 }
 
-// ── 3. Heatmap ────────────────────────────────────────────────────────────
+// - 3. Heatmap ------------------------------
 $heatmap = [];
 $r = $conn->query("
     SELECT
@@ -291,7 +291,7 @@ while ($row = $r->fetch_assoc()) {
     ];
 }
 
-// ── 4. Trigger breakdown ──────────────────────────────────────────────────
+// - 4. Trigger breakdown -------------------------
 $triggers = [];
 $stmt = $conn->prepare("
     SELECT trigger_source, COUNT(*) AS cnt
@@ -307,7 +307,7 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $triggers[] = $row;
 $stmt->close();
 
-// ── 5. Per-room breakdown ─────────────────────────────────────────────────
+// - 5. Per-room breakdown -------------------------
 $per_room = [];
 if (!$cid) {
     $stmt = $conn->prepare("
@@ -333,7 +333,7 @@ if (!$cid) {
     $stmt->close();
 }
 
-// ── 6. Per-session detail (NEW) ───────────────────────────────────────────
+// - 6. Per-session detail (NEW) ----------------------
 $sessions = [];
 $stmt = $conn->prepare("
     SELECT
@@ -365,7 +365,7 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $sessions[] = $row;
 $stmt->close();
 
-// ── 7. Active (ongoing) session for today (if any) ───────────────────────
+// - 7. Active (ongoing) session for today (if any) ------------
 $active_session = null;
 if ($cid) {
     $stmt = $conn->prepare("SELECT ps.id, ps.classroom_id, ps.start_time
@@ -459,7 +459,7 @@ if (!$active_session) {
     }
 }
 
-// ── 8. Per-minute chart data for today ──────────────────────────────────
+// - 8. Per-minute chart data for today -----------------
 $hourly = [];
 if ($days === 1) {
     if ($cid) {
@@ -506,7 +506,7 @@ if ($days === 1) {
     $stmt->close();
 }
 
-// ── 9. Per-minute interval rows for today's history table ────────────────
+// - 9. Per-minute interval rows for today's history table --------
 $intervals = [];
 if ($days === 1) {
     if ($cid) {

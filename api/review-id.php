@@ -3,7 +3,7 @@
  * api/review-id.php
  *
  * Admin-only endpoint for viewing a quarantined ID image
- * (status: mismatched or unreadable) — works for BOTH faculty
+ * (status: mismatched or unreadable) - works for BOTH faculty
  * and admin signups, since id_review_queue is generic
  * (account_type + account_id instead of a faculty-only FK).
  *
@@ -12,7 +12,7 @@
  *                                  account, marks queue row reviewed
  *
  * SELF-REVIEW BLOCK: if account_type = 'admin' and account_id
- * equals the logged-in admin's own id, this endpoint refuses —
+ * equals the logged-in admin's own id, this endpoint refuses -
  * an admin can never review or decide on their own quarantined ID.
  * A different existing approved admin must handle it.
  *
@@ -21,20 +21,21 @@
  * where two admins act on the same row at nearly the same time.
  *
  * Every successful image view is written to id_review_access_log.
- * The decrypted image is NEVER written to disk — streamed straight
+ * The decrypted image is NEVER written to disk - streamed straight
  * from memory to the browser response.
  */
 
 if (session_status() === PHP_SESSION_NONE) session_start();
-require_once __DIR__ . '/../php/db_connect.php';
-require_once __DIR__ . '/../php/session_guard.php';
-require_once __DIR__ . '/../php/id-quarantine.php';
+use LumineSense\Services\IdQuarantine;
 
-check_admin(); // any verified, approved admin — flat role, no tiers
+require_once __DIR__ . "/../src/Config/db_connect.php";
+require_once __DIR__ . "/../src/Session/session_guard.php";
+
+check_admin(); // any verified, approved admin - flat role, no tiers
 
 $admin_id = $_SESSION['admin_id'];
 
-// ── VIEW MODE ────────────────────────────────────────────────
+// - VIEW MODE ------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['queue_id'])) {
     $queue_id = (int) $_GET['queue_id'];
 
@@ -54,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['queue_id'])) {
         exit;
     }
 
-    // Self-review block — an admin can never view their own quarantined ID.
+    // Self-review block - an admin can never view their own quarantined ID.
     if ($row['account_type'] === 'admin' && (int) $row['account_id'] === (int) $admin_id) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'You cannot review your own ID. Ask another administrator.']);
@@ -71,19 +72,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['queue_id'])) {
         $imageBytes = IdQuarantine::decrypt($row['encrypted_blob']);
     } catch (\Throwable $e) {
         error_log('[review-id] Decrypt failed: ' . $e->getMessage());
+        \LumineSense\Services\Logger::error('review-id decrypt failed', ['message' => $e->getMessage(), 'queue_id' => $queue_id]);
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Could not decrypt image.']);
         exit;
     }
 
-    // Log the access — every single view, no exceptions.
+    // Log the access - every single view, no exceptions.
     $logStmt = $conn->prepare('INSERT INTO id_review_access_log (queue_id, viewed_by, ip_address) VALUES (?, ?, ?)');
     $ip = $_SERVER['REMOTE_ADDR'] ?? null;
     $logStmt->bind_param('iis', $queue_id, $admin_id, $ip);
     $logStmt->execute();
     $logStmt->close();
 
-    // Stream the image directly — never saved to disk on this side either.
+    // Stream the image directly - never saved to disk on this side either.
     header('Content-Type: image/jpeg');
     header('Cache-Control: no-store, no-cache, must-revalidate');
     header('Content-Length: ' . strlen($imageBytes));
@@ -91,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['queue_id'])) {
     exit;
 }
 
-// ── REVIEW DECISION MODE ────────────────────────────────────
+// - REVIEW DECISION MODE ------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $queue_id = (int) ($_POST['queue_id'] ?? 0);
     $decision = $_POST['decision'] ?? ''; // 'approve' | 'reject'
@@ -114,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // Double-review block — someone already made a call on this one.
+    // Double-review block - someone already made a call on this one.
     if (!empty($row['reviewed'])) {
         http_response_code(409);
         echo json_encode(['success' => false, 'message' => 'This item has already been reviewed.']);
@@ -130,14 +132,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $conn->begin_transaction();
     try {
-        // Mark the queue row reviewed — encrypted_blob can be cleared now,
+        // Mark the queue row reviewed - encrypted_blob can be cleared now,
         // no need to wait for the 24h purge once a human has decided.
         $upd = $conn->prepare('UPDATE id_review_queue SET reviewed = 1, reviewed_by = ?, reviewed_at = NOW(), encrypted_blob = NULL WHERE id = ?');
         $upd->bind_param('ii', $admin_id, $queue_id);
         $upd->execute();
         $upd->close();
 
-        // Route the update to the right table based on account_type —
+        // Route the update to the right table based on account_type -
         // this is what makes it generic instead of faculty-only.
         $targetTable = $row['account_type'] === 'admin' ? 'admins' : 'faculty';
 
@@ -158,6 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (\Throwable $e) {
         $conn->rollback();
         error_log('[review-id] Decision failed: ' . $e->getMessage());
+        \LumineSense\Services\Logger::error('review-id decision failed', ['message' => $e->getMessage(), 'queue_id' => $row['id'] ?? null]);
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Could not save decision.']);
     }

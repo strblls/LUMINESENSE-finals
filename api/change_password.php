@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/../php/session_guard.php';
+require_once __DIR__ . "/../src/Session/session_guard.php";
 check_admin();
-require_once __DIR__ . '/../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 
 $force = ($_GET['force'] ?? '') === '1';
 

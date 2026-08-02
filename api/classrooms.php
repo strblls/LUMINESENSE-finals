@@ -1,11 +1,11 @@
 <?php
 // api/classrooms.php
-// GET  (no params)          → list all classrooms
-// GET  ?id=X                → single classroom
+// GET  (no params)          â†’ list all classrooms
+// GET  ?id=X                â†’ single classroom
 // POST action=add           room_name, room_size, description
 // POST action=delete        classroom_id=X
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 

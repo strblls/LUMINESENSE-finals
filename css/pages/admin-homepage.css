@@ -1,0 +1,224 @@
+.hierarchy-canvas-wrap {
+    position: relative;
+    overflow: auto;
+    flex: 1;
+    padding: 0 12px 12px;
+    min-height: 320px;
+    cursor: grab;
+    user-select: none;
+}
+
+.hierarchy-canvas-wrap:active {
+    cursor: grabbing;
+}
+
+.hierarchy-canvas {
+    display: flex;
+    flex-flow: column wrap;
+    gap: 24px;
+    padding: 16px;
+    position: relative;
+    height: 100%;
+    align-content: flex-start;
+    min-width: 100%;
+}
+
+.hierarchy-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.hierarchy-dept {
+    flex-shrink: 0;
+    width: 200px;
+    cursor: grab;
+    position: relative;
+    z-index: 2;
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 2px 8px rgba(47, 0, 79, .1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+.hierarchy-dept-pending {
+    opacity: .75;
+    border: 1px dashed var(--secondary-color-3);
+}
+
+.hierarchy-status-badge {
+    font-size: 9px;
+    font-weight: 600;
+    background: var(--secondary-color-3);
+    color: #fff;
+    border-radius: 4px;
+    padding: 1px 6px;
+    text-transform: uppercase;
+    margin-left: 4px;
+}
+
+.hierarchy-dept:active {
+    cursor: grabbing;
+}
+
+.hierarchy-dept-node {
+    background: var(--secondary-color-2);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    white-space: normal;
+    width: 100%;
+    word-break: break-word;
+    hyphens: auto;
+    text-align: center;
+}
+
+.hierarchy-dept-node-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hierarchy-connector-v {
+    width: 2px;
+    height: 12px;
+    background: var(--secondary-color-3);
+    flex-shrink: 0;
+}
+
+.hierarchy-head-node {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f9edfa;
+    border: 1.5px solid var(--secondary-color-2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    width: 100%;
+}
+
+.hierarchy-head-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--secondary-color-3);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.hierarchy-head-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1.2;
+}
+
+.hierarchy-head-title {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--secondary-color-3);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.hierarchy-members-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.hierarchy-member-node {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid #e0d6f0;
+    border-radius: 6px;
+}
+
+.hierarchy-member-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #e9d5ff;
+    color: var(--secondary-color-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.hierarchy-member-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    line-height: 1.2;
+}
+
+.hierarchy-empty {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 4px 0;
+}
+
+.hierarchy-line-label {
+    font-size: 9px;
+    fill: var(--secondary-color-3);
+    font-weight: 600;
+}
+
+#hierarchySection {
+    transition: transform .25s ease, opacity .25s ease;
+    transform-origin: top center;
+}
+
+.hierarchy-maximized {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1050 !important;
+    border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa !important;
+    animation: hierarchyFadeIn .25s ease forwards;
+}
+
+.hierarchy-maximized .hierarchy-canvas-wrap {
+    flex: 1;
+    min-height: 0 !important;
+}
+
+@keyframes hierarchyFadeIn {
+    from {
+        transform: scale(0.96);
+        opacity: 0.92;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

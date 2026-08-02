@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (empty($_SESSION['reset_email'])) {
     header('Location: forgot-password.php');
@@ -24,10 +24,10 @@ $cooldown = max(0, 60 - (time() - $lastSent));
         crossorigin="anonymous"></script>
     <link rel="icon" type="image/png" sizes="32x32" href="../images/icon.png">
     <link rel="shortcut icon" type="image/png" href="../images/icon.png">
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/containers.css">
-    <link rel="stylesheet" href="../css/registration.css">
-    <title>Verify Code – LumineSense</title>
+    <link rel="stylesheet" href="../css/base/global.css">
+    <link rel="stylesheet" href="../css/base/containers.css">
+    <link rel="stylesheet" href="../css/pages/registration.css">
+    <title>Verify Code - LumineSense</title>
 </head>
 <body>
     <div class="return-container">
@@ -49,7 +49,7 @@ $cooldown = max(0, 60 - (time() - $lastSent));
             <?php endif; ?>
 
             <div class="form-container">
-                <form action="../php/verify-reset-otp-process.php" method="POST">
+                <form action="../handlers/verify-reset-otp-process.php" method="POST">
                     <div class="mb-4">
                         <label for="otp">Verification Code</label>
                         <input type="text" class="form-control text-center" id="otp" name="otp"
@@ -72,46 +72,7 @@ $cooldown = max(0, 60 - (time() - $lastSent));
         </div>
     </div>
 
-    <script src="../script/animations.js"></script>
-    <script>
-    (function() {
-        var btn = document.getElementById('resendBtn');
-        var cooldown = <?= $cooldown ?>;
-
-        function tick() {
-            if (cooldown <= 0) {
-                btn.disabled = false;
-                btn.textContent = 'Resend Code';
-                return;
-            }
-            btn.textContent = 'Resend Code (' + cooldown + 's)';
-            cooldown--;
-            setTimeout(tick, 1000);
-        }
-        if (cooldown > 0) tick();
-
-        btn.addEventListener('click', function() {
-            btn.disabled = true;
-            btn.textContent = 'Sending...';
-            fetch('../api/resend-reset-otp.php', { method: 'POST' })
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    if (d.success) {
-                        cooldown = 60;
-                        tick();
-                    } else {
-                        alert(d.message || 'Failed to resend.');
-                        btn.disabled = false;
-                        btn.textContent = 'Resend Code';
-                    }
-                })
-                .catch(function() {
-                    alert('Network error.');
-                    btn.disabled = false;
-                    btn.textContent = 'Resend Code';
-                });
-        });
-    })();
-    </script>
+    <script src="../js/lib/animations.js"></script>
+    <script src="../js/verify-reset-otp.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 <?php
 /**
  * api/pir-log.php
- * ──────────────────
+ * ---------
  * Dedicated PIR event logger and classroom status updater.
  * Called by the ESP32 whenever the PIR sensor detects a state change.
  *
@@ -9,17 +9,17 @@
  *   classroom_id  INT   REQUIRED
  *   state         INT   1 = motion detected, 0 = motion stopped
  *
- * When state=1 AND an active schedule exists → turns lights/rows on.
- * When state=1 AND no active schedule        → marks occupied, leaves lights off.
- * When state=0                               → turns lights/rows off, clears occupancy.
+ * When state=1 AND an active schedule exists â†’ turns lights/rows on.
+ * When state=1 AND no active schedule        â†’ marks occupied, leaves lights off.
+ * When state=0                               â†’ turns lights/rows off, clears occupancy.
  *
  * Secured with X-Device-Token header (same as pzem_push.php).
  */
 
 header('Content-Type: application/json');
 
-// ── Token check ─────────────────────────────────────────────
-require_once __DIR__ . '/../php/config.php';
+// - Token check -----------------------
+require_once __DIR__ . "/../src/Config/config.php";
 $expected = DEVICE_TOKEN;
 $received = $_SERVER['HTTP_X_DEVICE_TOKEN'] ?? 'MISSING';
 
@@ -51,18 +51,18 @@ if (!$cid) {
     exit;
 }
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 date_default_timezone_set('Asia/Manila');
 
-// ── 1. Log to pir_logs ─────────────────────────────────────
+// - 1. Log to pir_logs -------------------
 $stmt = $conn->prepare("INSERT INTO pir_logs (classroom_id, state) VALUES (?, ?)");
 $stmt->bind_param('ii', $cid, $state);
 $stmt->execute();
 $stmt->close();
 
-// ── 2. Update classrooms table ──────────────────────────────
+// - 2. Update classrooms table ---------------
 if ($state) {
-    // ── Motion detected ─────────────────────────────────────
+    // - Motion detected -------------------
     $now_time = date('H:i:s');
     $now_day  = date('l');
 
@@ -79,7 +79,7 @@ if ($state) {
     $has_schedule = (bool)$stmt->get_result()->fetch_assoc();
     $stmt->close();
 
-    // Read current occupancy — used to detect first motion of the session
+    // Read current occupancy - used to detect first motion of the session
     $stmt = $conn->prepare("SELECT pir_occupied FROM classrooms WHERE id = ?");
     $stmt->bind_param('i', $cid);
     $stmt->execute();
@@ -135,7 +135,7 @@ if ($state) {
         }
     }
 } else {
-    // ── Motion stopped for 5 min → end schedule, clear room ──
+    // - Motion stopped for 5 min â†’ end schedule, clear room -
     $now_time = date('H:i:s');
     $now_day  = date('l');
 

@@ -1,9 +1,9 @@
 <?php
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/../php/session_guard.php';
+require_once __DIR__ . "/../src/Session/session_guard.php";
 check_faculty();
-require_once __DIR__ . '/../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -23,7 +23,7 @@ if (!preg_match('/^\d{4}$/', $pin)) {
 
 switch ($action) {
 
-    // ── Save a new PIN (first-time setup, no old PIN required) ──
+    // - Save a new PIN (first-time setup, no old PIN required) -
     case 'save':
         // Ensure a row exists, then set pin_hash
         $conn->query("INSERT IGNORE INTO faculty_permissions (faculty_id) VALUES ($faculty_id)");
@@ -34,7 +34,7 @@ switch ($action) {
         echo json_encode(['success' => true, 'message' => 'PIN saved successfully.']);
         break;
 
-    // ── Verify an existing PIN ──
+    // - Verify an existing PIN -
     case 'verify':
         $stmt = $conn->prepare("SELECT pin_hash FROM faculty_permissions WHERE faculty_id = ?");
         $stmt->bind_param('i', $faculty_id);
@@ -51,7 +51,7 @@ switch ($action) {
         echo json_encode(['success' => true, 'message' => 'PIN verified.']);
         break;
 
-    // ── Change PIN (requires old_pin) ──
+    // - Change PIN (requires old_pin) -
     case 'change':
         $old_pin = $input['old_pin'] ?? '';
         if (!preg_match('/^\d{4}$/', $old_pin)) {

@@ -1,18 +1,17 @@
-<?php
+﻿<?php
 $page_title = 'Admin Review';
-require_once '../../php/includes/admin-head.php';
+require_once __DIR__ . "/../../src/Includes/admin-head.php";
 
-$phpRoot = realpath(__DIR__ . '/../../php');
-require_once $phpRoot . '/handlers/admin-handlers.php';
+require_once __DIR__ . "/../../src/Handlers/admin-handlers.php";
 
-// ── Get admin id from URL ───────────────────────────────────────────────
+// - Get admin id from URL ------------------------
 $admin_review_id = (int)($_GET['id'] ?? 0);
 if (!$admin_review_id) {
     header('Location: admin-faculty-management.php');
     exit;
 }
 
-// ── Fetch admin record ──────────────────────────────────────────────────
+// - Fetch admin record -------------------------
 $stmt = $conn->prepare("
     SELECT id, first_name, last_name, middle_initial, email,
            is_verified, approved_by, created_at, id_image
@@ -29,7 +28,7 @@ if (!$admin_rec) {
     exit;
 }
 
-// ── Fetch id_review_queue entry for this admin ──────────────────────────
+// - Fetch id_review_queue entry for this admin -------------
 $queue_id = null;
 $ai_status = 'unreadable';
 $ai_extracted_name = '';
@@ -52,7 +51,7 @@ if ($qrow) {
     $ai_confidence_note = $qrow['ai_confidence_note'] ?? '';
 }
 
-// ── Handle approve / reject from this page ──────────────────────────────
+// - Handle approve / reject from this page ---------------
 $message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
@@ -75,8 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // Purge review queue row (encrypted blob cleared automatically)
         $conn->query("DELETE FROM id_review_queue WHERE account_type = 'admin' AND account_id = $admin_review_id");
 
-        $mailerPath = $phpRoot . DIRECTORY_SEPARATOR . 'mailer.php';
-        $vendorAutoload = dirname($phpRoot) . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+        $mailerPath = __DIR__ . '/../../src/Services/mailer.php';
+        $vendorAutoload = __DIR__ . '/../../vendor/autoload.php';
         if (!empty($a_email) && file_exists($mailerPath) && file_exists($vendorAutoload)) {
             require_once $mailerPath;
             sendApprovalEmail($a_email, $a_name);
@@ -120,7 +119,7 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Admin Review – LumineSense</title>
+    <title>Admin Review - LumineSense</title>
 
     <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -130,18 +129,18 @@ $conn->close();
 
     <!--Relative links-->
     <link rel="icon" href="../../images/icon.png">
-    <link rel="stylesheet" href="../../css/global.css">
-    <link rel="stylesheet" href="../../css/containers.css">
-    <link rel="stylesheet" href="../../css/admin-common.css">
-    <link rel="stylesheet" href="../../css/admin-faculty-review.css">
-    <link rel="stylesheet" href="../../css/tooltip.css">
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/base/containers.css">
+    <link rel="stylesheet" href="../../css/admin/common.css">
+    <link rel="stylesheet" href="../../css/admin/faculty-review.css">
+    <link rel="stylesheet" href="../../css/base/tooltip.css">
 </head>
 
 <body class="contrast-bg">
-    <?php include '../../php/includes/admin-topbar.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/admin-topbar.php"; ?>
 
     <div class="parent-container">
-        <?php include '../../php/includes/admin-sidebar.php'; ?>
+        <?php include __DIR__ . "/../../src/Includes/admin-sidebar.php"; ?>
 
         <div class="child-container px-4 py-4">
 
@@ -156,7 +155,7 @@ $conn->close();
             $toast_msg = '';
             $toast_class = '';
             if ($message === 'approved') {
-                $toast_msg = '✅ Admin account approved!';
+                $toast_msg = 'âœ… Admin account approved!';
                 $toast_class = 'show';
             }
             ?>
@@ -241,9 +240,9 @@ $conn->close();
                                     default => 'ai-unreadable'
                                 };
                                 $badge_icon = match ($ai_status) {
-                                    'matched' => '✅',
-                                    'mismatched' => '⚠️',
-                                    default => '❌'
+                                    'matched' => 'âœ…',
+                                    'mismatched' => 'âš ï¸',
+                                    default => 'âŒ'
                                 };
                                 $badge_text = match ($ai_status) {
                                     'matched' => 'Name Matched',
@@ -333,12 +332,12 @@ $conn->close();
         </div>
     </div>
 
-    <?php include '../../php/includes/profile-offcanvas.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/profile-offcanvas.php"; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/toggles.js"></script>
-    <script src="../../script/tooltip.js"></script>
+    <script src="../../js/lib/animations.js"></script>
+    <script src="../../js/lib/toggles.js"></script>
+    <script src="../../js/lib/tooltip.js"></script>
 
     <script>
         function openImageModal(src) {
@@ -354,7 +353,7 @@ $conn->close();
             new bootstrap.Modal(document.getElementById('rejectAdminModal')).show();
         }
     </script>
-    <script src="../../script/faculty-tutorial.js"></script>
+    <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 
 </html>

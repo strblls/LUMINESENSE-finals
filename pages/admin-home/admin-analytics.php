@@ -1,7 +1,7 @@
-<?php
+﻿<?php
 $page_title = 'Analytics';
-require_once '../../php/includes/admin-head.php';
-include '../../php/handlers/analytics-handler.php';
+require_once __DIR__ . "/../../src/Includes/admin-head.php";
+include __DIR__ . "/../../src/Handlers/analytics-handler.php";
 /** @var mysqli $conn */
 /** @var array $rooms */
 /** @var array $roomDataFromPHP */
@@ -23,15 +23,15 @@ include '../../php/handlers/analytics-handler.php';
     <!--Relative links-->
     <link rel="icon" type="image/png" sizes="32x32" href="../../images/icon.png">
     <link rel="shortcut icon" type="image/png" href="../../images/icon.png">
-    <link rel="stylesheet" href="../../css/global.css">
-    <link rel="stylesheet" href="../../css/containers.css">
-    <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/admin-analytics.css?v=<?= time() ?>">
-    <link rel="stylesheet" href="../../css/admin-common.css">
-    <link rel="stylesheet" href="../../css/faculty-timetable.css">
-    <link rel="stylesheet" href="../../css/admin-faculty-management.css">
-    <link rel="stylesheet" href="../../css/tooltip.css">
-    <link rel="stylesheet" href="../../css/admin-room-manage.css">
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/base/containers.css">
+    <link rel="stylesheet" href="../../css/base/modals.css">
+    <link rel="stylesheet" href="../../css/admin/analytics.css?v=<?= time() ?>">
+    <link rel="stylesheet" href="../../css/admin/common.css">
+    <link rel="stylesheet" href="../../css/faculty/timetable.css">
+    <link rel="stylesheet" href="../../css/admin/faculty-management.css">
+    <link rel="stylesheet" href="../../css/base/tooltip.css">
+    <link rel="stylesheet" href="../../css/admin/room-manage.css">
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -39,8 +39,8 @@ include '../../php/handlers/analytics-handler.php';
 
 <body class="contrast-bg">
 
-    <?php include '../../php/includes/admin-topbar.php'; ?>
-    <?php include '../../php/includes/admin-sidebar.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/admin-topbar.php"; ?>
+    <?php include __DIR__ . "/../../src/Includes/admin-sidebar.php"; ?>
 
     <div class="parent-container">
 
@@ -58,13 +58,13 @@ include '../../php/handlers/analytics-handler.php';
                         <div class="section-container timetable" style="background-color:#f8f9fa;width:393px;">
                             <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Analytics Guide</h6>
                             <div class="ps-3 mb-0" style="font-size:10px;line-height:1.5;">
-                                <p class="mb-1"><strong>Live Readings</strong> — Real-time Voltage (V), Current (A), and Power (W) from connected hardware, plus session Energy (Wh) and Light Status.</p>
-                                <p class="mb-1"><strong>Rooms Sidebar</strong> — Click a room to filter all analytics to that room only. Hover to see description, dimension, faculty, schedule, and lighting.</p>
-                                <p class="mb-1"><strong>Charts</strong> — Line graph and bar graph display Voltage, Current, and Power. Click legend items to toggle datasets on/off; hidden datasets also hide their y-axis on the line graph.</p>
-                                <p class="mb-1"><strong>Filter by Period</strong> — Switch between Today (24 hourly data points), Last 7, 14, or 30 days. Today shows 5-minute interval history rows.</p>
-                                <p class="mb-1"><strong>Filter by Metrics</strong> — Focus on Voltage, Current, or Power across both charts and the live reading cards. Selecting a metric enlarges its card and shows the relevant formula.</p>
-                                <p class="mb-1"><strong>Formula Bar</strong> — Displays the relationship between V, A, W, and Energy. Updates dynamically based on the selected metric filter.</p>
-                                <p class="mb-0"><strong>Polling</strong> — Live data refreshes every 3s, charts every 30s. Polling pauses when filters are active, and resumes when all filters are cleared.</p>
+                                <p class="mb-1"><strong>Live Readings</strong> - Real-time Voltage (V), Current (A), and Power (W) from connected hardware, plus session Energy (Wh) and Light Status.</p>
+                                <p class="mb-1"><strong>Rooms Sidebar</strong> - Click a room to filter all analytics to that room only. Hover to see description, dimension, faculty, schedule, and lighting.</p>
+                                <p class="mb-1"><strong>Charts</strong> - Line graph and bar graph display Voltage, Current, and Power. Click legend items to toggle datasets on/off; hidden datasets also hide their y-axis on the line graph.</p>
+                                <p class="mb-1"><strong>Filter by Period</strong> - Switch between Today (24 hourly data points), Last 7, 14, or 30 days. Today shows 5-minute interval history rows.</p>
+                                <p class="mb-1"><strong>Filter by Metrics</strong> - Focus on Voltage, Current, or Power across both charts and the live reading cards. Selecting a metric enlarges its card and shows the relevant formula.</p>
+                                <p class="mb-1"><strong>Formula Bar</strong> - Displays the relationship between V, A, W, and Energy. Updates dynamically based on the selected metric filter.</p>
+                                <p class="mb-0"><strong>Polling</strong> - Live data refreshes every 3s, charts every 30s. Polling pauses when filters are active, and resumes when all filters are cleared.</p>
                             </div>
                         </div>
                     </div>
@@ -201,7 +201,7 @@ include '../../php/handlers/analytics-handler.php';
                             <?php endforeach; ?>
                         </div>
 
-                        <!-- ── Summary live-card ── -->
+                        <!-- - Summary live-card - -->
                         <div class="live-card">
                             <div class="live-card-header" style="margin-bottom:10px;">
                                 <span class="chart-card-title bold">Summary</span>
@@ -210,7 +210,7 @@ include '../../php/handlers/analytics-handler.php';
                             <div class="summary-column">
                                 <div class="live-stat-card">
                                     <div class="summary-row">
-                                        <div class="live-stat-val" id="sumEnergy">—</div>
+                                        <div class="live-stat-val" id="sumEnergy">-</div>
                                         <div class="live-stat-label">Total Energy (kWh)</div>
                                     </div>
                                     <div class="summary-expand">
@@ -222,7 +222,7 @@ include '../../php/handlers/analytics-handler.php';
                                 </div>
                                 <div class="live-stat-card">
                                     <div class="summary-row">
-                                        <div class="live-stat-val" id="sumMinutes">—</div>
+                                        <div class="live-stat-val" id="sumMinutes">-</div>
                                         <div class="live-stat-label">Total Occupied (hrs)</div>
                                     </div>
                                     <div class="summary-expand">
@@ -234,7 +234,7 @@ include '../../php/handlers/analytics-handler.php';
                                 </div>
                                 <div class="live-stat-card">
                                     <div class="summary-row">
-                                        <div class="live-stat-val" id="sumVoltage">—</div>
+                                        <div class="live-stat-val" id="sumVoltage">-</div>
                                         <div class="live-stat-label">Avg Voltage (V)</div>
                                     </div>
                                     <div class="summary-expand">
@@ -246,7 +246,7 @@ include '../../php/handlers/analytics-handler.php';
                                 </div>
                                 <div class="live-stat-card">
                                     <div class="summary-row">
-                                        <div class="live-stat-val" id="sumCurrent">—</div>
+                                        <div class="live-stat-val" id="sumCurrent">-</div>
                                         <div class="live-stat-label">Avg Current (A)</div>
                                     </div>
                                     <div class="summary-expand">
@@ -258,7 +258,7 @@ include '../../php/handlers/analytics-handler.php';
                                 </div>
                                 <div class="live-stat-card">
                                     <div class="summary-row">
-                                        <div class="live-stat-val" id="sumPower">—</div>
+                                        <div class="live-stat-val" id="sumPower">-</div>
                                         <div class="live-stat-label">Peak Power (W)</div>
                                     </div>
                                     <div class="summary-expand">
@@ -270,7 +270,7 @@ include '../../php/handlers/analytics-handler.php';
                                 </div>
                                 <div class="live-stat-card">
                                     <div class="summary-row">
-                                        <div class="live-stat-val" id="sumCost">—</div>
+                                        <div class="live-stat-val" id="sumCost">-</div>
                                         <div class="live-stat-label">Est. Cost (PHP)</div>
                                     </div>
                                     <div class="summary-expand">
@@ -282,7 +282,7 @@ include '../../php/handlers/analytics-handler.php';
                                 </div>
                                 <div class="live-stat-card">
                                     <div class="summary-row">
-                                        <div class="live-stat-val" id="sumAnomalies">—</div>
+                                        <div class="live-stat-val" id="sumAnomalies">-</div>
                                         <div class="live-stat-label">Anomalies</div>
                                     </div>
                                     <div class="summary-expand">
@@ -298,7 +298,7 @@ include '../../php/handlers/analytics-handler.php';
 
                     <main class="analytics-main">
 
-                <!-- ── Live readings ── -->
+                <!-- - Live readings - -->
                 <div class="live-card">
                     <div class="live-card-header">
                         <span class="chart-card-title bold">Live Readings</span>
@@ -309,27 +309,27 @@ include '../../php/handlers/analytics-handler.php';
                     <div class="live-readings-row">
                         <div class="live-readings-group" id="vawGroup">
                             <div class="live-stat-card" data-metric="voltage">
-                                <div class="live-stat-val" id="liveVoltage">— V</div>
+                                <div class="live-stat-val" id="liveVoltage">- V</div>
                                 <div class="live-stat-label">Voltage</div>
                             </div>
                             <div class="live-stat-card" data-metric="current">
-                                <div class="live-stat-val" id="liveCurrent">— A</div>
+                                <div class="live-stat-val" id="liveCurrent">- A</div>
                                 <div class="live-stat-label">Current</div>
                             </div>
                             <div class="live-stat-card" data-metric="power">
-                                <div class="live-stat-val" id="livePower">— W</div>
+                                <div class="live-stat-val" id="livePower">- W</div>
                                 <div class="live-stat-label">Power</div>
                             </div>
                         </div>
                         <div class="live-readings-group vaw-group">
                             <div class="live-stat-card">
-                                <div class="live-stat-val" id="liveEnergy">— Wh</div>
+                                <div class="live-stat-val" id="liveEnergy">- Wh</div>
                                 <div class="live-stat-label">Energy (session)</div>
                             </div>
                             <div class="live-stat-card">
                                 <div class="live-stat-row">
                                     <span class="live-status-dot" id="liveStatusDot"></span>
-                                    <span class="live-stat-val" id="liveStatus">—</span>
+                                    <span class="live-stat-val" id="liveStatus">-</span>
                                 </div>
                                 <div class="live-stat-label">Light Status</div>
                             </div>
@@ -381,7 +381,7 @@ include '../../php/handlers/analytics-handler.php';
                     </div>
                 </div>
 
-                <!-- ── Daily history table ── -->
+                <!-- - Daily history table - -->
                 <div class="card-white" id="historyCard">
 
                     <div class="breakdown-header" style="margin-top:18px;margin-bottom:14px;">
@@ -445,142 +445,21 @@ include '../../php/handlers/analytics-handler.php';
             </div>
         </div>
 
-        <?php include '../../php/includes/profile-offcanvas.php'; ?>
+        <?php include __DIR__ . "/../../src/Includes/profile-offcanvas.php"; ?>
 
-        <script src="../../script/animations.js"></script>
-        <script src="../../script/toggles.js"></script>
-        <script src="../../script/tooltip.js"></script>
-        <style>
-            .topbar-greeting,
-            .topbar-user-info {
-                transition: opacity 0.3s ease;
-            }
-            .topbar-greeting.hidden,
-            .topbar-user-info.hidden {
-                opacity: 0;
-            }
-        </style>
-        <script>
-            // ── Scroll-to-hide topbar greeting & user info ──
-            window.addEventListener('scroll', function() {
-                var scrollThreshold = 100;
-                var nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - scrollThreshold;
-                document.querySelectorAll('.topbar-greeting, .topbar-user-info').forEach(function(el) {
-                    if (nearBottom) { el.classList.add('hidden'); }
-                    else { el.classList.remove('hidden'); }
-                });
-            });
-        </script>
+        <script src="../../js/lib/animations.js"></script>
+        <script src="../../js/lib/toggles.js"></script>
+        <script src="../../js/lib/tooltip.js"></script>
+        <link rel="stylesheet" href="../../css/pages/admin-analytics.css">
 
         <script>
             const roomData = <?= json_encode($roomDataFromPHP, JSON_HEX_TAG) ?>;
             const defaultCid = <?= (int)($rooms[0]['id'] ?? 3) ?>;
         </script>
-        <script>
-            // ── Timetable-panel toggle for Guide & Filter ──
-            (function() {
-                var panels = ['panelGuideInfo', 'panelFilterInfo'];
-                var timers = {};
-                var heading = document.querySelector('.main-container.faculty-timetable-heading');
-                panels.forEach(function(id) {
-                    var btn = document.querySelector('[data-panel="' + id + '"]');
-                    var panel = document.getElementById(id);
-                    if (!btn || !panel) return;
-                    timers[id] = null;
-                    function open() {
-                        if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
-                        panel.classList.add('show');
-                        if (heading) heading.style.zIndex = '1050';
-                    }
-                    function close() {
-                        if (timers[id]) clearTimeout(timers[id]);
-                        timers[id] = setTimeout(function() {
-                            panel.classList.remove('show');
-                            if (heading) heading.style.zIndex = '';
-                        }, 150);
-                    }
-                    btn.addEventListener('mouseenter', open);
-                    btn.addEventListener('mouseleave', close);
-                    panel.addEventListener('mouseenter', open);
-                    panel.addEventListener('mouseleave', close);
-                });
-            })();
-        </script>
-        <script>
-            function syncRoomSelect(val) {
-                var sel = document.getElementById('roomSelect');
-                if (sel) sel.value = val;
-            }
-            function isRoomPrototype(rid) {
-                var r = roomData.find(function(d) { return d.id == rid; });
-                return r && r.is_prototype == 1;
-            }
-            function showNoDeviceState() {
-                var badge = document.getElementById('liveBadge');
-                if (badge) { badge.className = 'live-badge stale'; badge.innerHTML = '<span class="live-dot stale"></span> No Device'; }
-                var ids = ['liveVoltage','liveCurrent','livePower','liveEnergy','liveStatus'];
-                ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.textContent = id === 'liveStatus' ? '—' : (id === 'liveEnergy' ? '— Wh' : '— ' + (id === 'liveVoltage' ? 'V' : id === 'liveCurrent' ? 'A' : id === 'livePower' ? 'W' : '')); });
-                var dot = document.getElementById('liveStatusDot');
-                if (dot) { dot.style.background = '#ccc'; dot.classList.remove('on'); }
-                var sumIds = ['sumEnergy','sumMinutes','sumVoltage','sumCurrent','sumPower','sumCost'];
-                sumIds.forEach(function(id) { var el = document.getElementById(id); if (el) el.textContent = '—'; });
-                var tbody = document.getElementById('historyBody');
-                if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No data — no device connected</td></tr>';
-                var tfoot = document.getElementById('historyFoot');
-                if (tfoot) tfoot.innerHTML = '';
-                if (typeof lineChartInstance !== 'undefined') {
-                    lineChartInstance.data.labels = ['No data'];
-                    lineChartInstance.data.datasets.forEach(function(ds) { ds.data = []; });
-                    lineChartInstance.update();
-                }
-                if (typeof barChartInstance !== 'undefined') {
-                    barChartInstance.data.labels = ['No data'];
-                    barChartInstance.data.datasets.forEach(function(ds) { ds.data = []; });
-                    barChartInstance.update();
-                }
-            }
-            function deselectRoom() {
-                document.querySelectorAll('.rooms-card .stat-card.active-room').forEach(function(c) {
-                    c.classList.remove('active-room');
-                });
-                var sub = document.getElementById('tabSubheading');
-                if (sub) sub.textContent = 'All Rooms Selected';
-                syncRoomSelect(0);
-                if (typeof onControlChange === 'function') onControlChange();
-                if (typeof fetchLive === 'function') fetchLive();
-                if (typeof checkPolling === 'function') checkPolling();
-            }
-            document.querySelectorAll('.rooms-card .stat-card').forEach(function(card) {
-                card.addEventListener('click', function(e) {
-                    var active = document.querySelector('.rooms-card .stat-card.active-room');
-                    if (active && active !== this) active.classList.remove('active-room');
-                    var wasActive = this.classList.contains('active-room');
-                    this.classList.toggle('active-room');
-                    var sub = document.getElementById('tabSubheading');
-                    var rid = this.getAttribute('data-room-id');
-                    if (sub) {
-                        if (wasActive) {
-                            sub.textContent = 'All Rooms Selected';
-                            syncRoomSelect(0);
-                        } else {
-                            var nameEl = this.querySelector('.stat-value');
-                            sub.textContent = nameEl ? nameEl.textContent + ' Selected' : 'Room Selected';
-                            syncRoomSelect(rid);
-                        }
-                    }
-                    if (!wasActive && !isRoomPrototype(rid)) {
-                        showNoDeviceState();
-                        pausePolling();
-                    } else {
-                        if (typeof onControlChange === 'function') onControlChange();
-                        if (typeof fetchLive === 'function') fetchLive();
-                    }
-                    if (typeof checkPolling === 'function') checkPolling();
-                });
-            });
-        </script>
-        <script src="../../script/admin-analytics.js?v=<?= time() ?>"></script>
-        <script src="../../script/faculty-tutorial.js"></script>
+
+
+        <script src="../../js/admin/admin-analytics.js?v=<?= time() ?>"></script>
+        <script src="../../js/faculty/faculty-tutorial.js"></script>
 
 </body>
 

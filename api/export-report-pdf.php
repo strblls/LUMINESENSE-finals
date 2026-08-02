@@ -1,6 +1,6 @@
 <?php
 date_default_timezone_set('Asia/Manila');
-require_once __DIR__ . '/../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Dompdf\Dompdf;
@@ -15,7 +15,7 @@ $monthAgo = date('Y-m-d', strtotime('-30 days'));
 
 $html = '';
 
-/* ── Helper: event icon colors for PDF ── */
+/* - Helper: event icon colors for PDF - */
 function pdfEventStyle(string $action): array {
     $map = [
         'issue_raised'   => ['#842029', '#f8d7da'],
@@ -105,7 +105,7 @@ if ($tab === 'rooms') {
             $html .= '<td>' . ucfirst(htmlspecialchars($room['room_size'])) . '</td>';
             $html .= '<td>' . (int)$room['total_events'] . '</td>';
             $html .= '<td>' . $lastStr . '</td>';
-            $html .= '<td style="color:#888;font-size:10px;">' . htmlspecialchars($room['description'] ?? '—') . '</td>';
+            $html .= '<td style="color:#888;font-size:10px;">' . htmlspecialchars($room['description'] ?? '-') . '</td>';
             $html .= '</tr>';
         }
     }
@@ -166,7 +166,7 @@ if ($tab === 'rooms') {
     }
     $html .= '</tbody></table>';
 } else {
-    // ── Activity tab ──
+    // - Activity tab -
     $activity_logs = [];
 
     $roomWhere = [];
@@ -256,7 +256,7 @@ if ($tab === 'rooms') {
         $res4->free();
     }
 
-    // admin_logs — only when no type filter excludes 'admin'
+    // admin_logs - only when no type filter excludes 'admin'
     if (!$type || $type === 'admin') {
         $adminWhere = ["al.action IN ('faculty_approved','faculty_rejected','faculty_pending','extension_approved','extension_rejected')"];
         if ($search) {

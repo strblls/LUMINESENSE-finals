@@ -99,11 +99,17 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
         ),
         'P' =>
         array (
+            'Psr\\Log\\' => 8,
             'PHPMailer\\PHPMailer\\' => 20,
         ),
         'M' =>
         array (
+            'Monolog\\' => 8,
             'Masterminds\\' => 12,
+        ),
+        'L' =>
+        array (
+            'LumineSense\\' => 12,
         ),
         'F' =>
         array (
@@ -124,13 +130,25 @@ class ComposerStaticInit2185d2f99bcd56787481d9357a5972d3
         array (
             0 => __DIR__ . '/..' . '/sabberworm/php-css-parser/src',
         ),
+        'Psr\\Log\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/psr/log/src',
+        ),
         'PHPMailer\\PHPMailer\\' =>
         array (
             0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
+        'Monolog\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
+        ),
         'Masterminds\\' =>
         array (
             0 => __DIR__ . '/..' . '/masterminds/html5/src',
+        ),
+        'LumineSense\\' =>
+        array (
+            0 => __DIR__ . '/../..' . '/src',
         ),
         'FontLib\\' =>
         array (

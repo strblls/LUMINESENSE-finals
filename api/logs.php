@@ -1,10 +1,10 @@
 <?php
 // api/logs.php
-// GET  ?room=X&type=X&date=YYYY-MM-DD&limit=200   → filtered log
+// GET  ?room=X&type=X&date=YYYY-MM-DD&limit=200   â†’ filtered log
 // POST (from Arduino or dashboard)
 // classroom_id, event_type, triggered_by
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 // GET: admin or faculty can read

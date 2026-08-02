@@ -1,19 +1,19 @@
 <?php
 // api/pir.php
 // POST  classroom_id=X & occupied=1|0
-//   → Arduino/PIR sensor webhook.
-//   → Also accepts a manual "simulate" call from the dashboard (with session auth).
+//   â†’ Arduino/PIR sensor webhook.
+//   â†’ Also accepts a manual "simulate" call from the dashboard (with session auth).
 //
-// When occupied=1 AND a schedule is active  → set light_status='on', log event
-// When occupied=0                           → set light_status='off', clear pir flag, log event
+// When occupied=1 AND a schedule is active  â†’ set light_status='on', log event
+// When occupied=0                           â†’ set light_status='off', clear pir flag, log event
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 session_start();
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 
 // Allow Arduino (no session) OR logged-in faculty/admin
-$is_arduino  = !empty($_POST['arduino_token']) && $_POST['arduino_token'] === 'LS_PIR_TOKEN_2025';
+$is_arduino  = !empty($_POST['arduino_token']) && $_POST['arduino_token'] === ESP32_TOKEN;
 $is_session  = !empty($_SESSION['faculty_logged_in']) || !empty($_SESSION['admin_logged_in']);
 
 if (!$is_arduino && !$is_session) {
@@ -36,7 +36,7 @@ if (!$cid) {
 $now_time = date('H:i:s');
 $now_day  = date('l');
 
-// ── Check if there is an active schedule right now ────────────────────────────
+// - Check if there is an active schedule right now --------------
 $active_schedule = null;
 $stmt = $conn->prepare("
     SELECT id, start_time, end_time, extended_until
@@ -54,7 +54,7 @@ if ($row = $r->fetch_assoc()) $active_schedule = $row;
 $stmt->close();
 
 if ($occupied) {
-    // ── Person detected ───────────────────────────────────────────────────────
+    // - Person detected ----------------------------
     if ($active_schedule) {
         // Turn on lights and mark occupancy start
         $conn->query("
@@ -82,7 +82,7 @@ if ($occupied) {
         $stmt->close();
         echo json_encode(['success' => true, 'action' => 'lights_on', 'schedule' => true]); exit;
     } else {
-        // Person present but outside schedule — just flag, don't turn on lights
+        // Person present but outside schedule - just flag, don't turn on lights
         $conn->query("
             UPDATE classrooms
             SET pir_occupied = 1,
@@ -97,7 +97,7 @@ if ($occupied) {
         echo json_encode(['success' => true, 'action' => 'occupied_no_schedule']); exit;
     }
 } else {
-    // ── Room cleared → end schedule ──────────────────────────────────────────
+    // - Room cleared â†’ end schedule ---------------------
     $conn->query("
         UPDATE schedules
         SET extended_until = CURTIME()

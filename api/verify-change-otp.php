@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../php/session_guard.php';
-require_once __DIR__ . '/../php/db_connect.php';
+require_once __DIR__ . "/../src/Session/session_guard.php";
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 $isAdmin = !empty($_SESSION['admin_logged_in']);

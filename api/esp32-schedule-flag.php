@@ -2,19 +2,14 @@
 // esp32-schedule-flag.php
 // ESP32 polls this every 5s — returns dirty flag and resets it
 
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 $token        = $_GET['token']        ?? '';
 $classroom_id = (int)($_GET['classroom_id'] ?? 0);
 
-if ($token !== 'LS_ESP32_TOKEN_2025' || $classroom_id === 0) {
+if ($token !== ESP32_TOKEN || $classroom_id === 0) {
     echo json_encode(['error' => 'unauthorized']);
-    exit;
-}
-
-$conn = new mysqli('localhost', 'root', '', 'luminesense_db');
-if ($conn->connect_error) {
-    echo json_encode(['error' => 'db']);
     exit;
 }
 

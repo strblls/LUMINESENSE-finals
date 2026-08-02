@@ -1,6 +1,6 @@
 <?php
 // api/request-extension.php
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 if (empty($_SESSION['faculty_logged_in'])) {
@@ -72,7 +72,7 @@ $stmt->execute();
 $inserted_id = $stmt->insert_id;
 $stmt->close();
 
-// ── Auto-approve if grace period is enabled ────────────────────
+// - Auto-approve if grace period is enabled ----------
 $auto_approved = false;
 $r = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'grace_minutes'");
 $grace_minutes = $r && $row = $r->fetch_assoc() ? (int)$row['setting_value'] : 0;

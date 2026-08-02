@@ -1,9 +1,9 @@
 <?php
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 $token = $_POST['token'] ?? '';
-if ($token !== 'LS_ESP32_TOKEN_2025') {
+if ($token !== ESP32_TOKEN) {
     http_response_code(401); exit;
 }
 

@@ -19,8 +19,8 @@ if (time() - $lastSent < 60) {
     exit;
 }
 
-require_once __DIR__ . '/../php/db_connect.php';
-require_once __DIR__ . '/../php/mailer.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
+require_once __DIR__ . "/../src/Services/mailer.php";
 
 $table = $role === 'admin' ? 'admins' : 'faculty';
 

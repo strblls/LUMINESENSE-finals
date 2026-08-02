@@ -9,7 +9,7 @@
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
 
-require_once __DIR__ . '/../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 
 // Read grace period from system_settings
 $r = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'grace_minutes'");

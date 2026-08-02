@@ -2,7 +2,7 @@
 <?php
 /**
  * api/pzem-push.php
- * ──────────────────
+ * ---------
  * The ESP32 calls this every ~3 s with the latest PZEM + row state JSON.
  * Matches the payload from streamPzemJson() in main.ino:
  *
@@ -17,7 +17,7 @@
 header('Content-Type: application/json');
 
 // Token check
-require_once __DIR__ . '/../php/config.php';
+require_once __DIR__ . "/../src/Config/config.php";
 $expected = DEVICE_TOKEN;
 $received = $_SERVER['HTTP_X_DEVICE_TOKEN'] ?? 'MISSING';
 
@@ -42,7 +42,7 @@ if (!$data) {
     exit;
 }
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 date_default_timezone_set('Asia/Manila');
 
 $cid     = (int)($data['classroom_id'] ?? 0);
@@ -105,7 +105,7 @@ if (!$ok) {
 $affected = $stmt->affected_rows;
 $stmt->close();
 
-// ── Also log to pzem_readings for historical charts ──
+// - Also log to pzem_readings for historical charts -
 $now = date('Y-m-d H:i:s');
 $stmt2 = $conn->prepare("
     INSERT INTO pzem_readings
@@ -122,7 +122,7 @@ if (!$ok2) {
 }
 $stmt2->close();
 
-// ── Anomaly detection: dropout & spike ─────────────────────
+// - Anomaly detection: dropout & spike -----------
 $any_row_on = (bool)($row1 || $row2 || $row3);
 $r = $conn->query("SELECT room_name FROM classrooms WHERE id = $cid");
 $room_name = $r && ($row = $r->fetch_assoc()) ? $row['room_name'] : '';
@@ -145,7 +145,7 @@ if ($room_name) {
         return $row ? $row['event_type'] : null;
     };
 
-    // ─── Dropout: lights ON but power near zero ───
+    // -- Dropout: lights ON but power near zero --
     if ($any_row_on && $power < DROPOUT_POWER_THRESHOLD && $voltage > 0) {
         $stmt = $conn->prepare("
             SELECT COUNT(*) AS cnt FROM (
@@ -161,7 +161,7 @@ if ($room_name) {
         if ($confirmed) {
             $last = $getLastEventType($conn, $room_name, 'dropout');
             if (!$last || $last === 'issue_resolved') {
-                $notes = "Energy dropout detected — lights ON but power near zero ({$power}W)";
+                $notes = "Energy dropout detected - lights ON but power near zero ({$power}W)";
                 $stmt = $conn->prepare("
                     INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
                     VALUES ('issue_raised', ?, 'PZEM', ?)
@@ -174,7 +174,7 @@ if ($room_name) {
     } elseif (!$any_row_on || $power >= DROPOUT_POWER_THRESHOLD) {
         $last = $getLastEventType($conn, $room_name, 'dropout');
         if ($last === 'issue_raised') {
-            $notes = "Energy dropout resolved — power at {$power}W" . ($any_row_on ? '' : ', lights OFF');
+            $notes = "Energy dropout resolved - power at {$power}W" . ($any_row_on ? '' : ', lights OFF');
             $stmt = $conn->prepare("
                 INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
                 VALUES ('issue_resolved', ?, 'PZEM', ?)
@@ -185,7 +185,7 @@ if ($room_name) {
         }
     }
 
-    // ─── Spike: power exceeds N× recent average ───
+    // -- Spike: power exceeds NÃ— recent average --
     if ($power > 0 && $any_row_on) {
         $stmt = $conn->prepare("
             SELECT ROUND(AVG(power), 2) AS avg_pwr FROM (
@@ -202,7 +202,7 @@ if ($room_name) {
         if ($avg > SPIKE_MIN_AVG_POWER && $power > $avg * SPIKE_RAISE_RATIO) {
             $last = $getLastEventType($conn, $room_name, 'spike');
             if (!$last || $last === 'issue_resolved') {
-                $notes = "Power spike detected — {$power}W vs typical ~{$avg}W";
+                $notes = "Power spike detected - {$power}W vs typical ~{$avg}W";
                 $stmt = $conn->prepare("
                     INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
                     VALUES ('issue_raised', ?, 'PZEM', ?)
@@ -214,7 +214,7 @@ if ($room_name) {
         } elseif ($avg > SPIKE_MIN_AVG_POWER && $power < $avg * SPIKE_RESOLVE_RATIO) {
             $last = $getLastEventType($conn, $room_name, 'spike');
             if ($last === 'issue_raised') {
-                $notes = "Power spike resolved — power returned to {$power}W (normal)";
+                $notes = "Power spike resolved - power returned to {$power}W (normal)";
                 $stmt = $conn->prepare("
                     INSERT INTO room_logs (event_type, room_name, triggered_by, notes)
                     VALUES ('issue_resolved', ?, 'PZEM', ?)

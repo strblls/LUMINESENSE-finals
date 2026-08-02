@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -16,99 +16,12 @@
     <!--CSS files-->
     <link rel="icon" type="image/png" sizes="32x32" href="images/icon.png">
     <link rel="shortcut icon" type="image/png" href="images/icon.png">
-    <link rel="stylesheet" href="css/global.css">
-    <link rel="stylesheet" href="css/containers.css">
-    <link rel="stylesheet" href="css/landing.css">
+    <link rel="stylesheet" href="css/base/global.css">
+    <link rel="stylesheet" href="css/base/containers.css">
+    <link rel="stylesheet" href="css/pages/landing.css">
 
     <title>LumineSense</title>
-    <style>
-        .bg-base {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            pointer-events: none;
-        }
-
-        .bg-hover {
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .bg-hover.active {
-            opacity: 1;
-        }
-
-        .border-glow {
-            border: 18px solid rgba(255, 255, 255, 0.6);
-        }
-
-        .tagline {
-            color: #FFF;
-            text-shadow: 4px 4px 9px #2F004F;
-            font-family: 'Poppins', sans-serif;
-            font-size: 40px;
-            font-style: normal;
-            font-weight: 900;
-            line-height: 125.528%;
-            pointer-events: none;
-        }
-
-        .subtagline {
-            color: #FFF;
-            text-shadow: 3px 3px 3px #2F004F;
-            font-family: 'Poppins', sans-serif;
-            font-size: 20px;
-            font-style: normal;
-            font-weight: 300;
-            line-height: 125.528%;
-            pointer-events: none;
-        }
-
-        .content-default,
-        .content-hover,
-        .border-glow,
-        .border-gradient {
-            transition: clip-path 0.6s cubic-bezier(0.65, 0, 0.35, 1);
-        }
-
-        .content-default,
-        .border-glow {
-            clip-path: circle(150% at 0 0);
-        }
-
-        .content-hover,
-        .border-gradient {
-            clip-path: circle(0% at 0 0);
-        }
-
-        .bg-hover.active~.tagline-wrapper .content-default,
-        .bg-hover.active~.border-glow {
-            clip-path: circle(0% at 0 0);
-        }
-
-        .bg-hover.active~.tagline-wrapper .content-hover,
-        .bg-hover.active~.border-gradient {
-            clip-path: circle(150% at 0 0);
-        }
-
-        .border-gradient {
-            background: linear-gradient(to bottom, #ffcc00, #f0cc5e, #611bb2);
-            border: none;
-            padding: 18px;
-            -webkit-mask-image:
-                linear-gradient(#000, #000),
-                linear-gradient(#000, #000);
-            -webkit-mask-clip: content-box, border-box;
-            -webkit-mask-composite: xor;
-            mask-image:
-                linear-gradient(#000, #000),
-                linear-gradient(#000, #000);
-            mask-clip: content-box, border-box;
-            mask-composite: exclude;
-        }
-    </style>
+    <link rel="stylesheet" href="css/pages/index.css">
 </head>
 
 <body style="background-color: transparent;">
@@ -158,7 +71,7 @@
         <img src="images/landing/overlay.svg" alt="" style="position: absolute; bottom: 0; right: 0; width: auto; height: 100%; z-index: 3; pointer-events: none;">
     </div>
 
-    <script src="script/animations.js"></script>
+    <script src="js/lib/animations.js"></script>
     <script>
         document.querySelector('.parent-container-index').addEventListener('mousemove', function(e) {
             this.querySelector('.bg-hover').classList.toggle('active', e.clientX < window.innerWidth / 2);

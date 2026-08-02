@@ -1,6 +1,7 @@
-const router = require('express').Router();
+﻿const router = require('express').Router();
 const { spawn } = require('child_process');
 const http = require('http');
+const path = require('path');
 
 let flaskProcess = null;
 
@@ -47,7 +48,7 @@ router.post('/start', async (req, res) => {
     if (flaskProcess) return res.json({ status: 'already running' });
 
     flaskProcess = spawn('python', ['gesture-control.py'], {
-        cwd: 'C:/xampp/htdocs/LUMINESENSE-finals',
+        cwd: path.resolve(__dirname, '../..', 'microservices/python'),
         stdio: 'inherit'
     });
 

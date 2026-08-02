@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -27,11 +27,11 @@ unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_su
     <link rel="icon" type="image/png" sizes="32x32" href="../images/icon.png">
     <link rel="shortcut icon" type="image/png" href="../images/icon.png">
     <!--CSS files-->
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/containers.css">
-    <link rel="stylesheet" href="../css/registration.css">
+    <link rel="stylesheet" href="../css/base/global.css">
+    <link rel="stylesheet" href="../css/base/containers.css">
+    <link rel="stylesheet" href="../css/pages/registration.css">
 
-    <title>Faculty Login – LumineSense</title>
+    <title>Faculty Login - LumineSense</title>
 </head>
 
 <body>
@@ -49,7 +49,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_su
             </div>
 
             <h4 class="pb-4 semibold">Faculty Login</h4>
-            <!-- SESSION MESSAGES — shown when PHP redirects back with a message -->
+            <!-- SESSION MESSAGES - shown when PHP redirects back with a message -->
             <?php
             if (!empty($loginSuccess)) {
                 echo '<div class="alert alert-success">' . htmlspecialchars($loginSuccess) . '</div>';
@@ -64,7 +64,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_su
 
             <div class="form-container">
                 <!-- ONE form tag wrapping everything -->
-                <form action="../php/faculty-login-process.php" method="POST">
+                <form action="../handlers/faculty-login-process.php" method="POST">
 
                     <div class="mb-3">
                         <label for="email">E-mail</label>
@@ -107,8 +107,8 @@ unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_su
         </div>
     </div>
 
-    <script src="../script/animations.js"></script>
-    <script src="../script/password.js"></script>
+    <script src="../js/lib/animations.js"></script>
+    <script src="../js/lib/password.js"></script>
 </body>
 
 </html>

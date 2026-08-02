@@ -1,11 +1,10 @@
-<?php
-$phpRoot = realpath(__DIR__ . '/../../php');
-require_once $phpRoot . '/session_guard.php';
+﻿<?php
+require_once __DIR__ . "/../../src/Session/session_guard.php";
 if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['faculty_logged_in'])) {
     echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
-require_once $phpRoot . '/db_connect.php';
+require_once __DIR__ . "/../../src/Config/db_connect.php";
 date_default_timezone_set('Asia/Manila');
 
 header('Content-Type: application/json');
@@ -16,7 +15,7 @@ if (!$room_id) {
     exit;
 }
 
-// ── 1. Latest lighting log ─────────────────────────────────────────────────
+// - 1. Latest lighting log -------------------------
 $row = $conn->query("
     SELECT light_status, row1_status, row2_status, row3_status
     FROM classrooms WHERE id = $room_id LIMIT 1
@@ -26,7 +25,7 @@ $row1_status = $row['row1_status'] ?? 'off';
 $row2_status = $row['row2_status'] ?? 'off';
 $row3_status = $row['row3_status'] ?? 'off';
 
-// ── 2. PIR sensor status ───────────────────────────────────────────────────
+// - 2. PIR sensor status --------------------------
 // We consider PIR "active" if there was any sensor-triggered log in the last 60 seconds.
 // In the prototype this comes from the lighting_logs triggered_by='sensor'.
 // If your Arduino pushes to a separate table, adjust the query here.
@@ -39,11 +38,11 @@ $pirRow = $conn->query("
 ")->fetch_assoc();
 $pir_active = !empty($pirRow);
 
-// ── 3. Web camera ──────────────────────────────────────────────────────────
+// - 3. Web camera -----------------------------
 // Currently always false for the prototype (no live feed integration yet).
 $cam_active = false;
 
-// ── 4. Current schedule (right now) ───────────────────────────────────────
+// - 4. Current schedule (right now) --------------------
 $day  = date('l');
 $time = date('H:i:s');
 $stmt = $conn->prepare("
@@ -83,7 +82,7 @@ if ($curSched) {
     ];
 }
 
-// ── 5. Today's schedules ───────────────────────────────────
+// - 5. Today's schedules ------------------
 $stmt = $conn->prepare("
     SELECT s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name
@@ -111,7 +110,7 @@ while ($r = $res->fetch_assoc()) {
 
 $stmt->close();
 
-// ── 6. Full weekly timetable ── (no time filter — shows everything)
+// - 6. Full weekly timetable - (no time filter - shows everything)
 $stmt = $conn->prepare("
     SELECT s.day_of_week, s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name
@@ -135,7 +134,7 @@ while ($r = $res->fetch_assoc()) {
 }
 $stmt->close();
 
-// ── 7. Room activity log / alerts ──────────────────────────────────────────
+// - 7. Room activity log / alerts ---------------------
 $alerts = [];
 
 // 7a. Lighting logs
@@ -179,7 +178,7 @@ $stmt->close();
 usort($alerts, fn($a, $b) => strtotime($b['event_time']) - strtotime($a['event_time']));
 $alerts = array_slice($alerts, 0, 50);
 
-//8. ── Next schedule today or future day ───────────────────────
+//8. - Next schedule today or future day ------------
 $stmt = $conn->prepare("
     SELECT s.start_time, s.end_time,
            CONCAT(f.first_name,' ',f.last_name) AS faculty_name,

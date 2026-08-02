@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,45 +12,13 @@
 
     <!--Relative links-->
     <link rel="icon" href="../images/icon.png">
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/containers.css">
-    <link rel="stylesheet" href="../css/registration.css">
+    <link rel="stylesheet" href="../css/base/global.css">
+    <link rel="stylesheet" href="../css/base/containers.css">
+    <link rel="stylesheet" href="../css/pages/registration.css">
 
-    <title>Pending Approval – LumineSense</title>
+    <title>Pending Approval - LumineSense</title>
 
-    <style>
-        .pending-card {
-            max-width: 460px;
-            margin: 0 auto;
-            text-align: center;
-            padding: 40px 32px;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,.08);
-        }
-        .icon-ring {
-            width: 10rem;
-            height: 10rem;
-            border-radius: 50%;
-            background: #fff8e1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 2.2rem;
-        }
-        .pending-card h4 { margin-bottom: 12px; font-weight: 700; }
-        .pending-card p  { color: #555; line-height: 1.7; margin-bottom: 0; }
-        .steps {
-            text-align: left;
-            background: #f8f9ff;
-            border-radius: 10px;
-            padding: 16px 20px;
-            margin: 20px 0;
-        }
-        .steps li { margin-bottom: 8px; color: #444; font-size: .92rem; }
-        .steps li .bi { color: #4a6cf7; margin-right: 6px; }
-    </style>
+    <link rel="stylesheet" href="../css/pages/pending-approval.css">
 </head>
 <body>
 <div class="parent-container justify-content-center align-items-center">
@@ -82,6 +50,6 @@
     </div>
 </div>
 
-<script src="../script/animations.js"></script>
+<script src="../js/lib/animations.js"></script>
 </body>
 </html>

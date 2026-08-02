@@ -1,10 +1,10 @@
-<?php
-require_once '../../php/session_guard.php';
+﻿<?php
+require_once __DIR__ . "/../../src/Session/session_guard.php";
 check_faculty();
-require_once '../../php/db_connect.php';
-require_once '../../php/includes/faculty-head.php';
+require_once __DIR__ . "/../../src/Config/db_connect.php";
+require_once __DIR__ . "/../../src/Includes/faculty-head.php";
 
-// ── Occupancy logs (PIR sensor — faculty_id is NULL, triggered_by = sensor) ──
+// - Occupancy logs (PIR sensor - faculty_id is NULL, triggered_by = sensor) -
 // Only from classrooms in THIS faculty's schedule
 $occupancy_logs = [];
 $stmt = $conn->prepare("
@@ -24,7 +24,7 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $occupancy_logs[] = $row;
 $stmt->close();
 
-// ── Lighting logs (manual — this faculty only) ──
+// - Lighting logs (manual - this faculty only) -
 $lighting_logs = [];
 $stmt = $conn->prepare("
     SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
@@ -41,7 +41,7 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $lighting_logs[] = $row;
 $stmt->close();
 
-// ── Gesture logs (this faculty only) ──
+// - Gesture logs (this faculty only) -
 $gesture_logs = [];
 $stmt = $conn->prepare("
     SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
@@ -69,16 +69,16 @@ $stmt->close();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="icon" type="image/png" sizes="32x32" href="../../images/icon.png">
     <link rel="shortcut icon" type="image/png" href="../../images/icon.png">
-    <link rel="stylesheet" href="../../css/global.css">
-    <link rel="stylesheet" href="../../css/containers.css">
-    <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/faculty-common.css">
-    <title>Sensor Readings – LumineSense</title>
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/base/containers.css">
+    <link rel="stylesheet" href="../../css/base/modals.css">
+    <link rel="stylesheet" href="../../css/faculty/common.css">
+    <title>Sensor Readings - LumineSense</title>
 </head>
 <body class="contrast-bg">
 <div class="parent-container">
 
-    <?php include '../../php/includes/faculty-topbar.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/faculty-topbar.php"; ?>
     
     <div class="child-container">
         <div class="main-container" style="display:flex; flex-direction:row; gap:1.5rem; padding:2rem; width:100%;">
@@ -97,8 +97,8 @@ $stmt->close();
                                 <p class="text-muted">No occupancy events yet.</p>
                             <?php else: foreach ($occupancy_logs as $log): ?>
                                 <div>
-                                    <h5><?= ucfirst($log['event_type']) ?> – <?= htmlspecialchars($log['room_name']) ?></h5>
-                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> · <?= date('M j', strtotime($log['event_time'])) ?></p>
+                                    <h5><?= ucfirst($log['event_type']) ?> - <?= htmlspecialchars($log['room_name']) ?></h5>
+                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> Â· <?= date('M j', strtotime($log['event_time'])) ?></p>
                                 </div>
                                 <hr>
                             <?php endforeach; endif; ?>
@@ -121,8 +121,8 @@ $stmt->close();
                                 <p class="text-muted">No manual lighting actions yet.</p>
                             <?php else: foreach ($lighting_logs as $log): ?>
                                 <div>
-                                    <h5><?= ucfirst($log['event_type']) ?> – <?= htmlspecialchars($log['room_name']) ?></h5>
-                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> · <?= date('M j', strtotime($log['event_time'])) ?></p>
+                                    <h5><?= ucfirst($log['event_type']) ?> - <?= htmlspecialchars($log['room_name']) ?></h5>
+                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> Â· <?= date('M j', strtotime($log['event_time'])) ?></p>
                                 </div>
                                 <hr>
                             <?php endforeach; endif; ?>
@@ -145,8 +145,8 @@ $stmt->close();
                                 <p class="text-muted">No gesture events yet.</p>
                             <?php else: foreach ($gesture_logs as $log): ?>
                                 <div>
-                                    <h5><?= ucfirst($log['event_type']) ?> – <?= htmlspecialchars($log['room_name']) ?></h5>
-                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> · <?= date('M j', strtotime($log['event_time'])) ?></p>
+                                    <h5><?= ucfirst($log['event_type']) ?> - <?= htmlspecialchars($log['room_name']) ?></h5>
+                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> Â· <?= date('M j', strtotime($log['event_time'])) ?></p>
                                 </div>
                                 <hr>
                             <?php endforeach; endif; ?>
@@ -155,13 +155,13 @@ $stmt->close();
                 </div>
             </div>
 
-            <?php include '../../php/includes/faculty-sidebar.php'; ?>
+            <?php include __DIR__ . "/../../src/Includes/faculty-sidebar.php"; ?>
         </div>
     </div>
 
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/toggles.js"></script>
-    <script src="../../script/faculty-tutorial.js"></script>
+    <script src="../../js/lib/animations.js"></script>
+    <script src="../../js/lib/toggles.js"></script>
+    <script src="../../js/faculty/faculty-tutorial.js"></script>
 </div>
 
 <script>

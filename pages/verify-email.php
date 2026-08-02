@@ -1,19 +1,19 @@
-<?php
+﻿<?php
 /**
- * LumineSense – Email Verification Page
+ * LumineSense - Email Verification Page
  * ---------------------------------------
  * Shared by both Admin and Faculty sign-up flows.
  *
- * GET  → shows the OTP input form
- * POST → validates the OTP; on success:
- *          Admin   → status = 'active'       → redirect to admin-login.php
- *          Faculty → status = 'pending_admin' → redirect to pending-approval.php
+ * GET  â†’ shows the OTP input form
+ * POST â†’ validates the OTP; on success:
+ *          Admin   â†’ status = 'active'       â†’ redirect to admin-login.php
+ *          Faculty â†’ status = 'pending_admin' â†’ redirect to pending-approval.php
  */
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-require_once '../php/db_connect.php';
-require_once '../php/mailer.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
+require_once __DIR__ . "/../src/Services/mailer.php";
 
 // Guard: must have gone through signup first
 if (empty($_SESSION['pending_verification'])) {
@@ -31,7 +31,7 @@ $errors   = [];
 $success  = '';
 $resent   = false;
 
-// ── Handle RESEND request ─────────────────────────────────────────────────
+// - Handle RESEND request -------------------------
 if (isset($_GET['resend']) && $_GET['resend'] === '1') {
     $new_otp     = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     $new_expires = date('Y-m-d H:i:s', strtotime('+15 minutes'));
@@ -43,14 +43,14 @@ if (isset($_GET['resend']) && $_GET['resend'] === '1') {
 
     sendVerificationEmail($email, $new_otp, $name);
     
-    // ✅ Redirect to clean URL so ?resend=1 is gone
+    // âœ… Redirect to clean URL so ?resend=1 is gone
     header('Location: verify-email.php?resent=done');
     exit;
 }
 
 $resent = isset($_GET['resent']) && $_GET['resent'] === 'done';
 
-// ── Handle POST (OTP submission) ──────────────────────────────────────────
+// - Handle POST (OTP submission) ---------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $entered_otp = trim($_POST['otp_code'] ?? '');
 
@@ -74,9 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($db_expires === null || strtotime($db_expires) < time()) {
             $errors[] = 'This code has expired. Click "Resend Code" to get a new one.';
         } else {
-            // ✅ OTP is correct and not expired
+            // âœ… OTP is correct and not expired
             if ($role === 'admin') {
-                // Admin → email confirmed → is_verified = 1, pending admin approval
+                // Admin â†’ email confirmed â†’ is_verified = 1, pending admin approval
                 $stmt = $conn->prepare("
                     UPDATE admins
                     SET is_verified = 1, otp_code = NULL, otp_expires_at = NULL
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
 
             } else {
-                // Faculty → email confirmed → is_verified = 1
+                // Faculty â†’ email confirmed â†’ is_verified = 1
                 // approved_by stays NULL until an admin approves them
                 $stmt = $conn->prepare("
                     UPDATE faculty
@@ -127,57 +127,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!--Relative links-->
     <link rel="icon" href="../images/icon.png">
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/containers.css">
-    <link rel="stylesheet" href="../css/registration.css">
-    <link rel="stylesheet" href="../css/admin-common.css">
-    <link rel="stylesheet" href="../css/faculty-settings.css">
-    <link rel="stylesheet" href="../css/modals.css">
+    <link rel="stylesheet" href="../css/base/global.css">
+    <link rel="stylesheet" href="../css/base/containers.css">
+    <link rel="stylesheet" href="../css/pages/registration.css">
+    <link rel="stylesheet" href="../css/admin/common.css">
+    <link rel="stylesheet" href="../css/faculty/settings.css">
+    <link rel="stylesheet" href="../css/base/modals.css">
 
-    <title>Verify Email – LumineSense</title>
+    <title>Verify Email - LumineSense</title>
 
-    <style>
-        /* ── OTP input row ── */
-        .otp-inputs {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 24px 0 8px;
-        }
-        .otp-inputs input {
-            width: 52px;
-            height: 60px;
-            text-align: center;
-            font-size: 1.6rem;
-            font-weight: 700;
-            border-radius: 10px;
-            border: 2px solid #ccc;
-            transition: border-color .2s;
-        }
-        .otp-inputs input:focus {
-            outline: none;
-            border-color: #4a6cf7;
-        }
-        .resend-row {
-            text-align: center;
-            margin-top: 6px;
-            font-size: .88rem;
-            color: #666;
-        }
-        .resend-row a {
-            color: #4a6cf7;
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        .email-hint {
-            font-size: .9rem;
-            color: #555;
-            text-align: center;
-            margin-bottom: 4px;
-        }
-        /* Countdown timer */
-        #countdown { font-weight: 600; color: #e74c3c; }
-    </style>
+    <link rel="stylesheet" href="../css/pages/verify-email.css">
 </head>
 <body>
 <div class="parent-container">
@@ -210,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($resent): ?>
             <div class="alert alert-success">
-                ✅ A new code has been sent! <strong>Please check your email for the latest code and discard any previous ones.</strong>
+                âœ… A new code has been sent! <strong>Please check your email for the latest code and discard any previous ones.</strong>
             </div>
         <?php endif; ?>
 
@@ -270,66 +229,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </div>
 
-<script>
-/* ── Auto-advance & backspace for OTP boxes ─────────────────────────── */
-const digits  = Array.from(document.querySelectorAll('.otp-digit'));
-const hidden  = document.getElementById('otp-hidden');
-
-digits.forEach((box, i) => {
-    box.addEventListener('input', e => {
-        const val = e.target.value.replace(/\D/, '');
-        e.target.value = val;
-        if (val && i < 5) digits[i + 1].focus();
-        syncHidden();
-    });
-    box.addEventListener('keydown', e => {
-        if (e.key === 'Backspace' && !e.target.value && i > 0) {
-            digits[i - 1].focus();
-        }
-    });
-    // Allow paste on first box
-    box.addEventListener('paste', e => {
-        e.preventDefault();
-        const pasted = (e.clipboardData || window.clipboardData)
-                        .getData('text').replace(/\D/g, '').slice(0, 6);
-        pasted.split('').forEach((ch, j) => {
-            if (digits[j]) digits[j].value = ch;
-        });
-        syncHidden();
-        digits[Math.min(pasted.length, 5)].focus();
-    });
-});
-
-function syncHidden() {
-    const code = digits.map(d => d.value).join('');
-    hidden.value = code;
-}
-
-/* ── Validate on submit ─────────────────────────────────────────────── */
-document.getElementById('otp-form').addEventListener('submit', function(e) {
-    syncHidden();
-    if (hidden.value.length < 6) {
-        e.preventDefault();
-        new bootstrap.Modal(document.getElementById('emptyOtpModal')).show();
-    }
-});
-
-/* ── Countdown timer (15 min = 900 s) ──────────────────────────────── */
-let remaining = 900;
-const display = document.getElementById('countdown');
-
-const timer = setInterval(() => {
-    remaining--;
-    if (remaining <= 0) {
-        clearInterval(timer);
-        display.textContent = 'Expired';
-        display.style.color = '#e74c3c';
-        return;
-    }
-    const m = String(Math.floor(remaining / 60)).padStart(2, '0');
-    const s = String(remaining % 60).padStart(2, '0');
-    display.textContent = `${m}:${s}`;
-}, 1000);
-</script>
+<script src="../js/verify-email.js"></script>
 </body>
 </html>

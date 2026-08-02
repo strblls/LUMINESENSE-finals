@@ -1,11 +1,11 @@
 <?php
 // api/schedules.php
-// GET  ?classroom_id=X      → schedules for one room
-// GET  (no params)          → all schedules
+// GET  ?classroom_id=X      â†’ schedules for one room
+// GET  (no params)          â†’ all schedules
 // POST action=add           classroom_id, day_of_week, start_time, end_time
 // POST action=delete        schedule_id=X
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 if (empty($_SESSION['admin_logged_in']) || $_SESSION['role'] !== 'admin') {

@@ -1,17 +1,16 @@
-<?php
+﻿<?php
 ob_start(); // Start output buffering FIRST
 
 $page_title = "Faculty Management";
-require_once '../../php/includes/admin-head.php';
+require_once __DIR__ . "/../../src/Includes/admin-head.php";
 
 /** @var string $initials */
 /** @var string $admin_name */
 /** @var string $admin_email */
 /** @var int $admin_id */
 
-$phpRoot = realpath(__DIR__ . '/../../php');
-require_once $phpRoot . '/handlers/admin-handlers.php';
-require_once $phpRoot . '/handlers/faculty-approvals-handler.php';
+require_once __DIR__ . "/../../src/Handlers/admin-handlers.php";
+require_once __DIR__ . "/../../src/Handlers/faculty-approvals-handler.php";
 
 /** @var string $message */
 /** @var int $total_faculty */
@@ -105,20 +104,20 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
 
     <!--Relative links-->
     <link rel="icon" href="../../images/icon.png">
-    <link rel="stylesheet" href="../../css/global.css">
-    <link rel="stylesheet" href="../../css/containers.css">
-    <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/faculty-timetable.css">
-    <link rel="stylesheet" href="../../css/admin-common.css">
-    <link rel="stylesheet" href="../../css/admin-home-reports.css">
-    <link rel="stylesheet" href="../../css/admin-faculty-management.css">
-    <link rel="stylesheet" href="../../css/faculty-settings.css">
-    <link rel="stylesheet" href="../../css/tooltip.css">
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/base/containers.css">
+    <link rel="stylesheet" href="../../css/base/modals.css">
+    <link rel="stylesheet" href="../../css/faculty/timetable.css">
+    <link rel="stylesheet" href="../../css/admin/common.css">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css">
+    <link rel="stylesheet" href="../../css/admin/faculty-management.css">
+    <link rel="stylesheet" href="../../css/faculty/settings.css">
+    <link rel="stylesheet" href="../../css/base/tooltip.css">
 </head>
 
 <body class="contrast-bg">
-    <?php include '../../php/includes/admin-topbar.php'; ?>
-    <?php include '../../php/includes/admin-sidebar.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/admin-topbar.php"; ?>
+    <?php include __DIR__ . "/../../src/Includes/admin-sidebar.php"; ?>
 
     <?php if (!empty($message)): ?>
         <div class="toast-wrap">
@@ -149,10 +148,10 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                         In this page, you can manage and access the following:
                                 </p>
                                 <ol class="ps-3 mb-0" style="font-size:13px;line-height:1.7;">
-                                    <li><strong>Pending</strong> — Review and approve/deny pending faculty registrations &amp; extension requests.</li>
-                                    <li><strong>Departments</strong> — Add, edit, view, or delete departments. Assign department heads and faculty members.</li>
-                                    <li><strong>Faculty Directory</strong> — View, revoke, or delete faculty members. Filter by status or creation date.</li>
-                                    <li><strong>Search</strong> — Use the search bars in each section to quickly find departments or faculty members.</li>
+                                    <li><strong>Pending</strong> - Review and approve/deny pending faculty registrations &amp; extension requests.</li>
+                                    <li><strong>Departments</strong> - Add, edit, view, or delete departments. Assign department heads and faculty members.</li>
+                                    <li><strong>Faculty Directory</strong> - View, revoke, or delete faculty members. Filter by status or creation date.</li>
+                                    <li><strong>Search</strong> - Use the search bars in each section to quickly find departments or faculty members.</li>
                                 </ol>
                             </div>
                         </div>
@@ -447,8 +446,8 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                     <div class="dept-member-filter">
                                         <div class="dept-member-filter-header">Sort by Name</div>
                                         <div class="dept-member-filter-list d-flex gap-1" style="flex-direction:row;flex-wrap:wrap;">
-                                            <div class="dept-member-filter-item active" onclick="sortDeptsByName(this, 'asc')">A–Z</div>
-                                            <div class="dept-member-filter-item" onclick="sortDeptsByName(this, 'desc')">Z–A</div>
+                                            <div class="dept-member-filter-item active" onclick="sortDeptsByName(this, 'asc')">A-Z</div>
+                                            <div class="dept-member-filter-item" onclick="sortDeptsByName(this, 'desc')">Z-A</div>
                                         </div>
                                     </div>
                                 </div>
@@ -567,8 +566,8 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                     <div class="faculty-side-filter">
                                         <div class="dept-member-filter-header">Sort by Name</div>
                                         <div class="dept-member-filter-list d-flex gap-1" style="flex-direction:row;flex-wrap:wrap;">
-                                            <div class="dept-member-filter-item active" onclick="sortFacultyByName(this, 'asc')">A–Z</div>
-                                            <div class="dept-member-filter-item" onclick="sortFacultyByName(this, 'desc')">Z–A</div>
+                                            <div class="dept-member-filter-item active" onclick="sortFacultyByName(this, 'asc')">A-Z</div>
+                                            <div class="dept-member-filter-item" onclick="sortFacultyByName(this, 'desc')">Z-A</div>
                                         </div>
                                     </div>
                                     <?php if ($admin_is_seeded): ?>
@@ -644,8 +643,8 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                                     $f_badge = 'badge-occupied';
                                                     $f_badge_label = 'Unverified';
                                                 }
-                                                $f_created = !empty($acct['created_at']) ? date('M j, Y', strtotime($acct['created_at'])) : '—';
-                                                $f_approved = !empty($acct['approved_at']) ? date('M j, Y', strtotime($acct['approved_at'])) : '—';
+                                                $f_created = !empty($acct['created_at']) ? date('M j, Y', strtotime($acct['created_at'])) : '-';
+                                                $f_approved = !empty($acct['approved_at']) ? date('M j, Y', strtotime($acct['approved_at'])) : '-';
                                                 $f_name = htmlspecialchars($acct['first_name'] . ' ' . $acct['last_name']);
                                                 $f_email = htmlspecialchars($acct['email']);
                                                 $f_type_label = $is_admin ? 'Admin' : 'Member';
@@ -740,9 +739,9 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
 
     </div>
 
-    <?php include '../../php/includes/profile-offcanvas.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/profile-offcanvas.php"; ?>
 
-    <!-- ═══ DELETE FACULTY MODAL ═══ -->
+    <!-- â•â•â• DELETE FACULTY MODAL â•â•â• -->
     <div class="modal fade" id="deleteFacultyModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
@@ -757,7 +756,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                         This will also remove all schedules and logs for this faculty.
                     </p>
                 </div>
-                <form method="POST" action="../../php/handlers/faculty-approvals-handler.php" onsubmit="sessionStorage.setItem('activeTab','faculty-directory')">
+                <form method="POST" action="../../handlers/faculty-approvals-handler.php" onsubmit="sessionStorage.setItem('activeTab','faculty-directory')">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="faculty_id" id="deleteFacultyId">
                     <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
@@ -769,7 +768,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
         </div>
     </div>
 
-    <!-- ═══ DELETE DEPARTMENT MODAL ═══ -->
+    <!-- â•â•â• DELETE DEPARTMENT MODAL â•â•â• -->
     <div class="modal fade" id="deleteDepartmentModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
@@ -784,7 +783,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                         This action cannot be undone and will unlink all associated faculty members.
                     </p>
                 </div>
-                <form method="POST" action="../../php/handlers/admin-handlers.php">
+                <form method="POST" action="../../handlers/admin-handlers.php">
                     <input type="hidden" name="action" value="delete_department">
                     <input type="hidden" name="department_id" id="deleteDepartmentId">
                     <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
@@ -796,7 +795,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
         </div>
     </div>
 
-    <!-- ═══ DUPLICATE WARNING MODAL ═══ -->
+    <!-- â•â•â• DUPLICATE WARNING MODAL â•â•â• -->
     <div class="modal fade" id="duplicateWarningModal" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
@@ -817,7 +816,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
         </div>
     </div>
 
-    <!-- ═══ ADD DEPARTMENT MODAL ═══ -->
+    <!-- â•â•â• ADD DEPARTMENT MODAL â•â•â• -->
     <div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -825,7 +824,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                     <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Department</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" action="../../php/handlers/admin-handlers.php" id="addDepartmentForm">
+                <form method="POST" action="../../handlers/admin-handlers.php" id="addDepartmentForm">
                     <input type="hidden" name="action" value="add_department">
                     <div class="modal-body p-4">
                         <!-- Name Field -->
@@ -903,7 +902,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
         </div>
     </div>
 
-    <!-- ═══ EDIT DEPARTMENT MODAL ═══ -->
+    <!-- â•â•â• EDIT DEPARTMENT MODAL â•â•â• -->
     <div class="modal fade" id="editDepartmentModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -911,7 +910,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                     <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edit Department</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" action="../../php/handlers/admin-handlers.php" id="editDepartmentForm">
+                <form method="POST" action="../../handlers/admin-handlers.php" id="editDepartmentForm">
                     <input type="hidden" name="action" value="edit_department">
                     <input type="hidden" name="department_id" id="editDeptId">
                     <div class="modal-body p-4">
@@ -1004,7 +1003,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
         </div>
     </div>
 
-    <!-- ═══ VIEW DEPARTMENT MODAL ═══ -->
+    <!-- â•â•â• VIEW DEPARTMENT MODAL â•â•â• -->
     <div class="modal fade" id="viewDepartmentModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -1023,7 +1022,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                     </div>
                     <div class="mb-3">
                         <label class="form-label bold">Head of Department</label>
-                        <p class="form-control-plaintext" id="viewDeptHead">—</p>
+                        <p class="form-control-plaintext" id="viewDeptHead">-</p>
                     </div>
                     <div class="mb-3">
                         <label class="form-label bold">Faculty Members</label>
@@ -1040,662 +1039,12 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/tooltip.js"></script>
-    <script>
-        // Departments data to prefill edit modal
-        const departmentsData = <?= json_encode($departments) ?>;
-
-        function openDeleteFacultyModal(facultyId, facultyName) {
-            document.getElementById('deleteFacultyId').value = facultyId;
-            document.getElementById('deleteFacultyName').textContent = facultyName;
-            new bootstrap.Modal(document.getElementById('deleteFacultyModal')).show();
-        }
-
-        function openDeleteDepartmentModal(deptId, deptName) {
-            document.getElementById('deleteDepartmentId').value = deptId;
-            document.getElementById('deleteDepartmentName').textContent = deptName;
-            new bootstrap.Modal(document.getElementById('deleteDepartmentModal')).show();
-        }
-
-        function openAddDepartmentModal() {
-            // Reset form
-            document.getElementById('addDepartmentForm').reset();
-            initSubjectAreaTags('add', []);
-            new bootstrap.Modal(document.getElementById('addDepartmentModal')).show();
-        }
-
-        function openEditDepartmentModal(deptId, deptName, deptDesc, headId, deptStatus) {
-            document.getElementById('editDeptId').value = deptId;
-            document.getElementById('editDeptName').value = deptName;
-            document.getElementById('editDeptDescription').value = deptDesc;
-
-            // Set status dropdown
-            const statusSelect = document.getElementById('editDeptStatus');
-            if (deptStatus && ['active', 'inactive'].includes(deptStatus)) {
-                statusSelect.value = deptStatus;
-            } else {
-                statusSelect.value = 'active';
-            }
-
-            // Find the department in departmentsData
-            const dept = departmentsData.find(d => d.id == deptId);
-
-            // Pre-select subject areas
-            initSubjectAreaTags('edit', dept && dept.subject_areas ? dept.subject_areas : []);
-
-            // Clear all previous selections
-            document.querySelectorAll('.edit-hod-radio').forEach(r => r.checked = false);
-            document.querySelectorAll('.edit-member-checkbox').forEach(c => c.checked = false);
-
-            // Pre-select head of department if provided
-            if (headId) {
-                const radio = document.getElementById('editHod_' + headId);
-                if (radio) radio.checked = true;
-            }
-
-            // Pre-select faculty members
-            if (dept && dept.faculty_members) {
-                dept.faculty_members.forEach(m => {
-                    const checkbox = document.getElementById('editMember_' + m.id);
-                    if (checkbox) checkbox.checked = true;
-                });
-            }
-
-            new bootstrap.Modal(document.getElementById('editDepartmentModal')).show();
-        }
-
-        function openViewDepartmentModal(deptId, deptName, deptDesc, headId) {
-            document.getElementById('viewDeptName').value = deptName;
-            document.getElementById('viewDeptDescription').value = deptDesc;
-
-            const dept = departmentsData.find(d => d.id == deptId);
-
-            // Head of Department — resolved from the departments query JOIN (faculty h)
-            const headEl = document.getElementById('viewDeptHead');
-            if (headId && dept && dept.head_first_name) {
-                headEl.textContent = dept.head_first_name + ' ' + dept.head_last_name;
-            } else {
-                headEl.textContent = 'None assigned';
-            }
-
-            // Faculty Members — resolved via junction_faculty_department JOIN
-            const membersEl = document.getElementById('viewDeptMembers');
-            if (dept && dept.faculty_members && dept.faculty_members.length > 0) {
-                const names = dept.faculty_members
-                    .map(m => (m.first_name || '') + ' ' + (m.last_name || ''))
-                    .map(n => n.trim())
-                    .filter(n => n);
-                if (names.length > 0) {
-                    membersEl.innerHTML = names.map(n =>
-                        '<li class="list-group-item"><i class="bi bi-person-fill me-2"></i>' + n + '</li>'
-                    ).join('');
-                } else {
-                    membersEl.innerHTML = '<li class="list-group-item text-muted">None</li>';
-                }
-            } else {
-                membersEl.innerHTML = '<li class="list-group-item text-muted">None</li>';
-            }
-
-            new bootstrap.Modal(document.getElementById('viewDepartmentModal')).show();
-        }
-
-        function filterFacultySearch(input, listId) {
-            const filter = input.value.toLowerCase();
-            const list = document.getElementById(listId);
-            const items = list.querySelectorAll('.faculty-search-item');
-            items.forEach(item => {
-                const name = item.getAttribute('data-name') || item.textContent.toLowerCase();
-                if (name.includes(filter)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        function filterList(status) {
-            const items = document.querySelectorAll('.faculty-list-item');
-            items.forEach(item => {
-                if (status === 'all' || item.getAttribute('data-status') === status) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-
-        function clearHod(type) {
-            const prefix = type === 'add' ? 'add' : 'edit';
-            document.querySelectorAll(`.${prefix}-hod-radio`).forEach(r => r.checked = false);
-        }
-
-        function showDuplicateWarning() {
-            const modal = new bootstrap.Modal(document.getElementById('duplicateWarningModal'));
-            modal.show();
-        }
-
-        // Form validation to prevent duplicate selection in edit department
-        document.getElementById('editDepartmentForm').addEventListener('submit', function(e) {
-            const selectedHod = document.querySelector('.edit-hod-radio:checked');
-            const selectedMembers = document.querySelectorAll('.edit-member-checkbox:checked');
-
-            if (selectedHod) {
-                const hodId = selectedHod.getAttribute('data-faculty-id');
-                const duplicate = Array.from(selectedMembers).find(m => m.getAttribute('data-faculty-id') === hodId);
-
-                if (duplicate) {
-                    e.preventDefault();
-                    duplicate.closest('.faculty-search-item').scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-                    showDuplicateWarning();
-                    return false;
-                }
-            }
-        });
-
-        // Set departments-scroll-container max-height to match main-container
-        function syncScrollContainerHeight() {
-            const mainContainer = document.querySelector('.main-container.faculty-management.gap-5');
-            const scrollContainer = document.querySelector('.departments-scroll-container');
-            if (mainContainer && scrollContainer) {
-                scrollContainer.style.maxHeight = mainContainer.offsetHeight + 'px';
-            }
-        }
-        document.addEventListener('DOMContentLoaded', syncScrollContainerHeight);
-        window.addEventListener('resize', syncScrollContainerHeight);
-
-        // Form validation for add department
-        document.getElementById('addDepartmentForm').addEventListener('submit', function(e) {
-            const selectedHod = document.querySelector('.add-hod-radio:checked');
-            const selectedMembers = document.querySelectorAll('.add-member-checkbox:checked');
-
-            if (selectedHod) {
-                const hodId = selectedHod.getAttribute('data-faculty-id');
-                const duplicate = Array.from(selectedMembers).find(m => m.getAttribute('data-faculty-id') === hodId);
-
-                if (duplicate) {
-                    e.preventDefault();
-                    duplicate.closest('.faculty-search-item').scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-                    showDuplicateWarning();
-                    return false;
-                }
-            }
-        });
-
-        // ═════ SUBJECT AREA TAG INPUT ═════
-        const subjectAreaState = {
-            add: [],
-            edit: []
-        };
-
-        function renderSubjectAreaTags(context) {
-            const container = document.getElementById(context + 'SubjectAreaTags');
-            const tags = subjectAreaState[context];
-            container.innerHTML = tags.map((tag, i) =>
-                `<span class="subject-area-tag me-1 mb-1 d-inline-flex align-items-center">
-                    ${escapeHtml(tag)}
-                    <i class="bi bi-x ms-1 subject-area-remove" style="cursor:pointer;font-size:1.1em" data-context="${context}" data-index="${i}"></i>
-                </span>`
-            ).join('');
-        }
-
-        function initSubjectAreaTags(context, initialTags) {
-            const input = document.getElementById(context + 'SubjectAreaInput');
-            const container = document.getElementById(context + 'SubjectAreaTags');
-            subjectAreaState[context] = [...initialTags];
-            renderSubjectAreaTags(context);
-            input.value = '';
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            ['add', 'edit'].forEach(function(ctx) {
-                const input = document.getElementById(ctx + 'SubjectAreaInput');
-                if (!input) return;
-
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addSubjectAreaTag(ctx);
-                    }
-                });
-                input.addEventListener('blur', function() {
-                    addSubjectAreaTag(ctx);
-                });
-            });
-
-            document.querySelectorAll('.subject-area-tags').forEach(function(container) {
-                container.addEventListener('click', function(e) {
-                    const removeBtn = e.target.closest('.subject-area-remove');
-                    if (removeBtn) {
-                        const ctx = removeBtn.dataset.context;
-                        const idx = parseInt(removeBtn.dataset.index);
-                        subjectAreaState[ctx].splice(idx, 1);
-                        renderSubjectAreaTags(ctx);
-                    }
-                });
-            });
-        });
-
-        function addSubjectAreaTag(context) {
-            const input = document.getElementById(context + 'SubjectAreaInput');
-            const val = input.value.trim();
-            if (!val) return;
-            if (subjectAreaState[context].includes(val)) {
-                input.value = '';
-                return;
-            }
-            subjectAreaState[context].push(val);
-            renderSubjectAreaTags(context);
-            input.value = '';
-        }
-
-        // Serialize subject area tags into hidden inputs before form submit
-        document.getElementById('addDepartmentForm').addEventListener('submit', function() {
-            serializeSubjectAreas('add', this);
-        });
-        document.getElementById('editDepartmentForm').addEventListener('submit', function() {
-            serializeSubjectAreas('edit', this);
-        });
-
-        function serializeSubjectAreas(context, form) {
-            form.querySelectorAll('input[name="dept_subject_areas[]"]').forEach(function(el) {
-                el.remove();
-            });
-            subjectAreaState[context].forEach(function(name) {
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'dept_subject_areas[]';
-                input.value = name;
-                form.appendChild(input);
-            });
-        }
-
-        function escapeHtml(str) {
-            var div = document.createElement('div');
-            div.appendChild(document.createTextNode(str));
-            return div.innerHTML;
-        }
-
-        function switchToTab(tabKey) {
-            var btn = document.querySelector('.timetable-btn[data-tab="' + tabKey + '"]');
-            if (btn) btn.click();
-        }
-
-        function goToDefaultPanel() {
-            document.querySelectorAll('.timetable-btn[data-tab]').forEach(function(t) {
-                t.classList.remove('active');
-            });
-            if (currentTab) {
-                var oldPanel = document.getElementById('panel-' + currentTab);
-                if (oldPanel) oldPanel.classList.remove('active');
-            }
-            var defaultState = document.getElementById('defaultState');
-            if (defaultState) {
-                defaultState.style.animation = 'none';
-                void defaultState.offsetWidth;
-                defaultState.classList.add('active');
-                defaultState.style.animation = 'panelSlideInFromRight 0.3s ease';
-            }
-            tabTextSlide.style.animation = 'none';
-            void tabTextSlide.offsetWidth;
-            tabHeading.textContent = 'Faculty Management';
-            tabSubheading.textContent = 'Select a category to get started';
-            tabTextSlide.style.animation = 'slideInFromRight 0.3s ease';
-            currentTab = null;
-        }
-
-        // Landing page tab switching
-        var tabOrder = ['pending-approvals', 'departments', 'faculty-directory'];
-        var activeBtn = document.querySelector('.timetable-btn[data-tab].active');
-        var currentTab = activeBtn ? activeBtn.getAttribute('data-tab') : null;
-        var tabLabels = {
-            'pending-approvals': {
-                heading: 'Approvals Management',
-                sub: 'Account and extension approvals'
-            },
-            'departments': {
-                heading: 'Department Management',
-                sub: 'Assign designation to faculties'
-            },
-            'faculty-directory': {
-                heading: 'Account Management',
-                sub: 'Manage all accounts'
-            }
-        };
-        var tabHeading = document.getElementById('tabHeading');
-        var tabSubheading = document.getElementById('tabSubheading');
-        var tabTextSlide = document.getElementById('tabTextSlide');
-
-        // Restore active tab after form submission
-        var savedTab = sessionStorage.getItem('activeTab');
-        if (savedTab) {
-            sessionStorage.removeItem('activeTab');
-            var restoreBtn = document.querySelector('.timetable-btn[data-tab="' + savedTab + '"]');
-            if (restoreBtn) {
-                setTimeout(function() { restoreBtn.click(); }, 10);
-            }
-        }
-
-        // Deep-link: ?tab=departments etc.
-        var urlParams = new URLSearchParams(window.location.search);
-        var tabParam = urlParams.get('tab');
-        if (tabParam) {
-            var targetBtn = document.querySelector('.timetable-btn[data-tab="' + tabParam + '"]');
-            if (targetBtn) {
-                setTimeout(function() { targetBtn.click(); }, 10);
-            }
-        }
-
-        document.querySelectorAll('.timetable-btn[data-tab]').forEach(function(tab) {
-            tab.addEventListener('click', function() {
-                var key = this.getAttribute('data-tab');
-                if (key === currentTab) {
-                    document.querySelectorAll('.timetable-btn[data-tab]').forEach(function(t) {
-                        t.classList.remove('active');
-                    });
-                    var oldPanel = document.getElementById('panel-' + key);
-                    if (oldPanel) oldPanel.classList.remove('active');
-                    var defaultState = document.getElementById('defaultState');
-                    if (defaultState) {
-                        defaultState.style.animation = 'none';
-                        void defaultState.offsetWidth;
-                        defaultState.classList.add('active');
-                        defaultState.style.animation = 'panelSlideInFromRight 0.3s ease';
-                    }
-                    tabTextSlide.style.animation = 'none';
-                    void tabTextSlide.offsetWidth;
-                    tabHeading.textContent = 'Faculty Management';
-                    tabSubheading.textContent = 'Select a category to get started';
-                    tabTextSlide.style.animation = 'slideInFromRight 0.3s ease';
-                    currentTab = null;
-                    return;
-                }
-                document.querySelectorAll('.timetable-btn[data-tab]').forEach(function(t) {
-                    t.classList.remove('active');
-                });
-                this.classList.add('active');
-
-                var currentIndex = tabOrder.indexOf(currentTab);
-                var newIndex = tabOrder.indexOf(key);
-
-                var defaultState = document.getElementById('defaultState');
-                if (defaultState && currentTab === null) {
-                    defaultState.style.animation = 'none';
-                    void defaultState.offsetWidth;
-                    defaultState.classList.remove('active');
-                    defaultState.style.animation = 'panelSlideOutToLeft 0.25s ease';
-                } else if (defaultState) {
-                    defaultState.classList.remove('active');
-                }
-
-                var oldPanel = document.getElementById('panel-' + currentTab);
-                if (oldPanel) oldPanel.classList.remove('active');
-
-                var newPanel = document.getElementById('panel-' + key);
-                if (newPanel) {
-                    newPanel.style.animation = 'none';
-                    void newPanel.offsetWidth;
-                    newPanel.classList.add('active');
-                    if (newIndex > currentIndex) {
-                        newPanel.style.animation = 'panelSlideInFromLeft 0.3s ease';
-                    } else if (newIndex < currentIndex) {
-                        newPanel.style.animation = 'panelSlideInFromRight 0.3s ease';
-                    }
-                }
-
-                if (tabLabels[key]) {
-                    tabTextSlide.style.animation = 'none';
-                    void tabTextSlide.offsetWidth;
-                    tabHeading.textContent = tabLabels[key].heading;
-                    tabSubheading.textContent = tabLabels[key].sub;
-                    if (newIndex > currentIndex) {
-                        tabTextSlide.style.animation = 'slideInFromLeft 0.3s ease';
-                    } else if (newIndex < currentIndex) {
-                        tabTextSlide.style.animation = 'slideInFromRight 0.3s ease';
-                    }
-                }
-                currentTab = key;
-            });
-        });
-
-        // ── Department filters & sort ──
-        var activeDeptStatus = 'all';
-        var activeDeptSort = 'asc';
-
-        function filterByFacultyMember(el, memberName) {
-            document.querySelectorAll('.dept-member-filter-item').forEach(function(i) {
-                i.classList.remove('active');
-            });
-            el.classList.add('active');
-            var input = document.getElementById('deptSearch');
-            if (memberName) {
-                input.value = memberName;
-            } else {
-                input.value = '';
-            }
-            filterDepartments(input.value);
-        }
-
-        function filterDeptByStatus(el, status) {
-            el.closest('.dept-member-filter').querySelectorAll('.dept-member-filter-item').forEach(function(i) {
-                i.classList.remove('active');
-            });
-            el.classList.add('active');
-            activeDeptStatus = status;
-            filterDepartments(document.getElementById('deptSearch').value);
-        }
-
-        function sortDeptsByName(el, dir) {
-            el.closest('.dept-member-filter').querySelectorAll('.dept-member-filter-item').forEach(function(i) {
-                i.classList.remove('active');
-            });
-            el.classList.add('active');
-            activeDeptSort = dir;
-            filterDepartments(document.getElementById('deptSearch').value);
-        }
-
-        function filterDepartments(query) {
-            var q = query.toLowerCase().trim();
-            var cards = Array.prototype.slice.call(document.querySelectorAll('#panel-departments .room-card'));
-            cards.forEach(function(card) {
-                var deptName = card.getAttribute('data-dept-name') || '';
-                var headName = card.getAttribute('data-head-name') || '';
-                var memberNames = card.getAttribute('data-member-names') || '';
-                var status = card.getAttribute('data-dept-status') || '';
-                var nameEl = card.querySelector('.room-card-name');
-                var headRow = card.querySelector('.room-info-row[data-search-field="head"]');
-                var membersRow = card.querySelector('.room-info-row[data-search-field="members"]');
-                [nameEl, headRow, membersRow].forEach(function(el) {
-                    if (el) el.classList.remove('search-highlight');
-                });
-
-                var matchDept = q && deptName.indexOf(q) !== -1;
-                var matchHead = q && headName.indexOf(q) !== -1;
-                var matchMembers = q && memberNames.indexOf(q) !== -1;
-                var matchStatus = activeDeptStatus === 'all' || status === activeDeptStatus;
-                var matchSearch = !q || matchDept || matchHead || matchMembers;
-
-                if (matchDept && nameEl) nameEl.classList.add('search-highlight');
-                if (matchHead && headRow) headRow.classList.add('search-highlight');
-                if (matchMembers && membersRow) membersRow.classList.add('search-highlight');
-                card.style.display = (matchStatus && matchSearch) ? '' : 'none';
-            });
-
-            // Sort visible cards by name
-            var grid = document.querySelector('#panel-departments .departments-grid');
-            if (!grid) return;
-            var sorted = cards.filter(function(c) { return c.style.display !== 'none'; }).sort(function(a, b) {
-                var na = (a.getAttribute('data-dept-name') || '').toLowerCase();
-                var nb = (b.getAttribute('data-dept-name') || '').toLowerCase();
-                return activeDeptSort === 'asc' ? na.localeCompare(nb) : nb.localeCompare(na);
-            });
-            sorted.forEach(function(c) { grid.appendChild(c); });
-        }
-
-        // ── Faculty directory filters & sort ──
-        var activeFacultyStatus = 'all';
-        var activeFacultyDate = 'all';
-        var activeFacultySort = 'asc';
-
-        function filterFacultyCards(query) {
-            var q = query.toLowerCase().trim();
-            var cards = Array.prototype.slice.call(document.querySelectorAll('#panel-faculty-directory .room-card'));
-            cards.forEach(function(card) {
-                var name = card.getAttribute('data-faculty-name') || '';
-                var email = card.getAttribute('data-faculty-email') || '';
-                var status = card.getAttribute('data-faculty-status') || '';
-                var created = card.getAttribute('data-faculty-created') || '';
-                var nameEl = card.querySelector('.room-card-name');
-                var emailEl = card.querySelector('.room-card-section');
-                if (nameEl) nameEl.classList.remove('search-highlight');
-                if (emailEl) emailEl.classList.remove('search-highlight');
-
-                var matchName = q && name.indexOf(q) !== -1;
-                var matchEmail = q && email.indexOf(q) !== -1;
-                var matchStatus = activeFacultyStatus === 'all' || status === activeFacultyStatus;
-                var matchDate = true;
-                if (activeFacultyDate !== 'all' && created) {
-                    var d = new Date(created);
-                    var now = new Date();
-                    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    var weekStart = new Date(today);
-                    weekStart.setDate(today.getDate() - today.getDay());
-                    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-                    var yearStart = new Date(now.getFullYear(), 0, 1);
-                    if (activeFacultyDate === 'today') matchDate = d >= today;
-                    else if (activeFacultyDate === 'week') matchDate = d >= weekStart;
-                    else if (activeFacultyDate === 'month') matchDate = d >= monthStart;
-                    else if (activeFacultyDate === 'year') matchDate = d >= yearStart;
-                }
-                var matchSearch = !q || matchName || matchEmail;
-                var matchType = activeFacultyType === 'all' || (activeFacultyType === (card.getAttribute('data-faculty-type') || ''));
-
-                if (matchName && nameEl) nameEl.classList.add('search-highlight');
-                if (matchEmail && emailEl) emailEl.classList.add('search-highlight');
-                if (matchSearch && matchStatus && matchDate && matchType) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-
-            var grid = document.querySelector('#panel-faculty-directory .faculty-grid');
-            if (!grid) return;
-            var visible = cards.filter(function(c) { return c.style.display !== 'none'; });
-            var sorted = visible.sort(function(a, b) {
-                var na = (a.getAttribute('data-faculty-name') || '').toLowerCase();
-                var nb = (b.getAttribute('data-faculty-name') || '').toLowerCase();
-                return activeFacultySort === 'asc' ? na.localeCompare(nb) : nb.localeCompare(na);
-            });
-            sorted.forEach(function(c) { grid.appendChild(c); });
-            var noResults = document.getElementById('facultyNoResults');
-            if (noResults) {
-                noResults.style.display = visible.length === 0 ? '' : 'none';
-            }
-        }
-
-        function filterFacultyByStatus(el, status) {
-            el.closest('.faculty-side-filter').querySelectorAll('.dept-member-filter-item').forEach(function(i) {
-                i.classList.remove('active');
-            });
-            el.classList.add('active');
-            activeFacultyStatus = status;
-            filterFacultyCards(document.getElementById('facultySearch').value);
-        }
-
-        function filterFacultyByDate(el, dateRange) {
-            el.closest('.faculty-side-filter').querySelectorAll('.dept-member-filter-item').forEach(function(i) {
-                i.classList.remove('active');
-            });
-            el.classList.add('active');
-            activeFacultyDate = dateRange;
-            filterFacultyCards(document.getElementById('facultySearch').value);
-        }
-
-        function sortFacultyByName(el, dir) {
-            el.closest('.faculty-side-filter').querySelectorAll('.dept-member-filter-item').forEach(function(i) {
-                i.classList.remove('active');
-            });
-            el.classList.add('active');
-            activeFacultySort = dir;
-            filterFacultyCards(document.getElementById('facultySearch').value);
-        }
-
-        var activeFacultyType = 'all';
-
-        function filterFacultyByType(el, type) {
-            el.closest('.faculty-side-filter').querySelectorAll('.dept-member-filter-item').forEach(function(i) {
-                i.classList.remove('active');
-            });
-            el.classList.add('active');
-            activeFacultyType = type;
-            filterFacultyCards(document.getElementById('facultySearch').value);
-        }
-
-        // ── Timetable-panel toggle for Guide (hover) ──
-        (function() {
-            var panels = ['panelGuideInfo'];
-            var timers = {};
-            var heading = document.getElementById('facultyHeading');
-            panels.forEach(function(id) {
-                var btn = document.querySelector('[data-panel="' + id + '"]');
-                var panel = document.getElementById(id);
-                if (!btn || !panel) return;
-                timers[id] = null;
-
-                function open() {
-                    if (timers[id]) {
-                        clearTimeout(timers[id]);
-                        timers[id] = null;
-                    }
-                    panel.classList.add('show');
-                    if (heading) heading.style.zIndex = '1050';
-                }
-
-                function close() {
-                    if (timers[id]) clearTimeout(timers[id]);
-                    timers[id] = setTimeout(function() {
-                        panel.classList.remove('show');
-                        if (heading) heading.style.zIndex = '';
-                    }, 150);
-                }
-                btn.addEventListener('mouseenter', open);
-                btn.addEventListener('focus', open);
-                panel.addEventListener('mouseenter', open);
-                panel.addEventListener('mouseleave', close);
-                btn.addEventListener('mouseleave', close);
-            });
-        })();
-
-        // ── Scroll-to-hide topbar greeting & user info ──
-        window.addEventListener('scroll', function() {
-            var scrollThreshold = 100;
-            var nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - scrollThreshold;
-            document.querySelectorAll('.topbar-greeting, .topbar-user-info').forEach(function(el) {
-                el.classList.toggle('hidden', nearBottom);
-            });
-        });
-    </script>
-
-    <style>
-        .topbar-greeting,
-        .topbar-user-info {
-            transition: opacity 0.3s ease;
-        }
-
-        .topbar-greeting.hidden,
-        .topbar-user-info.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-    </style>
-    <script src="../../script/faculty-tutorial.js"></script>
+    <script src="../../js/lib/animations.js"></script>
+    <script src="../../js/lib/tooltip.js"></script>
+    <script src="../../js/admin/admin-faculty-management.js"></script>
+
+    <link rel="stylesheet" href="../../css/pages/admin-faculty-management.css">
+    <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 
 </html>

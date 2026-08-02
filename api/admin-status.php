@@ -1,7 +1,7 @@
 <?php
 // api/admin-status.php
-// GET → returns live counts and recent activity for admin dashboard
-require_once '../php/db_connect.php';
+// GET â†’ returns live counts and recent activity for admin dashboard
+require_once __DIR__ . "/../src/Config/db_connect.php";
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
@@ -14,7 +14,7 @@ session_write_close();
 
 $admin_id = (int)$_SESSION['admin_id'];
 
-// ── Counts ────────────────────────────────────────────────────────────────
+// - Counts --------------------------------
 $pending = $conn->query("
     SELECT COUNT(*) AS c FROM faculty
     WHERE is_verified = 1 AND approved_by IS NULL
@@ -37,7 +37,7 @@ $total_rooms = $conn->query("
     SELECT COUNT(*) AS c FROM classrooms
 ")->fetch_assoc()['c'];
 
-// ── Departments ───────────────────────────────────────────────────────────
+// - Departments ------------------------------
 $departments = [];
 $r = $conn->query("
     SELECT d.id, d.name, d.status,
@@ -61,7 +61,7 @@ while ($row = $r->fetch_assoc()) {
     $departments[] = $row;
 }
 
-// ── Faculty Members ───────────────────────────────────────────────────────
+// - Faculty Members ----------------------------
 $faculty_members = [];
 $r = $conn->query("
     SELECT f.first_name, f.last_name,
@@ -72,7 +72,7 @@ $r = $conn->query("
 ");
 while ($row = $r->fetch_assoc()) $faculty_members[] = $row;
 
-// ── Classrooms ────────────────────────────────────────────────────────────
+// - Classrooms ------------------------------
 $classrooms = [];
 $r = $conn->query("
     SELECT id, room_name, room_size, description, light_status
@@ -80,7 +80,7 @@ $r = $conn->query("
 ");
 while ($row = $r->fetch_assoc()) $classrooms[] = $row;
 
-// ── Recent activity ───────────────────────────────────────────────────────
+// - Recent activity ----------------------------
 $logs = [];
 
 // Lighting logs

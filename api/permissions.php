@@ -1,9 +1,9 @@
 <?php
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/../php/session_guard.php';
+require_once __DIR__ . "/../src/Session/session_guard.php";
 check_admin();
-require_once __DIR__ . '/../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);

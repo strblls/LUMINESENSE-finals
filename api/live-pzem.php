@@ -3,7 +3,7 @@
 // GET ?classroom_id=X
 // Returns live PZEM readings from pzem_live table (written by pzem_push.php)
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 $cid = (int)($_GET['classroom_id'] ?? 0);
@@ -15,7 +15,7 @@ $stateLabels = [
     3 => 'Locked',
 ];
 
-// ── Non-prototype room early return ───────────────────────────────────────
+// - Non-prototype room early return --------------------
 if ($cid > 0) {
     $stmt = $conn->prepare("SELECT is_prototype FROM classrooms WHERE id = ?");
     $stmt->bind_param('i', $cid);
@@ -91,7 +91,7 @@ if ($cid) {
     ]);
 
 } else {
-    // All rooms — aggregate
+    // All rooms - aggregate
     $res = $conn->query("
         SELECT p.*, c.room_name,
                TIMESTAMPDIFF(SECOND, p.updated_at, NOW()) AS secs_ago

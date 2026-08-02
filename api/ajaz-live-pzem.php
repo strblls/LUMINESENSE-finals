@@ -1,16 +1,16 @@
 <?php
 /**
- * api/ajax-live-pzem.php   (was: ajaz-live-pzem.php — note corrected filename)
- * ─────────────────────────
+ * api/ajax-live-pzem.php   (was: ajaz-live-pzem.php - note corrected filename)
+ * -------------
  * Polled by admin-analytics.js every 3 s.
  * Returns the latest PZEM row for the requested classroom_id (or all rooms).
  *
- * GET ?room_id=3   → single room
- * GET ?room_id=0   → all rooms (returns array keyed by classroom_id)
+ * GET ?room_id=3   â†’ single room
+ * GET ?room_id=0   â†’ all rooms (returns array keyed by classroom_id)
  */
-require_once __DIR__ . '/../php/session_guard.php';
+require_once __DIR__ . "/../src/Session/session_guard.php";
 check_admin();
-require_once __DIR__ . '/../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
@@ -25,7 +25,7 @@ $stateLabels = [
 ];
 
 if ($roomId > 0) {
-    // ── Single room ──────────────────────────────────────────────────────────
+    // - Single room -----------------------------
     $stmt = $conn->prepare("
         SELECT p.*, c.room_name,
                TIMESTAMPDIFF(SECOND, p.updated_at, NOW()) AS secs_ago
@@ -33,7 +33,7 @@ if ($roomId > 0) {
         JOIN classrooms c ON c.id = p.classroom_id
         WHERE p.classroom_id = ?
     ");
-    $stmt->bind_param('i', $roomId);   // ← was missing, causing crash
+    $stmt->bind_param('i', $roomId);   // â† was missing, causing crash
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
@@ -74,7 +74,7 @@ if ($roomId > 0) {
     ]);
 
 } else {
-    // ── All rooms ────────────────────────────────────────────────────────────
+    // - All rooms ------------------------------
     $res = $conn->query("
         SELECT p.*, c.room_name,
                TIMESTAMPDIFF(SECOND, p.updated_at, NOW()) AS secs_ago

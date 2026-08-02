@@ -5,6 +5,7 @@ config.php
 *.log
 *.tmp
 *.swp
+logs/
 
 # Environment
 .env

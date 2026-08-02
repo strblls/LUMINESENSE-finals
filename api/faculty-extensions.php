@@ -1,5 +1,5 @@
 <?php
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 header('Cache-Control: no-store');

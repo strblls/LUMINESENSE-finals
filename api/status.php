@@ -1,9 +1,9 @@
 <?php
 // api/status.php
-// GET → current light status + active schedule for all classrooms
+// GET â†’ current light status + active schedule for all classrooms
 // Used by both dashboards for real-time display.
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 
@@ -38,7 +38,7 @@ while ($room = $r->fetch_assoc()) {
     $stmt->close();
 
     $room['row1_status'] = $room['row1_status'];
-    ['row2_status'] = $room['row2_status'];
+    $room['row2_status'] = $room['row2_status'];
     $room['row3_status'] = $room['row3_status'];
     $rows[] = $room;
 }

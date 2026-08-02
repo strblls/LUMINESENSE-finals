@@ -1,6 +1,6 @@
 <?php
 date_default_timezone_set('Asia/Manila');
-require_once __DIR__ . '/../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Dompdf\Dompdf;
@@ -50,8 +50,8 @@ $sectionTitle = match($section) {
     default         => 'Analytics Export',
 };
 
-// ── Build HTML ──────────────────────────────────────────────────────────
-$html = '<h2 style="text-align:center;margin-bottom:5px;color:#2f004f;">LumineSense — ' . $sectionTitle . '</h2>';
+// - Build HTML -----------------------------
+$html = '<h2 style="text-align:center;margin-bottom:5px;color:#2f004f;">LumineSense - ' . $sectionTitle . '</h2>';
 $html .= '<p style="text-align:center;margin-bottom:20px;color:#888;font-size:12px;">' . $rangeLabel . ' &middot; ' . htmlspecialchars($roomName) . ' &middot; Generated ' . date('M j, Y g:i A') . '</p>';
 
 if ($section === 'historyCard') {
@@ -121,9 +121,9 @@ if ($section === 'historyCard') {
         $w = $row['avg_power'] ?? '';
         $html .= '<tr>';
         $html .= '<td style="font-weight:600;">' . htmlspecialchars($row['label'] ?? '') . '</td>';
-        $html .= '<td style="text-align:center;">' . ($v !== null ? number_format($v, 1) : '—') . '</td>';
-        $html .= '<td style="text-align:center;">' . ($a !== null ? number_format($a, 3) : '—') . '</td>';
-        $html .= '<td style="text-align:center;">' . ($w !== null ? number_format($w, 2) : '—') . '</td>';
+        $html .= '<td style="text-align:center;">' . ($v !== null ? number_format($v, 1) : '-') . '</td>';
+        $html .= '<td style="text-align:center;">' . ($a !== null ? number_format($a, 3) : '-') . '</td>';
+        $html .= '<td style="text-align:center;">' . ($w !== null ? number_format($w, 2) : '-') . '</td>';
         $html .= '</tr>';
     }
     $html .= '</tbody></table>';
@@ -166,7 +166,7 @@ if ($section === 'historyCard') {
     $html .= '</table>';
     $html .= '</div>';
 
-    // Graph image — save to temp file (dompdf blocks base64 data URIs)
+    // Graph image - save to temp file (dompdf blocks base64 data URIs)
     $tempImage = null;
     $graphImage = $data['graph_image'] ?? null;
     if ($graphImage && preg_match('/^data:image\/(\w+);base64,/', $graphImage, $m)) {
@@ -185,7 +185,7 @@ if ($section === 'historyCard') {
 
 $html .= '<p style="text-align:center;margin-top:15px;color:#aaa;font-size:10px;">LumineSense Energy Monitoring System</p>';
 
-// ── Generate PDF ────────────────────────────────────────────────────────
+// - Generate PDF ----------------------------
 $dompdf = new Dompdf();
 $dompdf->setPaper('A4', 'landscape');
 $opts = $dompdf->getOptions();

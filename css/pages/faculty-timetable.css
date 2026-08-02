@@ -1,0 +1,25 @@
+.toast-wrap {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+}
+.toast-msg {
+    background: var(--secondary-color-1);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    display: none;
+}
+.toast-msg.show {
+    display: block;
+    animation: fadeInUp 0.3s ease, fadeOut 0.4s ease 2.2s forwards;
+}
+@keyframes fadeInUp {
+    from { opacity:0; transform:translateY(12px); }
+    to   { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeOut { to { opacity:0; } }

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -27,11 +27,11 @@ unset($_SESSION['login_error'], $_SESSION['signup_success_modal'], $_SESSION['lo
     <link rel="icon" type="image/png" sizes="32x32" href="../images/icon.png">
     <link rel="shortcut icon" type="image/png" href="../images/icon.png">
     <!--CSS files-->
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/containers.css">
-    <link rel="stylesheet" href="../css/registration.css">
+    <link rel="stylesheet" href="../css/base/global.css">
+    <link rel="stylesheet" href="../css/base/containers.css">
+    <link rel="stylesheet" href="../css/pages/registration.css">
 
-    <title>Admin Login – LumineSense</title>
+    <title>Admin Login - LumineSense</title>
 </head>
 
 <body>
@@ -86,7 +86,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success_modal'], $_SESSION['lo
             ?>
 
             <div class="form-container">
-                <form action="../php/admin-login-process.php" method="POST">
+                <form action="../handlers/admin-login-process.php" method="POST">
 
                     <div class="mb-3">
                         <label for="email">Admin E-mail</label>
@@ -127,8 +127,8 @@ unset($_SESSION['login_error'], $_SESSION['signup_success_modal'], $_SESSION['lo
         </div>
     </div>
 
-    <script src="../script/animations.js"></script>
-    <script src="../script/password.js"></script>
+    <script src="../js/lib/animations.js"></script>
+    <script src="../js/lib/password.js"></script>
 </body>
 
 </html>

@@ -1,0 +1,7 @@
+.timetable-btn.active-filter {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+}
+.timetable-btn.active-filter i {
+    font-size: 24px;
+}

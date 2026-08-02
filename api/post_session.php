@@ -1,8 +1,8 @@
 <?php
 // api/post_session.php
-// POST (JSON body) from ESP32 — saves completed session summary to power_sessions
+// POST (JSON body) from ESP32 - saves completed session summary to power_sessions
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 $raw  = file_get_contents('php://input');
@@ -36,7 +36,7 @@ $valid_triggers = ['pir', 'schedule', 'manual', 'reconcile'];
 if (!in_array($trigger, $valid_triggers)) $trigger = 'schedule';
 
 if ($trigger === 'reconcile') {
-    // Close orphaned session from blackout — use server now() as end_time
+    // Close orphaned session from blackout - use server now() as end_time
     $upd = $conn->prepare("
         UPDATE power_sessions
         SET end_time = NOW(),
@@ -58,7 +58,7 @@ if ($trigger === 'reconcile') {
     exit;
 }
 
-// 11 params → 11-char type string: i s s s i s d d d d i
+// 11 params â†’ 11-char type string: i s s s i s d d d d i
 $stmt = $conn->prepare("
     INSERT INTO power_sessions
         (classroom_id, session_date, start_time, end_time, duration_mins,

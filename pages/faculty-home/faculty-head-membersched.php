@@ -1,8 +1,8 @@
-<?php
+﻿<?php
 date_default_timezone_set('Asia/Manila');
-require_once '../../php/session_guard.php';
+require_once __DIR__ . "/../../src/Session/session_guard.php";
 check_faculty();
-require_once '../../php/db_connect.php';
+require_once __DIR__ . "/../../src/Config/db_connect.php";
 
 if (empty($_SESSION['is_head'])) {
     header('Location: faculty-timetable.php');
@@ -116,7 +116,7 @@ if ($res_sr) {
 }
 $sr->close();
 
-// ── Member coverage: subject areas and their subjects (within this department) ──
+// - Member coverage: subject areas and their subjects (within this department) -
 $coverage = [];
 $cov_stmt = $conn->prepare("
     SELECT sa.id AS sa_id, sa.name AS sa_name, s.id AS subj_id, s.name AS subj_name
@@ -151,7 +151,7 @@ foreach ($coverage as $sa) {
     }
 }
 
-// ── Head's full name ──
+// - Head's full name -
 $head_name = '';
 $hstmt = $conn->prepare("SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM faculty WHERE id = ?");
 $hstmt->bind_param('i', $faculty_id);
@@ -160,7 +160,7 @@ $hstmt->bind_result($head_name);
 $hstmt->fetch();
 $hstmt->close();
 
-// ── Department name ──
+// - Department name -
 $dept_name = '';
 $dstmt = $conn->prepare("SELECT name FROM departments WHERE id = ?");
 $dstmt->bind_param('i', $department_id);
@@ -169,7 +169,7 @@ $dstmt->bind_result($dept_name);
 $dstmt->fetch();
 $dstmt->close();
 
-// ── Last edited timestamp and who edited it ──
+// - Last edited timestamp and who edited it -
 $last_edited = null;
 $edited_by_name = '';
 $lestmt = $conn->prepare("
@@ -190,7 +190,7 @@ if ($le_row = $le_res->fetch_assoc()) {
 }
 $lestmt->close();
 
-// ── Ordinal helper ──
+// - Ordinal helper -
 function ordinal($number)
 {
     $ends = ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'];
@@ -198,7 +198,7 @@ function ordinal($number)
     return $number . $ends[$number % 10];
 }
 
-// ── Date map for each day of the week ──
+// - Date map for each day of the week -
 $dow_map = ['Sunday' => 0, 'Monday' => 1, 'Tuesday' => 2, 'Wednesday' => 3, 'Thursday' => 4, 'Friday' => 5, 'Saturday' => 6];
 $today_dow_num = $dow_map[$today];
 $day_date_map = [];
@@ -225,22 +225,22 @@ foreach ($days as $day) {
 
     <!--Relative links-->
     <link rel="icon" type="image/png" href="../../images/icon.png">
-    <link rel="stylesheet" href="../../css/global.css">
-    <link rel="stylesheet" href="../../css/containers.css">
-    <link rel="stylesheet" href="../../css/tooltip.css">
-    <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/faculty-timetable.css">
-    <link rel="stylesheet" href="../../css/faculty-common.css">
-    <link rel="stylesheet" href="../../css/faculty-settings.css">
-    <link rel="stylesheet" href="../../css/faculty-head-timetable.css">
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/base/containers.css">
+    <link rel="stylesheet" href="../../css/base/tooltip.css">
+    <link rel="stylesheet" href="../../css/base/modals.css">
+    <link rel="stylesheet" href="../../css/faculty/timetable.css">
+    <link rel="stylesheet" href="../../css/faculty/common.css">
+    <link rel="stylesheet" href="../../css/faculty/settings.css">
+    <link rel="stylesheet" href="../../css/faculty/head-timetable.css">
 
-    <title><?= htmlspecialchars($member_name) ?> – Schedule – LumineSense</title>
+    <title><?= htmlspecialchars($member_name) ?> - Schedule - LumineSense</title>
 </head>
 
 <body class="contrast-bg">
     <div class="parent-container">
 
-        <?php include '../../php/includes/faculty-topbar.php'; ?>
+        <?php include __DIR__ . "/../../src/Includes/faculty-topbar.php"; ?>
 
         <div class="child-container mb-3">
 
@@ -356,7 +356,7 @@ foreach ($days as $day) {
                         <div class="day-card <?= $is_today ? 'today' : '' ?>">
                             <div class="day-label">
                                 <div class="text-uppercase small fw-bold mb-1" style="font-size:11px;letter-spacing:0.5px;color:<?= $is_today ? '#fff' : '#6c757d' ?>;"><?= $day_date_map[$day] ?? '' ?></div>
-                                <?= $day ?> <?= $is_today ? '· Today' : '' ?>
+                                <?= $day ?> <?= $is_today ? 'Â· Today' : '' ?>
                             </div>
 
                             <?php if (empty($slots)): ?>
@@ -399,7 +399,7 @@ foreach ($days as $day) {
                                         <div class="slot-actions">
                                             <button class="btn-icon <?= $is_owner ? ($is_running ? 'btn-icon-disabled' : 'btn-icon-edit') : 'btn-icon-disabled' ?>"
                                                 title="<?= $is_owner
-                                                            ? ($is_running ? 'Cannot Edit – Schedule Currently Running' : 'Edit Schedule Details')
+                                                            ? ($is_running ? 'Cannot Edit - Schedule Currently Running' : 'Edit Schedule Details')
                                                             : 'Restricted - assigned by another faculty head'
                                                         ?>"
                                                 onclick="<?= $is_owner
@@ -456,11 +456,11 @@ foreach ($days as $day) {
 
         </div>
 
-        <?php include '../../php/includes/faculty-sidebar.php'; ?>
+        <?php include __DIR__ . "/../../src/Includes/faculty-sidebar.php"; ?>
 
-        <script src="../../script/animations.js"></script>
-        <script src="../../script/toggles.js"></script>
-        <script src="../../script/tooltip.js"></script>
+        <script src="../../js/lib/animations.js"></script>
+        <script src="../../js/lib/toggles.js"></script>
+        <script src="../../js/lib/tooltip.js"></script>
     </div>
 
     <!-- Edit Schedule Modal -->
@@ -618,7 +618,7 @@ foreach ($days as $day) {
                 <div class="modal-body text-center p-4">
                     <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;color:#e67e22;"></i>
                     <p class="mt-3 mb-0" style="font-size:15px;">
-                        End time must be after start time. Please check your schedule entry — a time like 9PM to 10AM is not valid because the end falls before the start on the same day.
+                        End time must be after start time. Please check your schedule entry - a time like 9PM to 10AM is not valid because the end falls before the start on the same day.
                     </p>
                 </div>
                 <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
@@ -722,342 +722,8 @@ foreach ($days as $day) {
         </div>
     </div>
 
-    <script>
-        let editScheduleModal = null;
-        let viewSlotModal = null;
-        let deleteScheduleModal = null;
-        let confirmSaveModal = null;
-        let restrictedModal = null;
-        let runningScheduleModal = null;
-        let overlapWarningModal = null;
-        let timeValidationModal = null;
-        let deleteSlotId = null;
-        const subjects = <?php echo json_encode($subjects); ?>;
-        const rooms = <?php echo json_encode($rooms); ?>;
-        const memberId = <?= (int)$member_id ?>;
-        const todayDayName = '<?= $today ?>';
-
-        function cleanupModalBackdrop() {
-            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-            document.body.classList.remove('modal-open');
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
-        }
-
-        document.addEventListener('hidden.bs.modal', cleanupModalBackdrop);
-
-        // ── Timetable panel toggle (hover) ──
-        (function() {
-            const panels = ['panelCoverage', 'panelInfo'];
-            const timers = {};
-            panels.forEach(id => {
-                const btn = document.querySelector(`[data-panel="${id}"]`);
-                const panel = document.getElementById(id);
-                if (!btn || !panel) return;
-                timers[id] = null;
-                const open = () => {
-                    if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
-                    panel.classList.add('show');
-                    btn.classList.remove('has-update');
-                };
-                const close = () => {
-                    if (timers[id]) clearTimeout(timers[id]);
-                    timers[id] = setTimeout(() => panel.classList.remove('show'), 150);
-                };
-                btn.addEventListener('mouseenter', open);
-                btn.addEventListener('focus', open);
-                panel.addEventListener('mouseenter', open);
-                panel.addEventListener('mouseleave', close);
-                btn.addEventListener('mouseleave', close);
-            });
-        })();
-
-        // ── Overlap warning modal ──
-        function showOverlapModal(conflict) {
-            if (!overlapWarningModal) {
-                overlapWarningModal = new bootstrap.Modal(document.getElementById('overlapWarningModal'));
-            }
-            document.getElementById('overlap-details').innerHTML =
-                '<div class="mb-1"><strong>Day:</strong> ' + conflict.day + '</div>' +
-                '<div class="mb-1"><strong>Time:</strong> ' + conflict.start + ' \u2014 ' + conflict.end + '</div>' +
-                '<div class="mb-1"><strong>Room:</strong> ' + conflict.room + '</div>' +
-                '<div class="mb-1"><strong>Subject:</strong> ' + conflict.subject + '</div>' +
-                '<div class="mb-1"><strong>Teacher:</strong> ' + conflict.teacher + '</div>';
-            overlapWarningModal.show();
-        }
-
-        // ── Subject search filtering ──
-        document.addEventListener('input', function(e) {
-            if (e.target.id === 'edit-subject-search') {
-                const filter = e.target.value.toLowerCase();
-                const container = document.getElementById('edit-available-subjects-container');
-                const items = container.querySelectorAll('.edit-subject-item');
-                let anyVisible = false;
-                items.forEach(function(item) {
-                    const name = item.dataset.subjectName.toLowerCase();
-                    const show = name.includes(filter);
-                    item.style.display = show ? '' : 'none';
-                    if (show) anyVisible = true;
-                });
-                let emptyMsg = container.querySelector('.no-match-msg');
-                if (!anyVisible) {
-                    if (!emptyMsg) {
-                        emptyMsg = document.createElement('p');
-                        emptyMsg.className = 'text-muted small mb-0 no-match-msg';
-                        emptyMsg.textContent = 'No matching subjects.';
-                        container.appendChild(emptyMsg);
-                    }
-                } else if (emptyMsg) {
-                    emptyMsg.remove();
-                }
-            }
-        });
-
-        // ── Subject chip click to select ──
-        document.addEventListener('click', function(e) {
-            const item = e.target.closest('.edit-subject-item');
-            if (!item) return;
-
-            const subjectId = item.dataset.subjectId;
-            const subjectName = item.dataset.subjectName;
-
-            document.getElementById('edit-subject-id').value = subjectId;
-            document.getElementById('edit-subject-name').value = subjectName;
-            document.getElementById('edit-selected-subject-name').textContent = subjectName;
-            document.getElementById('edit-selected-subject-name').style.fontStyle = 'normal';
-            document.getElementById('edit-selected-subject-name').style.color = 'var(--text-color, #212529)';
-
-            // Highlight selected
-            document.querySelectorAll('.edit-subject-item').forEach(function(el) {
-                el.style.border = '2px solid transparent';
-            });
-            item.style.border = '2px solid #2a7a3e';
-
-            // Clear search
-            document.getElementById('edit-subject-search').value = '';
-            // Reset filter
-            document.querySelectorAll('.edit-subject-item').forEach(function(el) {
-                el.style.display = '';
-            });
-            const emptyMsg = document.getElementById('edit-available-subjects-container').querySelector('.no-match-msg');
-            if (emptyMsg) emptyMsg.remove();
-        });
-
-        // ── Modal open functions ──
-        function openAddScheduleModal() {
-            if (!editScheduleModal) {
-                editScheduleModal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
-            }
-            document.getElementById('editScheduleLabel').innerHTML = '<i class="bi bi-plus-lg me-2"></i>Add Schedule Slot';
-            document.getElementById('edit-slot-id').value = '';
-            document.getElementById('edit-is-add').value = '1';
-            document.getElementById('edit-day').value = todayDayName;
-            document.getElementById('edit-start').value = '09:00';
-            document.getElementById('edit-end').value = '10:00';
-            document.getElementById('edit-room').value = rooms.length > 0 ? rooms[0].id : '';
-            resetSubjectSelection();
-            editScheduleModal.show();
-        }
-
-        function openEditScheduleModal(id, day, start, end, roomId, subjectId, subjectName) {
-            if (!editScheduleModal) {
-                editScheduleModal = new bootstrap.Modal(document.getElementById('editScheduleModal'));
-            }
-            document.getElementById('editScheduleLabel').innerHTML = '<i class="bi bi-pencil me-2"></i>Edit Schedule Details';
-            document.getElementById('edit-slot-id').value = id;
-            document.getElementById('edit-is-add').value = '0';
-            document.getElementById('edit-day').value = day;
-            document.getElementById('edit-start').value = start;
-            document.getElementById('edit-end').value = end;
-            document.getElementById('edit-room').value = roomId;
-            resetSubjectSelection();
-
-            if (subjectId && subjectId > 0) {
-                document.getElementById('edit-subject-id').value = subjectId;
-                document.getElementById('edit-subject-name').value = subjectName || '';
-                document.getElementById('edit-selected-subject-name').textContent = subjectName || '';
-                document.getElementById('edit-selected-subject-name').style.fontStyle = 'normal';
-                document.getElementById('edit-selected-subject-name').style.color = 'var(--text-color, #212529)';
-                document.querySelectorAll('.edit-subject-item').forEach(function(el) {
-                    if (parseInt(el.dataset.subjectId) === subjectId) {
-                        el.style.border = '2px solid #2a7a3e';
-                    }
-                });
-            }
-            editScheduleModal.show();
-        }
-
-        function resetSubjectSelection() {
-            document.getElementById('edit-subject-id').value = '0';
-            document.getElementById('edit-subject-name').value = '';
-            document.getElementById('edit-selected-subject-name').textContent = 'None';
-            document.getElementById('edit-selected-subject-name').style.fontStyle = 'italic';
-            document.getElementById('edit-selected-subject-name').style.color = 'var(--text-muted, #6c757d)';
-            document.getElementById('edit-subject-search').value = '';
-            document.querySelectorAll('.edit-subject-item').forEach(function(el) {
-                el.style.display = '';
-                el.style.border = '2px solid transparent';
-            });
-            const emptyMsg = document.getElementById('edit-available-subjects-container').querySelector('.no-match-msg');
-            if (emptyMsg) emptyMsg.remove();
-        }
-
-        // ── Confirm-then-save flow ──
-        function saveSchedule() {
-            const day = document.getElementById('edit-day').value;
-            const start = document.getElementById('edit-start').value;
-            const end = document.getElementById('edit-end').value;
-            const roomId = document.getElementById('edit-room').value;
-
-            if (!day || !start || !end || !roomId) {
-                alert('Please fill in all required fields.');
-                return;
-            }
-            if (start >= end) {
-                if (!timeValidationModal) {
-                    timeValidationModal = new bootstrap.Modal(document.getElementById('timeValidationModal'));
-                }
-                timeValidationModal.show();
-                return;
-            }
-
-            // Build preview message
-            const subjectName = document.getElementById('edit-subject-name').value || 'None assigned';
-            const roomName = document.getElementById('edit-room').selectedOptions[0]?.text || 'Unknown';
-            const isAdd = document.getElementById('edit-is-add').value === '1';
-            const actionLabel = isAdd ? 'Add' : 'Update';
-            document.getElementById('confirm-save-message').innerHTML =
-                '<strong>' + actionLabel + ' schedule slot:</strong><br>' +
-                day + ' | ' + start + ' – ' + end + '<br>' +
-                'Room: ' + roomName + '<br>' +
-                'Subject: ' + subjectName;
-
-            if (!confirmSaveModal) {
-                confirmSaveModal = new bootstrap.Modal(document.getElementById('confirmSaveScheduleModal'));
-            }
-            confirmSaveModal.show();
-        }
-
-        document.getElementById('confirm-save-btn').addEventListener('click', executeSaveSchedule);
-
-        async function executeSaveSchedule() {
-            const isAdd = document.getElementById('edit-is-add').value === '1';
-            const slotId = document.getElementById('edit-slot-id').value;
-            const day = document.getElementById('edit-day').value;
-            const start = document.getElementById('edit-start').value;
-            const end = document.getElementById('edit-end').value;
-            const roomId = document.getElementById('edit-room').value;
-            const subjectId = parseInt(document.getElementById('edit-subject-id').value) || 0;
-            const subjectName = document.getElementById('edit-subject-name').value.trim();
-
-            let newSubject = '';
-            if (subjectName && subjectId === 0) {
-                const found = subjects.find(function(s) {
-                    return s.name.toLowerCase() === subjectName.toLowerCase();
-                });
-                if (found) {
-                    // It's actually an existing subject - should not happen with chip UI, but handle gracefully
-                } else {
-                    newSubject = subjectName;
-                }
-            }
-
-            const body = new URLSearchParams({
-                action: isAdd ? 'add_schedule' : 'update_schedule',
-                member_id: memberId,
-                slot_id: slotId,
-                room_id: roomId,
-                day_of_week: day,
-                start_time: start,
-                end_time: end,
-                subject_id: subjectId,
-                new_subject: newSubject
-            });
-
-            if (confirmSaveModal) confirmSaveModal.hide();
-            if (editScheduleModal) editScheduleModal.hide();
-
-            const res = await fetch('../../php/handlers/faculty-head-handler.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                window.location.reload();
-            } else if (data.message === 'not_your_slot') {
-                showRestrictedModal('another Faculty Head');
-            } else if (data.conflict) {
-                showOverlapModal(data.conflict);
-            } else {
-                alert(data.message || 'Could not save schedule.');
-            }
-        }
-
-        function confirmDeleteSchedule(slotId) {
-            if (!deleteScheduleModal) {
-                deleteScheduleModal = new bootstrap.Modal(document.getElementById('deleteScheduleModal'));
-            }
-            deleteSlotId = slotId;
-            deleteScheduleModal.show();
-        }
-
-        async function executeDeleteSchedule() {
-            if (!deleteSlotId) return;
-
-            const body = new URLSearchParams({
-                action: 'delete_schedule',
-                slot_id: deleteSlotId
-            });
-
-            const res = await fetch('../../php/handlers/faculty-head-handler.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                window.location.reload();
-            } else if (data.message === 'not_your_slot') {
-                showRestrictedModal('another Faculty Head');
-            } else {
-                alert(data.message || 'Could not delete schedule.');
-            }
-        }
-
-        function showRestrictedModal(creatorName) {
-            if (!restrictedModal) {
-                restrictedModal = new bootstrap.Modal(document.getElementById('restrictedActionModal'));
-            }
-            document.getElementById('restricted-creator-name').textContent = creatorName;
-            restrictedModal.show();
-        }
-
-        function showRunningWarningModal() {
-            if (!runningScheduleModal) {
-                runningScheduleModal = new bootstrap.Modal(document.getElementById('runningScheduleModal'));
-            }
-            runningScheduleModal.show();
-        }
-
-        function openSlotDetails(day, startTime, endTime, room, subject) {
-            if (!viewSlotModal) {
-                viewSlotModal = new bootstrap.Modal(document.getElementById('viewSlotModal'));
-            }
-            document.getElementById('slot-day').textContent = day;
-            document.getElementById('slot-time').textContent = startTime + ' \u2014 ' + endTime;
-            document.getElementById('slot-room').textContent = room;
-            document.getElementById('slot-subject').textContent = subject;
-            viewSlotModal.show();
-        }
-    </script>
-    <script src="../../script/faculty-tutorial.js"></script>
+    <script src="../../js/faculty/faculty-head-membersched.js"></script>
+    <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 
 </html>

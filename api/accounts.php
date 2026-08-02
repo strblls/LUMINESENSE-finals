@@ -1,12 +1,12 @@
 <?php
 // api/accounts.php
 // Admin only. Manages faculty account approval.
-// GET  ?action=list&filter=pending|verified|all  → returns faculty list
+// GET  ?action=list&filter=pending|verified|all  â†’ returns faculty list
 // POST action=approve  faculty_id=X
 // POST action=reject   faculty_id=X
 // POST action=revoke   faculty_id=X
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 // Must be logged in as admin
@@ -17,7 +17,7 @@ if (empty($_SESSION['admin_logged_in']) || $_SESSION['role'] !== 'admin') {
 
 $admin_id = (int)$_SESSION['admin_id'];
 
-// ── GET: list faculty ──────────────────────────────────────────
+// - GET: list faculty ---------------------
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $filter = $_GET['filter'] ?? 'all';
 
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     echo json_encode(['success' => true, 'data' => $rows]); exit;
 }
 
-// ── POST: approve / reject / revoke ───────────────────────────
+// - POST: approve / reject / revoke --------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action     = $_POST['action']     ?? '';
     $faculty_id = (int)($_POST['faculty_id'] ?? 0);
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
 
         // Send approval email
-        require_once '../php/mailer.php';
+        require_once __DIR__ . "/../src/Services/mailer.php";
         sendApprovalEmail($faculty_email, $faculty_first_name);
 
         echo json_encode(['success' => true, 'message' => 'Faculty account approved.']); exit;
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Send rejection email
         if ($found && !empty($faculty_email) && !empty($faculty_first_name)) {
-            require_once '../php/mailer.php';
+            require_once __DIR__ . "/../src/Services/mailer.php";
             sendRejectionEmail($faculty_email, $faculty_first_name);
         }
 

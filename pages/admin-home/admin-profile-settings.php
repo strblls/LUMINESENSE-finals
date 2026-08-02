@@ -1,39 +1,39 @@
-<?php
+﻿<?php
 $page_title = 'Profile Settings';
-require_once '../../php/includes/admin-head.php';
-require_once __DIR__ . '/../../php/handlers/admin-handlers.php';
+require_once __DIR__ . "/../../src/Includes/admin-head.php";
+require_once __DIR__ . "/../../src/Handlers/admin-handlers.php";
 /** @var string $admin_name  
  * @var string $admin_email
  * @var string $initials
  * @var int    $admin_id
  */
 
-// ── Handle flash messages from redirects ──────────────────────────────────
+// - Handle flash messages from redirects -----------------
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
-// ── Check if seeded admin ─────────────────────────────────────────────────
+// - Check if seeded admin -------------------------
 $admin_is_seeded = false;
 $seed_check = $conn->query("SELECT is_seeded FROM admins WHERE id = " . (int)$admin_id);
 if ($seed_check && $seed_row = $seed_check->fetch_assoc()) {
     $admin_is_seeded = !empty($seed_row['is_seeded']);
 }
 
-// ── Check if forced password change is required ──────────────────────────
+// - Check if forced password change is required -------------
 $must_change_pw = false;
 $mcp_check = $conn->query("SELECT must_change_password FROM admins WHERE id = " . (int)$admin_id);
 if ($mcp_check && $mcp_row = $mcp_check->fetch_assoc()) {
     $must_change_pw = ($mcp_row['must_change_password'] === '1');
 }
 
-// ── Fetch pending flush schedule (if any) ──────────────────────────────────
+// - Fetch pending flush schedule (if any) -----------------
 $flush_schedule = null;
 if ($admin_is_seeded) {
     $fs = $conn->query("SELECT * FROM flush_schedules WHERE created_by = $admin_id AND executed = 0 ORDER BY id DESC LIMIT 1");
     if ($fs) $flush_schedule = $fs->fetch_assoc();
 }
 
-// ── Fetch pending extension reset (independent of system flush) ────────────
+// - Fetch pending extension reset (independent of system flush) ------
 $extension_reset_dt = null;
 if ($admin_is_seeded) {
     $er = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'extension_reset_datetime'");
@@ -42,7 +42,7 @@ if ($admin_is_seeded) {
     }
 }
 
-// ── Check if in confirmation window ────────────────────────────────────────
+// - Check if in confirmation window --------------------
 $in_confirmation_window = false;
 $days_remaining = 0;
 if ($flush_schedule && !$flush_schedule['confirmed']) {
@@ -71,12 +71,12 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
 
     <!-- Relative links -->
     <link rel="icon" href="../../images/icon.png">
-    <link rel="stylesheet" href="../../css/global.css">
-    <link rel="stylesheet" href="../../css/containers.css">
-    <link rel="stylesheet" href="../../css/modals.css">
-    <link rel="stylesheet" href="../../css/admin-common.css">
-    <link rel="stylesheet" href="../../css/admin-settings.css">
-    <link rel="stylesheet" href="../../css/admin-profile-settings.css">
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/base/containers.css">
+    <link rel="stylesheet" href="../../css/base/modals.css">
+    <link rel="stylesheet" href="../../css/admin/common.css">
+    <link rel="stylesheet" href="../../css/admin/settings.css">
+    <link rel="stylesheet" href="../../css/admin/profile-settings.css">
 </head>
 
 <body class="contrast-bg">
@@ -88,18 +88,18 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
         </div>
     </div>
 
-    <?php include '../../php/includes/admin-topbar.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/admin-topbar.php"; ?>
 
     <div class="parent-container">
         <?php if (!$must_change_pw): ?>
-        <?php include '../../php/includes/admin-sidebar.php'; ?>
+        <?php include __DIR__ . "/../../src/Includes/admin-sidebar.php"; ?>
         <?php endif; ?>
 
         <div class="child-container homepage-modal">
             <div class="profile-wrapper">
                 <div class="profile-main-card" style="border-radius: 10px;">
 <?php if ($must_change_pw): ?>
-<!-- ═══ FORCED PASSWORD CHANGE (first login after deployment) ═══ -->
+<!-- â•â•â• FORCED PASSWORD CHANGE (first login after deployment) â•â•â• -->
 <div class="forced-pw-change-wrap">
     <div class="forced-pw-change-card">
         <div class="forced-pw-change-header">
@@ -212,7 +212,7 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                                         Change Password
                                     </button>
 
-                                    <!-- Password form — hidden until OTP verified -->
+                                    <!-- Password form - hidden until OTP verified -->
                                     <form id="adminPwChangeForm" method="POST" action="../../api/change_password.php" style="display:none;">
                                         <div class="mb-2">
                                             <label class="form-label">New Password</label>
@@ -233,7 +233,7 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                             <?php endif; ?>
 
                             <?php if ($admin_is_seeded): ?>
-                            <!-- ═══ SYSTEM FLUSH SECTION ═══ -->
+                            <!-- â•â•â• SYSTEM FLUSH SECTION â•â•â• -->
                             <div id="section-flush" class="section-content">
                                 <?php if ($flush_schedule && $in_confirmation_window && !$flush_schedule['confirmed']): ?>
                                 <!-- Confirmation Prompt (7-day window) -->
@@ -330,7 +330,7 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                                             <div class="hover-info-trigger">
                                                 <i class="bi bi-layers-fill"></i>
                                                 <div class="hover-info-panel">
-                                                    <strong>Pyramid hierarchy:</strong> Departments → Subject Areas → Subjects.
+                                                    <strong>Pyramid hierarchy:</strong> Departments â†’ Subject Areas â†’ Subjects.
                                                     Higher levels include lower levels.
                                                 </div>
                                             </div>
@@ -492,7 +492,7 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
         </div><!-- /child-container -->
     </div><!-- /parent-container -->
 
-    <!-- ═══ EDIT CONTACT MODAL ═══ -->
+    <!-- â•â•â• EDIT CONTACT MODAL â•â•â• -->
     <div class="modal fade" id="editContactModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -500,7 +500,7 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                     <h5 class="modal-title bold">Edit Contact Information</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" action="../../php/handlers/admin-profile-handler.php">
+                <form method="POST" action="../../handlers/admin-profile-handler.php">
                     <input type="hidden" name="action" value="update_contact">
                     <div class="modal-body d-flex flex-column gap-3">
                         <div>
@@ -525,9 +525,9 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
         </div>
     </div>
 
-    <?php include '../../php/includes/profile-offcanvas.php'; ?>
+    <?php include __DIR__ . "/../../src/Includes/profile-offcanvas.php"; ?>
 
-    <!-- ═══ FLUSH CONFIRMATION MODAL ═══ -->
+    <!-- â•â•â• FLUSH CONFIRMATION MODAL â•â•â• -->
     <div class="modal fade" id="flushConfirmModal" tabindex="-1" aria-hidden="true">
         <div class="room-details-modal modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -585,155 +585,19 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
         </div>
     </div>
 
-    <script>
-    // OTP verification flow for admin password change
-    (function() {
-        var modal = document.getElementById('adminChangePwOtpModal');
-        var stepSend = document.getElementById('adminOtpStepSend');
-        var stepVerify = document.getElementById('adminOtpStepVerify');
-        var stepSuccess = document.getElementById('adminOtpStepSuccess');
-        var sendBtn = document.getElementById('adminSendOtpBtn');
-        var verifyBtn = document.getElementById('adminVerifyOtpBtn');
-        var otpInput = document.getElementById('adminOtpInput');
-        var feedback = document.getElementById('adminOtpFeedback');
-        var resendBtn = document.getElementById('adminResendChangeOtpBtn');
-        var pwForm = document.getElementById('adminPwChangeForm');
-        var cooldown = 0;
+    <script src="../../js/admin/admin-profile-settings.js"></script>
 
-        function resetModal() {
-            stepSend.style.display = 'block';
-            stepVerify.style.display = 'none';
-            stepSuccess.style.display = 'none';
-            otpInput.value = '';
-            feedback.textContent = '';
-            sendBtn.disabled = false;
-            sendBtn.textContent = 'Send Code';
-        }
-
-        modal.addEventListener('hidden.bs.modal', function() {
-            if (stepSuccess.style.display !== 'block') resetModal();
-        });
-
-        modal.addEventListener('shown.bs.modal', function() {
-            resetModal();
-        });
-
-        sendBtn.addEventListener('click', function() {
-            sendBtn.disabled = true;
-            sendBtn.textContent = 'Sending...';
-            fetch('../../api/send-change-otp.php', { method: 'POST' })
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    if (d.success) {
-                        stepSend.style.display = 'none';
-                        stepVerify.style.display = 'block';
-                        cooldown = 60;
-                        tickResend();
-                    } else {
-                        feedback.textContent = d.message || 'Failed to send.';
-                        sendBtn.disabled = false;
-                        sendBtn.textContent = 'Send Code';
-                    }
-                })
-                .catch(function() {
-                    feedback.textContent = 'Network error.';
-                    sendBtn.disabled = false;
-                    sendBtn.textContent = 'Send Code';
-                });
-        });
-
-        function tickResend() {
-            if (cooldown <= 0) {
-                resendBtn.disabled = false;
-                resendBtn.textContent = 'Resend Code';
-                return;
-            }
-            resendBtn.disabled = true;
-            resendBtn.textContent = 'Resend Code (' + cooldown + 's)';
-            cooldown--;
-            setTimeout(tickResend, 1000);
-        }
-
-        resendBtn.addEventListener('click', function() {
-            resendBtn.disabled = true;
-            resendBtn.textContent = 'Sending...';
-            fetch('../../api/send-change-otp.php', { method: 'POST' })
-                .then(function(r) { return r.json(); })
-                .then(function(d) {
-                    if (d.success) {
-                        cooldown = 60;
-                        tickResend();
-                        feedback.textContent = 'Code resent.';
-                        feedback.className = 'small mb-2 text-success';
-                    } else {
-                        feedback.textContent = d.message || 'Failed.';
-                        feedback.className = 'small mb-2 text-danger';
-                        resendBtn.disabled = false;
-                        resendBtn.textContent = 'Resend Code';
-                    }
-                })
-                .catch(function() {
-                    feedback.textContent = 'Network error.';
-                    feedback.className = 'small mb-2 text-danger';
-                    resendBtn.disabled = false;
-                    resendBtn.textContent = 'Resend Code';
-                });
-        });
-
-        verifyBtn.addEventListener('click', function() {
-            var otp = otpInput.value.trim();
-            if (!/^\d{6}$/.test(otp)) {
-                feedback.textContent = 'Enter a valid 6-digit code.';
-                feedback.className = 'small mb-2 text-danger';
-                return;
-            }
-            verifyBtn.disabled = true;
-            verifyBtn.textContent = 'Verifying...';
-            var body = new URLSearchParams();
-            body.append('otp', otp);
-            fetch('../../api/verify-change-otp.php', {
-                method: 'POST',
-                body: body
-            }).then(function(r) { return r.json(); })
-            .then(function(d) {
-                if (d.success) {
-                    stepVerify.style.display = 'none';
-                    stepSuccess.style.display = 'block';
-                    pwForm.style.display = 'block';
-                    setTimeout(function() {
-                        var bsModal = bootstrap.Modal.getInstance(modal);
-                        if (bsModal) bsModal.hide();
-                    }, 1000);
-                } else {
-                    feedback.textContent = d.message || 'Invalid code.';
-                    feedback.className = 'small mb-2 text-danger';
-                    verifyBtn.disabled = false;
-                    verifyBtn.textContent = 'Verify';
-                }
-            })
-            .catch(function() {
-                feedback.textContent = 'Network error.';
-                feedback.className = 'small mb-2 text-danger';
-                verifyBtn.disabled = false;
-                verifyBtn.textContent = 'Verify';
-            });
-        });
-    })();
-    </script>
-
-    <script src="../../script/animations.js"></script>
-    <script src="../../script/toggles.js"></script>
-    <script src="../../script/admin-flush-settings.js"></script>
+    <script src="../../js/lib/animations.js"></script>
+    <script src="../../js/lib/toggles.js"></script>
+    <script src="../../js/admin/admin-flush-settings.js"></script>
 
     <script>
-        // ── Toast auto-dismiss ──
         document.addEventListener('DOMContentLoaded', function () {
             const toast = document.getElementById('toastMsg');
             if (toast && toast.classList.contains('show')) {
                 setTimeout(() => toast.classList.remove('show'), 3500);
             }
 
-            // ── Sidebar navigation ──
             const sidebarItems = document.querySelectorAll('.profile-sidebar .sidebar-item');
             const sections = {};
             document.querySelectorAll('.section-content').forEach(function (el) {
@@ -755,7 +619,6 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                 });
             });
 
-                // ── Countdown timer for scheduled flush ──
             const countdownEl = document.getElementById('flushCountdown');
             if (countdownEl) {
                 const scheduledDate = <?= $flush_schedule ? strtotime($flush_schedule['scheduled_datetime']) * 1000 : 0 ?>;
@@ -777,7 +640,6 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                     setInterval(updateCountdown, 1000);
                 }
             }
-
         });
     </script>
 </body>

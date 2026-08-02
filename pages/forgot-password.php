@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 $error = $_SESSION['reset_error'] ?? null;
 unset($_SESSION['reset_error']);
@@ -16,10 +16,10 @@ unset($_SESSION['reset_error']);
         crossorigin="anonymous"></script>
     <link rel="icon" type="image/png" sizes="32x32" href="../images/icon.png">
     <link rel="shortcut icon" type="image/png" href="../images/icon.png">
-    <link rel="stylesheet" href="../css/global.css">
-    <link rel="stylesheet" href="../css/containers.css">
-    <link rel="stylesheet" href="../css/registration.css">
-    <title>Forgot Password – LumineSense</title>
+    <link rel="stylesheet" href="../css/base/global.css">
+    <link rel="stylesheet" href="../css/base/containers.css">
+    <link rel="stylesheet" href="../css/pages/registration.css">
+    <title>Forgot Password - LumineSense</title>
 </head>
 <body>
     <div class="return-container">
@@ -41,7 +41,7 @@ unset($_SESSION['reset_error']);
             <?php endif; ?>
 
             <div class="form-container">
-                <form action="../php/forgot-password-process.php" method="POST">
+                <form action="../handlers/forgot-password-process.php" method="POST">
                     <div class="mb-3">
                         <label for="email">E-mail</label>
                         <input type="email" class="form-control" id="email" name="email"
@@ -72,6 +72,6 @@ unset($_SESSION['reset_error']);
         </div>
     </div>
 
-    <script src="../script/animations.js"></script>
+    <script src="../js/lib/animations.js"></script>
 </body>
 </html>

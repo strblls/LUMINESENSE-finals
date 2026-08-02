@@ -1,9 +1,9 @@
 <?php
 // api/post_pzem.php
-// POST (JSON body) from ESP32 — saves live PZEM reading to pzem_readings,
+// POST (JSON body) from ESP32 - saves live PZEM reading to pzem_readings,
 // updates live columns on classrooms, and auto-manages power_sessions.
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 $raw  = file_get_contents('php://input');
@@ -32,7 +32,7 @@ if (!$voltage) {
     echo json_encode(['success' => false, 'message' => 'No valid reading']); exit;
 }
 
-// ── 1. Insert raw reading ─────────────────────────────────────────────────
+// - 1. Insert raw reading -------------------------
 $stmt = $conn->prepare("
     INSERT INTO pzem_readings
         (classroom_id, voltage, current, power, energy, frequency, power_factor)
@@ -42,7 +42,7 @@ $stmt->bind_param('idddddd', $cid, $voltage, $current, $power, $energy, $freq, $
 $stmt->execute();
 $stmt->close();
 
-// ── 2. Update live columns on classrooms ──────────────────────────────────
+// - 2. Update live columns on classrooms -----------------
 $stmt = $conn->prepare("
     UPDATE classrooms
     SET pzem_voltage = ?, pzem_current = ?, pzem_power = ?, pzem_energy = ?
@@ -52,10 +52,10 @@ $stmt->bind_param('ddddi', $voltage, $current, $power, $energy, $cid);
 $stmt->execute();
 $stmt->close();
 
-// ── 3. Auto-manage power_sessions ─────────────────────────────────────────
+// - 3. Auto-manage power_sessions ---------------------
 // Strategy:
-//   - Lights ON  → open a session if none is open
-//   - Lights OFF → close the open session if one exists
+//   - Lights ON  â†’ open a session if none is open
+//   - Lights OFF â†’ close the open session if one exists
 //   - Session considered "open" = row with no end_time for this classroom
 
 // Check for open session
@@ -73,7 +73,7 @@ $stmt->close();
 $isOff = !$anyOn || ($voltage < 5 && $power < 1);
 
 if (!$isOff && !$openSession) {
-    // ── Open new session ──
+    // - Open new session -
     $trigger = 'manual'; // default; Mega can pass trigger_source later
     if (!empty($data['trigger_source'])) {
         $trigger = $data['trigger_source'];
@@ -93,7 +93,7 @@ if (!$isOff && !$openSession) {
     $stmt->close();
 
 } elseif ($isOff && $openSession) {
-    // ── Close session — compute aggregates from pzem_readings ──
+    // - Close session - compute aggregates from pzem_readings -
     $sid       = $openSession['id'];
     $startTime = $openSession['start_time'];
 

@@ -1,10 +1,10 @@
 <?php
 // api/lights.php
 // POST  classroom_id=X & row=1|2|3|all & state=on|off
-//   → Persists row / all-lights toggle from the dashboard UI to the DB.
-//   → Also logs the event.
+//   â†’ Persists row / all-lights toggle from the dashboard UI to the DB.
+//   â†’ Also logs the event.
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
 if (empty($_SESSION['faculty_logged_in']) && empty($_SESSION['admin_logged_in'])) {
@@ -29,7 +29,7 @@ if (!$cid || !in_array($state, ['on', 'off'])) {
 
 // When toggling individual rows we only update classroom light_status to 'on'
 // if state='on'; when turning a row off we only set 'off' if ALL rows are off
-// (we track this via a separate row_states column if needed – for now we simply
+// (we track this via a separate row_states column if needed - for now we simply
 // set light_status to match the state of the 'all' action, or to 'on' for any row-on).
 if ($row === 'all') {
     $stmt = $conn->prepare("UPDATE classrooms SET light_status = ?, row1_status = ?, row2_status = ?, row3_status = ? WHERE id = ?");

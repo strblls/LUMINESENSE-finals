@@ -1,9 +1,9 @@
 <?php
 // api/faculty-status.php
-// GET ?classroom_id=X  →  live dashboard snapshot for faculty home
+// GET ?classroom_id=X  â†’  live dashboard snapshot for faculty home
 // Called every 3 s by the JavaScript poll loop.
 
-require_once '../php/db_connect.php';
+require_once __DIR__ . "/../src/Config/db_connect.php";
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
@@ -12,7 +12,7 @@ if (empty($_SESSION['faculty_logged_in'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized.']); exit;
 }
-session_write_close(); // release session lock — this endpoint is read-only
+session_write_close(); // release session lock - this endpoint is read-only
 
 $cid = (int)($_GET['classroom_id'] ?? 0);
 if (!$cid) {
@@ -23,7 +23,7 @@ if (!$cid) {
 $now_time = date('H:i:s');
 $now_day  = date('l');
 
-// ── Classroom row ─────────────────────────────────────────────────────────────
+// - Classroom row -------------------------------
 $stmt = $conn->prepare("SELECT light_status, row1_status, row2_status, row3_status, pir_occupied, pir_since FROM classrooms WHERE id=? LIMIT 1");
 $stmt->bind_param('i', $cid);
 $stmt->execute();
@@ -31,7 +31,7 @@ $stmt->bind_result($light_status, $row1_status, $row2_status, $row3_status, $pir
 $stmt->fetch();
 $stmt->close();
 
-// ── Active schedule ───────────────────────────────────────────────────────────
+// - Active schedule ------------------------------
 $active_schedule = null;
 $stmt = $conn->prepare("
     SELECT id, start_time, end_time, extended_until
@@ -49,7 +49,7 @@ $r = $stmt->get_result();
 if ($row = $r->fetch_assoc()) $active_schedule = $row;
 $stmt->close();
 
-// ── Recent activity logs (last 7) ─────────────────────────────────────────────
+// - Recent activity logs (last 7) -----------------------
 $logs = [];
 $stmt = $conn->prepare("
     SELECT l.event_type, l.triggered_by, l.event_time, c.room_name
@@ -65,7 +65,7 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $logs[] = $row;
 $stmt->close();
 
-// ── Merge in dedicated PIR logs ─────────────────────────────────────────────
+// - Merge in dedicated PIR logs -----------------------
 $pir_logs = [];
 $stmt = $conn->prepare("
     SELECT state, created_at
@@ -92,7 +92,7 @@ $logs = array_merge($logs, $pir_logs);
 usort($logs, fn($a, $b) => strtotime($b['event_time']) - strtotime($a['event_time']));
 $logs = array_slice($logs, 0, 10);
 
-// ── Gesture logs (this faculty only, last 20) ─────────────────────────────────
+// - Gesture logs (this faculty only, last 20) -----------------
 $faculty_id = (int)$_SESSION['faculty_id'];
 $gesture_logs = [];
 $stmt = $conn->prepare("
