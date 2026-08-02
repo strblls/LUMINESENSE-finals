@@ -45,4 +45,4 @@ $is_head = $_SESSION['is_head'] ?? false;
     </div>
 </div>
 
-<script src="../js/includes/faculty-sidebar.js"></script>
+<script src="../../js/includes/faculty-sidebar.js"></script>

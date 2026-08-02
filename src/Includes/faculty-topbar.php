@@ -125,4 +125,4 @@ if (isset($conn) && $conn instanceof mysqli) {
 }
 </style>
 
-<script src="../js/includes/faculty-topbar.js"></script>
+<script src="../../js/includes/faculty-topbar.js"></script>

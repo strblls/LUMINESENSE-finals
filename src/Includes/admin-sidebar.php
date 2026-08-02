@@ -53,4 +53,4 @@
     </div>
 </div>
 
-<script src="../js/includes/admin-sidebar.js"></script>
+<script src="../../js/includes/admin-sidebar.js"></script>
