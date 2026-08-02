@@ -334,7 +334,6 @@ for ($i = 0; $i < 10; $i++) {
                             </div>
                         </div>
                         <div class="overview-pane overview-pane-rooms">
-                            <div class="section-heading" style="margin-top:0;">Rooms <span class="sub">— click a room to select it for analytics</span></div>
                             <div class="hrooms-list" id="hroomsList">
                                 <?php foreach ($rooms as $r):
                                     $live   = !empty($r['is_live']);
