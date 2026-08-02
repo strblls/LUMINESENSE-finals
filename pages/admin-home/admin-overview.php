@@ -1,5 +1,5 @@
 <?php
-$page_title = 'Rooms & Analytics';
+$page_title = 'Rooms Overview';
 require_once __DIR__ . "/../../src/Includes/admin-head.php";
 date_default_timezone_set('Asia/Manila');
 
@@ -356,9 +356,6 @@ for ($i = 0; $i < 10; $i++) {
                     <div class="overview-pane overview-pane-rooms">
                         <div class="section-heading d-flex align-items-center justify-content-between room-manage-header">
                             <div class="d-flex align-items-center gap-2">
-                                <span>Room Management</span><span class="sub" id="roomsSelLabel"> All Rooms</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
                                 <button type="button" class="timetable-btn" data-panel="panelStatus" title="Filter by Status">
                                     <i class="bi bi-funnel"></i><span class="timetable-btn-title bold">Status</span>
                                 </button>
@@ -373,11 +370,14 @@ for ($i = 0; $i < 10; $i++) {
                                         </ul>
                                     </div>
                                 </div>
+                                <span>Room Management</span><span class="sub" id="roomsSelLabel"> All Rooms</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
                                 <input type="text" id="roomSearch" class="form-control" placeholder="Search room or faculty..."
                                     style="max-width:220px;">
                                 <button type="button" class="light expand-all-btn" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
                                 <button type="button" class="light expand-all-btn" id="selectAllRoomsBtn" title="Select / unselect all rooms"><i class="bi bi-check2-all"></i> Select all</button>
-                                <button type="button" class="light expand-all-btn" id="addRoomBtn" title="Add a new room" onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()"><i class="bi bi-plus-lg"></i> Add Room</button>
+                                <button type="button" class="medium expand-all-btn" id="addRoomBtn" title="Add a new room" onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()"><i class="bi bi-plus-lg"></i> Add Room</button>
                             </div>
                         </div>
                         <div class="hrooms-list" id="hroomsList">
