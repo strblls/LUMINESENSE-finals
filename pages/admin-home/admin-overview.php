@@ -270,7 +270,7 @@ for ($i = 0; $i < 10; $i++) {
 
                     <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1" style="padding:6px 0;">
                         <div class="overview-title-band">
-                            <h2 class="bold" id="tabHeading">Rooms &amp; Analytics</h2>
+                            <h2 class="bold" id="tabHeading">Overall Status</h2>
                             <p id="tabSubheading">All Rooms Selected</p>
                         </div>
                     </div>
@@ -339,31 +339,65 @@ for ($i = 0; $i < 10; $i++) {
                                 <?php foreach ($rooms as $r):
                                     $live   = !empty($r['is_live']);
                                     $accent = $live ? 'accent-live' : ($r['status'] === 'occupied' ? 'accent-occupied' : ($r['status'] === 'scheduled' ? 'accent-scheduled' : 'accent-vacant'));
-                                    $fac    = $r['faculty_name'] !== '' ? $r['faculty_name'] : '—';
+                                    $badgeLabel = $live ? 'Live' : ($r['status'] === 'occupied' ? 'Occupied' : ($r['status'] === 'scheduled' ? 'Scheduled' : 'Vacant'));
+                                    $badgeClass = 'badge-' . strtolower($badgeLabel);
+                                    $fac    = $r['faculty_name'] !== '' ? $r['faculty_name'] : '-';
                                     $v = $r['voltage_v'] !== null ? number_format($r['voltage_v'], 1) : '—';
                                     $a = $r['current_a'] !== null ? number_format($r['current_a'], 3) : '—';
                                     $w = $r['power_w']   !== null ? number_format($r['power_w'], 1)   : '—';
-                                    $t = $r['status'] === 'occupied' ? $r['current_time'] : ($r['next_time'] !== '' ? 'next: ' . $r['next_time'] : 'No classes scheduled');
+                                    $timeLabel = $r['status'] === 'occupied' ? 'Current Class:' : 'Next class:';
+                                    $timeVal   = $r['status'] === 'occupied' ? $r['current_time'] : ($r['next_time'] !== '' ? $r['next_time'] : 'None scheduled');
                                 ?>
-                                <div class="hroom-row" data-room-id="<?= $r['id'] ?>"
+                                <div class="hroom-row room-card" data-room-id="<?= $r['id'] ?>"
                                     data-room="<?= h(strtolower($r['room_name'])) ?>"
                                     data-status="<?= h($live ? 'live' : $r['status']) ?>"
                                     data-departments="<?= h(strtolower($r['dept'])) ?>"
                                     data-sa="<?= h(strtolower($r['subject_area'])) ?>"
                                     data-subjects="<?= h(strtolower($r['subject'])) ?>">
-                                    <div class="hroom-accent <?= $accent ?>"></div>
-                                    <div class="hroom-body">
-                                        <div class="hroom-top">
-                                            <span class="hroom-name"><?= h($r['room_name']) ?><?php if (!empty($r['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></span>
-                                            <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
+                                    <div class="room-card-accent <?= $accent ?>"></div>
+                                    <div class="hroom-inner">
+                                        <div class="room-card-body hroom-body">
+                                            <div class="room-card-header">
+                                                <div>
+                                                    <h2 class="room-card-name"><?= h($r['room_name']) ?><?php if (!empty($r['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></h2>
+                                                    <div class="room-card-section">
+                                                        <?= ucfirst(h($r['room_size'])) ?> room
+                                                        <?php if (!empty($r['description'])): ?> &middot; <?= h($r['description']) ?><?php endif; ?>
+                                                    </div>
+                                                </div>
+                                                <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
+                                            </div>
+                                            <div class="device-strip">
+                                                <div class="dev-left">
+                                                    <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
+                                                    <?php if ($live): ?>
+                                                    <span class="dev-pzem">
+                                                        V <b><?= $v ?></b> &middot; A <b><?= $a ?></b> &middot; W <b><?= $w ?></b>
+                                                    </span>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($r['pir_occupied'])): ?>
+                                                    <span class="dev-occ"><i class="bi bi-person-fill"></i> Occupied</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="row-bars">
+                                                    <?php for ($row = 1; $row <= 3; $row++):
+                                                        $st = $r['row' . $row . '_status']; ?>
+                                                    <div class="row-bar-item">
+                                                        <span class="row-bar-label">R<?= $row ?></span>
+                                                        <span class="row-bar <?= $st === 'on' ? 'on' : '' ?>"></span>
+                                                    </div>
+                                                    <?php endfor; ?>
+                                                </div>
+                                            </div>
+                                            <div class="dept-info-card room-info-row" style="padding:0.5rem;">
+                                                <p class="d-flex align-items-center gap-2"><i class="bi bi-person-fill"></i> <span class="room-info-label">Current Faculty:</span> <span class="room-info-val"><?= h($fac) ?></span></p>
+                                            </div>
+                                            <div class="dept-info-card room-info-row" style="padding:0.5rem;">
+                                                <p class="d-flex align-items-center gap-2"><i class="bi bi-clock-fill"></i> <span class="room-info-label"><?= $timeLabel ?></span> <span class="room-info-val"><?= h($timeVal) ?></span></p>
+                                            </div>
                                         </div>
-                                        <div class="hroom-faculty"><i class="bi bi-person-fill"></i><?= h($fac) ?></div>
-                                        <div class="hroom-meta">
-                                            <span class="hroom-live">V <b><?= $v ?></b> &middot; A <b><?= $a ?></b> &middot; W <b><?= $w ?></b></span>
-                                            <span class="hroom-time"><?= h($t) ?></span>
-                                        </div>
+                                        <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                     </div>
-                                    <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                 </div>
                                 <?php endforeach; ?>
                             </div>
