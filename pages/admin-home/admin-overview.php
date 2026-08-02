@@ -507,7 +507,7 @@ for ($i = 0; $i < 10; $i++) {
                 </div>
 
                 */ ?>
-                <?php /* ═══════════ SECTION 2 · ROOM MANAGEMENT — COMMENTED OUT FOR NOW ═══════════
+                <!-- ═══════════ SECTION 2 · ROOM MANAGEMENT — COMMENTED OUT FOR NOW ═══════════ -->
                 <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
                     <!-- Rooms at a glance (functioning first) — combined with management -->
                     <div class="section-heading" style="margin-top:0;">Rooms <span class="sub">— click a room to select it for analytics</span></div>
@@ -641,7 +641,7 @@ for ($i = 0; $i < 10; $i++) {
                     </div>
                 </div>
 
-                */ ?>
+                
                 <?php /* end old Section 2 */ ?>
 
                 <!-- ═══════════ SECTION 3 · ANALYTICS ═══════════ -->
