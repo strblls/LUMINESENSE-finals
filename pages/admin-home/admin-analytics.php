@@ -389,7 +389,7 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                 <div class="chart-grid">
                     <div class="card-white" id="lineGraphCard">
                         <div class="chart-card-header">
-                            <h3 class="chart-card-title bold" id="lineChartTitle">Line Graph</h3>
+                            <h3 class="chart-card-title bold" id="lineChartTitle">Readings of All Rooms</h3>
                             <div class="chart-header-actions">
                                 <span class="summary-label" id="lineMetricLabel">All Metrics</span>
                                 <button class="light" onclick="toggleChartMaximize('lineGraphCard')" title="Maximize">
@@ -408,7 +408,7 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                     </div>
                     <div class="card-white" id="barGraphCard">
                         <div class="chart-card-header">
-                            <h3 class="chart-card-title bold" id="barChartTitle">Vertical Bar Graph</h3>
+                            <h3 class="chart-card-title bold" id="barChartTitle">Readings of All Rooms</h3>
                             <div class="chart-header-actions">
                                 <span class="summary-label" id="barMetricLabel">All Metrics</span>
                                 <button class="light" onclick="toggleChartMaximize('barGraphCard')" title="Maximize">
@@ -455,6 +455,66 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                         </div>
                     </div>
 
+                </div>
+
+                <!-- - Summary report of findings - -->
+                <div class="card-white findings-card" id="findingsCard" style="display:none;">
+                    <div class="breakdown-header">
+                        <div class="breakdown-title-row">
+                            <span class="breakdown-title bold" id="findingsTitle">Summary Report</span>
+                            <span class="summary-label" id="findingsSub"></span>
+                        </div>
+                        <div class="findings-chips" id="findingsChips">
+                            <div class="findings-chip">
+                                <span class="findings-chip-icon"><i class="bi bi-lightning-charge-fill"></i></span>
+                                <div class="findings-chip-body">
+                                    <span class="findings-chip-value" id="findingsEnergy">—</span>
+                                    <span class="findings-chip-label">Total Energy</span>
+                                </div>
+                                <canvas class="findings-chip-canvas" id="findingsSparkEnergy"></canvas>
+                            </div>
+                            <div class="findings-chip">
+                                <span class="findings-chip-icon"><i class="bi bi-cash-coin"></i></span>
+                                <div class="findings-chip-body">
+                                    <span class="findings-chip-value" id="findingsCost">—</span>
+                                    <span class="findings-chip-label">Est. Cost</span>
+                                </div>
+                                <canvas class="findings-chip-canvas" id="findingsSparkCost"></canvas>
+                            </div>
+                            <div class="findings-chip">
+                                <span class="findings-chip-icon"><i class="bi bi-clock-fill"></i></span>
+                                <div class="findings-chip-body">
+                                    <span class="findings-chip-value" id="findingsOccupied">—</span>
+                                    <span class="findings-chip-label">Occupied Time</span>
+                                </div>
+                            </div>
+                            <div class="findings-chip">
+                                <span class="findings-chip-icon"><i class="bi bi-play-circle-fill"></i></span>
+                                <div class="findings-chip-body">
+                                    <span class="findings-chip-value" id="findingsSessions">—</span>
+                                    <span class="findings-chip-label">Sessions</span>
+                                </div>
+                            </div>
+                            <div class="findings-chip">
+                                <span class="findings-chip-icon"><i class="bi bi-exclamation-triangle-fill"></i></span>
+                                <div class="findings-chip-body">
+                                    <span class="findings-chip-value" id="findingsAnomalyCount">—</span>
+                                    <span class="findings-chip-label">Anomalies</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="findings-mini-chart">
+                            <div class="chart-card-header">
+                                <span class="chart-card-title bold" id="findingsChartLabel">Energy Profile</span>
+                                <span class="summary-label" id="findingsChartHint"></span>
+                            </div>
+                            <div class="chart-wrapper" style="height:150px;">
+                                <canvas id="findingsMiniChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="findings-list" id="findingsList"></div>
+                        <div class="findings-anomalies" id="findingsAnomalies" style="display:none;"></div>
+                    </div>
                 </div>
                 </main><!-- /analytics-main -->
                 </div><!-- /analytics-grid -->

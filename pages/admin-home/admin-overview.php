@@ -346,7 +346,7 @@ for ($i = 0; $i < 10; $i++) {
                                 <h3 class="chart-card-title bold" id="overviewLineTitle">Line Graph</h3>
                                 <div class="chart-header-actions">
                                     <span class="summary-label" id="overviewLineMetricLabel">All Metrics</span>
-                                    <button type="button" class="light w-auto" onclick="window.location.href='admin-analytics.php'" title="Open full Analytics">
+                                    <button type="button" class="light w-auto me-2" onclick="window.location.href='admin-analytics.php'" title="Open full Analytics">
                                         <i class="bi bi-graph-up-arrow"></i>
                                     </button>
                                 </div>

@@ -755,6 +755,7 @@ async function onControlChange() {
 
         lastData = data;
         renderSummaryCards(data.summary);
+        renderFindingsReport(data, range);
 
         var chartLabels, chartData;
         if (range === 1) {
@@ -772,6 +773,7 @@ async function onControlChange() {
 
         renderSavings(data.savings, range);
         mapIssues(data.issues, range, chartLabels);
+        updateChartTitles();
 
         updateCharts(chartLabels, chartData);
 
@@ -781,6 +783,7 @@ async function onControlChange() {
         renderSummaryCards(sampleSummary);
         currentIssues = [];
         renderSavings(null, range);
+        renderFindingsReport(null, range);
         updateCharts(sampleDaily.map(d => d.label), sampleDaily);
         renderHistoryTable(sampleDaily, sampleSummary, range);
     } finally {
@@ -914,6 +917,308 @@ function openIssueModal(issue) {
     }
     var modal = new bootstrap.Modal(document.getElementById('issueDetailModal'));
     modal.show();
+}
+
+// ── SUMMARY REPORT OF FINDINGS ────────────────────────────────────────────────
+var findingsSparkCharts = {};
+var findingsMiniChart   = null;
+
+function renderFindingsReport(data, range) {
+    var card = document.getElementById('findingsCard');
+    if (!card) return;
+    destroyFindingsCharts();
+
+    if (!data || !data.success) {
+        card.style.display = 'none';
+        return;
+    }
+    card.style.display = 'block';
+
+    range = parseInt(range);
+    var s = data.summary || {};
+    var isToday = range === 1;
+
+    var titleEl = document.getElementById('findingsTitle');
+    var subEl   = document.getElementById('findingsSub');
+    if (titleEl) titleEl.textContent = isToday ? "Today's Summary Report" : range + '-Day Summary Report';
+    if (subEl)  subEl.textContent  = isToday ? new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                                            : 'Last ' + range + ' days';
+
+    // Series for sparklines + mini chart
+    var series;
+    var seriesLabels;
+    if (isToday) {
+        series       = (data.intervals || []).map(function(r) { return r.energy_wh; });
+        seriesLabels = (data.intervals || []).map(function(r) { return r.time; });
+    } else {
+        series       = (data.daily || []).map(function(d) { return d.energy_wh; });
+        seriesLabels = (data.daily || []).map(function(d) { return d.label; });
+    }
+
+    // Chips
+    setFindingsText('findingsEnergy',  ((s.total_energy_kwh ?? 0)).toFixed(2) + ' kWh');
+    setFindingsText('findingsCost',    '\u20B1' + (s.est_cost_php ?? 0).toFixed(2));
+    setFindingsText('findingsOccupied', ((s.total_minutes ?? 0) / 60).toFixed(1) + ' hrs');
+    setFindingsText('findingsSessions', (s.total_sessions ?? 0) + '');
+    var anom = s.total_anomalies ?? 0;
+    setFindingsText('findingsAnomalyCount', anom + (anom === 1 ? ' issue' : ' issues'));
+    var anomChip = document.getElementById('findingsAnomalyCount');
+    if (anomChip && anomChip.closest) {
+        var tile = anomChip.closest('.findings-chip');
+        if (tile) {
+            tile.classList.remove('chip-alert', 'chip-ok');
+            tile.classList.add(anom > 0 ? 'chip-alert' : 'chip-ok');
+        }
+    }
+
+    // Sparklines (energy + cost derive from the same series)
+    var seriesFlat = series.filter(function(v) { return typeof v === 'number' && !isNaN(v); });
+    drawFindingsSpark('findingsSparkEnergy', seriesFlat, '#58078f');
+    drawFindingsSpark('findingsSparkCost', seriesFlat.map(function(v) { return v * 11; }), '#c0004e');
+
+    // Mini chart (energy profile) with peak highlight + issue markers
+    renderFindingsMiniChart(seriesLabels, series, data.issues, range);
+
+    // Text narrative
+    renderFindingsList(data, series, seriesLabels, isToday);
+
+    // Clickable anomalies
+    renderFindingsAnomalies(data.issues || []);
+}
+
+function setFindingsText(id, txt) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = txt;
+}
+
+function destroyFindingsCharts() {
+    Object.keys(findingsSparkCharts).forEach(function(id) {
+        if (findingsSparkCharts[id]) { findingsSparkCharts[id].destroy(); delete findingsSparkCharts[id]; }
+    });
+    if (findingsMiniChart) { findingsMiniChart.destroy(); findingsMiniChart = null; }
+}
+
+function drawFindingsSpark(canvasId, dataArr, color) {
+    var el = document.getElementById(canvasId);
+    if (!el || !window.Chart) return;
+    if (findingsSparkCharts[canvasId]) findingsSparkCharts[canvasId].destroy();
+    var flat = (dataArr || []).map(Number);
+    if (!flat.length) flat = [0];
+    findingsSparkCharts[canvasId] = new Chart(el, {
+        type: 'line',
+        data: {
+            labels: flat.map(function(_, i) { return i; }),
+            datasets: [{
+                data: flat,
+                borderColor: color || '#58078f',
+                backgroundColor: 'rgba(88,7,143,0.10)',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                fill: true,
+                tension: 0.35,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            scales: { x: { display: false }, y: { display: false } },
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        },
+    });
+}
+
+function renderFindingsMiniChart(labels, series, issues, range) {
+    var canvas = document.getElementById('findingsMiniChart');
+    var hint   = document.getElementById('findingsChartHint');
+    var label  = document.getElementById('findingsChartLabel');
+    if (!canvas || !window.Chart) return;
+    if (!labels || !labels.length) {
+        if (label) label.textContent = 'Energy Profile';
+        if (hint)  hint.textContent  = 'No data';
+        return;
+    }
+
+    // Map issues to chart indices
+    var issueByIndex = {};
+    (issues || []).forEach(function(issue) {
+        var idx = -1;
+        if (parseInt(range) === 1) {
+            var t = (issue.event_time || '').slice(11, 16);
+            idx = labels.indexOf(t);
+            if (idx === -1) {
+                var best = -1, bestDiff = Infinity;
+                labels.forEach(function(l, i) {
+                    if (!/^\d{2}:\d{2}$/.test(l)) return;
+                    var d = timeLabelDiff(t, l);
+                    if (d < bestDiff) { bestDiff = d; best = i; }
+                });
+                idx = best;
+            }
+        } else {
+            var d = formatLabelDate(issue.event_time);
+            idx = labels.indexOf(d);
+            if (idx === -1 && labels.length) {
+                var first = parseLabelDate(labels[0]);
+                var target = new Date(issue.event_time);
+                var diff = Math.round((target.getTime() - first.getTime()) / 86400000);
+                if (diff >= 0 && diff < labels.length) idx = diff;
+            }
+        }
+        if (idx >= 0) issueByIndex[idx] = issue;
+    });
+
+    var maxIdx = 0, maxVal = -Infinity;
+    series.forEach(function(v, i) {
+        if (typeof v === 'number' && v > maxVal) { maxVal = v; maxIdx = i; }
+    });
+
+    var bg = series.map(function(v, i) {
+        if (issueByIndex[i]) return 'rgba(220,53,69,0.85)';
+        return i === maxIdx ? 'rgba(245,158,11,0.9)' : 'rgba(116,47,211,0.55)';
+    });
+
+    findingsMiniChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Energy (Wh)',
+                data: series,
+                backgroundColor: bg,
+                borderRadius: 3,
+                maxBarThickness: 14,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            onClick: function(e, active) {
+                if (!active || !active.length) return;
+                var idx = active[0].index;
+                if (issueByIndex[idx]) openIssueModal(issueByIndex[idx]);
+            },
+            onHover: function(e, active) {
+                var idx = active && active.length ? active[0].index : -1;
+                canvas.style.cursor = (idx >= 0 && issueByIndex[idx]) ? 'pointer' : 'default';
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(ctx) {
+                            var issue = issueByIndex[ctx.dataIndex];
+                            return issue ? '\u26A0 ' + issue.room_name + ' \u00B7 ' + issue.triggered_by : '';
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 9 } }, grid: { color: 'rgba(47,0,79,0.07)' } },
+            },
+        },
+    });
+
+    if (label) label.textContent = (parseInt(range) === 1) ? 'Today Energy Profile (Wh per interval)' : 'Daily Energy Profile (Wh)';
+    if (hint)  hint.textContent  = 'Amber = peak \u00B7 Red = issue';
+}
+
+function renderFindingsList(data, series, seriesLabels, isToday) {
+    var listEl = document.getElementById('findingsList');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (!series || !series.length) {
+        listEl.appendChild(findingsItem('bi-inbox', '#888', isToday ? 'No readings recorded today.' : 'No data for the selected period.'));
+        return;
+    }
+
+    var s = data.summary || {};
+    var findings = [];
+
+    // Peak power + time
+    if (s.peak_power_w) {
+        var peakTime = null;
+        var peakAvg  = -Infinity;
+        (data.intervals || []).forEach(function(r) {
+            if (r.avg_power != null && r.avg_power > peakAvg) { peakAvg = r.avg_power; peakTime = r.time; }
+        });
+        var phrase = 'Peak power draw of <strong>' + s.peak_power_w.toFixed(1) + ' W</strong>';
+        if (peakTime) phrase += ' with the busiest interval around <strong>' + peakTime + '</strong>';
+        findings.push(findingsItem('bi-graph-up-arrow', '#f59e0b', phrase + '.'));
+    }
+
+    // Highest-energy point
+    var maxIdx = 0, maxVal = -Infinity;
+    series.forEach(function(v, i) { if (typeof v === 'number' && v > maxVal) { maxVal = v; maxIdx = i; } });
+    if (typeof maxVal === 'number' && seriesLabels[maxIdx]) {
+        findings.push(findingsItem('bi-fire', '#dc3545',
+            'Highest energy consumption on <strong>' + seriesLabels[maxIdx] + '</strong> at <strong>' + maxVal.toFixed(2) + ' Wh</strong>.'));
+    }
+
+    // Energy + cost
+    findings.push(findingsItem('bi-lightning-charge-fill', '#58078f',
+        'Total energy used: <strong>' + (s.total_energy_kwh ?? 0).toFixed(2) + ' kWh</strong> (' + (s.total_energy_wh ?? 0).toFixed(0) + ' Wh), estimated cost <strong>\u20B1' + (s.est_cost_php ?? 0).toFixed(2) + '</strong>.'));
+
+    // Occupancy + sessions
+    var occHrs = ((s.total_minutes ?? 0) / 60).toFixed(1);
+    var sess   = s.total_sessions ?? 0;
+    if (sess || parseFloat(occHrs) > 0) {
+        findings.push(findingsItem('bi-clock-fill', '#0d9488',
+            'Lights occupied for <strong>' + occHrs + ' hrs</strong> across <strong>' + sess + ' session' + (sess === 1 ? '' : 's') + '</strong>.'));
+    }
+
+    // Savings comparison
+    if (data.savings && data.savings.pct != null && data.savings.prev_kwh > 0) {
+        var saved = data.savings.direction === 'saved';
+        findings.push(findingsItem(saved ? 'bi-arrow-down-right' : 'bi-arrow-up-right', saved ? '#16a34a' : '#dc3545',
+            'Energy ' + (saved ? '<strong>saved</strong> by ' : '<strong>increased</strong> by ') + Math.abs(data.savings.pct).toFixed(1) + '% vs the previous period.'));
+    }
+
+    // Anomalies
+    var issues = data.issues || [];
+    if (!issues.length) {
+        findings.push(findingsItem('bi-check-circle-fill', '#16a34a', 'No anomalies detected in this period.'));
+    } else {
+        var pir = issues.filter(function(i) { return (i.triggered_by || '').toUpperCase() === 'PIR'; }).length;
+        var pzm = issues.filter(function(i) { return (i.triggered_by || '').toUpperCase() === 'PZEM'; }).length;
+        var parts = [];
+        if (pir) parts.push(pir + ' PIR');
+        if (pzm) parts.push(pzm + ' PZEM');
+        findings.push(findingsItem('bi-exclamation-triangle-fill', '#dc3545',
+            '<strong>' + issues.length + ' anomaly' + (issues.length === 1 ? '' : 'ies') + '</strong> detected' + (parts.length ? ' (' + parts.join(', ') + ')' : '') + ' \u2014 click the markers above for details.'));
+    }
+
+    findings.forEach(function(item) { listEl.appendChild(item); });
+}
+
+function findingsItem(icon, color, html) {
+    var div = document.createElement('div');
+    div.className = 'findings-item';
+    div.innerHTML = '<i class="bi ' + icon + '"></i><span>' + html + '</span>';
+    return div;
+}
+
+function renderFindingsAnomalies(issues) {
+    var wrap = document.getElementById('findingsAnomalies');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    if (!issues || !issues.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'flex';
+    var label = document.createElement('span');
+    label.className = 'findings-anomalies-label';
+    label.innerHTML = '<i class="bi bi-bell-fill me-1"></i>Open issues:';
+    wrap.appendChild(label);
+    issues.forEach(function(issue) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'findings-anomaly-chip';
+        chip.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>'
+            + (issue.room_name || 'Room') + ' \u00B7 ' + (issue.triggered_by || '')
+            + ' \u00B7 ' + (issue.event_time ? issue.event_time.slice(0, 16).replace('T', ' ') : '');
+        chip.onclick = function() { openIssueModal(issue); };
+        wrap.appendChild(chip);
+    });
 }
 
 // ── HISTORY TABLE ─────────────────────────────────────────────────────────────
@@ -1266,6 +1571,9 @@ function showNoDeviceState() {
     currentIssues = [];
     var sr = document.getElementById('periodSelect');
     renderSavings(null, sr ? parseInt(sr.value) : 7);
+    var fCard = document.getElementById('findingsCard');
+    if (fCard) fCard.style.display = 'none';
+    destroyFindingsCharts();
     if (typeof lineChartInstance !== 'undefined') {
         lineChartInstance.data.labels = ['No data'];
         lineChartInstance.data.datasets.forEach(function(ds) { ds.data = []; });

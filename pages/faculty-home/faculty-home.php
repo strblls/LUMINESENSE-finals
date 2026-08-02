@@ -366,7 +366,7 @@ $lighting_blocked = $lighting_reason !== null;
                 <div class="group-container gap-3">
 
                     <!-- Lighting Grid -->
-                    <div style="background-color: #f8f9fa;" class="fit-width section-container p-2">
+                    <div style="background-color: #f8f9fa;" class="fit-width section-container p-2" data-lighting-blocked="<?= $lighting_blocked ? '1' : '0' ?>">
                         <div class="section-topbar d-flex my-auto gap-1 align-items-center justify-content-between">
                             <div class="d-flex mx-2 align-items-start">
                                 <h2 class="bold">Lighting Grid</h2>
@@ -571,7 +571,7 @@ $lighting_blocked = $lighting_reason !== null;
         const FACULTY_ID = <?= (int) $faculty_id ?>;
         const HAS_ACTIVE_SCHEDULE = <?= $active_schedule ? 'true' : 'false' ?>;
     </script>
-    <script src="../../js/faculty/faculty-home.js"></script>
+    <script src="../../js/faculty/faculty-home.js?v=<?= time() ?>"></script>
 
     <!-- Gesture detection script -->
     <script type="module" src="../../js/faculty/initialize-gesture.js?v=<?= time() ?>"></script>

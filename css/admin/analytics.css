@@ -1340,4 +1340,155 @@ body.contrast-bg {
     color: #16a34a;
 }
 
+/* ═══════════════════════════════════════════════
+   SUMMARY REPORT OF FINDINGS
+   ═══════════════════════════════════════════════ */
+.findings-card {
+    padding: 18px 20px;
+}
+
+.findings-card .breakdown-header {
+    gap: 12px;
+}
+
+.findings-chips {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+
+.findings-chip {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: #faf5ff;
+    border: 1px solid rgba(116, 47, 211, 0.14);
+    border-radius: 10px;
+    padding: 12px;
+    min-width: 0;
+}
+
+.findings-chip .findings-chip-icon {
+    font-size: 16px;
+    color: var(--secondary-color-2);
+}
+
+.findings-chip .findings-chip-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.findings-chip .findings-chip-label {
+    font-size: 0.68rem;
+    color: var(--muted, #888);
+}
+
+.findings-chip.chip-alert {
+    background: rgba(220, 53, 69, 0.06);
+    border-color: rgba(220, 53, 69, 0.30);
+}
+
+.findings-chip.chip-alert .findings-chip-icon,
+.findings-chip.chip-alert .findings-chip-value {
+    color: #dc3545;
+}
+
+.findings-chip.chip-ok {
+    background: rgba(22, 163, 74, 0.06);
+    border-color: rgba(22, 163, 74, 0.30);
+}
+
+.findings-chip.chip-ok .findings-chip-icon,
+.findings-chip.chip-ok .findings-chip-value {
+    color: #16a34a;
+}
+
+.findings-chip-canvas {
+    width: 100% !important;
+    height: 34px !important;
+}
+
+.findings-mini-chart {
+    margin-top: 4px;
+}
+
+.findings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.findings-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--secondary-color-1);
+    padding: 8px 12px;
+    background: #faf5ff;
+    border-radius: 8px;
+    border-left: 4px solid var(--secondary-color-2);
+}
+
+.findings-item i {
+    font-size: 15px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.findings-anomalies {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(220, 53, 69, 0.06);
+    border: 1px solid rgba(220, 53, 69, 0.20);
+    border-radius: 10px;
+}
+
+.findings-anomalies-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #dc3545;
+    margin-right: 4px;
+}
+
+.findings-anomaly-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    background: #fff;
+    color: #dc3545;
+    font-family: var(--font-primary, 'Poppins', sans-serif);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(220, 53, 69, 0.18);
+    transition: background 0.15s, transform 0.15s;
+}
+
+.findings-anomaly-chip:hover {
+    background: #dc3545;
+    color: #fff;
+    transform: scale(1.04);
+}
+
+@media (max-width: 768px) {
+    .findings-chips {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+
 

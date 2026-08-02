@@ -543,41 +543,83 @@ function toggleGestureMaximize() {
 }
 
 // ── Temporary gesture TEST MODE ───────────────────────────────────────────────
-// Bypasses the schedule-based lock so gestures can be tested without an active
-// schedule. This is a dev/testing aid only; it is not persisted.
+// Bypasses the schedule-based lock for BOTH the gesture and lighting sections so
+// gestures can be tested without an active schedule. Dev/testing aid only.
 let gestureTestMode = false;
 
 function toggleGestureTestMode() {
     const section = document.getElementById('gestureSection');
+    const lightingSection = document.querySelector('[data-lighting-blocked]');
     const btn = document.getElementById('gestureTestBtn');
     const content = document.getElementById('gestureControlsContent');
+    const lightingContent = document.getElementById('lightingControlsContent');
     const enableBtn = document.getElementById('enableCameraBtn');
-    const scheduleOverlay = document.getElementById('gestureScheduleOverlay');
+    const gestureOverlay = document.getElementById('gestureScheduleOverlay');
+    const lightingOverlay = document.getElementById('scheduleEndOverlay');
     const pinOverlay = document.getElementById('gesturePinOverlay');
+    const lightingPinOverlay = document.getElementById('lightingPinOverlay');
+    const allLightsContainer = document.getElementById('allLightsContainer');
 
     gestureTestMode = !gestureTestMode;
-    const originallyBlocked = section && section.dataset.gestureBlocked === '1';
+    const gestureBlocked = section && section.dataset.gestureBlocked === '1';
+    const lightingBlocked = lightingSection && lightingSection.dataset.lightingBlocked === '1';
+
+    function setRowSwitches(disabled) {
+        [1, 2, 3].forEach(r => {
+            const sw = document.getElementById('row-' + r + '-switch');
+            if (sw) sw.disabled = disabled;
+        });
+    }
+
+    function unlockAll() {
+        if (content) { content.style.filter = ''; content.style.pointerEvents = ''; }
+        if (lightingContent) { lightingContent.style.filter = ''; lightingContent.style.pointerEvents = ''; }
+        if (enableBtn) { enableBtn.disabled = false; enableBtn.removeAttribute('title'); }
+        if (gestureOverlay) gestureOverlay.style.display = 'none';
+        if (lightingOverlay) lightingOverlay.style.display = 'none';
+        if (pinOverlay) pinOverlay.style.display = 'none';
+        if (lightingPinOverlay) lightingPinOverlay.style.display = 'none';
+        setRowSwitches(false);
+        if (allLightsContainer) {
+            allLightsContainer.style.pointerEvents = '';
+            allLightsContainer.style.opacity = '';
+        }
+    }
+
+    function restoreLock() {
+        // Gesture section
+        if (gestureBlocked) {
+            if (content) { content.style.filter = 'blur(6px)'; content.style.pointerEvents = 'none'; }
+            if (enableBtn) { enableBtn.disabled = true; enableBtn.setAttribute('title', 'No active schedule'); }
+            if (gestureOverlay) gestureOverlay.style.display = '';
+        } else {
+            if (content) { content.style.filter = ''; content.style.pointerEvents = ''; }
+            if (gestureOverlay) gestureOverlay.style.display = 'none';
+        }
+
+        // Lighting section
+        if (lightingBlocked) {
+            if (lightingContent) { lightingContent.style.filter = 'blur(6px)'; lightingContent.style.pointerEvents = 'none'; }
+            if (lightingOverlay) lightingOverlay.style.display = '';
+            setRowSwitches(true);
+            if (allLightsContainer) {
+                allLightsContainer.style.pointerEvents = 'none';
+                allLightsContainer.style.opacity = '0.4';
+            }
+        } else {
+            if (lightingContent) { lightingContent.style.filter = ''; lightingContent.style.pointerEvents = ''; }
+            if (lightingOverlay) lightingOverlay.style.display = 'none';
+        }
+    }
 
     if (gestureTestMode) {
-        // Unlock the controls and dismiss all gesture overlays
-        if (content) { content.style.filter = ''; content.style.pointerEvents = ''; }
-        if (enableBtn) { enableBtn.disabled = false; enableBtn.removeAttribute('title'); }
-        if (scheduleOverlay) scheduleOverlay.style.display = 'none';
-        if (pinOverlay) pinOverlay.style.display = 'none';
+        unlockAll();
         if (btn) {
             btn.classList.add('active');
             btn.innerHTML = '<i class="bi bi-bug-fill me-1"></i>Test ON';
         }
     } else {
-        // Restore the original locked/blocked state
-        if (originallyBlocked) {
-            if (content) { content.style.filter = 'blur(6px)'; content.style.pointerEvents = 'none'; }
-            if (enableBtn) { enableBtn.disabled = true; enableBtn.setAttribute('title', 'No active schedule'); }
-            if (scheduleOverlay) scheduleOverlay.style.display = '';
-        } else {
-            if (content) { content.style.filter = ''; content.style.pointerEvents = ''; }
-            if (scheduleOverlay) scheduleOverlay.style.display = 'none';
-        }
+        restoreLock();
         if (btn) {
             btn.classList.remove('active');
             btn.innerHTML = '<i class="bi bi-bug me-1"></i>Test';
