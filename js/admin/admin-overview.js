@@ -710,7 +710,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Filters
-    ['statusFilterMenu', 'departmentFilterMenu', 'subjectFilterMenu'].forEach(bindFilterMenu);
+    ['statusFilterMenu'].forEach(bindFilterMenu);
     const searchEl = document.getElementById('roomSearch');
     if (searchEl) searchEl.addEventListener('input', applyFilters);
 
@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Panel hover
-    const panels = ['panelGuide', 'panelStatus', 'panelSchedule', 'panelPeriod', 'panelMetric'];
+    const panels = ['panelGuide', 'panelStatus', 'panelPeriod', 'panelMetric'];
     const timers = {};
     panels.forEach(function (id) {
         const btn = document.querySelector('[data-panel="' + id + '"]');

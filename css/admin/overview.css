@@ -21,6 +21,7 @@
 
 /* Rooms pane header — accent-yellow strip like the faculty timetable header */
 .room-manage-header {
+    position: relative;
     background-color: var(--accent-yellow);
     border-radius: 5px;
     padding: 10px 14px;
@@ -44,6 +45,19 @@
     border-radius: 5px;
     background-color: #fff;
     font-size: 12px;
+}
+
+/* Timetable buttons inside the rooms header follow the analytics default look */
+.room-manage-header .timetable-btn {
+    width: 44px;
+    height: 44px;
+    background: var(--secondary-color-5);
+    box-shadow: none;
+}
+
+.room-manage-header .timetable-btn:hover {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
 }
 
 @media (max-width: 900px) {
@@ -99,8 +113,8 @@
 }
 
 .hroom-row.active-room {
-    border-color: var(--secondary-color-2);
-    box-shadow: 0 0 0 2px var(--secondary-color-2), 0 0 18px 2px rgba(88, 7, 143, 0.45);
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 0 2px var(--accent-yellow), 0 0 18px 2px rgba(232, 201, 3, 0.45);
 }
 
 /* Reuse room-card accent strip (top bar) */
@@ -325,11 +339,13 @@
 }
 
 .overview-heading .timetable-btn {
-    color: #fff;
+    color: var(--secondary-color-1);
+    background: var(--secondary-color-5);
 }
 
 .overview-heading .timetable-btn:hover {
-    color: var(--accent-yellow);
+    color: var(--accent-black);
+    background: var(--accent-yellow);
 }
 
 .overview-title-band {

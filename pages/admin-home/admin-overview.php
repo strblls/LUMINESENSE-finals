@@ -289,48 +289,6 @@ for ($i = 0; $i < 10; $i++) {
                                 </ol>
                             </div>
                         </div>
-                        <button type="button" class="timetable-btn" data-panel="panelStatus" title="Filter by Status">
-                            <i class="bi bi-funnel"></i><span class="timetable-btn-title bold">Status</span>
-                        </button>
-                        <div id="panelStatus" class="timetable-panel p-3 m-3">
-                            <div class="section-container timetable" style="background-color:#f8f9fa;">
-                                <ul class="list-unstyled mb-0" id="statusFilterMenu" style="max-height:300px;overflow-y:auto;">
-                                    <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Statuses</a></li>
-                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="live">Live / Functioning</a></li>
-                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="occupied">Occupied</a></li>
-                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="scheduled">Scheduled</a></li>
-                                    <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="vacant">Vacant</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <button type="button" class="timetable-btn" data-panel="panelSchedule" title="Filter by Schedule Info">
-                            <i class="bi bi-funnel"></i><span class="timetable-btn-title bold">Schedule<br>Info</span>
-                        </button>
-                        <div id="panelSchedule" class="timetable-panel panel-from-right p-3 m-3">
-                            <div class="section-container timetable" style="background-color:#f8f9fa;min-width:200px;">
-                                <div class="mb-2">
-                                    <div class="small fw-bold text-muted mb-1 px-2">Department</div>
-                                    <ul class="list-unstyled mb-0" id="departmentFilterMenu" style="max-height:130px;overflow-y:auto;">
-                                        <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Departments</a></li>
-                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="Science">Science</a></li>
-                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="TLE">TLE</a></li>
-                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="Mathematics">Mathematics</a></li>
-                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="English">English</a></li>
-                                    </ul>
-                                </div>
-                                <hr class="my-1">
-                                <div>
-                                    <div class="small fw-bold text-muted mb-1 px-2">Subject</div>
-                                    <ul class="list-unstyled mb-0" id="subjectFilterMenu" style="max-height:130px;overflow-y:auto;">
-                                        <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Subjects</a></li>
-                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="Physics">Physics</a></li>
-                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="Electronics">Electronics</a></li>
-                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="Algebra">Algebra</a></li>
-                                        <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="Literature">Literature</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1" style="padding:6px 0;">
@@ -373,12 +331,6 @@ for ($i = 0; $i < 10; $i++) {
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="timetable-btn" onclick="exportCSV()" title="Export CSV">
-                            <i class="bi bi-filetype-csv"></i><span class="timetable-btn-title bold">CSV</span>
-                        </button>
-                        <button type="button" class="timetable-btn" onclick="exportPDF()" title="Export PDF">
-                            <i class="bi bi-filetype-pdf"></i><span class="timetable-btn-title bold">PDF</span>
-                        </button>
                         <?php if (!empty($STATIC_MODE)): ?>
                             <span class="static-note ms-2"><i class="bi bi-database-exclamation"></i> Static preview</span>
                         <?php endif; ?>
@@ -407,6 +359,20 @@ for ($i = 0; $i < 10; $i++) {
                                 <span>Room Management</span><span class="sub" id="roomsSelLabel"> All Rooms</span>
                             </div>
                             <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="timetable-btn" data-panel="panelStatus" title="Filter by Status">
+                                    <i class="bi bi-funnel"></i><span class="timetable-btn-title bold">Status</span>
+                                </button>
+                                <div id="panelStatus" class="timetable-panel p-3 m-3">
+                                    <div class="section-container timetable" style="background-color:#f8f9fa;">
+                                        <ul class="list-unstyled mb-0" id="statusFilterMenu" style="max-height:300px;overflow-y:auto;">
+                                            <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Statuses</a></li>
+                                            <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="live">Live / Functioning</a></li>
+                                            <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="occupied">Occupied</a></li>
+                                            <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="scheduled">Scheduled</a></li>
+                                            <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="vacant">Vacant</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
                                 <input type="text" id="roomSearch" class="form-control" placeholder="Search room or faculty..."
                                     style="max-width:220px;">
                                 <button type="button" class="light expand-all-btn" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
