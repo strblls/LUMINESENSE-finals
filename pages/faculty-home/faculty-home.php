@@ -61,6 +61,31 @@ if ($sched_res) {
     while ($srow = $sched_res->fetch_assoc()) $schedules[] = $srow;
 }
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="icon" type="image/png" href="../../images/icon.png">
+    <link rel="stylesheet" href="../../css/base/global.css">
+    <link rel="stylesheet" href="../../css/base/containers.css">
+    <link rel="stylesheet" href="../../css/base/tooltip.css">
+    <link rel="stylesheet" href="../../css/base/modals.css">
+    <link rel="stylesheet" href="../../css/pages/faculty-home.css">
+    <link rel="stylesheet" href="../../css/faculty/common.css">
+    <title>Faculty Dashboard - LumineSense</title>
+</head>
+<body class="contrast-bg">
+<div class="parent-container">
+
+    <?php include __DIR__ . "/../../src/Includes/faculty-topbar.php"; ?>
+
+    <div class="d-flex flex-row" style="width:100%;flex:1;position:relative;">
+        <div class="child-container gap-3" style="flex:1;min-width:0;">
+
     <link rel="stylesheet" href="../../css/pages/faculty-home.css">
 
     <script>
@@ -82,7 +107,7 @@ if ($sched_res) {
             <p class="schedule-ended-text">Set a 4-digit personal PIN for quick access to controls.</p>
             <div class="mt-3 d-flex flex-column align-items-center gap-2">
                 <input type="password" id="pinSetupInput" maxlength="4" pattern="\d*" inputmode="numeric"
-                       class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="â€¢â€¢â€¢â€¢">
+                       class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="****">
                 <input type="password" id="pinSetupConfirm" maxlength="4" pattern="\d*" inputmode="numeric"
                        class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="Confirm">
                 <div><span id="pinSetupError" class="text-danger small"></span></div>
@@ -518,6 +543,11 @@ if ($sched_res) {
 
     <script src="../../js/lib/tooltip.js"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
+
+        <?php include __DIR__ . "/../../src/Includes/faculty-sidebar.php"; ?>
+    </div>
+    </div>
+</div>
 </body>
 
 </html>
