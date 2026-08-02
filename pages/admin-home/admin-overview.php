@@ -3,7 +3,10 @@ $page_title = 'Rooms & Analytics';
 require_once __DIR__ . "/../../src/Includes/admin-head.php";
 date_default_timezone_set('Asia/Manila');
 
-function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+function h($s)
+{
+    return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    STATIC MODE — mock/preview data.
@@ -17,16 +20,29 @@ $STATIC_MODE = true;
 // ── Rooms — ordered functioning-first (live → occupied → scheduled → vacant → name)
 $rooms = [
     [
-        'id' => 3, 'room_name' => 'SEL 1', 'room_size' => 'medium', 'description' => 'Lecture',
+        'id' => 3,
+        'room_name' => 'SEL 1',
+        'room_size' => 'medium',
+        'description' => 'Lecture',
         'is_prototype' => 1,
-        'row1_status' => 'on', 'row2_status' => 'on', 'row3_status' => 'off',
-        'light_status' => 'on', 'pir_occupied' => 1,
-        'voltage_v' => 221.9, 'current_a' => 0.054, 'power_w' => 7.6, 'energy_wh' => 0.044,
-        'fresh_secs' => 12, 'is_live' => true,
+        'row1_status' => 'on',
+        'row2_status' => 'on',
+        'row3_status' => 'off',
+        'light_status' => 'on',
+        'pir_occupied' => 1,
+        'voltage_v' => 221.9,
+        'current_a' => 0.054,
+        'power_w' => 7.6,
+        'energy_wh' => 0.044,
+        'fresh_secs' => 12,
+        'is_live' => true,
         'status' => 'occupied',
         'faculty_name' => 'Jaz Entapa',
-        'current_time' => '10:30 AM – 12:00 PM', 'next_time' => '',
-        'dept' => 'Science', 'subject_area' => 'Sciences', 'subject' => 'Physics',
+        'current_time' => '10:30 AM – 12:00 PM',
+        'next_time' => '',
+        'dept' => 'Science',
+        'subject_area' => 'Sciences',
+        'subject' => 'Physics',
         'spark' => [0.0, 0.1, 0.3, 0.6, 1.1, 1.9, 2.6],
         'schedules' => [
             ['day_of_week' => 'Monday',    'start_time' => '10:30 AM', 'end_time' => '12:00 PM', 'faculty_name' => 'Jaz Entapa'],
@@ -35,21 +51,34 @@ $rooms = [
         ],
         'alerts' => [
             ['event_type' => 'light_on',     'triggered_by' => 'admin',   'event_time' => '2026-08-02 10:30:00'],
-            ['event_type' => 'class_start',  'triggered_by' => 'schedule','event_time' => '2026-08-02 10:30:00'],
+            ['event_type' => 'class_start',  'triggered_by' => 'schedule', 'event_time' => '2026-08-02 10:30:00'],
             ['event_type' => 'pir_motion',   'triggered_by' => 'PIR',     'event_time' => '2026-08-02 10:28:41'],
         ],
     ],
     [
-        'id' => 9, 'room_name' => 'SEL 2', 'room_size' => 'large', 'description' => 'Laboratories',
+        'id' => 9,
+        'room_name' => 'SEL 2',
+        'room_size' => 'large',
+        'description' => 'Laboratories',
         'is_prototype' => 1,
-        'row1_status' => 'on', 'row2_status' => 'on', 'row3_status' => 'off',
-        'light_status' => 'on', 'pir_occupied' => 0,
-        'voltage_v' => 230.1, 'current_a' => 0.031, 'power_w' => 4.2, 'energy_wh' => 0.010,
-        'fresh_secs' => 8, 'is_live' => true,
+        'row1_status' => 'on',
+        'row2_status' => 'on',
+        'row3_status' => 'off',
+        'light_status' => 'on',
+        'pir_occupied' => 0,
+        'voltage_v' => 230.1,
+        'current_a' => 0.031,
+        'power_w' => 4.2,
+        'energy_wh' => 0.010,
+        'fresh_secs' => 8,
+        'is_live' => true,
         'status' => 'vacant',
         'faculty_name' => '',
-        'current_time' => '', 'next_time' => '01:00 PM – 03:00 PM',
-        'dept' => 'TLE', 'subject_area' => 'Vocational', 'subject' => 'Electronics',
+        'current_time' => '',
+        'next_time' => '01:00 PM – 03:00 PM',
+        'dept' => 'TLE',
+        'subject_area' => 'Vocational',
+        'subject' => 'Electronics',
         'spark' => [0.4, 0.2, 0.1, 0.0, 0.3, 0.1, 0.0],
         'schedules' => [
             ['day_of_week' => 'Tuesday',   'start_time' => '01:00 PM', 'end_time' => '03:00 PM', 'faculty_name' => 'August Uno'],
@@ -61,16 +90,29 @@ $rooms = [
         ],
     ],
     [
-        'id' => 15, 'room_name' => 'SEL 4', 'room_size' => 'small', 'description' => 'Discussion',
+        'id' => 15,
+        'room_name' => 'SEL 4',
+        'room_size' => 'small',
+        'description' => 'Discussion',
         'is_prototype' => 0,
-        'row1_status' => 'off', 'row2_status' => 'off', 'row3_status' => 'off',
-        'light_status' => 'off', 'pir_occupied' => 0,
-        'voltage_v' => null, 'current_a' => null, 'power_w' => null, 'energy_wh' => null,
-        'fresh_secs' => null, 'is_live' => false,
+        'row1_status' => 'off',
+        'row2_status' => 'off',
+        'row3_status' => 'off',
+        'light_status' => 'off',
+        'pir_occupied' => 0,
+        'voltage_v' => null,
+        'current_a' => null,
+        'power_w' => null,
+        'energy_wh' => null,
+        'fresh_secs' => null,
+        'is_live' => false,
         'status' => 'scheduled',
         'faculty_name' => '',
-        'current_time' => '', 'next_time' => 'Tue, Aug 4 · 08:00 AM',
-        'dept' => 'Mathematics', 'subject_area' => 'Mathematics', 'subject' => 'Algebra',
+        'current_time' => '',
+        'next_time' => 'Tue, Aug 4 · 08:00 AM',
+        'dept' => 'Mathematics',
+        'subject_area' => 'Mathematics',
+        'subject' => 'Algebra',
         'spark' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         'schedules' => [
             ['day_of_week' => 'Tuesday',  'start_time' => '08:00 AM', 'end_time' => '09:30 AM', 'faculty_name' => 'Jimar Intapa'],
@@ -79,16 +121,29 @@ $rooms = [
         'alerts' => [],
     ],
     [
-        'id' => 12, 'room_name' => 'SEL 3', 'room_size' => 'medium', 'description' => 'Lecture',
+        'id' => 12,
+        'room_name' => 'SEL 3',
+        'room_size' => 'medium',
+        'description' => 'Lecture',
         'is_prototype' => 0,
-        'row1_status' => 'off', 'row2_status' => 'off', 'row3_status' => 'off',
-        'light_status' => 'off', 'pir_occupied' => 0,
-        'voltage_v' => null, 'current_a' => null, 'power_w' => null, 'energy_wh' => null,
-        'fresh_secs' => null, 'is_live' => false,
+        'row1_status' => 'off',
+        'row2_status' => 'off',
+        'row3_status' => 'off',
+        'light_status' => 'off',
+        'pir_occupied' => 0,
+        'voltage_v' => null,
+        'current_a' => null,
+        'power_w' => null,
+        'energy_wh' => null,
+        'fresh_secs' => null,
+        'is_live' => false,
         'status' => 'vacant',
         'faculty_name' => '',
-        'current_time' => '', 'next_time' => '',
-        'dept' => 'English', 'subject_area' => 'Languages', 'subject' => 'Literature',
+        'current_time' => '',
+        'next_time' => '',
+        'dept' => 'English',
+        'subject_area' => 'Languages',
+        'subject' => 'Literature',
         'spark' => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         'schedules' => [
             ['day_of_week' => 'Monday',   'start_time' => '07:30 AM', 'end_time' => '09:00 AM', 'faculty_name' => 'Sofia Santos'],
@@ -315,7 +370,7 @@ for ($i = 0; $i < 10; $i++) {
                             <i class="bi bi-filetype-pdf"></i><span class="timetable-btn-title bold">PDF</span>
                         </button>
                         <?php if (!empty($STATIC_MODE)): ?>
-                        <span class="static-note ms-2"><i class="bi bi-database-exclamation"></i> Static preview</span>
+                            <span class="static-note ms-2"><i class="bi bi-database-exclamation"></i> Static preview</span>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -334,6 +389,7 @@ for ($i = 0; $i < 10; $i++) {
                             </div>
                         </div>
                         <div class="overview-pane overview-pane-rooms">
+                            <div class="section-heading">Room Management<span class="sub"> All Rooms</span></div>
                             <div class="hrooms-list" id="hroomsList">
                                 <?php foreach ($rooms as $r):
                                     $live   = !empty($r['is_live']);
@@ -347,61 +403,61 @@ for ($i = 0; $i < 10; $i++) {
                                     $timeLabel = $r['status'] === 'occupied' ? 'Current Class:' : 'Next class:';
                                     $timeVal   = $r['status'] === 'occupied' ? $r['current_time'] : ($r['next_time'] !== '' ? $r['next_time'] : 'None scheduled');
                                 ?>
-                                <div class="hroom-row room-card" data-room-id="<?= $r['id'] ?>"
-                                    data-room="<?= h(strtolower($r['room_name'])) ?>"
-                                    data-status="<?= h($live ? 'live' : $r['status']) ?>"
-                                    data-departments="<?= h(strtolower($r['dept'])) ?>"
-                                    data-sa="<?= h(strtolower($r['subject_area'])) ?>"
-                                    data-subjects="<?= h(strtolower($r['subject'])) ?>">
-                                    <div class="room-card-accent <?= $accent ?>"></div>
-                                    <div class="room-card-body">
-                                        <div class="room-card-header">
-                                            <div>
-                                                <h2 class="room-card-name"><?= h($r['room_name']) ?><?php if (!empty($r['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></h2>
-                                                <div class="room-card-section">
-                                                    <?= ucfirst(h($r['room_size'])) ?> room
-                                                    <?php if (!empty($r['description'])): ?> &middot; <?= h($r['description']) ?><?php endif; ?>
-                                                </div>
-                                            </div>
-                                            <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
-                                        </div>
-                                        <div class="room-expand">
-                                            <div class="device-strip">
-                                                <div class="dev-left">
-                                                    <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
-                                                    <?php if ($live): ?>
-                                                    <span class="dev-pzem">
-                                                        V <b><?= $v ?></b> &middot; A <b><?= $a ?></b> &middot; W <b><?= $w ?></b>
-                                                    </span>
-                                                    <?php endif; ?>
-                                                    <?php if (!empty($r['pir_occupied'])): ?>
-                                                    <span class="dev-occ"><i class="bi bi-person-fill"></i> Occupied</span>
-                                                    <?php endif; ?>
-                                                </div>
-                                                <div class="row-bars">
-                                                    <?php for ($row = 1; $row <= 3; $row++):
-                                                        $st = $r['row' . $row . '_status']; ?>
-                                                    <div class="row-bar-item">
-                                                        <span class="row-bar-label">R<?= $row ?></span>
-                                                        <span class="row-bar <?= $st === 'on' ? 'on' : '' ?>"></span>
+                                    <div class="hroom-row room-card" data-room-id="<?= $r['id'] ?>"
+                                        data-room="<?= h(strtolower($r['room_name'])) ?>"
+                                        data-status="<?= h($live ? 'live' : $r['status']) ?>"
+                                        data-departments="<?= h(strtolower($r['dept'])) ?>"
+                                        data-sa="<?= h(strtolower($r['subject_area'])) ?>"
+                                        data-subjects="<?= h(strtolower($r['subject'])) ?>">
+                                        <div class="room-card-accent <?= $accent ?>"></div>
+                                        <div class="room-card-body">
+                                            <div class="room-card-header">
+                                                <div>
+                                                    <h2 class="room-card-name"><?= h($r['room_name']) ?><?php if (!empty($r['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></h2>
+                                                    <div class="room-card-section">
+                                                        <?= ucfirst(h($r['room_size'])) ?> room
+                                                        <?php if (!empty($r['description'])): ?> &middot; <?= h($r['description']) ?><?php endif; ?>
                                                     </div>
-                                                    <?php endfor; ?>
+                                                </div>
+                                                <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
+                                            </div>
+                                            <div class="room-expand">
+                                                <div class="device-strip">
+                                                    <div class="dev-left">
+                                                        <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
+                                                        <?php if ($live): ?>
+                                                            <span class="dev-pzem">
+                                                                V <b><?= $v ?></b> &middot; A <b><?= $a ?></b> &middot; W <b><?= $w ?></b>
+                                                            </span>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($r['pir_occupied'])): ?>
+                                                            <span class="dev-occ"><i class="bi bi-person-fill"></i> Occupied</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="row-bars">
+                                                        <?php for ($row = 1; $row <= 3; $row++):
+                                                            $st = $r['row' . $row . '_status']; ?>
+                                                            <div class="row-bar-item">
+                                                                <span class="row-bar-label">R<?= $row ?></span>
+                                                                <span class="row-bar <?= $st === 'on' ? 'on' : '' ?>"></span>
+                                                            </div>
+                                                        <?php endfor; ?>
+                                                    </div>
+                                                </div>
+                                                <div class="room-expand-row">
+                                                    <i class="bi bi-person-fill"></i>
+                                                    <span class="room-info-label">Faculty:</span>
+                                                    <span class="room-info-val"><?= h($fac) ?></span>
+                                                </div>
+                                                <div class="room-expand-row">
+                                                    <i class="bi bi-clock-fill"></i>
+                                                    <span class="room-info-label"><?= $timeLabel ?></span>
+                                                    <span class="room-info-val"><?= h($timeVal) ?></span>
                                                 </div>
                                             </div>
-                                            <div class="room-expand-row">
-                                                <i class="bi bi-person-fill"></i>
-                                                <span class="room-info-label">Faculty:</span>
-                                                <span class="room-info-val"><?= h($fac) ?></span>
-                                            </div>
-                                            <div class="room-expand-row">
-                                                <i class="bi bi-clock-fill"></i>
-                                                <span class="room-info-label"><?= $timeLabel ?></span>
-                                                <span class="room-info-val"><?= h($timeVal) ?></span>
-                                            </div>
+                                            <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                         </div>
-                                        <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                     </div>
-                                </div>
                                 <?php endforeach; ?>
                             </div>
                         </div>
@@ -600,13 +656,28 @@ for ($i = 0; $i < 10; $i++) {
                                 </div>
                                 <div class="live-readings-row">
                                     <div class="live-readings-group" id="vawGroup">
-                                        <div class="live-stat-card" data-metric="voltage"><div class="live-stat-val" id="liveVoltage">- V</div><div class="live-stat-label">Voltage</div></div>
-                                        <div class="live-stat-card" data-metric="current"><div class="live-stat-val" id="liveCurrent">- A</div><div class="live-stat-label">Current</div></div>
-                                        <div class="live-stat-card" data-metric="power"><div class="live-stat-val" id="livePower">- W</div><div class="live-stat-label">Power</div></div>
+                                        <div class="live-stat-card" data-metric="voltage">
+                                            <div class="live-stat-val" id="liveVoltage">- V</div>
+                                            <div class="live-stat-label">Voltage</div>
+                                        </div>
+                                        <div class="live-stat-card" data-metric="current">
+                                            <div class="live-stat-val" id="liveCurrent">- A</div>
+                                            <div class="live-stat-label">Current</div>
+                                        </div>
+                                        <div class="live-stat-card" data-metric="power">
+                                            <div class="live-stat-val" id="livePower">- W</div>
+                                            <div class="live-stat-label">Power</div>
+                                        </div>
                                     </div>
                                     <div class="live-readings-group vaw-group">
-                                        <div class="live-stat-card"><div class="live-stat-val" id="liveEnergy">- Wh</div><div class="live-stat-label">Energy (session)</div></div>
-                                        <div class="live-stat-card"><div class="live-stat-row"><span class="live-status-dot" id="liveStatusDot"></span><span class="live-stat-val" id="liveStatus">-</span></div><div class="live-stat-label">Light Status</div></div>
+                                        <div class="live-stat-card">
+                                            <div class="live-stat-val" id="liveEnergy">- Wh</div>
+                                            <div class="live-stat-label">Energy (session)</div>
+                                        </div>
+                                        <div class="live-stat-card">
+                                            <div class="live-stat-row"><span class="live-status-dot" id="liveStatusDot"></span><span class="live-stat-val" id="liveStatus">-</span></div>
+                                            <div class="live-stat-label">Light Status</div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="metric-info"><span class="metric-info-text">Voltage, Current, and Power readings drive Energy (Wh). <span class="metric-formula">Energy (Wh) = Power (W) &times; Time (h)</span></span></div>
@@ -765,7 +836,9 @@ for ($i = 0; $i < 10; $i++) {
                                 <h6 class="bold mb-3">Current Schedule</h6>
                                 <div id="modalCurrentSched" style="background:#fff;border-radius:8px;padding:12px;font-size:13px; min-height:60px;"><em class="text-muted">Loading…</em></div>
                                 <div class="collapse mt-2" id="timetableCollapse">
-                                    <div id="modalTimetableBody" style="max-height:320px;overflow-y:auto;"><div class="modal-slot-empty">Loading…</div></div>
+                                    <div id="modalTimetableBody" style="max-height:320px;overflow-y:auto;">
+                                        <div class="modal-slot-empty">Loading…</div>
+                                    </div>
                                 </div>
                                 <div class="admin-override-panel mt-3">
                                     <div class="override-panel-header">
@@ -777,7 +850,7 @@ for ($i = 0; $i < 10; $i++) {
                                         <div class="override-master-left">
                                             <div class="bulb-preview-grid">
                                                 <?php for ($i = 0; $i < 9; $i++): ?>
-                                                <img src="../../images/bulb-off.png" id="bulb<?= $i ?>" class="bulb-img">
+                                                    <img src="../../images/bulb-off.png" id="bulb<?= $i ?>" class="bulb-img">
                                                 <?php endfor; ?>
                                             </div>
                                         </div>
@@ -788,14 +861,14 @@ for ($i = 0; $i < 10; $i++) {
                                     </div>
                                     <div class="override-rows">
                                         <?php foreach ([1, 2, 3] as $row): ?>
-                                        <div class="override-row-item">
-                                            <span class="override-row-label">Row <?= $row ?></span>
-                                            <div class="override-row-toggle">
-                                                <input class="override-switch" type="checkbox" role="switch" id="row<?= $row ?>sw" onchange="toggleRow(<?= $row ?>, this.checked)">
-                                                <label class="override-switch-label" for="row<?= $row ?>sw"></label>
+                                            <div class="override-row-item">
+                                                <span class="override-row-label">Row <?= $row ?></span>
+                                                <div class="override-row-toggle">
+                                                    <input class="override-switch" type="checkbox" role="switch" id="row<?= $row ?>sw" onchange="toggleRow(<?= $row ?>, this.checked)">
+                                                    <label class="override-switch-label" for="row<?= $row ?>sw"></label>
+                                                </div>
+                                                <span class="override-row-status" id="row<?= $row ?>status">OFF</span>
                                             </div>
-                                            <span class="override-row-status" id="row<?= $row ?>status">OFF</span>
-                                        </div>
                                         <?php endforeach; ?>
                                     </div>
                                     <div class="override-footer-note"><i class="bi bi-info-circle"></i> Static preview — toggles update locally only.</div>
@@ -804,11 +877,15 @@ for ($i = 0; $i < 10; $i++) {
                         </div>
                         <div class="d-flex flex-column gap-3" style="flex:1;min-width:220px;">
                             <div style="background:#f8f9fa;border-radius:12px;padding:16px;">
-                                <div class="d-flex align-items-center justify-content-between mb-2"><h6 class="bold mb-0">Weekly Timetable</h6></div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="bold mb-0">Weekly Timetable</h6>
+                                </div>
                                 <div id="modalTodaySched"><em class="text-muted">Loading…</em></div>
                             </div>
                             <div style="background:#f8f9fa;border-radius:12px;padding:16px;">
-                                <div class="d-flex align-items-center justify-content-between mb-2"><h6 class="bold mb-0">Room Alerts</h6></div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="bold mb-0">Room Alerts</h6>
+                                </div>
                                 <div class="activity-list px-1" id="modalAlertsPreview" style="min-height:40px;"><em class="text-muted" style="font-size:.82rem;">Loading…</em></div>
                             </div>
                         </div>

@@ -33,11 +33,29 @@
     }
 }
 
-/* Horizontal room rows inside the overview tier */
+/* Room cards as a responsive grid inside the overview tier */
 .hrooms-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+@media (max-width: 1600px) {
+    .hrooms-list {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1200px) {
+    .hrooms-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .hrooms-list {
+        grid-template-columns: 1fr;
+    }
 }
 
 .hroom-row {
