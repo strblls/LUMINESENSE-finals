@@ -1,4 +1,4 @@
-const departmentsData = <?= json_encode($departments) ?>;
+const departmentsData = window.lumiDepartmentsData || [];
 
 function openDeleteFacultyModal(facultyId, facultyName) {
     document.getElementById('deleteFacultyId').value = facultyId;

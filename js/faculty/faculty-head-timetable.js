@@ -1,5 +1,5 @@
-        const deptHasCoverage = <?= json_encode($dept_has_coverage) ?>;
-        const facultyHasAssignment = <?= json_encode($faculty_assignment_map) ?>;
+        const deptHasCoverage = window.lumiDeptHasCoverage || {};
+        const facultyHasAssignment = window.lumiFacultyHasAssignment || {};
         let noCoverageModal = null;
         let noAssignmentModal = null;
 
@@ -19,8 +19,8 @@
             }
         }
 
-        const subjectAreasData = <?= json_encode($all_subject_areas) ?>;
-        const subjectAreasFlatData = <?= json_encode($all_subject_areas_flat) ?>;
+        const subjectAreasData = window.lumiSubjectAreasData || {};
+        const subjectAreasFlatData = window.lumiSubjectAreasFlatData || {};
 
         let editFacultyModal = null;
         let editFacultyId = null;
@@ -959,11 +959,7 @@
             }
         }
 
-        var filterData = <?= json_encode([
-            'sa_names' => array_values($filter_sa_names),
-            'subject_names' => array_values($filter_subject_names),
-            'subject_to_sa' => $filter_subject_to_sa,
-        ]) ?>;
+        var filterData = window.lumiFilterData || { sa_names: [], subject_names: [], subject_to_sa: {} };
 
         var activeCoverage = '';
         var activeSubject = '';

@@ -128,6 +128,9 @@ $conn->close();
     <div class="footer">LumineSense &mdash; Real-time Room Monitor</div>
 </div>
 
+<script>
+    window.lumiRoomId = <?= (int)$room_id ?>;
+</script>
 <script src="../../js/admin/admin-room-light-view.js"></script>
 </body>
 </html>

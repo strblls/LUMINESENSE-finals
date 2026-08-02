@@ -1,6 +1,6 @@
     (function() {
         var btn = document.getElementById('resendBtn');
-        var cooldown = <?= $cooldown ?>;
+        var cooldown = window.lumiResetOtpCooldown || 0;
 
         function tick() {
             if (cooldown <= 0) {

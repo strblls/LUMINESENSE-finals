@@ -561,6 +561,9 @@ $fm_res->free();
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
     <script src="../../js/lib/tooltip.js"></script>
+    <script>
+        window.lumiSchedules = <?= $schedules_json ?>;
+    </script>
     <script src="../../js/admin/admin-homepage.js"></script>
 
     <!-- Detail Modal -->

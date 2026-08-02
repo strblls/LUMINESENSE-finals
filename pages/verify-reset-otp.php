@@ -73,6 +73,9 @@ $cooldown = max(0, 60 - (time() - $lastSent));
     </div>
 
     <script src="../js/lib/animations.js"></script>
+    <script>
+        window.lumiResetOtpCooldown = <?= (int)$cooldown ?>;
+    </script>
     <script src="../js/verify-reset-otp.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const roomId = <?= $room_id ?: 0 ?>;
+const roomId = window.lumiRoomId || 0;
 
 let rowState = { 1: false, 2: false, 3: false };
 const rowBulbs = { 1: [0, 1, 2], 2: [3, 4, 5], 3: [6, 7, 8] };

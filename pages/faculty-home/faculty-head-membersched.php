@@ -722,6 +722,13 @@ foreach ($days as $day) {
         </div>
     </div>
 
+    <script>
+        window.lumiMemberschedSubjects = <?= json_encode($subjects) ?>;
+        window.lumiMemberschedRooms = <?= json_encode($rooms) ?>;
+        window.lumiMemberschedMemberId = <?= (int)$member_id ?>;
+        window.lumiMemberschedToday = '<?= $today ?>';
+    </script>
+
     <script src="../../js/faculty/faculty-head-membersched.js"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>

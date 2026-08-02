@@ -187,7 +187,7 @@ function toggleHierarchyMaximize() {
     setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
 }
 
-const SCHEDULES = <?= $schedules_json ?>;
+const SCHEDULES = window.lumiSchedules || {};
 const DAYS_ENUM = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 

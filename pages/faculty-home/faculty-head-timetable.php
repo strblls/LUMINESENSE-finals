@@ -746,6 +746,18 @@ $current_sched = 'No class right now';
         </div>
     </div>
 
+    <script>
+        window.lumiDeptHasCoverage = <?= json_encode($dept_has_coverage) ?>;
+        window.lumiFacultyHasAssignment = <?= json_encode($faculty_assignment_map) ?>;
+        window.lumiSubjectAreasData = <?= json_encode($all_subject_areas) ?>;
+        window.lumiSubjectAreasFlatData = <?= json_encode($all_subject_areas_flat) ?>;
+        window.lumiFilterData = <?= json_encode([
+            'sa_names' => array_values($filter_sa_names),
+            'subject_names' => array_values($filter_subject_names),
+            'subject_to_sa' => $filter_subject_to_sa,
+        ]) ?>;
+    </script>
+
     <script src="../../js/faculty/faculty-head-timetable.js"></script>
 
     <link rel="stylesheet" href="../../css/pages/faculty-head-timetable.css">

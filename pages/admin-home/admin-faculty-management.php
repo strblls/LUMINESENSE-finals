@@ -1041,6 +1041,9 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/tooltip.js"></script>
+    <script>
+        window.lumiDepartmentsData = <?= json_encode($departments) ?>;
+    </script>
     <script src="../../js/admin/admin-faculty-management.js"></script>
 
     <link rel="stylesheet" href="../../css/pages/admin-faculty-management.css">

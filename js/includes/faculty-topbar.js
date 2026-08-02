@@ -4,7 +4,7 @@ window.updateTopbarScheduleText = function(newEndFormatted) {
     el.textContent = el.textContent.replace(/- (\d+:\d+\s[AP]M)/, '- ' + newEndFormatted);
 };
 
-var HAS_PIN = <?= json_encode((bool)$has_pin) ?>;
+var HAS_PIN = !!(window.lumiHasPin);
 var PIN_VERIFIED = false;
 var _timeoutTimer = null;
 

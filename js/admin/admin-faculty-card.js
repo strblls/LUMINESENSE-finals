@@ -13,7 +13,7 @@ function updateStatus(val) {
 
 function savePermission(permission, value) {
     const form = new FormData();
-    form.append('faculty_id', <?= $faculty_id ?>);
+    form.append('faculty_id', window.lumiFacultyId || 0);
     form.append('permission', permission);
     form.append('value', value ? 1 : 0);
 

@@ -386,6 +386,9 @@ $conn->close();
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
 
+    <script>
+        window.lumiFacultyId = <?= (int)$faculty_id ?>;
+    </script>
     <script src="../../js/admin/admin-faculty-card.js"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>

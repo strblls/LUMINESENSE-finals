@@ -7,10 +7,10 @@ let runningScheduleModal = null;
 let overlapWarningModal = null;
 let timeValidationModal = null;
 let deleteSlotId = null;
-const subjects = <?php echo json_encode($subjects); ?>;
-const rooms = <?php echo json_encode($rooms); ?>;
-const memberId = <?= (int)$member_id ?>;
-const todayDayName = '<?= $today ?>';
+const subjects = window.lumiMemberschedSubjects || [];
+const rooms = window.lumiMemberschedRooms || [];
+const memberId = window.lumiMemberschedMemberId || 0;
+const todayDayName = window.lumiMemberschedToday || '';
 
 function cleanupModalBackdrop() {
     document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());

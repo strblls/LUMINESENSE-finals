@@ -45,4 +45,7 @@ $is_head = $_SESSION['is_head'] ?? false;
     </div>
 </div>
 
+<script>
+    window.lumiIsHead = <?= json_encode((bool)$is_head) ?>;
+</script>
 <script src="../../js/includes/faculty-sidebar.js"></script>
