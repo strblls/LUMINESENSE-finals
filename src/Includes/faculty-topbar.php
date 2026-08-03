@@ -129,3 +129,4 @@ if (isset($conn) && $conn instanceof mysqli) {
     window.lumiHasPin = <?= json_encode((bool)$has_pin) ?>;
 </script>
 <script src="../../js/includes/faculty-topbar.js"></script>
+<script src="../../js/includes/topbar-fade.js"></script>

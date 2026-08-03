@@ -24,3 +24,5 @@
         <button class="topbar-logout light w-auto" onclick="dissolve('../../handlers/logout.php')">Logout</button>
     </div>
 </div>
+
+<script src="../../js/includes/topbar-fade.js"></script>

@@ -482,11 +482,3 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     })();
 });
-
-window.addEventListener('scroll', function() {
-    var scrollThreshold = 100;
-    var nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - scrollThreshold;
-    document.querySelectorAll('.topbar-greeting, .topbar-user-info').forEach(function(el) {
-        el.classList.toggle('hidden', nearBottom);
-    });
-});

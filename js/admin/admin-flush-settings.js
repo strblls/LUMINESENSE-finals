@@ -87,7 +87,7 @@ function scheduleFlush() {
         btn.disabled = true;
         btn.textContent = 'Scheduling\u2026';
 
-        fetch('../../php/handlers/flush-handler.php', {
+        fetch('../../handlers/flush-handler.php', {
             method: 'POST',
             body: formData
         })
@@ -148,7 +148,7 @@ function scheduleExtensionsFlush() {
         btn.disabled = true;
         btn.textContent = 'Scheduling\u2026';
 
-        fetch('../../php/handlers/flush-handler.php', {
+        fetch('../../handlers/flush-handler.php', {
             method: 'POST',
             body: formData
         })
@@ -184,7 +184,7 @@ function confirmFlush(flushId) {
     formData.append('action', 'confirm_flush');
     formData.append('flush_id', flushId);
 
-    fetch('../../php/handlers/flush-handler.php', {
+    fetch('../../handlers/flush-handler.php', {
         method: 'POST',
         body: formData
     })
@@ -208,7 +208,7 @@ function dismissReminder(flushId) {
     formData.append('action', 'dismiss_reminder');
     formData.append('flush_id', flushId);
 
-    fetch('../../php/handlers/flush-handler.php', {
+    fetch('../../handlers/flush-handler.php', {
         method: 'POST',
         body: formData
     })
@@ -230,7 +230,7 @@ function cancelFlush(flushId) {
     formData.append('action', 'cancel_flush');
     formData.append('flush_id', flushId);
 
-    fetch('../../php/handlers/flush-handler.php', {
+    fetch('../../handlers/flush-handler.php', {
         method: 'POST',
         body: formData
     })

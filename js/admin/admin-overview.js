@@ -187,6 +187,8 @@ function buildOverviewLineChart() {
     const selected = currentRoomId;
     const room = selected > 0 ? (ROOMS || []).find(r => r.id == selected) : null;
 
+    const showMetric = (m) => currentMetric === 'all' || currentMetric === m;
+
     if (selected === 0) {
         // No rooms selected → empty chart
     } else if (room) {
@@ -197,18 +199,14 @@ function buildOverviewLineChart() {
         const roomLabels = currentPeriod === 1 ? (room.todayLabels || []) : (room.dailyLabels || []).slice(-currentPeriod);
         const n = Math.max(v.length, a.length, w.length);
         const pad = (arr) => { const x = (arr || []).slice(); while (x.length < n) x.push(null); return x; };
-        datasets.push(
-            { label: room.room_name + ' · Voltage (V)', metric: 'voltage', data: pad(v), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
-            { label: room.room_name + ' · Current (A)', metric: 'current', data: pad(a), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
-            { label: room.room_name + ' · Power (W)', metric: 'power', data: pad(w), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
-        );
+        if (showMetric('voltage')) datasets.push({ label: room.room_name + ' · Voltage (V)', metric: 'voltage', data: pad(v), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false });
+        if (showMetric('current')) datasets.push({ label: room.room_name + ' · Current (A)', metric: 'current', data: pad(a), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false });
+        if (showMetric('power'))   datasets.push({ label: room.room_name + ' · Power (W)', metric: 'power', data: pad(w), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false });
         if (roomLabels.length) labels.splice(0, labels.length, ...roomLabels);
     } else {
-        datasets.push(
-            { label: 'Voltage (V)', metric: 'voltage', data: rows.map(r => r.avg_voltage), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false },
-            { label: 'Current (A)', metric: 'current', data: rows.map(r => r.avg_current), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false },
-            { label: 'Power (W)', metric: 'power', data: rows.map(r => r.avg_power), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false }
-        );
+        if (showMetric('voltage')) datasets.push({ label: 'Voltage (V)', metric: 'voltage', data: rows.map(r => r.avg_voltage), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2, spanGaps: false });
+        if (showMetric('current')) datasets.push({ label: 'Current (A)', metric: 'current', data: rows.map(r => r.avg_current), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1', spanGaps: false });
+        if (showMetric('power'))   datasets.push({ label: 'Power (W)', metric: 'power', data: rows.map(r => r.avg_power), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false });
     }
 
     overviewLineInstance = new Chart(ctx, {
@@ -248,6 +246,8 @@ function buildOverviewLineChart() {
         },
     });
     updateOverviewLineTitle();
+    const metricLabelEl = document.getElementById('overviewLineMetricLabel');
+    if (metricLabelEl) metricLabelEl.textContent = currentMetric === 'all' ? 'All Metrics' : (METRIC_LABELS[currentMetric] || currentMetric);
     updateOverviewScrollbar();
 }
 
@@ -404,6 +404,7 @@ function setMetric(el, metric) {
     if (el) el.classList.add('active');
     currentMetric = metric;
     updateMainCharts();
+    buildOverviewLineChart();
     // Live card emphasis
     document.querySelectorAll('#vawGroup .live-stat-card').forEach(c => {
         c.classList.remove('metric-active', 'metric-dimmed');
@@ -750,6 +751,73 @@ function updateCardLighting(roomId, r1, r2, r3) {
     });
 }
 
+// ── Live auto-refresh (device-strip + sparklines) ─────────────────────────
+const OVERVIEW_POLL_MS = 5000;
+let overviewPollTimer = null;
+
+function applyLiveRoom(room) {
+    const card = document.querySelector('.room-card[data-room-id="' + room.id + '"]');
+    if (!card) return;
+
+    // Sparklines (7-day energy / VAW) from fresh data
+    const prior = (ROOMS || []).find(r => r.id == room.id);
+    if (prior && prior.spark) {
+        prior.spark = room.spark; prior.sparkV = room.sparkV;
+        prior.sparkA = room.sparkA; prior.sparkW = room.sparkW;
+        prior.voltage_v = room.voltage_v; prior.current_a = room.current_a;
+        prior.power_w = room.power_w; prior.energy_wh = room.energy_wh;
+        prior.is_live = room.is_live;
+        drawVawSpark('sparkCanvas' + room.id, room);
+    }
+
+    // Device strip: LIVE / NO DEVICE pill
+    const pill = card.querySelector('.device-pill');
+    if (pill) {
+        pill.textContent = room.is_live ? 'LIVE' : 'NO DEVICE';
+        pill.classList.toggle('live', room.is_live);
+        pill.classList.toggle('none', !room.is_live);
+    }
+
+    // Device strip: V / A / W values
+    const devLeft = card.querySelector('.dev-left');
+    let pzem = card.querySelector('.dev-pzem');
+    if (room.is_live) {
+        if (!pzem && devLeft) {
+            pzem = document.createElement('span');
+            pzem.className = 'dev-pzem';
+            const pillEl = card.querySelector('.device-pill');
+            pillEl ? pillEl.insertAdjacentElement('afterend', pzem) : devLeft.appendChild(pzem);
+        }
+        if (pzem) {
+            pzem.innerHTML = ' V <b>' + (room.voltage_v != null ? room.voltage_v.toFixed(1) : '\u2014') +
+                '</b> &middot; A <b>' + (room.current_a != null ? room.current_a.toFixed(3) : '\u2014') +
+                '</b> &middot; W <b>' + (room.power_w != null ? room.power_w.toFixed(1) : '\u2014') + '</b>';
+        }
+    } else if (pzem) {
+        pzem.remove();
+    }
+
+    // Row light bars
+    const bars = card.querySelectorAll('.row-bar');
+    bars.forEach(function (bar) {
+        const item = bar.closest('.row-bar-item');
+        const idx = item ? parseInt(item.querySelector('.row-bar-label').textContent.replace(/\D/g, ''), 10) : 0;
+        if (idx >= 1 && idx <= 3) bar.classList.toggle('on', room['row' + idx + '_status'] === 'on');
+    });
+}
+
+async function pollOverviewLive() {
+    try {
+        const res = await fetch('../../api/overview-live.php');
+        const data = await res.json();
+        if (!data || !data.ok) return;
+        (data.rooms || []).forEach(applyLiveRoom);
+        renderLiveReadings();
+    } catch (err) {
+        console.warn('[Overview Live]', err);
+    }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
     drawAllSparks();
@@ -757,6 +825,9 @@ document.addEventListener('DOMContentLoaded', function () {
     buildOverviewLineChart();
     updateMainCharts();
     updateSelectionUI();
+
+    // Keep device-strips + sparklines fresh while ESP32/Arduino streams
+    overviewPollTimer = setInterval(pollOverviewLive, OVERVIEW_POLL_MS);
 
     // Room selection
     document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(card => {
@@ -850,12 +921,4 @@ document.addEventListener('DOMContentLoaded', function () {
             updateSelectionUI();
         });
     }
-
-    // Topbar hide on scroll
-    window.addEventListener('scroll', function () {
-        const nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
-        document.querySelectorAll('.topbar-greeting, .topbar-user-info').forEach(function (el) {
-            el.classList.toggle('hidden', nearBottom);
-        });
-    });
 });

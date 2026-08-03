@@ -822,7 +822,7 @@ function renderSavings(s, range) {
     set('savingsDelta',   ((cur - prev >= 0) ? '+' : '') + (cur - prev).toFixed(2) + ' kWh');
 
     if (s.pct == null || prev <= 0) {
-        if (valueEl) valueEl.textContent = '\u2014';
+        if (valueEl) { valueEl.textContent = '\u2014'; valueEl.classList.remove('savings-green', 'savings-red'); }
         if (badgeEl) { badgeEl.className = 'savings-badge neutral'; badgeEl.innerHTML = '<i class="bi bi-dash-lg"></i> No baseline'; }
         if (descEl)  descEl.textContent  = 'Not enough historical data for the previous period to compute a comparison.';
         fillSavingsModal(null, range);
@@ -830,8 +830,12 @@ function renderSavings(s, range) {
     }
 
     var saved = s.direction === 'saved';
-    var abs   = Math.abs(s.pct);
-    if (valueEl) valueEl.textContent = abs.toFixed(1) + '%';
+    var pct   = s.pct;
+    if (valueEl) {
+        valueEl.textContent = (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
+        valueEl.classList.toggle('savings-green', saved);
+        valueEl.classList.toggle('savings-red', !saved);
+    }
     if (badgeEl) {
         badgeEl.className = 'savings-badge ' + (saved ? 'saved' : 'increase');
         badgeEl.innerHTML = saved
@@ -860,7 +864,7 @@ function fillSavingsModal(s, range) {
         var cur   = s.current_kwh || 0;
         var prev  = s.prev_kwh || 0;
         var maxV  = Math.max(cur, prev, 0.001);
-        if (mVal) mVal.textContent = Math.abs(s.pct).toFixed(1) + '%';
+        if (mVal) { mVal.textContent = (s.pct > 0 ? '+' : '') + s.pct.toFixed(1) + '%'; mVal.classList.add(saved ? 'savings-green' : 'savings-red'); mVal.classList.remove(saved ? 'savings-red' : 'savings-green'); }
         if (mBadge) {
             mBadge.className = 'savings-modal-badge ' + (saved ? 'saved' : 'increase');
             mBadge.innerHTML = saved
@@ -878,7 +882,7 @@ function fillSavingsModal(s, range) {
                 + (saved ? 'decrease' : 'increase') + '.';
         }
     } else {
-        if (mVal) mVal.textContent = '\u2014';
+        if (mVal) { mVal.textContent = '\u2014'; mVal.classList.remove('savings-green', 'savings-red'); }
         if (mBadge) { mBadge.className = 'savings-modal-badge neutral'; mBadge.innerHTML = '<i class="bi bi-dash-lg"></i> No baseline'; }
         if (mCur) mCur.textContent = '\u2014';
         if (mPrev) mPrev.textContent = '\u2014';
@@ -1547,15 +1551,6 @@ onControlChange();
 dataInterval = setInterval(() => {
     onControlChange();
 }, 30000);
-
-window.addEventListener('scroll', function() {
-    var scrollThreshold = 100;
-    var nearBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - scrollThreshold;
-    document.querySelectorAll('.topbar-greeting, .topbar-user-info').forEach(function(el) {
-        if (nearBottom) { el.classList.add('hidden'); }
-        else { el.classList.remove('hidden'); }
-    });
-});
 
 (function() {
     var panels = ['panelGuideInfo', 'panelFilterInfo'];

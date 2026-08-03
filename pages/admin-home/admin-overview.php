@@ -474,7 +474,7 @@ while ($row = $res->fetch_assoc()) {
 
                     <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1" style="padding:6px 0;">
                         <div class="overview-title-band">
-                            <h2 class="bold" id="tabHeading">Overall Status</h2>
+                            <h2 class="bold" id="tabHeading">Overall View</h2>
                             <p id="tabSubheading">All Rooms Selected</p>
                         </div>
                     </div>

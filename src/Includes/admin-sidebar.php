@@ -21,13 +21,13 @@
             <button class="nav-btn" title="Rooms" onclick="dissolve('admin-overview.php')">
                 <i class="fa-solid fa-person-shelter"></i>
             </button>
-            <h3 class="bold mb-0 sidebar-label">Rooms</h3>
+            <h3 class="bold mb-0 sidebar-label">Rooms<br>Overview</h3>
         </div>
         <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
             <button class="nav-btn" title="Consumption Analytics" onclick="dissolve('admin-analytics.php')">
                 <i class="bi bi-clipboard2-data"></i>
             </button>
-            <h3 class="bold mb-0 sidebar-label">Consumption Analytics</h3>
+            <h3 class="bold mb-0 sidebar-label">Consumption<br>Analytics</h3>
         </div>
         <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
             <button class="nav-btn" title="Reports" onclick="dissolve('admin-reports.php')">

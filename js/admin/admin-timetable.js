@@ -53,7 +53,7 @@ function saveSlot() {
         end_time: end
     });
 
-    fetch('../../php/handlers/schedule-handler.php', { method: 'POST', body })
+    fetch('../../handlers/schedule-handler.php', { method: 'POST', body })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
@@ -77,7 +77,7 @@ function executeDelete() {
     if (!_pendingDeleteId) return;
     const body = new URLSearchParams({ action: 'delete', slot_id: _pendingDeleteId });
 
-    fetch('../../php/handlers/schedule-handler.php', { method: 'POST', body })
+    fetch('../../handlers/schedule-handler.php', { method: 'POST', body })
         .then(r => r.json())
         .then(data => {
             bootstrap.Modal.getInstance(document.getElementById('deleteModal'))?.hide();

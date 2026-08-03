@@ -1066,6 +1066,14 @@ body.contrast-bg {
     color: var(--secondary-color-1);
 }
 
+.savings-value.savings-green {
+    color: #16a34a;
+}
+
+.savings-value.savings-red {
+    color: #dc3545;
+}
+
 .savings-badge {
     display: inline-flex;
     align-items: center;
