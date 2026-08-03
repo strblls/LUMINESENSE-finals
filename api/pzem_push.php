@@ -122,8 +122,83 @@ if (!$ok2) {
 }
 $stmt2->close();
 
-// - Anomaly detection: dropout & spike -----------
+// - Session auto-management (same logic as api/post_pzem.php) ---------
+// The ESP32 only calls this endpoint, so sessions must be opened/closed
+// here or power_sessions stays empty and the analytics summaries read 0.
 $any_row_on = (bool)($row1 || $row2 || $row3);
+
+$stmt = $conn->prepare("
+    SELECT id, start_time FROM power_sessions
+    WHERE classroom_id = ? AND end_time IS NULL
+    ORDER BY id DESC LIMIT 1
+");
+$stmt->bind_param('i', $cid);
+$stmt->execute();
+$openSession = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+$isOff = !$any_row_on || ($voltage < 5 && $power < 1);
+
+if (!$isOff && !$openSession) {
+    $trigger = 'manual';
+    if (!empty($data['trigger_source'])) {
+        $trigger = $data['trigger_source'];
+    } elseif (!empty($data['pir'])) {
+        $trigger = 'pir';
+    } elseif ($state === 1) {
+        $trigger = 'schedule';
+    }
+
+    $stmt = $conn->prepare("
+        INSERT INTO power_sessions
+            (classroom_id, session_date, start_time, trigger_source)
+        VALUES (?, CURDATE(), NOW(), ?)
+    ");
+    $stmt->bind_param('is', $cid, $trigger);
+    $stmt->execute();
+    $stmt->close();
+
+} elseif ($isOff && $openSession) {
+    $sid       = $openSession['id'];
+    $startTime = $openSession['start_time'];
+
+    $stmt = $conn->prepare("
+        SELECT
+            ROUND(AVG(voltage), 2)          AS avg_voltage,
+            ROUND(AVG(current), 4)          AS avg_current,
+            ROUND(MAX(power), 2)            AS peak_power,
+            ROUND(MAX(energy) - MIN(energy), 4) AS total_energy_wh
+        FROM pzem_readings
+        WHERE classroom_id = ?
+          AND recorded_at >= ?
+    ");
+    $stmt->bind_param('is', $cid, $startTime);
+    $stmt->execute();
+    $agg = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $avgV    = (float)($agg['avg_voltage']    ?? 0);
+    $avgA    = (float)($agg['avg_current']    ?? 0);
+    $peakW   = (float)($agg['peak_power']     ?? 0);
+    $totalWh = (float)($agg['total_energy_wh'] ?? 0);
+
+    $stmt = $conn->prepare("
+        UPDATE power_sessions
+        SET
+            end_time        = NOW(),
+            duration_mins   = ROUND(TIMESTAMPDIFF(SECOND, start_time, NOW()) / 60),
+            avg_voltage     = ?,
+            avg_current     = ?,
+            peak_power      = ?,
+            total_energy_wh = ?
+        WHERE id = ?
+    ");
+    $stmt->bind_param('ddddi', $avgV, $avgA, $peakW, $totalWh, $sid);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// - Anomaly detection: dropout & spike -----------
 $r = $conn->query("SELECT room_name FROM classrooms WHERE id = $cid");
 $room_name = $r && ($row = $r->fetch_assoc()) ? $row['room_name'] : '';
 

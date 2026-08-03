@@ -218,6 +218,12 @@ addColIfMissing($conn, 'classrooms', 'pzem_voltage', 'float DEFAULT NULL');
 addColIfMissing($conn, 'classrooms', 'pzem_current', 'float DEFAULT NULL');
 addColIfMissing($conn, 'classrooms', 'pzem_power',   'float DEFAULT NULL');
 addColIfMissing($conn, 'classrooms', 'pzem_energy',  'float DEFAULT NULL');
+// is_prototype marks the rooms that have a physical ESP32+PZEM device attached.
+// Missing before, this broke admin-overview / admin-analytics queries and made
+// live-pzem.php + analytics.php return "No Device" for every room.
+addColIfMissing($conn, 'classrooms', 'is_prototype', "TINYINT(1) DEFAULT 0");
+$conn->query("UPDATE classrooms SET is_prototype = 1 WHERE room_name = 'SEL 1'");
+$conn->query("UPDATE classrooms SET is_prototype = 1 WHERE pzem_voltage IS NOT NULL AND is_prototype = 0");
 
 
 //Early adds

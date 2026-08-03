@@ -488,6 +488,7 @@ CREATE TABLE `classrooms` (
   `row1_status` enum('on','off') DEFAULT 'off',
   `row2_status` enum('on','off') DEFAULT 'off',
   `row3_status` enum('on','off') DEFAULT 'off',
+  `is_prototype` tinyint(1) DEFAULT 0,
   `pzem_voltage` float DEFAULT NULL,
   `pzem_current` float DEFAULT NULL,
   `pzem_power` float DEFAULT NULL,
@@ -500,9 +501,9 @@ CREATE TABLE `classrooms` (
 -- Dumping data for table `classrooms`
 --
 
-INSERT INTO `classrooms` (`id`, `room_name`, `room_size`, `description`, `created_at`, `light_status`, `pir_occupied`, `pir_since`, `row1_status`, `row2_status`, `row3_status`, `pzem_voltage`, `pzem_current`, `pzem_power`, `pzem_energy`, `updated_at`, `schedule_dirty`) VALUES
-(3, 'SEL 1', 'medium', 'Lecture', '2026-05-20 04:25:45', 'off', 1, '2026-06-22 23:43:39', 'off', 'off', 'off', 221.9, 0, 0, 0.044, '2026-06-29 13:35:26', 1),
-(9, 'SEL 2', 'large', 'Laboratories', '2026-05-30 22:24:29', 'on', 0, NULL, 'on', 'on', 'off', NULL, NULL, NULL, NULL, '2026-06-29 14:14:43', 1);
+INSERT INTO `classrooms` (`id`, `room_name`, `room_size`, `description`, `created_at`, `light_status`, `pir_occupied`, `pir_since`, `row1_status`, `row2_status`, `row3_status`, `is_prototype`, `pzem_voltage`, `pzem_current`, `pzem_power`, `pzem_energy`, `updated_at`, `schedule_dirty`) VALUES
+(3, 'SEL 1', 'medium', 'Lecture', '2026-05-20 04:25:45', 'off', 1, '2026-06-22 23:43:39', 'off', 'off', 'off', 1, 221.9, 0, 0, 0.044, '2026-06-29 13:35:26', 1),
+(9, 'SEL 2', 'large', 'Laboratories', '2026-05-30 22:24:29', 'on', 0, NULL, 'on', 'on', 'off', 0, NULL, NULL, NULL, NULL, '2026-06-29 14:14:43', 1);
 
 -- --------------------------------------------------------
 

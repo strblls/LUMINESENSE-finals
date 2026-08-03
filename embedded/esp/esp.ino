@@ -16,15 +16,20 @@
 #include <WiFiManager.h>
 #include <time.h>
 
+// ── Server base ────────────────────────────────────────────
+// Change SERVER_BASE to test against a local XAMPP server, e.g.
+//   "http://192.168.1.10/LUMINESENSE-finals"
+#define SERVER_BASE "https://luminesense-bet.site"
+
 // ── Server URLs ────────────────────────────────────────────
-const char* TOGGLE_URL       = "https://luminesense-bet.site/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* SCHEDULE_URL     = "https://luminesense-bet.site/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* PZEM_POST_URL    = "https://luminesense-bet.site/api/pzem_push.php";
-const char* UPDATE_ROWS_URL  = "https://luminesense-bet.site/api/esp32-update-rows.php";
-const char* SCHEDULE_FLAG_URL= "https://luminesense-bet.site/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* CONFIG_URL      = "https://luminesense-bet.site/api/esp32-config.php?token=LS_ESP32_TOKEN_2025";
-const char* PIR_LOG_URL     = "https://luminesense-bet.site/api/pir-log.php";
-const char* SESSION_URL     = "https://luminesense-bet.site/api/post_session.php";
+const char* TOGGLE_URL       = SERVER_BASE "/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* SCHEDULE_URL     = SERVER_BASE "/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* PZEM_POST_URL    = SERVER_BASE "/api/pzem_push.php";
+const char* UPDATE_ROWS_URL  = SERVER_BASE "/api/esp32-update-rows.php";
+const char* SCHEDULE_FLAG_URL= SERVER_BASE "/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* CONFIG_URL      = SERVER_BASE "/api/esp32-config.php?token=LS_ESP32_TOKEN_2025";
+const char* PIR_LOG_URL     = SERVER_BASE "/api/pir-log.php";
+const char* SESSION_URL     = SERVER_BASE "/api/post_session.php";
 
 // ── Pin Definitions ────────────────────────────────────────
 #define ROW1_PIN 25
