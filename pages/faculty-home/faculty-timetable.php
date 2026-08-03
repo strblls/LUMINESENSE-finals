@@ -261,7 +261,7 @@ $active_schedule = ($r && $r->num_rows > 0) ? $r->fetch_assoc() : null;
 $active_schedule_end = $active_schedule ? ($active_schedule['extended_until'] ?? $active_schedule['end_time']) : '';
 if ($active_schedule) {
     $end_display = $active_schedule['extended_until'] ?? $active_schedule['end_time'];
-    $current_sched = $active_schedule['room_name'] . ' Â· '
+    $current_sched = $active_schedule['room_name'] . ' - '
         . ($active_schedule['subject_name'] ?? 'Class')
         . ' (' . date('g:i A', strtotime($active_schedule['start_time']))
         . ' - ' . date('g:i A', strtotime($end_display)) . ')';

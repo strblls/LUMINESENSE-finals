@@ -85,7 +85,7 @@ if ($active) {
     $active_schedule_end = $active['end_time'];
     $active_schedule_room = $active['room_name'] ?? '';
     $subj_label = ($active['subject_name'] ?? '') ?: 'Class';
-    $current_sched = $active['room_name'] . ' Â· ' . $subj_label
+    $current_sched = $active['room_name'] . ' - ' . $subj_label
         . ' (' . date('g:i A', strtotime($active['start_time']))
         . ' - ' . date('g:i A', strtotime($active['end_time'])) . ')';
 }

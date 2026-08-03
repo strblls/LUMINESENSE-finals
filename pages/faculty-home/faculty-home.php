@@ -210,7 +210,7 @@ $lighting_blocked = $lighting_reason !== null;
                                     <div id="stackQueueWrap" class="stack-queue-wrap w-100" style="display:none;">
                                         <div class="d-flex align-items-center justify-content-between w-100 mb-1">
                                             <span class="text-muted" style="font-size:0.78rem;">Command Queue:</span>
-                                            <span class="stack-queue-count" id="stackQueueCount">0/5</span>
+                                            <span class="stack-queue-count" id="stackQueueCount">0/4</span>
                                         </div>
                                         <div id="pendingStackQueue" class="stack-queue w-100"></div>
                                         <span class="text-muted" style="font-size:0.7rem;">Hold <strong>👍 Thumbs Up</strong> to confirm all queued commands, or <strong>✊ Fist</strong> to clear.</span>

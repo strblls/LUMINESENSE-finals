@@ -29,7 +29,7 @@ if (!isset($current_sched) || $current_sched === 'No class right now') {
             ");
             if ($r_tb && $row_tb = $r_tb->fetch_assoc()) {
                 $end_display = $row_tb['display_end'] ?? $row_tb['end_time'];
-                $current_sched = $row_tb['room_name'] . ' Â· '
+                $current_sched = $row_tb['room_name'] . ' - '
                     . ($row_tb['subject_name'] ?? 'Class')
                     . ' (' . date('g:i A', strtotime($row_tb['start_time']))
                     . ' - ' . date('g:i A', strtotime($end_display)) . ')';
@@ -104,7 +104,7 @@ if (isset($conn) && $conn instanceof mysqli) {
         <p class="schedule-ended-text">Enter your PIN to continue using controls.</p>
         <div class="mt-3 d-flex flex-column align-items-center gap-2">
             <input type="password" id="timeoutPinInput" maxlength="4" pattern="\d*" inputmode="numeric"
-                   class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;" placeholder="****">
+                   class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;">
             <div><span id="timeoutPinError" class="text-danger small"></span></div>
             <button class="light" id="timeoutPinSubmit">Unlock</button>
         </div>

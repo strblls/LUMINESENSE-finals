@@ -98,7 +98,7 @@ $stmt->close();
                             <?php else: foreach ($occupancy_logs as $log): ?>
                                 <div>
                                     <h5><?= ucfirst($log['event_type']) ?> - <?= htmlspecialchars($log['room_name']) ?></h5>
-                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> Â· <?= date('M j', strtotime($log['event_time'])) ?></p>
+                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> - <?= date('M j', strtotime($log['event_time'])) ?></p>
                                 </div>
                                 <hr>
                             <?php endforeach; endif; ?>
@@ -122,7 +122,7 @@ $stmt->close();
                             <?php else: foreach ($lighting_logs as $log): ?>
                                 <div>
                                     <h5><?= ucfirst($log['event_type']) ?> - <?= htmlspecialchars($log['room_name']) ?></h5>
-                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> Â· <?= date('M j', strtotime($log['event_time'])) ?></p>
+                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> - <?= date('M j', strtotime($log['event_time'])) ?></p>
                                 </div>
                                 <hr>
                             <?php endforeach; endif; ?>
@@ -146,7 +146,7 @@ $stmt->close();
                             <?php else: foreach ($gesture_logs as $log): ?>
                                 <div>
                                     <h5><?= ucfirst($log['event_type']) ?> - <?= htmlspecialchars($log['room_name']) ?></h5>
-                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> Â· <?= date('M j', strtotime($log['event_time'])) ?></p>
+                                    <p class="light mb-0"><?= date('g:i A', strtotime($log['event_time'])) ?> - <?= date('M j', strtotime($log['event_time'])) ?></p>
                                 </div>
                                 <hr>
                             <?php endforeach; endif; ?>

@@ -72,7 +72,7 @@ const GESTURE_ACCURACY_THRESHOLD = 70; // was 80
 const GESTURE_DECAY_THRESHOLD = 60;    // was 70
 const DROPOUT_TOLERANCE_MS = 350;       // Allow 350ms of flicker/dropout before resetting timer
 const ROW_GESTURE = { Pointing_Up: 1, Victory: 2, ILoveYou: 3 };
-const MAX_STACK_SIZE = 5;               // Max queued commands before confirmation
+const MAX_STACK_SIZE = 4;               // Max queued commands before confirmation
 const HAND_STALE_MS = 1500;             // Forget a hand after this long without detection
 
 // Per-hand state machines so both hands can queue commands independently.

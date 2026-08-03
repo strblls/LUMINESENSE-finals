@@ -95,7 +95,7 @@ function sendApprovalEmail(string $to, string $name): bool
                     <p style='font-size:13px;color:#888;'>If you did not create a LumineSense account, please ignore this email.</p>
                 </div>
                 <div style='background:#f9f9f9;text-align:center;padding:16px;font-size:12px;color:#aaa;border-top:1px solid #eee;'>
-                    Â© 2025 LumineSense Â· University of Negros Occidental - Recoletos
+                    Â© 2025 LumineSense - University of Negros Occidental - Recoletos
                 </div>
             </div>
         ";
@@ -204,7 +204,7 @@ function buildEmailBody(string $name, string $otp_code): string
          If you did not create a LumineSense account, you can safely ignore this email.</p>
     </div>
     <div class="footer">
-      Â© 2025 LumineSense Â· University of Negros Occidental - Recoletos
+      Â© 2025 LumineSense - University of Negros Occidental - Recoletos
     </div>
   </div>
 </body>
