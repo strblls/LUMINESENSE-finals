@@ -844,8 +844,8 @@ function renderSavings(s, range) {
     }
     if (descEl) {
         descEl.textContent = saved
-            ? 'Used ' + abs.toFixed(1) + '% less energy than the previous equal-length period.'
-            : 'Used ' + abs.toFixed(1) + '% more energy than the previous equal-length period.';
+            ? 'Used ' + Math.abs(pct).toFixed(1) + '% less energy than the previous equal-length period.'
+            : 'Used ' + Math.abs(pct).toFixed(1) + '% more energy than the previous equal-length period.';
     }
     fillSavingsModal(s, range);
 }

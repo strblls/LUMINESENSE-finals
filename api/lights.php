@@ -31,15 +31,19 @@ if (!$cid || !in_array($state, ['on', 'off'])) {
 // if state='on'; when turning a row off we only set 'off' if ALL rows are off
 // (we track this via a separate row_states column if needed - for now we simply
 // set light_status to match the state of the 'all' action, or to 'on' for any row-on).
+// A manual toggle from the UI is an explicit human command — mark it as an
+// override so the cron / PIR auto-off logic does NOT revert it.
+$override_mark = ", light_override = 1";
+
 if ($row === 'all') {
-    $stmt = $conn->prepare("UPDATE classrooms SET light_status = ?, row1_status = ?, row2_status = ?, row3_status = ? WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE classrooms SET light_status = ?, row1_status = ?, row2_status = ?, row3_status = ?{$override_mark} WHERE id = ?");
     $stmt->bind_param('ssssi', $state, $state, $state, $state, $cid);
     $stmt->execute();
     $stmt->close();
 } else {
     // Dynamically update the specific row status column
     $col = "row" . $row . "_status";
-    $stmt = $conn->prepare("UPDATE classrooms SET $col = ? WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE classrooms SET $col = ?, light_override = 1 WHERE id = ?");
     $stmt->bind_param('si', $state, $cid);
     $stmt->execute();
     $stmt->close();

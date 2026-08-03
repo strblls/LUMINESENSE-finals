@@ -210,6 +210,9 @@ addColIfMissing($conn, 'classrooms', 'row3_status', "ENUM('on','off') DEFAULT 'o
 addColIfMissing($conn, 'classrooms', 'pir_occupied', 'TINYINT(1) DEFAULT 0');
 // pir_occupied_since – when occupancy started (drives System Uptime)
 addColIfMissing($conn, 'classrooms', 'pir_since', 'TIMESTAMP NULL DEFAULT NULL');
+// light_override – 1 when a human manually toggled the lights via the UI
+// (faculty/admin/gesture). Auto-off (cron, PIR inactivity) must NOT revert it.
+addColIfMissing($conn, 'classrooms', 'light_override', 'TINYINT(1) DEFAULT 0');
 // extended_until on schedules (used by active-schedule query in faculty-home.php)
 addColIfMissing($conn, 'schedules', 'extended_until', 'TIME DEFAULT NULL');
 addColIfMissing($conn, 'schedules', 'created_by', 'INT DEFAULT NULL');

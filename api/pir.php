@@ -64,7 +64,8 @@ if ($occupied) {
                 row2_status    = 'on',
                 row3_status    = 'on',
                 pir_occupied   = 1,
-                pir_since      = CASE WHEN pir_occupied = 0 THEN NOW() ELSE pir_since END
+                pir_since      = CASE WHEN pir_occupied = 0 THEN NOW() ELSE pir_since END,
+                light_override = 0
             WHERE id = $cid
         ");
         // Log the event
@@ -97,7 +98,31 @@ if ($occupied) {
         echo json_encode(['success' => true, 'action' => 'occupied_no_schedule']); exit;
     }
 } else {
-    // - Room cleared â†’ end schedule ---------------------
+    // - Room cleared → end schedule ---------------------
+    // A manual UI override (faculty/admin/gesture turned lights on) must not
+    // be reverted by PIR inactivity - only auto-managed lights get auto-off.
+    $override = 0;
+    $stmt = $conn->prepare("SELECT light_override FROM classrooms WHERE id = ? LIMIT 1");
+    $stmt->bind_param('i', $cid);
+    $stmt->execute();
+    $or = $stmt->get_result()->fetch_assoc();
+    $override = $or ? (int)$or['light_override'] : 0;
+    $stmt->close();
+
+    if ($override) {
+        $conn->query("
+            UPDATE classrooms
+            SET pir_occupied = 0,
+                pir_since    = NULL
+            WHERE id = $cid
+        ");
+        $stmt = $conn->prepare("INSERT INTO pir_logs (classroom_id, state) VALUES (?, 0)");
+        $stmt->bind_param('i', $cid);
+        $stmt->execute();
+        $stmt->close();
+        echo json_encode(['success' => true, 'action' => 'lights_kept_on', 'override' => true]); exit;
+    }
+
     $conn->query("
         UPDATE schedules
         SET extended_until = CURTIME()

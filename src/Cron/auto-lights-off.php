@@ -17,6 +17,7 @@ $result = $conn->query("
     SELECT c.id, c.room_name
     FROM classrooms c
     WHERE c.light_status = 'on'
+      AND c.light_override = 0
       AND c.id NOT IN (
           SELECT DISTINCT classroom_id FROM schedules
           WHERE day_of_week = '$now_day'

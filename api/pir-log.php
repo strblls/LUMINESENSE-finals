@@ -96,7 +96,8 @@ if ($state) {
                 row2_status    = 'on',
                 row3_status    = 'on',
                 pir_occupied   = 1,
-                pir_since      = CASE WHEN pir_occupied = 0 THEN NOW() ELSE pir_since END
+                pir_since      = CASE WHEN pir_occupied = 0 THEN NOW() ELSE pir_since END,
+                light_override = 0
             WHERE id = $cid
         ");
         $stmt = $conn->prepare("
@@ -138,6 +139,27 @@ if ($state) {
     // - Motion stopped for 5 min â†’ end schedule, clear room -
     $now_time = date('H:i:s');
     $now_day  = date('l');
+
+    // A manual UI override (faculty/admin/gesture turned lights on) must not
+    // be reverted by PIR inactivity - only auto-managed lights get auto-off.
+    $override = 0;
+    $stmt = $conn->prepare("SELECT light_override FROM classrooms WHERE id = ? LIMIT 1");
+    $stmt->bind_param('i', $cid);
+    $stmt->execute();
+    $or = $stmt->get_result()->fetch_assoc();
+    $override = $or ? (int)$or['light_override'] : 0;
+    $stmt->close();
+
+    if ($override) {
+        // Keep the lights and schedule as-is; only clear occupancy tracking.
+        $conn->query("
+            UPDATE classrooms
+            SET pir_occupied = 0,
+                pir_since    = NULL
+            WHERE id = $cid
+        ");
+        echo json_encode(['success' => true, 'classroom_id' => $cid, 'state' => $state, 'skipped' => 'manual_override']); exit;
+    }
 
     // End the current active schedule (same mechanism as "End Early" button)
     $conn->query("
