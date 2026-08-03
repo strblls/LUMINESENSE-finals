@@ -885,7 +885,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Panel hover
+    // Panel hover + click expand
     const panels = ['panelGuide', 'panelStatus', 'panelPeriod', 'panelMetric'];
     const timers = {};
     panels.forEach(function (id) {
@@ -898,19 +898,28 @@ document.addEventListener('DOMContentLoaded', function () {
             if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
             panel.classList.add('show');
             if (heading) heading.style.zIndex = '1050';
+            btn.setAttribute('aria-expanded', 'true');
+        }
+        function closeNow() {
+            if (timers[id]) { clearTimeout(timers[id]); timers[id] = null; }
+            panel.classList.remove('show');
+            if (heading) heading.style.zIndex = '';
+            btn.setAttribute('aria-expanded', 'false');
         }
         function close() {
             if (timers[id]) clearTimeout(timers[id]);
-            timers[id] = setTimeout(function () {
-                panel.classList.remove('show');
-                if (heading) heading.style.zIndex = '';
-            }, 150);
+            timers[id] = setTimeout(closeNow, 150);
         }
         btn.addEventListener('mouseenter', open);
         btn.addEventListener('focus', open);
+        btn.addEventListener('mouseleave', close);
+        btn.addEventListener('click', function () {
+            if (panel.classList.contains('show')) closeNow();
+            else open();
+        });
         panel.addEventListener('mouseenter', open);
         panel.addEventListener('mouseleave', close);
-        btn.addEventListener('mouseleave', close);
+        panel.addEventListener('click', function () { closeNow(); });
     });
 
     // Modal cleanup

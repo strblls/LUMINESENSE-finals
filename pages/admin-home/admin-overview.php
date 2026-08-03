@@ -496,7 +496,7 @@ while ($row = $res->fetch_assoc()) {
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="timetable-btn mx-2 px-2" data-panel="panelMetric" title="Filter by Metric">
+                        <button type="button" class="timetable-btn" data-panel="panelMetric" title="Filter by Metric">
                             <i class="bi bi-graph-up"></i><span class="timetable-btn-title bold">Metric</span>
                         </button>
                         <div id="panelMetric" class="timetable-panel panel-from-right p-3 m-3">
@@ -525,7 +525,7 @@ while ($row = $res->fetch_assoc()) {
                                 <h3 class="chart-card-title bold" id="overviewLineTitle">Line Graph</h3>
                                 <div class="chart-header-actions">
                                     <span class="summary-label" id="overviewLineMetricLabel">All Metrics</span>
-                                    <button type="button" class="light w-auto me-2" onclick="window.location.href='admin-analytics.php'" title="Open full Analytics">
+                                    <button type="button" class="light w-auto mx-2 px-2" onclick="window.location.href='admin-analytics.php'" title="Open full Analytics">
                                         <i class="bi bi-graph-up-arrow"></i>
                                     </button>
                                 </div>
