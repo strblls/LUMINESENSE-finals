@@ -496,7 +496,7 @@ while ($row = $res->fetch_assoc()) {
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="timetable-btn" data-panel="panelMetric" title="Filter by Metric">
+                        <button type="button" class="timetable-btn mx-2 px-2" data-panel="panelMetric" title="Filter by Metric">
                             <i class="bi bi-graph-up"></i><span class="timetable-btn-title bold">Metric</span>
                         </button>
                         <div id="panelMetric" class="timetable-panel panel-from-right p-3 m-3">
