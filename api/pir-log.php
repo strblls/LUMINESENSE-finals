@@ -19,6 +19,10 @@
 header('Content-Type: application/json');
 
 // - Token check -----------------------
+// Load .env FIRST so DEVICE_TOKEN is populated.
+// (config.php reads getenv(); loadEnv() runs inside db_connect.php.)
+require_once __DIR__ . "/../src/Config/load-env.php";
+loadEnv();
 require_once __DIR__ . "/../src/Config/config.php";
 $expected = DEVICE_TOKEN;
 $received = $_SERVER['HTTP_X_DEVICE_TOKEN'] ?? 'MISSING';
