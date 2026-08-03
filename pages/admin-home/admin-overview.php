@@ -512,7 +512,6 @@ while ($row = $res->fetch_assoc()) {
                                 </div>
                             </div>
                         </div>
-                        <span class="static-note ms-2 live"><i class="bi bi-database-check"></i> Live data</span>
                     </div>
                 </div>
 
