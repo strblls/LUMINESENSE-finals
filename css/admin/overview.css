@@ -57,8 +57,21 @@
 }
 
 .room-manage-header .timetable-btn:hover {
-    background: var(--secondary-color-1);
-    color: var(--primary-color);
+    width: auto;
+    padding-inline-start: 15px;
+    padding-inline-end: 15px;
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+    transform: scale(1.12);
+
+    i {
+        font-size: 22px;
+    }
+}
+
+.room-manage-header .timetable-btn:hover .timetable-btn-title {
+    max-width: 100px;
+    opacity: 1;
 }
 
 @media (max-width: 900px) {
