@@ -464,7 +464,7 @@ function renderCoverageSubjectsEmpty() {
 }
 
 function renderCoverageSubjects(saId) {
-    coverageSelectedSaId = saId;
+    coverageSelectedSaId = Number(saId);
     const sa = coverageSaById(saId);
     const availBox = document.getElementById('coverageAvailableSubjects');
     const assignedBox = document.getElementById('coverageAssignedSubjects');
@@ -491,7 +491,7 @@ function renderCoverageSubjects(saId) {
                 '<button type="button" class="p-0 ms-1 d-inline-flex flex-shrink-0 align-items-center text-white border-0 bg-transparent" title="Add Subject"><i class="bi bi-plus-circle"></i></button>';
             span.addEventListener('click', function() {
                 coverageSubjIds.add(s.id);
-                coverageSaIds.add(saId); // keep the parent area assigned too
+                coverageSaIds.add(Number(saId)); // keep the parent area assigned too
                 renderCoverageSubjects(saId);
                 renderCoverageAssignedSAs();
                 renderCoverageAvailableSAs();
