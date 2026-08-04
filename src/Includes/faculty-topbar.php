@@ -104,7 +104,8 @@ if (isset($conn) && $conn instanceof mysqli) {
         <p class="schedule-ended-text">Enter your PIN to continue using controls.</p>
         <div class="mt-3 d-flex flex-column align-items-center gap-2">
             <input type="password" id="timeoutPinInput" maxlength="4" pattern="\d*" inputmode="numeric"
-                   class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;">
+                   class="form-control text-center" style="width:140px;font-size:1.5rem;letter-spacing:4px;"
+                   autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly'); this.value='';">
             <div><span id="timeoutPinError" class="text-danger small"></span></div>
             <button class="light" id="timeoutPinSubmit">Unlock</button>
         </div>

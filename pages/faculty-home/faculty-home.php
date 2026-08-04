@@ -573,6 +573,64 @@ $lighting_blocked = $lighting_reason !== null;
     </script>
     <script src="../../js/faculty/faculty-home.js?v=<?= time() ?>"></script>
 
+    <!-- Countdown timer for Time Left widget -->
+    <script>
+    (function() {
+        var display = document.getElementById('timerDisplay');
+        if (!display) return;
+        var _scheduleEnd = display.dataset.end || null;
+
+        function pad(n) { return String(n).padStart(2, '0'); }
+
+        function setTimerColor(diff) {
+            if (diff <= 900) { display.style.color = '#dc3545'; }
+            else if (diff <= 1800) { display.style.color = '#ff8c00'; }
+            else { display.style.color = 'var(--secondary-color-2)'; }
+        }
+
+        window._updateScheduleEnd = function(newEnd) {
+            _scheduleEnd = newEnd;
+            if (display) display.dataset.end = newEnd;
+            var schedData = document.getElementById('scheduleEndData');
+            if (schedData) schedData.dataset.end = newEnd;
+            tick();
+        };
+
+        function tick() {
+            if (!_scheduleEnd) {
+                display.textContent = '00:00:00';
+                display.style.color = '#6c757d';
+                return;
+            }
+            var parts = _scheduleEnd.split(':').map(Number);
+            var end = new Date();
+            end.setHours(parts[0], parts[1], parts[2], 0);
+            var diff = Math.max(0, Math.floor((end - Date.now()) / 1000));
+            display.textContent = pad(Math.floor(diff / 3600)) + ':' + pad(Math.floor((diff % 3600) / 60)) + ':' + pad(diff % 60);
+            setTimerColor(diff);
+        }
+        tick();
+        setInterval(tick, 1000);
+
+        var pollCid = <?= $active_schedule ? (int)$active_schedule['classroom_id'] : 0 ?>;
+        setInterval(function() {
+            var cid = pollCid;
+            if (!cid) return;
+            fetch('../../api/faculty-status.php?classroom_id=' + cid)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.schedule_active && data.schedule_end) {
+                        var current = _scheduleEnd || '';
+                        if (data.schedule_end !== current) {
+                            window._updateScheduleEnd(data.schedule_end);
+                        }
+                    }
+                })
+                .catch(function() {});
+        }, 15000);
+    })();
+    </script>
+
     <!-- Gesture detection script -->
     <script type="module" src="../../js/faculty/initialize-gesture.js?v=<?= time() ?>"></script>
 

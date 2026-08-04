@@ -101,7 +101,7 @@ void setup() {
 
     // WiFi Manager — all inside setup()!
     WiFiManager wm;
-    //wm.resetSettings(); // uncomment to forget saved WiFi
+    wm.resetSettings(); // uncomment to forget saved WiFi
     wm.setConfigPortalTimeout(180); 
     wm.setConnectTimeout(30);
 
