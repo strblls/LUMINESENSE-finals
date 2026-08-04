@@ -326,6 +326,27 @@ $lighting_blocked = $lighting_reason !== null;
                                     <span>Preparing gesture control...</span>
                                 </div>
                             </div>
+
+                            <!-- Camera warning modal (shown when the webcam cannot be started) -->
+                            <div class="notify-modal" id="cameraWarningModal">
+                                <div class="modal-box">
+                                    <div id="modal-header">
+                                        <h5><strong>!</strong> Camera Unavailable</h5>
+                                    </div>
+                                    <div id="modal-body">
+                                        <i class="bi bi-exclamation-triangle" id="cautionTriangle"></i>
+                                        <h5>Could not start camera.</h5>
+                                        <p class="small" style="max-width:360px;margin:0;">
+                                            Make sure that:<br>
+                                            1. You have allowed camera permission for this site.<br>
+                                            2. No other application is using your webcam.
+                                        </p>
+                                    </div>
+                                    <div id="modal-footer">
+                                        <button class="medium" type="button" onclick="hideCameraWarningModal()">OK</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

@@ -17,6 +17,7 @@ let stream = null;
 let active = false;
 let lastVideoTime = -1;
 let _landmarksFirstDrawn = false;
+let _startToken = 0;
 
 // ── Chroma Key & Enhancement toggles ──────────────────────────────────────────
 let chromaKeyEnabled = true;
@@ -711,6 +712,7 @@ async function predictLoop() {
 
 // ── Start / Stop controls ─────────────────────────────────────────────────────
 async function startWebcam() {
+    const token = ++_startToken;
     try {
         if (enableBtn) {
             enableBtn.disabled = true;
@@ -718,13 +720,20 @@ async function startWebcam() {
         }
 
         _landmarksFirstDrawn = false;
+        active = true; // Active from the start of preparation so the idle session timeout stays suspended while the model/camera load
         if (loadingOverlay) loadingOverlay.style.display = '';
 
         await initializeRecognizer();
+        if (token !== _startToken) return; // aborted mid-preparation
 
-        stream = await navigator.mediaDevices.getUserMedia({
+        const media = await navigator.mediaDevices.getUserMedia({
             video: { width: 640, height: 480, facingMode: "user" }
         });
+        if (token !== _startToken) {
+            media.getTracks().forEach(t => t.stop());
+            return;
+        }
+        stream = media;
 
         webcamVideo.srcObject = stream;
         webcamVideo.style.display = 'block';
@@ -748,14 +757,16 @@ async function startWebcam() {
         }
 
     } catch (e) {
+        if (token !== _startToken) return;
         console.error('startWebcam failed:', e);
         if (loadingOverlay) loadingOverlay.style.display = 'none';
-        alert('Could not start camera.\n\nMake sure that:\n1. You have allowed camera permission for this site.\n2. No other application is using your webcam.');
+        if (typeof window.showCameraWarningModal === 'function') window.showCameraWarningModal();
         resetState();
     }
 }
 
 function resetState() {
+    _startToken++; // cancel any in-flight startWebcam() so a reset actually aborts preparation
     active = false;
     if (loadingOverlay) loadingOverlay.style.display = 'none';
     if (stream) {
@@ -791,6 +802,14 @@ function resetState() {
 // Expose for external callers (session timeout, etc.)
 window.resetCameraState = resetState;
 window.isGestureCameraActive = function () { return active; };
+window.showCameraWarningModal = function () {
+    const m = document.getElementById('cameraWarningModal');
+    if (m) m.classList.add('active');
+};
+window.hideCameraWarningModal = function () {
+    const m = document.getElementById('cameraWarningModal');
+    if (m) m.classList.remove('active');
+};
 
 if (enableBtn) {
     enableBtn.addEventListener('click', startWebcam);
