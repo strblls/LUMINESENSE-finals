@@ -644,59 +644,61 @@ $current_sched = 'No class right now';
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body dept-grid">
+                <div class="modal-body">
                     <input type="hidden" id="editFacultyId" value="">
 
-                    <div>
-                        <!-- Current subject areas assigned to faculty -->
+                    <!-- Left / right pane navigation -->
+                    <div class="coverage-wizard-nav d-flex align-items-center justify-content-between mb-3">
+                        <button type="button" class="btn-icon btn-icon-edit coverage-nav-btn" id="tblCoverageNavPrev" title="Previous: Subject Areas" onclick="tblCoverageNav(-1)">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <div class="coverage-wizard-steps d-flex align-items-center justify-content-center gap-2">
+                            <span class="coverage-step active" data-step="0"><i class="bi bi-briefcase me-1"></i>Subject Areas</span>
+                            <i class="bi bi-arrow-right text-muted"></i>
+                            <span class="coverage-step" data-step="1"><i class="bi bi-book me-1"></i>Subjects</span>
+                        </div>
+                        <button type="button" class="btn-icon btn-icon-edit coverage-nav-btn" id="tblCoverageNavNext" title="Next: Subjects" onclick="tblCoverageNav(1)">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Pane 0: Subject Areas -->
+                    <div class="coverage-pane" id="tblCoveragePaneAreas">
                         <div class="dept-info-card mb-3">
                             <label class="form-label bold"><i class="bi bi-briefcase me-2"></i>Current Subject Area/s:</label>
-                            <ul class="list-group-horizontal" id="editFacultyMembers">
-                                <li class="list-group-item text-muted">No subject areas assigned yet.</li>
-                            </ul>
+                            <div id="tblCoverageAssignedSAs" class="d-flex flex-wrap gap-1"></div>
                         </div>
-                        <!-- Current subjects under selected subject area -->
-                        <div class="dept-info-card mb-3">
-                            <label class="form-label bold" style="font-size: 13px;"><i class="bi bi-book me-2"></i>Current Subjects:</label>
-                            <div id="editFacultySubjectsContainer" class="d-flex flex-wrap gap-1 mb-2">
-                                <p class="text-muted mb-0">Select a subject area to view its subjects.</p>
-                            </div>
+                        <div class="dept-info-card mb-0">
+                            <label class="form-label bold"><i class="bi bi-search me-1"></i>Search Subject Areas:</label>
+                            <input type="text" class="form-control mb-2" id="tblCoverageSaSearch" placeholder="Search available subject areas...">
+                            <label class="form-label bold" style="font-size:13px;">Available Subject Areas:</label>
+                            <div id="tblCoverageAvailableSAs" class="d-flex flex-wrap gap-1"></div>
                         </div>
                     </div>
 
-                    <div>
-                        <!-- Search and available subject areas -->
-                        <div class="mb-3">
-                            <label class="form-label bold"><i class="bi bi-search me-1"></i>Search Subject Areas:</label>
-                            <input type="text"
-                                class="form-control mb-2"
-                                id="facultySaSearch"
-                                placeholder="Search available subject areas...">
-                            <label class="form-label bold" style="font-size: 13px;">Available Subject Areas:</label>
-                            <div id="availableFacultySAsContainer" class="d-flex flex-wrap gap-1">
-                                <p class="text-muted small mb-0">No available subject areas.</p>
-                            </div>
+                    <!-- Pane 1: Subjects -->
+                    <div class="coverage-pane d-none" id="tblCoveragePaneSubjects">
+                        <div class="dept-info-card mb-3">
+                            <label class="form-label bold"><i class="bi bi-collection me-2"></i>Available Subject Areas:</label>
+                            <select class="form-select" id="tblCoverageSaSelect">
+                                <option value="">Select a subject area...</option>
+                            </select>
                         </div>
-
-                        <!-- Search and available subjects under selected subject area -->
-                        <div class="mb-3">
-                            <label class="form-label bold"><i class="bi bi-search me-1"></i>Search Subjects <span id="editFacultySelectedSubjectAreaName"></span></label>
-                            <input type="hidden" id="editFacultySelectedSAId" value="">
-                            <input type="text"
-                                class="form-control mb-2"
-                                id="facultySubjectSearch"
-                                placeholder="Select a subject area first"
-                                disabled>
-                            <label class="form-label bold" style="font-size: 13px;">Available Subjects:</label>
-                            <div id="availableFacultySubjectsContainer" class="d-flex flex-wrap gap-1">
-                                <p class="text-muted small mb-0">Select a subject area to view available subjects.</p>
-                            </div>
+                        <div class="dept-info-card mb-3">
+                            <label class="form-label bold"><i class="bi bi-search me-1"></i>Search Subjects:</label>
+                            <input type="text" class="form-control mb-2" id="tblCoverageSubjectSearch" placeholder="Select a subject area first" disabled>
+                            <label class="form-label bold" style="font-size:13px;">Available Subjects:</label>
+                            <div id="tblCoverageAvailableSubjects" class="d-flex flex-wrap gap-1"></div>
+                        </div>
+                        <div class="dept-info-card mb-0">
+                            <label class="form-label bold"><i class="bi bi-book me-2"></i>Currently Assigned Subjects:</label>
+                            <div id="tblCoverageAssignedSubjects" class="d-flex flex-wrap gap-1"></div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
                     <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="medium" onclick="showConfirmFacultyModal()">
+                    <button type="button" class="medium" onclick="tblShowConfirmFacultyModal()">
                         <i class="bi bi-check-lg me-1"></i>Save Changes
                     </button>
                 </div>

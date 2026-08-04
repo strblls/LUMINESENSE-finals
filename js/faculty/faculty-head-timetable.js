@@ -27,6 +27,232 @@
         let editFacultyDeptId = null;
         let editFacultyAssignedSubjIds = []; // faculty's assigned subject IDs (from junction_faculty_subject)
 
+        // ── Two-pane coverage wizard state (Faculty Edit Assignment) ──
+        let tblDeptSubjectAreas = [];
+        let tblInitialSaIds = [];
+        let tblInitialSubjIds = [];
+        let tblDeptId = 0;
+        let tblPane = 0;
+        let tblSelectedSaId = '';
+        let tblSaIds = new Set();
+        let tblSubjIds = new Set();
+
+        function tblCoverageSaById(id) {
+            return tblDeptSubjectAreas.find(function(sa) { return sa.id == id; }) || null;
+        }
+
+        function tblCoverageGotoPane(index) {
+            tblPane = index === 1 ? 1 : 0;
+            document.getElementById('tblCoveragePaneAreas').classList.toggle('d-none', tblPane !== 0);
+            document.getElementById('tblCoveragePaneSubjects').classList.toggle('d-none', tblPane !== 1);
+            document.querySelectorAll('#subjectAreaModal .coverage-step').forEach(function(el) {
+                el.classList.toggle('active', parseInt(el.dataset.step) === tblPane);
+            });
+            document.getElementById('tblCoverageNavPrev').disabled = tblPane === 0;
+            document.getElementById('tblCoverageNavNext').disabled = tblPane === 1;
+        }
+
+        function tblCoverageNav(delta) {
+            tblCoverageGotoPane(tblPane + (delta > 0 ? 1 : -1));
+        }
+
+        function tblRenderAssignedSAs() {
+            const box = document.getElementById('tblCoverageAssignedSAs');
+            if (!box) return;
+            box.innerHTML = '';
+            const ids = Array.from(tblSaIds);
+            if (ids.length === 0) {
+                box.innerHTML = '<p class="text-muted small mb-0">No subject areas assigned yet.</p>';
+                return;
+            }
+            ids.forEach(function(id) {
+                const sa = tblCoverageSaById(id);
+                if (!sa) return;
+                const span = document.createElement('span');
+                span.className = 'dept-subject-area bold dept-emphases align-items-center justify-content-center px-3';
+                span.dataset.saId = id;
+                span.title = 'Click to view its subjects';
+                span.innerHTML = escapeHtml(sa.name) +
+                    '<button type="button" class="btn-close btn-close-white" title="Remove Subject Area"></button>';
+                span.addEventListener('click', function(e) {
+                    if (e.target.closest('.btn-close')) {
+                        tblSaIds.delete(Number(id));
+                        (sa.subjects || []).forEach(function(s) { tblSubjIds.delete(s.id); });
+                        if (tblSelectedSaId == id) tblSelectedSaId = '';
+                        tblRenderAssignedSAs();
+                        tblRenderAvailableSAs();
+                        tblRenderSaSelect();
+                    } else {
+                        tblSelectedSaId = id;
+                        tblRenderSaSelect();
+                        tblCoverageGotoPane(1);
+                    }
+                });
+                box.appendChild(span);
+            });
+        }
+
+        function tblRenderAvailableSAs() {
+            const box = document.getElementById('tblCoverageAvailableSAs');
+            if (!box) return;
+            box.innerHTML = '';
+            const available = tblDeptSubjectAreas.filter(function(sa) { return !tblSaIds.has(sa.id); });
+            if (available.length === 0) {
+                box.innerHTML = '<p class="text-muted small mb-0">All subject areas are already assigned.</p>';
+                return;
+            }
+            available.forEach(function(sa) {
+                const span = document.createElement('span');
+                span.className = 'dept-subject-area bold dept-emphases align-items-center justify-content-center px-3 available-sa-item';
+                span.dataset.saId = sa.id;
+                span.title = 'Click to add this subject area';
+                span.innerHTML = escapeHtml(sa.name) +
+                    '<button type="button" class="p-0 ms-1 d-inline-flex flex-shrink-0 align-items-center text-white border-0 bg-transparent" title="Add Subject Area"><i class="bi bi-plus-circle"></i></button>';
+                span.addEventListener('click', function() {
+                    tblSaIds.add(sa.id);
+                    tblRenderAssignedSAs();
+                    tblRenderAvailableSAs();
+                    tblRenderSaSelect();
+                });
+                box.appendChild(span);
+            });
+            tblApplySaSearch();
+        }
+
+        function tblRenderSaSelect() {
+            const sel = document.getElementById('tblCoverageSaSelect');
+            if (!sel) return;
+            const keep = tblSelectedSaId;
+            sel.innerHTML = '<option value="">Select a subject area...</option>';
+            tblDeptSubjectAreas.forEach(function(sa) {
+                const opt = document.createElement('option');
+                opt.value = sa.id;
+                opt.textContent = sa.name;
+                sel.appendChild(opt);
+            });
+            if (keep) {
+                sel.value = keep;
+                tblRenderSubjects(keep);
+            } else {
+                sel.value = '';
+                tblRenderSubjectsEmpty();
+            }
+        }
+
+        function tblRenderSubjectsEmpty() {
+            document.getElementById('tblCoverageAvailableSubjects').innerHTML = '<p class="text-muted small mb-0">Select a subject area to view available subjects.</p>';
+            document.getElementById('tblCoverageAssignedSubjects').innerHTML = '<p class="text-muted small mb-0">Select a subject area to view its subjects.</p>';
+            const search = document.getElementById('tblCoverageSubjectSearch');
+            if (search) { search.value = ''; search.disabled = true; search.placeholder = 'Select a subject area first'; }
+        }
+
+        function tblRenderSubjects(saId) {
+            tblSelectedSaId = Number(saId);
+            const sa = tblCoverageSaById(saId);
+            const availBox = document.getElementById('tblCoverageAvailableSubjects');
+            const assignedBox = document.getElementById('tblCoverageAssignedSubjects');
+            const search = document.getElementById('tblCoverageSubjectSearch');
+            if (!sa || !availBox || !assignedBox) { tblRenderSubjectsEmpty(); return; }
+
+            search.disabled = false;
+            search.placeholder = 'Search available subjects for ' + sa.name;
+
+            const subjects = sa.subjects || [];
+            const available = subjects.filter(function(s) { return !tblSubjIds.has(s.id); });
+            const assigned = subjects.filter(function(s) { return tblSubjIds.has(s.id); });
+
+            availBox.innerHTML = '';
+            if (available.length === 0) {
+                availBox.innerHTML = '<p class="text-muted small mb-0">All subjects under this area are already assigned.</p>';
+            } else {
+                available.forEach(function(s) {
+                    const span = document.createElement('span');
+                    span.className = 'subarea-subject bold dept-emphases align-items-center justify-content-center px-3 available-subject-item';
+                    span.dataset.subjectId = s.id;
+                    span.title = 'Click to add this subject';
+                    span.innerHTML = escapeHtml(s.name) +
+                        '<button type="button" class="p-0 ms-1 d-inline-flex flex-shrink-0 align-items-center text-white border-0 bg-transparent" title="Add Subject"><i class="bi bi-plus-circle"></i></button>';
+                    span.addEventListener('click', function() {
+                        tblSubjIds.add(s.id);
+                        tblSaIds.add(Number(saId));
+                        tblRenderSubjects(saId);
+                        tblRenderAssignedSAs();
+                        tblRenderAvailableSAs();
+                        tblRenderSaSelect();
+                    });
+                    availBox.appendChild(span);
+                });
+            }
+
+            assignedBox.innerHTML = '';
+            if (assigned.length === 0) {
+                assignedBox.innerHTML = '<p class="text-muted small mb-0">No subjects assigned under this area.</p>';
+            } else {
+                assigned.forEach(function(s) {
+                    const span = document.createElement('span');
+                    span.className = 'subarea-subject bold dept-emphases align-items-center justify-content-center px-3';
+                    span.dataset.subjectId = s.id;
+                    span.title = 'Click to remove this subject';
+                    span.innerHTML = escapeHtml(s.name) +
+                        '<button type="button" class="btn-close btn-close-white" title="Remove Subject"></button>';
+                    span.addEventListener('click', function() {
+                        tblSubjIds.delete(s.id);
+                        tblRenderSubjects(saId);
+                    });
+                    assignedBox.appendChild(span);
+                });
+            }
+            tblApplySubjectSearch();
+        }
+
+        function tblApplySaSearch() {
+            const box = document.getElementById('tblCoverageAvailableSAs');
+            const input = document.getElementById('tblCoverageSaSearch');
+            if (!box || !input) return;
+            const filter = (input.value || '').toLowerCase();
+            let any = false;
+            box.querySelectorAll('.available-sa-item').forEach(function(item) {
+                const show = item.textContent.toLowerCase().includes(filter);
+                item.style.display = show ? '' : 'none';
+                if (show) any = true;
+            });
+            let empty = box.querySelector('.no-match-msg');
+            if (!any) {
+                if (!empty) {
+                    empty = document.createElement('p');
+                    empty.className = 'text-muted small mb-0 no-match-msg';
+                    empty.textContent = 'No matching subject areas.';
+                    box.appendChild(empty);
+                }
+            } else if (empty) {
+                empty.remove();
+            }
+        }
+
+        function tblApplySubjectSearch() {
+            const box = document.getElementById('tblCoverageAvailableSubjects');
+            const input = document.getElementById('tblCoverageSubjectSearch');
+            if (!box || !input) return;
+            const filter = (input.value || '').toLowerCase();
+            let any = false;
+            box.querySelectorAll('.available-subject-item').forEach(function(item) {
+                const show = item.textContent.toLowerCase().includes(filter);
+                item.style.display = show ? '' : 'none';
+                if (show) any = true;
+            });
+            let empty = box.querySelector('.no-match-msg');
+            if (!any) {
+                if (!empty) {
+                    empty = document.createElement('p');
+                    empty.className = 'text-muted small mb-0 no-match-msg';
+                    empty.textContent = 'No matching subjects.';
+                    box.appendChild(empty);
+                }
+            } else if (empty) {
+                empty.remove();
+            }
+        }
+
         function openSubjectAreaModal(facultyId, facultyName, currentAreaIdsJson, deptId, preSelectedSubjJson) {
             if (!editFacultyModal) {
                 editFacultyModal = new bootstrap.Modal(document.getElementById('subjectAreaModal'));
@@ -38,8 +264,7 @@
             document.getElementById('editFacultyId').value = facultyId;
             document.getElementById('editFacultyCoverageName').textContent = facultyName;
 
-            // Parse assigned subject area IDs
-            var assignedSaIds = [];
+            let assignedSaIds = [];
             try {
                 assignedSaIds = JSON.parse(currentAreaIdsJson) || [];
             } catch (e) {
@@ -48,35 +273,33 @@
             if (!Array.isArray(assignedSaIds)) assignedSaIds = [];
             assignedSaIds = assignedSaIds.filter(function(id) {
                 return id > 0;
-            });
+            }).map(Number);
 
-            // Parse assigned subject IDs
-            editFacultyAssignedSubjIds = [];
+            let assignedSubjIds = [];
             try {
-                editFacultyAssignedSubjIds = JSON.parse(preSelectedSubjJson) || [];
+                assignedSubjIds = JSON.parse(preSelectedSubjJson) || [];
             } catch (e) {
-                editFacultyAssignedSubjIds = [];
+                assignedSubjIds = [];
             }
-            if (!Array.isArray(editFacultyAssignedSubjIds)) editFacultyAssignedSubjIds = [];
-            editFacultyAssignedSubjIds = editFacultyAssignedSubjIds.filter(function(id) {
+            if (!Array.isArray(assignedSubjIds)) assignedSubjIds = [];
+            assignedSubjIds = assignedSubjIds.filter(function(id) {
                 return id > 0;
-            });
+            }).map(Number);
 
-            renderFacultySubjectAreas(deptId, assignedSaIds);
-            renderAvailableSubjectAreas(deptId, assignedSaIds);
+            tblDeptSubjectAreas = subjectAreasData[deptId] || [];
+            tblDeptId = deptId;
+            tblInitialSaIds = assignedSaIds.slice();
+            tblInitialSubjIds = assignedSubjIds.slice();
+            tblSaIds = new Set(assignedSaIds);
+            tblSubjIds = new Set(assignedSubjIds);
+            tblSelectedSaId = '';
 
-            // Reset containers
-            document.getElementById('availableFacultySubjectsContainer').innerHTML =
-                '<p class="text-muted small mb-0">Select a subject area to view available subjects.</p>';
-            document.getElementById('editFacultySubjectsContainer').innerHTML =
-                '<p class="text-muted mb-0">Select a subject area to view its subjects.</p>';
-            document.getElementById('facultySubjectSearch').disabled = true;
-            document.getElementById('facultySubjectSearch').placeholder = 'Select a subject area first';
-            document.getElementById('editFacultySelectedSubjectAreaName').textContent = '';
-            document.getElementById('editFacultySelectedSAId').value = '';
-            document.getElementById('facultySaSearch').value = '';
-            document.getElementById('facultySubjectSearch').value = '';
-
+            document.getElementById('tblCoverageSaSearch').value = '';
+            document.getElementById('tblCoverageSubjectSearch').value = '';
+            tblRenderAssignedSAs();
+            tblRenderAvailableSAs();
+            tblRenderSaSelect();
+            tblCoverageGotoPane(0);
             editFacultyModal.show();
         }
 
@@ -248,7 +471,68 @@
 
         function confirmFacultySave() {
             bootstrap.Modal.getInstance(document.getElementById('confirmFacultyModal'))?.hide();
-            saveFacultyCoverage();
+            tblSaveCoverage();
+        }
+
+        function tblShowConfirmFacultyModal() {
+            var modal = new bootstrap.Modal(document.getElementById('confirmFacultyModal'));
+            modal.show();
+        }
+
+        document.addEventListener('input', function(e) {
+            if (e.target.id === 'tblCoverageSaSearch') tblApplySaSearch();
+            if (e.target.id === 'tblCoverageSubjectSearch') tblApplySubjectSearch();
+        });
+
+        document.addEventListener('change', function(e) {
+            if (e.target.id === 'tblCoverageSaSelect') {
+                if (e.target.value) {
+                    tblRenderSubjects(e.target.value);
+                } else {
+                    tblRenderSubjectsEmpty();
+                }
+            }
+        });
+
+        async function tblSaveCoverage() {
+            const currentSaIds = Array.from(tblSaIds);
+            const currentSubjIds = Array.from(tblSubjIds);
+
+            const removeSaIds = tblInitialSaIds.filter(function(id) { return !tblSaIds.has(id); });
+            const addSaIds = currentSaIds.filter(function(id) { return tblInitialSaIds.indexOf(id) === -1; });
+            const removeSubjIds = tblInitialSubjIds.filter(function(id) { return !tblSubjIds.has(id); });
+            const addSubjIds = currentSubjIds.filter(function(id) { return tblInitialSubjIds.indexOf(id) === -1; });
+
+            const body = new URLSearchParams({
+                action: 'save_faculty_coverage',
+                faculty_id: editFacultyId,
+                department_id: tblDeptId,
+                keep_sa_ids: JSON.stringify(currentSaIds),
+                remove_sa_ids: JSON.stringify(removeSaIds),
+                remove_subject_ids: JSON.stringify(removeSubjIds),
+                add_sa_ids: JSON.stringify(addSaIds),
+                add_subject_ids: JSON.stringify(addSubjIds)
+            });
+
+            try {
+                const res = await fetch('../../handlers/faculty-head-handler.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: body
+                });
+                const data = await res.json();
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('confirmFacultyModal'))?.hide();
+                    bootstrap.Modal.getInstance(document.getElementById('subjectAreaModal'))?.hide();
+                    location.reload();
+                } else {
+                    alert(data.message || 'Failed to save changes.');
+                }
+            } catch (err) {
+                alert('An error occurred while saving.');
+            }
         }
 
         async function saveFacultyCoverage() {
@@ -612,26 +896,15 @@
 
         // Reset faculty modal when closed
         document.getElementById('subjectAreaModal').addEventListener('hidden.bs.modal', function() {
-            document.getElementById('editFacultySubjectsContainer').innerHTML =
-                '<p class="text-muted mb-0">Select a subject area to view its subjects.</p>';
-            document.getElementById('availableFacultySubjectsContainer').innerHTML =
-                '<p class="text-muted small mb-0">Select a subject area to view available subjects.</p>';
-            var subSearch = document.getElementById('facultySubjectSearch');
-            if (subSearch) {
-                subSearch.disabled = true;
-                subSearch.placeholder = 'Select a subject area first';
-                subSearch.value = '';
-            }
-            document.getElementById('editFacultySelectedSubjectAreaName').textContent = '';
-            document.getElementById('editFacultySelectedSAId').value = '';
-            document.getElementById('facultySaSearch').value = '';
-            document.querySelectorAll('#editFacultyMembers .subject-area-item').forEach(function(el) {
-                el.style.boxShadow = '';
-                el.style.border = '';
-            });
+            tblPane = 0;
+            tblSelectedSaId = '';
+            tblSaIds = new Set();
+            tblSubjIds = new Set();
+            tblInitialSaIds = [];
+            tblInitialSubjIds = [];
+            tblDeptSubjectAreas = [];
             editFacultyId = null;
             editFacultyDeptId = null;
-            editFacultyAssignedSubjIds = [];
         });
 
         function disableSpan(span) {
