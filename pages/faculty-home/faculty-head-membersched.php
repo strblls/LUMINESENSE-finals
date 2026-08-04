@@ -151,6 +151,53 @@ foreach ($coverage as $sa) {
     }
 }
 
+// - All department subject areas with their subjects (for the coverage editor) -
+$dept_subject_areas = [];
+$dsa_stmt = $conn->prepare("SELECT id, name FROM subject_area WHERE department_id = ? ORDER BY name");
+$dsa_stmt->bind_param('i', $department_id);
+$dsa_stmt->execute();
+$dsa_res = $dsa_stmt->get_result();
+while ($dsa = $dsa_res->fetch_assoc()) {
+    $sub_list = [];
+    $dsub_stmt = $conn->prepare("SELECT id, name FROM subjects WHERE subject_area_id = ? ORDER BY name");
+    $dsub_stmt->bind_param('i', $dsa['id']);
+    $dsub_stmt->execute();
+    $dsub_res = $dsub_stmt->get_result();
+    while ($sub = $dsub_res->fetch_assoc()) $sub_list[] = $sub;
+    $dsub_stmt->close();
+    $dsa['subjects'] = $sub_list;
+    $dept_subject_areas[] = $dsa;
+}
+$dsa_stmt->close();
+
+// - Member's currently assigned subject area / subject IDs (for the coverage editor) -
+$assigned_sa_ids = [];
+$asa_stmt = $conn->prepare("
+    SELECT jfsa.subject_area_id
+    FROM junction_faculty_subjectarea jfsa
+    WHERE jfsa.faculty_id = ?
+      AND jfsa.subject_area_id IN (SELECT id FROM subject_area WHERE department_id = ?)
+");
+$asa_stmt->bind_param('ii', $member_id, $department_id);
+$asa_stmt->execute();
+$asa_res = $asa_stmt->get_result();
+while ($row = $asa_res->fetch_assoc()) $assigned_sa_ids[] = (int)$row['subject_area_id'];
+$asa_stmt->close();
+
+$assigned_subject_ids = [];
+$asub_stmt = $conn->prepare("
+    SELECT DISTINCT jfs.subject_id
+    FROM junction_faculty_subject jfs
+    JOIN subjects s ON s.id = jfs.subject_id
+    WHERE jfs.faculty_id = ?
+      AND s.subject_area_id IN (SELECT id FROM subject_area WHERE department_id = ?)
+");
+$asub_stmt->bind_param('ii', $member_id, $department_id);
+$asub_stmt->execute();
+$asub_res = $asub_stmt->get_result();
+while ($row = $asub_res->fetch_assoc()) $assigned_subject_ids[] = (int)$row['subject_id'];
+$asub_stmt->close();
+
 // - Head's full name -
 $head_name = '';
 $hstmt = $conn->prepare("SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM faculty WHERE id = ?");
@@ -279,6 +326,9 @@ foreach ($days as $day) {
                             <div>
                                 <h2 class="bold"><i class="bi bi-layout-three-columns me-1"></i>Assigned Coverage</h2>
                             </div>
+                            <button type="button" class="btn-icon btn-icon-edit" onclick="openEditCoverageModal()" title="Edit Coverage" data-bs-toggle="tooltip" data-bs-placement="left">
+                                <i class="bi bi-pencil"></i>
+                            </button>
                         </div>
                         <div class="d-flex flex-column p-2 gap-2" style="max-height:25vh;overflow-y:auto;">
                             <?php if (!empty($coverage)): ?>
@@ -722,11 +772,110 @@ foreach ($days as $day) {
         </div>
     </div>
 
+    <!-- Edit Coverage Modal (two panes: Subject Areas | Subjects) -->
+    <div class="profile-details-modal modal fade" id="editCoverageModal" tabindex="-1" aria-labelledby="editCoverageLabel" aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold" id="editCoverageLabel">
+                        <i class="bi bi-briefcase me-2"></i>Edit Coverage for <span id="editCoverageMemberName"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Left / right pane navigation -->
+                    <div class="coverage-wizard-nav d-flex align-items-center justify-content-between mb-3">
+                        <button type="button" class="btn-icon btn-icon-edit coverage-nav-btn" id="coverageNavPrev" title="Previous: Subject Areas" onclick="coverageNav(-1)">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <div class="coverage-wizard-steps d-flex align-items-center justify-content-center gap-2">
+                            <span class="coverage-step active" data-step="0"><i class="bi bi-briefcase me-1"></i>Subject Areas</span>
+                            <i class="bi bi-arrow-right text-muted"></i>
+                            <span class="coverage-step" data-step="1"><i class="bi bi-book me-1"></i>Subjects</span>
+                        </div>
+                        <button type="button" class="btn-icon btn-icon-edit coverage-nav-btn" id="coverageNavNext" title="Next: Subjects" onclick="coverageNav(1)">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Pane 0: Subject Areas -->
+                    <div class="coverage-pane" id="coveragePaneAreas">
+                        <div class="dept-info-card mb-3">
+                            <label class="form-label bold"><i class="bi bi-briefcase me-2"></i>Current Subject Area/s:</label>
+                            <div id="coverageAssignedSAs" class="d-flex flex-wrap gap-1"></div>
+                        </div>
+                        <div class="dept-info-card mb-0">
+                            <label class="form-label bold"><i class="bi bi-search me-1"></i>Search Subject Areas:</label>
+                            <input type="text" class="form-control mb-2" id="coverageSaSearch" placeholder="Search available subject areas...">
+                            <label class="form-label bold" style="font-size:13px;">Available Subject Areas:</label>
+                            <div id="coverageAvailableSAs" class="d-flex flex-wrap gap-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- Pane 1: Subjects -->
+                    <div class="coverage-pane d-none" id="coveragePaneSubjects">
+                        <div class="dept-info-card mb-3">
+                            <label class="form-label bold"><i class="bi bi-collection me-2"></i>Available Subject Areas:</label>
+                            <select class="form-select" id="coverageSaSelect">
+                                <option value="">Select a subject area...</option>
+                            </select>
+                        </div>
+                        <div class="dept-info-card mb-3">
+                            <label class="form-label bold"><i class="bi bi-search me-1"></i>Search Subjects:</label>
+                            <input type="text" class="form-control mb-2" id="coverageSubjectSearch" placeholder="Select a subject area first" disabled>
+                            <label class="form-label bold" style="font-size:13px;">Available Subjects:</label>
+                            <div id="coverageAvailableSubjects" class="d-flex flex-wrap gap-1"></div>
+                        </div>
+                        <div class="dept-info-card mb-0">
+                            <label class="form-label bold"><i class="bi bi-book me-2"></i>Currently Assigned Subjects:</label>
+                            <div id="coverageAssignedSubjects" class="d-flex flex-wrap gap-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="medium" onclick="confirmCoverageSave()">
+                        <i class="bi bi-check-lg me-1"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Save Coverage Modal -->
+    <div class="modal fade" id="confirmCoverageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header" style="background:linear-gradient(135deg,#2a7a3e,#5cb85c);color:#fff;">
+                    <h5 class="modal-title" style="font-weight:700;">Confirm Coverage</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-question-circle" style="font-size:2.5rem;color:#2a7a3e;"></i>
+                    <p class="mt-3 mb-0" style="font-size:15px;">
+                        Save these coverage changes for <strong id="confirmCoverageName"></strong>?
+                    </p>
+                </div>
+                <div class="modal-footer d-flex flex-nowrap flex-row justify-content-between gap-2">
+                    <button class="light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="medium" style="background:#2a7a3e;" onclick="executeCoverageSave()">
+                        <i class="bi bi-check-lg me-1"></i> Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         window.lumiMemberschedSubjects = <?= json_encode($subjects) ?>;
         window.lumiMemberschedRooms = <?= json_encode($rooms) ?>;
         window.lumiMemberschedMemberId = <?= (int)$member_id ?>;
         window.lumiMemberschedToday = '<?= $today ?>';
+        window.lumiMemberschedDeptId = <?= (int)$department_id ?>;
+        window.lumiMemberschedMemberName = <?= json_encode($member_name) ?>;
+        window.lumiMemberschedDeptSAs = <?= json_encode($dept_subject_areas) ?>;
+        window.lumiMemberschedAssignedSAs = <?= json_encode($assigned_sa_ids) ?>;
+        window.lumiMemberschedAssignedSubjects = <?= json_encode($assigned_subject_ids) ?>;
     </script>
 
     <script src="../../js/faculty/faculty-head-membersched.js"></script>
