@@ -282,3 +282,71 @@
     color: #fff;
     font-weight: 600;
 }
+
+/* ── Coverage & info cards (faculty-head-membersched.php) ─────────── */
+.coverage-item,
+.info-panel {
+    padding: 0.75rem 1rem;
+}
+
+.coverage-icon {
+    font-size: 1rem;
+    color: var(--secondary-color-1);
+    flex-shrink: 0;
+}
+
+.coverage-area-name {
+    font-size: 0.95rem;
+    color: var(--secondary-color-1);
+    line-height: 1.2;
+    min-width: 0;
+}
+
+.coverage-count {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    background: rgba(47, 0, 79, 0.08);
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+
+.info-panel {
+    padding: 0;
+    overflow: hidden;
+}
+
+.info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(47, 0, 79, 0.08);
+}
+
+.info-row:last-of-type {
+    border-bottom: none;
+}
+
+.info-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-text, #6c757d);
+}
+
+.info-value {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.info-note {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--secondary-color-2);
+    padding: 0.75rem 1rem;
+    background: rgba(47, 0, 79, 0.04);
+}

@@ -283,20 +283,22 @@ foreach ($days as $day) {
                         <div class="d-flex flex-column p-2 gap-2" style="max-height:25vh;overflow-y:auto;">
                             <?php if (!empty($coverage)): ?>
                                 <?php foreach ($coverage as $sa): ?>
-                                    <div class="dept-info-card mb-0 p-2">
-                                        <div class="mt-1">
-                                            <i class="bi bi-briefcase"></i>
-                                            <span class="dept-subject-area bold dept-emphases"><?= htmlspecialchars($sa['name']) ?></span>
+                                    <div class="dept-info-card mb-0 coverage-item">
+                                        <div class="coverage-head d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-briefcase coverage-icon"></i>
+                                                <span class="coverage-area-name bold"><?= htmlspecialchars($sa['name']) ?></span>
+                                            </div>
+                                            <span class="coverage-count"><?= count($sa['subjects']) ?> subject<?= count($sa['subjects']) === 1 ? '' : 's' ?></span>
                                         </div>
                                         <?php if (!empty($sa['subjects'])): ?>
-                                            <div class="d-flex flex-wrap gap-1 mt-1">
-                                                <i class="bi bi-book"></i>
+                                            <div class="d-flex flex-wrap gap-1 mt-2">
                                                 <?php foreach ($sa['subjects'] as $subj_name): ?>
-                                                    <span class="subarea-subject bold dept-emphases"><?= htmlspecialchars($subj_name) ?></span>
+                                                    <span class="subarea-subject bold"><?= htmlspecialchars($subj_name) ?></span>
                                                 <?php endforeach; ?>
                                             </div>
                                         <?php else: ?>
-                                            <div class="small text-muted mt-1">No subjects under this area.</div>
+                                            <div class="small text-muted mt-2">No subjects under this area.</div>
                                         <?php endif; ?>
                                     </div>
                                 <?php endforeach; ?>
@@ -304,7 +306,7 @@ foreach ($days as $day) {
                                 <span class="text-muted">No subject areas assigned.</span>
                             <?php endif; ?>
                             <?php if (!$has_any_subject): ?>
-                                <p style="text-align:justify;" class="small mb-2"><br>
+                                <p class="small mb-2 mt-1">
                                     <strong>Attention:</strong> Currently, <?= htmlspecialchars($member_name) ?> <strong>doesn't have any subjects assigned for teaching</strong>.
                                     Please assign subjects to this faculty member <strong>in the previous page</strong> to ensure they have the necessary teaching responsibilities.
                                 </p>
@@ -321,25 +323,23 @@ foreach ($days as $day) {
                                 <h2 class="bold"><i class="bi bi-info-circle me-1"></i>Schedule Info</h2>
                             </div>
                         </div>
-                        <div class="d-flex flex-column p-3 gap-2">
-                            <div class="dept-info-card mb-0 p-2">
-                                <div class="small text-muted">Prepared by</div>
-                                <div><span class="status-badge faculty-head bold">Faculty Head</span> <strong><?= htmlspecialchars($head_name) ?></strong></div>
+                        <div class="dept-info-card mb-0 info-panel">
+                            <div class="info-row">
+                                <span class="info-label">Prepared by</span>
+                                <span class="info-value"><span class="status-badge faculty-head bold">Faculty Head</span> <strong><?= htmlspecialchars($head_name) ?></strong></span>
                             </div>
-                            <div class="dept-info-card mb-0 p-2">
-                                <div class="small text-muted">Last Edited</div>
-                                <div><strong><?= $last_edited ? date('F j, Y (g:i A)', strtotime($last_edited)) : 'No schedules yet' ?></strong><strong> <?= htmlspecialchars($edited_by_name) ?></strong></div>
+                            <div class="info-row">
+                                <span class="info-label">Last Edited</span>
+                                <span class="info-value"><strong><?= $last_edited ? date('F j, Y (g:i A)', strtotime($last_edited)) : 'No schedules yet' ?></strong><?php if ($edited_by_name): ?> <span class="text-muted"><?= htmlspecialchars($edited_by_name) ?></span><?php endif; ?></span>
                             </div>
-                            <div class="dept-info-card mb-0 p-2">
-                                <div class="small text-muted">Current Department</div>
-                                <div><strong><?= htmlspecialchars($dept_name) ?></strong></div>
+                            <div class="info-row">
+                                <span class="info-label">Current Department</span>
+                                <span class="info-value"><strong><?= htmlspecialchars($dept_name) ?></strong></span>
                             </div>
-                            <div class="dept-info-card mb-0 p-2">
-                                <p style="text-align:justify;" class="small mb-0"><br>
-                                    <strong>Note:</strong> As a <span class="status-badge faculty-head bold">Faculty Head</span> of this department, you can manage the schedule of this faculty member.
-                                    You can add, edit, or delete schedule slots as needed while abiding by the department's policies and guidelines.
-                                    Please ensure that any changes made are communicated to the faculty member and relevant parties.
-                                </p>
+                            <div class="info-note">
+                                <strong>Note:</strong> As a <span class="status-badge faculty-head bold">Faculty Head</span> of this department, you can manage the schedule of this faculty member.
+                                You can add, edit, or delete schedule slots as needed while abiding by the department's policies and guidelines.
+                                Please ensure that any changes made are communicated to the faculty member and relevant parties.
                             </div>
                         </div>
                     </div>
