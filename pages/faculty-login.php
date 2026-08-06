@@ -35,6 +35,9 @@ unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_su
 </head>
 
 <body>
+    <img src="../images/landing/bgforms.jpg" alt="" class="auth-bg" loading="lazy">
+    <img src="../images/landing/bgforms%20yellow.jpg" alt="" class="auth-bg hover" loading="lazy">
+
     <div class="return-container">
         <a class="medium d-flex justify-content-center align-items-center"
             onclick="dissolve('../index.php')">
@@ -109,6 +112,17 @@ unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_su
 
     <script src="../js/lib/animations.js"></script>
     <script src="../js/lib/password.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var bg = document.querySelector('.auth-bg.hover');
+            window.addEventListener('mousemove', function (e) {
+                bg.classList.toggle('active', e.clientX < window.innerWidth / 2);
+            });
+            window.addEventListener('mouseleave', function () {
+                bg.classList.remove('active');
+            });
+        });
+    </script>
 </body>
 
 </html>

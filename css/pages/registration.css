@@ -1,8 +1,26 @@
 body {
     min-height: 100vh;
-    background: linear-gradient(to bottom,
-            var(--secondary-color-1) 0% 25%,
-            var(--primary-color) 25% 100%);
+    background: transparent;
+}
+
+.auth-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.auth-bg.hover {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.auth-bg.hover.active {
+    opacity: 1;
 }
 
 .registration-container img {
