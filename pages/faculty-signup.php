@@ -31,8 +31,6 @@
 </head>
 
 <body>
-    <img src="../images/landing/bgforms.jpg" alt="" class="auth-bg" loading="lazy">
-    <img src="../images/landing/bgforms%20yellow.jpg" alt="" class="auth-bg hover" loading="lazy">
     <div class="return-container">
         <a class="medium d-flex justify-content-center align-items-center"
            onclick="dissolve('../index.php')">
@@ -192,17 +190,6 @@
     <script src="../js/lib/animations.js"></script>
     <script src="../js/lib/password.js"></script>
     <script src="../js/faculty-signup.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var bg = document.querySelector('.auth-bg.hover');
-            window.addEventListener('mousemove', function (e) {
-                bg.classList.toggle('active', e.clientX < window.innerWidth / 2);
-            });
-            window.addEventListener('mouseleave', function () {
-                bg.classList.remove('active');
-            });
-        });
-    </script>
 </body>
 
 </html>
