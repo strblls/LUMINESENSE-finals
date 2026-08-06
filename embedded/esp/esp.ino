@@ -22,7 +22,7 @@
 #define SERVER_BASE "https://luminesense-bet.site"
 
 // ── Server URLs ────────────────────────────────────────────
-const char* TOGGLE_URL       = SERVER_BASE "/api/esp32-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
+const char* TOGGLE_URL       = SERVER_BASE "/api/esp32-light-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 const char* SCHEDULE_URL     = SERVER_BASE "/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 const char* PZEM_POST_URL    = SERVER_BASE "/api/pzem_push.php";
 const char* UPDATE_ROWS_URL  = SERVER_BASE "/api/esp32-update-rows.php";
@@ -30,6 +30,7 @@ const char* SCHEDULE_FLAG_URL= SERVER_BASE "/api/esp32-schedule-flag.php?token=L
 const char* CONFIG_URL      = SERVER_BASE "/api/esp32-config.php?token=LS_ESP32_TOKEN_2025";
 const char* PIR_LOG_URL     = SERVER_BASE "/api/pir-log.php";
 const char* SESSION_URL     = SERVER_BASE "/api/post_session.php";
+const char* ARCHIVE_SYNC_URL = SERVER_BASE "/api/archive-sync.php";
 
 // ── Pin Definitions ────────────────────────────────────────
 #define ROW1_PIN 25
@@ -54,6 +55,21 @@ bool   pendingScheduleFetch = false;
 int    pendingPirLog        = -1;  // -1 = none, 0/1 = state to log
 String pendingReconcile     = "";
 
+// ── Archive sync state ─────────────────────────────────────
+// The Mega streams per-minute CSVs via ARCHIVE:READ. We buffer rows
+// into JSON batches of ~500 and POST them to archive-sync.php.
+String archiveListQueue     = "";   // dates (comma-separated) left to fetch
+bool   archiveSyncInProgress = false;
+bool   archiveReadRequested = false; // ARCHIVE:READ sent, awaiting DATA_BEGIN
+bool   archiveDataActive    = false; // currently receiving a day's rows
+String archivePendingDate   = "";
+String archiveRowsJson      = "";
+String archiveBatchPending  = "";   // fully-built JSON batch waiting to POST
+int    archiveBatchCount    = 0;
+int    archiveRowTotal      = 0;
+String lastArchiveSyncDay   = "";
+#define ARCHIVE_BATCH_ROWS 500
+
 // ── Row State ──────────────────────────────────────────────
 bool row1State = false;
 bool row2State = false;
@@ -71,7 +87,7 @@ unsigned long lastScheduleFetch = 0;
 unsigned long lastFlagPoll = 0;
 unsigned long lastConfigFetch = 0;
 #define FLAG_POLL_MS 5000
-#define DB_POLL_MS        500
+#define DB_POLL_MS        200
 #define SCHEDULE_FETCH_MS 30000
 #define CONFIG_FETCH_MS   300000
 #define PIR_INACTIVITY_MS 300000ul // 5 minutes
@@ -84,7 +100,7 @@ void setup() {
     delay(1000);
 
     // Serial2 to Mega
-    Serial2.begin(4800, SERIAL_8N1, MEGA_RX, MEGA_TX);
+    Serial2.begin(9600, SERIAL_8N1, MEGA_RX, MEGA_TX);
     delay(500);
     Serial2.flush();
 
@@ -101,7 +117,7 @@ void setup() {
 
     // WiFi Manager — all inside setup()!
     WiFiManager wm;
-    wm.resetSettings(); // uncomment to forget saved WiFi
+    // wm.resetSettings(); // uncomment to forget saved WiFi
     wm.setConfigPortalTimeout(180); 
     wm.setConnectTimeout(30);
 
@@ -172,10 +188,20 @@ void loop() {
 
     handlePIR(now);
     handleMegaMessages();
+    driveArchiveSync();
+    checkArchiveDayRollover();
 
-    // Only one HTTP task runs per loop iteration — they take turns
+    // Only one HTTP task runs per loop iteration — they take turns.
+    // pollDatabase() is first priority for fastest light-control response.
     if (!httpBusy) {
-        if (pendingPzem != "") {
+        if (now - lastDbPoll >= DB_POLL_MS) {
+            lastDbPoll = now;
+            pollDatabase();
+        } else if (archiveBatchPending != "") {
+            String j = archiveBatchPending;
+            archiveBatchPending = "";
+            postArchive(j);
+        } else if (pendingPzem != "") {
             forwardPzemToDb(pendingPzem);
             pendingPzem = "";
         } else if (pendingReconcile != "") {
@@ -184,9 +210,6 @@ void loop() {
         } else if (pendingPirLog != -1) {
             forwardPirLog(pendingPirLog);
             pendingPirLog = -1;
-        } else if (now - lastDbPoll >= DB_POLL_MS) {
-            lastDbPoll = now;
-            pollDatabase();
         } else if (now - lastFlagPoll >= FLAG_POLL_MS) {
             lastFlagPoll = now;
             checkScheduleFlag();
@@ -256,6 +279,23 @@ void handleMegaMessages() {
             } else if (msg.startsWith("RECONCILE:") || msg.startsWith("reconcile:")) {
                 pendingReconcile = msg.substring(10);
                 Serial.println(F("[MEGA] Reconcile pending"));
+            } else if (msg.startsWith("ARCHIVE_LIST:")) {
+                handleArchiveList(msg.substring(13));
+            } else if (msg.startsWith("ARCHIVE_DATA_BEGIN:")) {
+                archivePendingDate = msg.substring(19);
+                archiveDataActive  = true;
+                archiveReadRequested = false;
+                archiveRowsJson    = "";
+                archiveBatchCount  = 0;
+                Serial.print(F("[ARCHIVE] Receiving "));
+                Serial.println(archivePendingDate);
+            } else if (msg.startsWith("ARCHIVE_DATA_END")) {
+                flushArchiveBatch(true);
+                archiveDataActive = false;
+                Serial.print(F("[ARCHIVE] Day done. Total rows buffered: "));
+                Serial.println(archiveRowTotal);
+            } else if (archiveDataActive) {
+                appendArchiveRow(msg);
             } else {
                 msg.toUpperCase();
                 Serial.print(F("[MEGA] ")); Serial.println(msg);
@@ -325,7 +365,7 @@ void pollDatabase() {
 
     HTTPClient http;
     http.begin(TOGGLE_URL);
-    http.setTimeout(3000);
+    http.setTimeout(1500);
     int httpCode = http.GET();
 
     if (httpCode == 200) {
@@ -619,8 +659,142 @@ void checkScheduleFlag() {
             fetchAndForwardSchedule();
             return;
         }
-    } else {
+        } else {
         Serial.print(F("[FLAG] Check failed, code: ")); Serial.println(httpCode);
+    }
+
+    http.end();
+    httpBusy = false;
+}
+
+// ============================================================
+// PER-MINUTE ARCHIVE SYNC (SD → Server)
+// ============================================================
+String todayDateStr() {
+    struct tm t;
+    if (!getLocalTime(&t)) return "";
+    char b[12];
+    snprintf(b, sizeof(b), "%04d-%02d-%02d", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
+    return String(b);
+}
+
+void handleArchiveList(String list) {
+    list.trim();
+    archiveListQueue = list;
+    if (list.length() > 0) {
+        archiveSyncInProgress = true;
+        Serial.print(F("[ARCHIVE] Dates to sync: "));
+        Serial.println(list);
+    } else {
+        Serial.println(F("[ARCHIVE] No archived dates on SD"));
+    }
+}
+
+void requestArchiveSync() {
+    if (archiveSyncInProgress) return;
+    Serial2.println("ARCHIVE:LIST");
+    Serial.println(F("[ARCHIVE] Requested date list from Mega"));
+}
+
+void checkArchiveDayRollover() {
+    String tDay = todayDateStr();
+    if (tDay.length() != 10) return;
+    if (lastArchiveSyncDay != tDay) {
+        lastArchiveSyncDay = tDay;
+        if (!archiveSyncInProgress) requestArchiveSync();
+    }
+}
+
+void driveArchiveSync() {
+    if (!archiveSyncInProgress) return;
+    if (httpBusy) return;
+    if (archiveDataActive || archiveReadRequested) return;
+
+    if (archiveListQueue.length() == 0) {
+        archiveSyncInProgress = false;
+        Serial.print(F("[ARCHIVE] Sync complete. Total rows: "));
+        Serial.println(archiveRowTotal);
+        return;
+    }
+
+    String date = archiveListQueue;
+    int comma = date.indexOf(',');
+    if (comma != -1) date = archiveListQueue.substring(0, comma);
+    archiveListQueue = archiveListQueue.substring(date.length());
+    if (archiveListQueue.startsWith(",")) archiveListQueue = archiveListQueue.substring(1);
+    archiveListQueue.trim();
+
+    if (date == todayDateStr()) {
+        Serial.println(F("[ARCHIVE] Skipping today (still recording)"));
+        return; // loop pops the next date
+    }
+
+    Serial2.println("ARCHIVE:READ:" + date);
+    archiveReadRequested = true;
+    Serial.print(F("[ARCHIVE] Requesting "));
+    Serial.println(date);
+}
+
+void appendArchiveRow(String row) {
+    int c1 = row.indexOf(',');
+    if (c1 == -1) return;
+    int c2 = row.indexOf(',', c1 + 1);
+    int c3 = row.indexOf(',', c2 + 1);
+    int c4 = row.indexOf(',', c3 + 1);
+    int c5 = row.indexOf(',', c4 + 1);
+    if (c2 == -1 || c3 == -1 || c4 == -1 || c5 == -1) return;
+
+    String minute = row.substring(0, c1);
+    String v = row.substring(c1 + 1, c2);
+    String a = row.substring(c2 + 1, c3);
+    String w = row.substring(c3 + 1, c4);
+    String e = row.substring(c4 + 1, c5);
+    String cnt = row.substring(c5 + 1);
+    cnt.trim();
+    if (minute.length() < 4) return;
+
+    if (archiveRowsJson.length() > 0) archiveRowsJson += ",";
+    archiveRowsJson += "{\"minute\":\"" + minute + "\",\"avg_voltage\":" + v +
+                       ",\"avg_current\":" + a + ",\"avg_power\":" + w +
+                       ",\"energy_wh\":" + e + ",\"reading_count\":" + cnt + "}";
+    archiveBatchCount++;
+    archiveRowTotal++;
+
+    if (archiveBatchCount >= ARCHIVE_BATCH_ROWS) flushArchiveBatch(false);
+}
+
+void flushArchiveBatch(bool force) {
+    if (archiveRowsJson.length() == 0) {
+        archiveBatchCount = 0;
+        return;
+    }
+    if (!force && archiveBatchCount < ARCHIVE_BATCH_ROWS) return;
+
+    archiveBatchPending = "{\"classroom_id\":3,\"archive_date\":\"" + archivePendingDate +
+                          "\",\"rows\":[" + archiveRowsJson + "]}";
+    archiveRowsJson = "";
+    archiveBatchCount = 0;
+}
+
+void postArchive(String json) {
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println(F("[ARCHIVE] No WiFi — dropping batch"));
+        return;
+    }
+    httpBusy = true;
+
+    HTTPClient http;
+    http.begin(ARCHIVE_SYNC_URL);
+    http.setTimeout(10000);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-Token", "luminesense-secret-token");
+
+    int httpCode = http.POST(json);
+    if (httpCode == 200) {
+        Serial.println(F("[ARCHIVE] Batch posted OK"));
+    } else {
+        Serial.print(F("[ARCHIVE] Post failed, code: "));
+        Serial.println(httpCode);
     }
 
     http.end();

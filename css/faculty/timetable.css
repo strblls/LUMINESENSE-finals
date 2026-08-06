@@ -246,6 +246,24 @@
     justify-content: center;
 }
 
+.badge-early-end {
+    background: #f8d7da;
+    color: #842029;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slot-ended-line {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
 .coverage-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

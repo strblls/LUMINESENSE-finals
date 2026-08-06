@@ -575,3 +575,110 @@
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
+
+/* ── View Schedule modal (timetable day-row look) ── */
+#viewScheduleModal .view-schedule-day-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+#viewScheduleModal .day-card {
+    background: #f8f9fa;
+    border-radius: 5px;
+    padding: 1rem;
+}
+
+#viewScheduleModal .day-card.today {
+    background: var(--secondary-color-1, #6c5ce7);
+}
+
+#viewScheduleModal .day-card.today .day-label {
+    color: #fff !important;
+}
+
+#viewScheduleModal .day-card.today .day-label .text-uppercase {
+    color: #fff !important;
+}
+
+#viewScheduleModal .day-label {
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #9f9f9f;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+#viewScheduleModal .slot-row {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 0.4rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+    width: 100%;
+}
+
+#viewScheduleModal .slot-row:last-child {
+    margin-bottom: 0;
+}
+
+#viewScheduleModal .slot-time {
+    font-size: 14px;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#viewScheduleModal .slot-time-start,
+#viewScheduleModal .slot-time-end {
+    font-size: 13px;
+    font-weight: 900;
+    color: #555;
+    line-height: 1.2;
+}
+
+#viewScheduleModal .slot-time-separator {
+    font-size: 10px;
+    color: #999;
+}
+
+#viewScheduleModal .slot-time-ampm {
+    color: var(--secondary-color-3);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+
+#viewScheduleModal .slot-content {
+    display: flex;
+    flex-direction: column;
+}
+
+#viewScheduleModal .slot-room {
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+#viewScheduleModal .slot-subject {
+    font-size: 13px;
+    color: var(--muted-dark);
+}
+
+#viewScheduleModal .slot-subject h5 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    color: #333;
+}

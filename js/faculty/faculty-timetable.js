@@ -413,7 +413,7 @@
         // ── View Slot Details Modal ───────────────────────────────
         let viewSlotModal = null;
 
-        function openSlotDetails(id, day, startTime, endTime, room, extension, subject) {
+        function openSlotDetails(id, day, startTime, endTime, room, extension, subject, assignedBy, isEarlyEnd, scheduledEnd, actualEnd) {
             if (!viewSlotModal) {
                 viewSlotModal = new bootstrap.Modal(document.getElementById('viewSlotModal'));
             }
@@ -422,6 +422,19 @@
             document.getElementById('slot-time').textContent = `${startTime} — ${endTime}`;
             document.getElementById('slot-room').textContent = room;
             document.getElementById('slot-subject').textContent = subject;
+            document.getElementById('slot-assigned-by').textContent = assignedBy || 'N/A';
+
+            var earlyEndRow = document.getElementById('slot-early-end-row');
+            var actualEndRow = document.getElementById('slot-actual-end-row');
+            if (isEarlyEnd && scheduledEnd && actualEnd) {
+                document.getElementById('slot-scheduled-end').textContent = scheduledEnd;
+                document.getElementById('slot-actual-end').textContent = actualEnd;
+                earlyEndRow.style.display = '';
+                actualEndRow.style.display = '';
+            } else {
+                earlyEndRow.style.display = 'none !important';
+                actualEndRow.style.display = 'none !important';
+            }
 
             viewSlotModal.show();
         }

@@ -30,7 +30,7 @@ $is_head = $_SESSION['is_head'] ?? false;
             <button class="nav-btn" title="Head Timetable" onclick="dissolve('faculty-head-timetable.php')">
                 <i class="bi bi-calendar3-range-fill"></i>
             </button>
-            <h3 class="bold mb-0 sidebar-label">Manage Schedules</h3>
+            <h3 class="bold mb-0 sidebar-label">Manage<br>Schedules</h3>
         </div>
         <?php endif; ?>
         <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">

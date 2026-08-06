@@ -188,6 +188,12 @@
     color: #a06800;
 }
 
+.badge-ended-early {
+    background: #fce4ec;
+    color: #b71c1c;
+    border: 1px solid #e57373;
+}
+
 /* ── Dept info card reset ── */
 .dept-info-card {
     margin-bottom: 0;

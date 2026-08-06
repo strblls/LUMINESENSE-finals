@@ -25,6 +25,37 @@ function fmtDow($dow) {
     return $map[$dow] ?? 1;
 }
 
+// Pad a per-minute series so the x-axis shows EVERY minute from 00:00 up to the
+// current minute, even when the PZEM produced no reading for that minute.
+function padMinuteSeries($rows) {
+    $nowTotal = (int)date('H') * 60 + (int)date('i');
+    $byKey = [];
+    foreach ($rows as $r) {
+        $key = str_pad((int)$r['hr'], 2, '0', STR_PAD_LEFT) . ':' . str_pad((int)$r['mn'], 2, '0', STR_PAD_LEFT);
+        $byKey[$key] = $r;
+    }
+    $out = [];
+    for ($t = 0; $t <= $nowTotal; $t++) {
+        $h = intdiv($t, 60);
+        $m = $t % 60;
+        $key = str_pad($h, 2, '0', STR_PAD_LEFT) . ':' . str_pad($m, 2, '0', STR_PAD_LEFT);
+        if (isset($byKey[$key])) {
+            $out[] = $byKey[$key];
+        } else {
+            $out[] = [
+                'hr'          => $h,
+                'mn'          => $m,
+                'avg_voltage' => null,
+                'avg_current' => null,
+                'avg_power'   => null,
+                'energy_wh'   => null,
+                'reading_count' => 0,
+            ];
+        }
+    }
+    return $out;
+}
+
 // ── Base rooms with live PZEM data ───────────────────────────────────────────
 $roomRows = [];
 $r = $conn->query("
@@ -41,7 +72,7 @@ while ($row = $r->fetch_assoc()) $roomRows[$row['id']] = $row;
 // ── All schedules with faculty names ─────────────────────────────────────────
 $schedRows = [];
 $rs = $conn->query("
-    SELECT s.classroom_id, s.day_of_week, s.start_time, s.end_time, s.subject_id,
+    SELECT s.classroom_id, s.day_of_week, s.start_time, s.end_time, s.extended_until, s.subject_id,
            CONCAT(f.first_name, ' ', f.last_name) AS faculty_name
     FROM schedules s
     LEFT JOIN faculty f ON f.id = s.faculty_id
@@ -156,10 +187,16 @@ foreach ($roomRows as $rid => $room) {
     $current_time = '';
     $next_time = '';
     $status = 'vacant';
+    $is_early_end = false;
     if ($current) {
         $status = 'occupied';
         $faculty = $current['faculty_name'] ?? '';
-        $current_time = fmtTime($current['start_time']) . ' – ' . fmtTime($current['end_time']);
+        $is_early_end = !empty($current['extended_until']) && $current['extended_until'] < $current['end_time'];
+        if ($is_early_end) {
+            $current_time = fmtTime($current['extended_until']) . ' – ' . fmtTime($current['end_time']);
+        } else {
+            $current_time = fmtTime($current['start_time']) . ' – ' . fmtTime($current['end_time']);
+        }
     } elseif ($nextToday) {
         $status = 'scheduled';
         $faculty = $nextToday['faculty_name'] ?? '';
@@ -190,13 +227,13 @@ foreach ($roomRows as $rid => $room) {
 
     // Per-minute series for today (single-room chart + scrollbar)
     $todayLabels = []; $todayV = []; $todayA = []; $todayW = [];
-    foreach ($todayByRoom[$rid] ?? [] as $m) {
+    foreach (padMinuteSeries($todayByRoom[$rid] ?? []) as $m) {
         $hh = str_pad((int)$m['hr'], 2, '0', STR_PAD_LEFT);
         $mm = str_pad((int)$m['mn'], 2, '0', STR_PAD_LEFT);
         $todayLabels[] = $hh . ':' . $mm;
-        $todayV[] = (float)$m['avg_voltage'];
-        $todayA[] = (float)$m['avg_current'];
-        $todayW[] = (float)$m['avg_power'];
+        $todayV[] = $m['avg_voltage'] !== null ? (float)$m['avg_voltage'] : null;
+        $todayA[] = $m['avg_current'] !== null ? (float)$m['avg_current'] : null;
+        $todayW[] = $m['avg_power']   !== null ? (float)$m['avg_power']   : null;
     }
 
     // Daily series for the last 30 days (single-room multi-day chart)
@@ -382,6 +419,7 @@ for ($i = 29; $i >= 0; $i--) {
 
 // ── Chart data: today (per-minute records) ────────────────────────────────────
 $chartToday = [];
+$chartTodayRaw = [];
 $res = $conn->query("
     SELECT HOUR(recorded_at) AS hr, MINUTE(recorded_at) AS mn,
            ROUND(AVG(voltage),1) AS avg_voltage,
@@ -395,15 +433,18 @@ $res = $conn->query("
     ORDER BY hr, mn
 ");
 while ($row = $res->fetch_assoc()) {
+    $chartTodayRaw[] = $row;
+}
+foreach (padMinuteSeries($chartTodayRaw) as $row) {
     $hh = str_pad((int)$row['hr'], 2, '0', STR_PAD_LEFT);
     $mm = str_pad((int)$row['mn'], 2, '0', STR_PAD_LEFT);
     $chartToday[] = [
         'label'         => $hh . ':' . $mm,
         'time'          => $hh . ':' . $mm,
-        'avg_voltage'   => (float)$row['avg_voltage'],
-        'avg_current'   => (float)$row['avg_current'],
-        'avg_power'     => (float)$row['avg_power'],
-        'energy_wh'     => (float)$row['energy_wh'],
+        'avg_voltage'   => $row['avg_voltage'] !== null ? (float)$row['avg_voltage'] : null,
+        'avg_current'   => $row['avg_current'] !== null ? (float)$row['avg_current'] : null,
+        'avg_power'     => $row['avg_power']   !== null ? (float)$row['avg_power']   : null,
+        'energy_wh'     => $row['energy_wh']   !== null ? (float)$row['energy_wh']   : null,
         'reading_count' => (int)$row['reading_count'],
     ];
 }
@@ -598,6 +639,7 @@ while ($row = $res->fetch_assoc()) {
                                                     </div>
                                                 </div>
                                                 <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
+                                                <?php if ($is_early_end): ?><span class="room-status-badge badge-ended-early">Ended Early</span><?php endif; ?>
                                             </div>
                                             <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
                                             <div class="room-expand">
@@ -628,7 +670,7 @@ while ($row = $res->fetch_assoc()) {
                                                 <div class="dept-info-card room-info-row mb-2">
                                                     <i class="bi bi-clock-fill"></i>
                                                     <span class="room-info-label"><?= $timeLabel ?></span>
-                                                    <span class="room-info-val"><?= h($timeVal) ?></span>
+                                                    <span class="room-info-val"><?= $is_early_end ? $current_time : h($timeVal) ?></span>
                                                 </div>
                                             </div>
                                             <div class="room-card-actions">

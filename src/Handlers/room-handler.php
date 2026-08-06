@@ -54,6 +54,11 @@ if ($_POST['action'] === 'delete_room') {
         $stmt->fetch();
         $stmt->close();
 
+        // Explicitly remove related data before deleting the room
+        $conn->query("DELETE FROM schedules WHERE classroom_id = $id");
+        $conn->query("DELETE FROM lighting_logs WHERE classroom_id = $id");
+        $conn->query("DELETE FROM power_sessions WHERE classroom_id = $id");
+
         $stmt = $conn->prepare("DELETE FROM classrooms WHERE id=?");
         $stmt->bind_param('i', $id);
         $stmt->execute();

@@ -1865,6 +1865,25 @@ INSERT INTO `power_sessions` (`id`, `classroom_id`, `session_date`, `start_time`
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `pzem_archive`
+--
+
+CREATE TABLE `pzem_archive` (
+  `id` int(11) NOT NULL,
+  `classroom_id` int(11) NOT NULL,
+  `archive_date` date NOT NULL,
+  `minute` time NOT NULL,
+  `avg_voltage` float DEFAULT NULL,
+  `avg_current` float DEFAULT NULL,
+  `avg_power` float DEFAULT NULL,
+  `energy_wh` float DEFAULT NULL,
+  `reading_count` int(11) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `pzem_live`
 --
 
@@ -4691,6 +4710,14 @@ ALTER TABLE `pzem_live`
   ADD PRIMARY KEY (`classroom_id`);
 
 --
+-- Indexes for table `pzem_archive`
+--
+ALTER TABLE `pzem_archive`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_archive_minute` (`classroom_id`,`archive_date`,`minute`),
+  ADD KEY `archive_date` (`archive_date`);
+
+--
 -- Indexes for table `pzem_readings`
 --
 ALTER TABLE `pzem_readings`
@@ -4809,6 +4836,12 @@ ALTER TABLE `power_sessions`
 --
 ALTER TABLE `pzem_readings`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2487;
+
+--
+-- AUTO_INCREMENT for table `pzem_archive`
+--
+ALTER TABLE `pzem_archive`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `room_logs`
@@ -4936,6 +4969,12 @@ ALTER TABLE `pzem_live`
   ADD CONSTRAINT `pzem_live_ibfk_1` FOREIGN KEY (`classroom_id`) REFERENCES `classrooms` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `pzem_archive`
+--
+ALTER TABLE `pzem_archive`
+  ADD CONSTRAINT `pzem_archive_ibfk_1` FOREIGN KEY (`classroom_id`) REFERENCES `classrooms` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `pzem_readings`
 --
 ALTER TABLE `pzem_readings`
@@ -4967,7 +5006,7 @@ DELIMITER $$
 -- Events
 --
 CREATE DEFINER=`root`@`localhost` EVENT `cleanup_old_pzem_readings` ON SCHEDULE EVERY 1 DAY STARTS '2026-05-27 10:14:15' ON COMPLETION NOT PRESERVE ENABLE DO DELETE FROM `pzem_readings`
-  WHERE `recorded_at` < NOW() - INTERVAL 30 DAY$$
+  WHERE `recorded_at` < NOW() - INTERVAL 7 DAY$$
 
 CREATE DEFINER=`root`@`localhost` EVENT `auto_approve_extensions_event` ON SCHEDULE EVERY 1 MINUTE STARTS '2026-07-02 05:50:55' ON COMPLETION NOT PRESERVE ENABLE DO CALL auto_approve_extensions_proc()$$
 

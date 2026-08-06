@@ -123,4 +123,4 @@ function fetchRoomData() {
 }
 
 fetchRoomData();
-setInterval(fetchRoomData, 5000);
+setInterval(fetchRoomData, 2000);

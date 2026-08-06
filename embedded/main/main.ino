@@ -94,6 +94,14 @@ bool sdAvailable = false;
 #define POWER_LOG_FILENAME "power_log.csv"
 #define STATE_FILENAME "state.dat"
 #define SCHEDULE_CACHE_FILENAME "schedule.csv"
+#define ARCHIVE_DIR "archive"
+#define ARCHIVE_HEADER "minute,avg_voltage,avg_current,avg_power,energy_wh,reading_count"
+
+// ── Per-minute archive accumulation ───────────────────────
+String archiveDateStr = "";
+int    archMinuteKey  = -1;   // HH*60+MM of the minute being accumulated
+double archSumV = 0, archSumC = 0, archSumW = 0, archEnergyWh = 0;
+int    archCount = 0;
 
 // ── Schedule ───────────────────────────────────────────────
 struct TimeSlot
@@ -112,7 +120,7 @@ String serial2Buffer = "";
 void setup()
 {
     Serial.begin(9600);
-    Serial2.begin(4800);
+    Serial2.begin(9600);
     Wire.begin();
     Serial1.begin(9600);
 
@@ -158,6 +166,10 @@ void setup()
                 f.println(F("Date,Time,Session_Duration_min,Avg_Voltage_V,Avg_Current_A,Total_Energy_Wh"));
                 f.close();
             }
+        }
+        if (!SD.exists(ARCHIVE_DIR))
+        {
+            SD.mkdir(ARCHIVE_DIR);
         }
     }
 
@@ -237,6 +249,16 @@ void loop()
         setAllRows(false);
         saveState();
         syncStateToFrontend();
+    }
+
+    // Day rollover — flush the pending per-minute archive row to a new day's file
+    DateTime rollNow = rtc.now();
+    char dayBuf[12];
+    sprintf(dayBuf, "%04d-%02d-%02d", rollNow.year(), rollNow.month(), rollNow.day());
+    if (archiveDateStr.length() > 0 && archiveDateStr != String(dayBuf))
+    {
+        flushArchiveMinute();
+        archiveDateStr = String(dayBuf);
     }
 
     // Debug serial commands from USB Serial Monitor
@@ -530,6 +552,18 @@ void handleEsp32Messages()
                 continue;
             }
 
+            // Handle ARCHIVE commands before toUpperCase — payload has dates
+            if (msg.startsWith("ARCHIVE:LIST") || msg.startsWith("archive:list"))
+            {
+                sendArchiveList();
+                continue;
+            }
+            if (msg.startsWith("ARCHIVE:READ:") || msg.startsWith("archive:read:"))
+            {
+                sendArchiveDay(msg.substring(13));
+                continue;
+            }
+
             msg.toUpperCase();
             Serial.print(F("[ESP32] "));
             Serial.println(msg);
@@ -768,6 +802,26 @@ void readPZEM()
         return;
     }
 
+    // Per-minute archive accumulation (SD) — runs regardless of session
+    DateTime pzNow = rtc.now();
+    int minKey = pzNow.hour() * 60 + pzNow.minute();
+    if (archMinuteKey != -1 && minKey != archMinuteKey)
+    {
+        flushArchiveMinute();
+    }
+    if (archMinuteKey == -1)
+    {
+        archMinuteKey = minKey;
+        char archDayBuf[12];
+        sprintf(archDayBuf, "%04d-%02d-%02d", pzNow.year(), pzNow.month(), pzNow.day());
+        archiveDateStr = String(archDayBuf);
+    }
+    archSumV += voltage;
+    archSumC += current;
+    archSumW += power;
+    archEnergyWh += power * (3.0 / 3600.0);
+    archCount++;
+
     if (sessionActive)
     {
         sumVoltage += voltage;
@@ -852,8 +906,124 @@ void sendStatusJson()
 }
 
 // ============================================================
-// SESSION LOGGING
+// PER-MINUTE ARCHIVE (SD) + ARCHIVE SERIAL PROTOCOL
 // ============================================================
+void flushArchiveMinute()
+{
+    if (archCount == 0)
+    {
+        archMinuteKey = -1;
+        return;
+    }
+    if (sdAvailable)
+    {
+        String path = String(ARCHIVE_DIR) + "/" + archiveDateStr + ".csv";
+        bool exists = SD.exists(path);
+        File f = SD.open(path, FILE_WRITE);
+        if (f)
+        {
+            if (!exists)
+                f.println(F(ARCHIVE_HEADER));
+            int h = archMinuteKey / 60, m = archMinuteKey % 60;
+            char minuteBuf[6];
+            sprintf(minuteBuf, "%02d:%02d", h, m);
+            f.print(minuteBuf);
+            f.print(',');
+            f.print(archSumV / archCount, 2);
+            f.print(',');
+            f.print(archSumC / archCount, 3);
+            f.print(',');
+            f.print(archSumW / archCount, 2);
+            f.print(',');
+            f.print(archEnergyWh, 4);
+            f.print(',');
+            f.println(archCount);
+            f.close();
+        }
+    }
+    archSumV = archSumC = archSumW = archEnergyWh = 0;
+    archCount = 0;
+    archMinuteKey = -1;
+}
+
+void sendArchiveList()
+{
+    String dates = "";
+    if (sdAvailable && SD.exists(ARCHIVE_DIR))
+    {
+        File dir = SD.open(ARCHIVE_DIR);
+        if (dir)
+        {
+            while (true)
+            {
+                File entry = dir.openNextFile();
+                if (!entry)
+                    break;
+                if (!entry.isDirectory())
+                {
+                    String name = entry.name();
+                    int slash = name.lastIndexOf('/');
+                    if (slash != -1)
+                        name = name.substring(slash + 1);
+                    if (name.length() == 14 && name.endsWith(".csv"))
+                    {
+                        String d = name.substring(0, 10);
+                        if (d.length() > 0)
+                        {
+                            if (dates.length() > 0)
+                                dates += ',';
+                            dates += d;
+                        }
+                    }
+                }
+                entry.close();
+            }
+            dir.close();
+        }
+    }
+    Serial2.println("ARCHIVE_LIST:" + dates);
+    Serial.print(F("[ARCHIVE] List sent: "));
+    Serial.println(dates);
+}
+
+void sendArchiveDay(String date)
+{
+    String path = String(ARCHIVE_DIR) + "/" + date + ".csv";
+    if (!sdAvailable || !SD.exists(path))
+    {
+        Serial2.println("ARCHIVE_DATA_BEGIN:" + date);
+        Serial2.println(F("ARCHIVE_DATA_END"));
+        return;
+    }
+    File f = SD.open(path, FILE_READ);
+    if (!f)
+    {
+        Serial2.println("ARCHIVE_DATA_BEGIN:" + date);
+        Serial2.println(F("ARCHIVE_DATA_END"));
+        return;
+    }
+    Serial2.println("ARCHIVE_DATA_BEGIN:" + date);
+    int lines = 0;
+    while (f.available())
+    {
+        String line = f.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0)
+            continue;
+        if (line.startsWith("minute,"))
+            continue;
+        Serial2.println(line);
+        lines++;
+    }
+    f.close();
+    Serial2.println(F("ARCHIVE_DATA_END"));
+    Serial.print(F("[ARCHIVE] Sent "));
+    Serial.print(lines);
+    Serial.print(F(" rows for "));
+    Serial.println(date);
+}
+
+
 void startSession(DateTime startTime)
 {
     pzem.resetEnergy();

@@ -505,3 +505,22 @@ $conn->query("
         FOREIGN KEY (created_by) REFERENCES admins(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
+
+// ── pzem_archive (per-minute energy archive; survives the 7-day raw purge) ─
+$conn->query("
+    CREATE TABLE IF NOT EXISTS pzem_archive (
+        id            INT AUTO_INCREMENT PRIMARY KEY,
+        classroom_id  INT NOT NULL,
+        archive_date  DATE NOT NULL,
+        minute        TIME NOT NULL,
+        avg_voltage   FLOAT DEFAULT NULL,
+        avg_current   FLOAT DEFAULT NULL,
+        avg_power     FLOAT DEFAULT NULL,
+        energy_wh     FLOAT DEFAULT NULL,
+        reading_count INT NOT NULL DEFAULT 0,
+        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_archive_minute (classroom_id, archive_date, minute),
+        KEY archive_date (archive_date),
+        FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");

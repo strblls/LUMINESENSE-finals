@@ -122,6 +122,14 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                         <i class="bi bi-filetype-pdf"></i>
                         <span class="timetable-btn-title bold">Export<br>PDF</span>
                     </button>
+                    <button type="button" class="timetable-btn" id="archiveOpenBtn" onclick="openArchivePicker()" title="Archives">
+                        <i class="bi bi-folder2-open"></i>
+                        <span class="timetable-btn-title bold">Archive</span>
+                    </button>
+                    <button type="button" class="timetable-btn" id="exitArchiveBtn" onclick="exitArchiveMode()" title="Exit Archive" style="display:none;background:#27ae60;">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                        <span class="timetable-btn-title bold">Exit<br>Archive</span>
+                    </button>
                 </div>
                 <div class="p-2" style="color:#fff;background-color:var(--secondary-color-1);border-radius:5px;overflow:hidden;position:relative;">
                     <div class="tab-text-slide" id="tabTextSlide">
@@ -511,6 +519,10 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                             <div class="chart-wrapper" style="height:150px;">
                                 <canvas id="findingsMiniChart"></canvas>
                             </div>
+                            <div class="chart-scrollbar-wrap" id="findingsScrollWrap">
+                                <input type="range" class="chart-scrollbar" id="findingsScroll" min="0" max="0" value="0" oninput="onFindingsScroll(this.value)">
+                                <div class="chart-scroll-tip" id="findingsScrollTip"></div>
+                            </div>
                         </div>
                         <div class="findings-list" id="findingsList"></div>
                         <div class="findings-anomalies" id="findingsAnomalies" style="display:none;"></div>
@@ -581,6 +593,33 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                             <span class="summary-info-val">Saved % = (prev &minus; current) &divide; prev &times; 100</span>
                         </div>
                         <p class="savings-modal-note mb-0" id="savingsModalNote">&mdash;</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Archive folder picker modal -->
+        <div class="modal fade" id="archiveModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius:12px;overflow:hidden;">
+                    <div class="modal-header" style="background:var(--secondary-color-1);color:#fff;padding:12px 20px;">
+                        <h6 class="modal-title bold"><i class="bi bi-folder2-open me-1"></i>Select an Archive Date</h6>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-3">
+                        <p class="mb-2" style="font-size:13px;color:#666;">Search or choose a date to view its archived readings (sessions &amp; anomalies stay in the database):</p>
+                        <div class="findings-anomalies-search mb-2">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="archiveSearchInput" placeholder="Search date... e.g. Aug 2, 2026" aria-label="Search archive dates">
+                        </div>
+                        <div class="archive-date-list" id="archiveDateList" style="max-height:300px;overflow-y:auto;"></div>
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button type="button" class="timetable-btn" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="timetable-btn" id="archiveConfirmBtn" onclick="confirmArchiveSelection()" style="background:var(--secondary-color-1);color:#fff;">
+                                <i class="bi bi-check-lg"></i>
+                                <span class="timetable-btn-title bold">View Archive</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

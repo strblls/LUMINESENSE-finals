@@ -244,7 +244,7 @@ function showSchedule(day, dayName, cell) {
     } else {
         body.innerHTML = schedules.map(s => {
             let extBadge = '';
-            if (s.extended_until) {
+            if (s.ext_status) {
                 const extStatus = s.ext_status;
                 let badgeCls = 'ext-badge';
                 let badgeIcon = '';
@@ -260,13 +260,14 @@ function showSchedule(day, dayName, cell) {
                 }
                 extBadge = ` <span class="${badgeCls}" style="font-size:11px;padding:2px 8px;display:inline-flex;align-items:center;gap:2px;">${badgeIcon} extended</span>`;
             }
+            const displayEnd = s.extended_until && s.ext_status
+                ? s.extended_until.slice(0,5) + extBadge
+                : s.end_time.slice(0,5);
             return `
             <div class="cal-sched-item">
                 <div class="cal-sched-room"><i class="bi bi-door-open"></i> <span>${s.room_name}</span></div>
                 <div class="cal-sched-time">
-                    <i class="bi bi-clock"></i> Schedule: <span>${s.start_time.slice(0,5)} \u2013 ${s.extended_until
-                        ? s.extended_until.slice(0,5) + extBadge
-                        : s.end_time.slice(0,5)}</span>
+                    <i class="bi bi-clock"></i> Schedule: <span>${s.start_time.slice(0,5)} \u2013 ${displayEnd}</span>
                 </div>
                 <div class="cal-sched-faculty"><i class="bi bi-people"></i> Faculty: <span>${s.first_name ? s.first_name + ' ' + s.last_name : 'No faculty assigned'}</span></div>
             </div>

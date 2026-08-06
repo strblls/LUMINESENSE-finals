@@ -51,9 +51,11 @@ $has_pin = $pin_row && !empty($pin_row['pin_hash']);
 
 $schedules = [];
 $sched_res = $conn->query("
-    SELECT s.*, sub.name AS subject_name
+    SELECT s.id, s.day_of_week, s.start_time, s.end_time, s.extended_until,
+           sub.name AS subject_name, c.room_name
     FROM schedules s
     LEFT JOIN subjects sub ON sub.id = s.subject_id
+    LEFT JOIN classrooms c ON c.id = s.classroom_id
     WHERE s.classroom_id = $classroom_id
     ORDER BY FIELD(s.day_of_week, 'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'), s.start_time
 ");
@@ -645,10 +647,13 @@ $lighting_blocked = $lighting_reason !== null;
                         if (data.schedule_end !== current) {
                             window._updateScheduleEnd(data.schedule_end);
                         }
+                    } else {
+                        _scheduleEnd = null;
+                        tick();
                     }
                 })
                 .catch(function() {});
-        }, 15000);
+        }, 5000);
     })();
     </script>
 
@@ -1011,73 +1016,92 @@ $lighting_blocked = $lighting_reason !== null;
     <!--  
          VIEW SCHEDULE MODAL
       -->
-    <div class="modal fade" id="viewScheduleModal" tabindex="-1" aria-labelledby="viewScheduleLabel" aria-hidden="true">
-        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered">
+    <div class="profile-details-modal modal fade" id="viewScheduleModal" tabindex="-1" aria-labelledby="viewScheduleLabel" aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title bold" id="viewScheduleLabel">
                         <i class="bi bi-calendar-week me-2"></i>Class Schedule
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="d-flex flex-column gap-3">
-                        <?php if (!empty($schedules)): ?>
-                            <?php
-                            $dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                            usort($schedules, function ($a, $b) use ($dayOrder) {
-                                $da = array_search($a['day_of_week'], $dayOrder);
-                                $db = array_search($b['day_of_week'], $dayOrder);
-                                return $da !== $db ? $da - $db : strcmp($a['start_time'], $b['start_time']);
-                            });
-                            $dayIcons = [
-                                'Monday'    => 'bi-1-square-fill',
-                                'Tuesday'   => 'bi-2-square-fill',
-                                'Wednesday' => 'bi-3-square-fill',
-                                'Thursday'  => 'bi-4-square-fill',
-                                'Friday'    => 'bi-5-square-fill',
-                                'Saturday'  => 'bi-6-square-fill',
-                                'Sunday'    => 'bi-7-square-fill',
-                            ];
-                            $today = date('l');
-                            foreach ($schedules as $sched):
-                                $isToday  = ($sched['day_of_week'] === $today);
-                                $icon     = $dayIcons[$sched['day_of_week']] ?? 'bi-calendar';
-                                $start    = date('g:i A', strtotime($sched['start_time']));
-                                $end      = date('g:i A', strtotime($sched['end_time']));
+                    <?php if (!empty($schedules)): ?>
+                        <?php
+                        $dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                        usort($schedules, function ($a, $b) use ($dayOrder) {
+                            $da = array_search($a['day_of_week'], $dayOrder);
+                            $db = array_search($b['day_of_week'], $dayOrder);
+                            return $da !== $db ? $da - $db : strcmp($a['start_time'], $b['start_time']);
+                        });
+                        $today = date('l');
+                        $byDay = [];
+                        foreach ($schedules as $sched) {
+                            $byDay[$sched['day_of_week']][] = $sched;
+                        }
+                        ?>
+                        <div class="view-schedule-day-list">
+                            <?php foreach ($byDay as $day => $dayScheds):
+                                $isToday = ($day === $today);
                             ?>
-                                <div class="d-flex align-items-center gap-3 p-2 rounded-3
-                                <?= $isToday ? 'bg-primary bg-opacity-10 border border-primary border-opacity-25' : 'bg-light' ?>">
-                                    <i class="bi <?= $icon ?> <?= $isToday ? 'text-primary' : 'text-secondary' ?>"
-                                        style="font-size:1.6rem; flex-shrink:0;"></i>
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <strong><?= htmlspecialchars($sched['day_of_week']) ?></strong>
-                                            <?php if ($isToday): ?>
-                                                <span class="badge bg-primary rounded-pill" style="font-size:0.7rem;">Today</span>
+                                <div class="day-card <?= $isToday ? 'today' : '' ?>">
+                                    <div class="day-label">
+                                        <div class="text-uppercase small fw-bold mb-1" style="font-size:11px;letter-spacing:0.5px;color:<?= $isToday ? '#fff' : '#6c757d' ?>;"><?= htmlspecialchars($day) ?></div>
+                                        <?= htmlspecialchars($day) ?> <?= $isToday ? '· Today' : '' ?>
+                                    </div>
+                                    <?php foreach ($dayScheds as $sched):
+                                        $start = date('g:i A', strtotime($sched['start_time']));
+                                        $is_early_end = $sched['extended_until'] && $sched['extended_until'] < $sched['end_time'];
+                                        $end_time = $is_early_end
+                                            ? date('g:i A', strtotime($sched['extended_until']))
+                                            : date('g:i A', strtotime($sched['end_time']));
+                                        $scheduled_end = date('g:i A', strtotime($sched['end_time']));
+                                        $start_parts = explode(' ', $start);
+                                        $start_time_part = $start_parts[0];
+                                        $end_parts = explode(' ', $end_time);
+                                        $end_time_part = $end_parts[0];
+                                        $end_ampm = $end_parts[1] ?? 'AM';
+                                    ?>
+                                        <div class="slot-row">
+                                            <div class="slot-time">
+                                                <span class="slot-time-start"><?= $start_time_part ?></span>
+                                                <span class="slot-time-separator">TO</span>
+                                                <span class="slot-time-end"><?= $end_time_part ?></span>
+                                                <span class="slot-time-ampm"><?= $end_ampm ?></span>
+                                            </div>
+                                            <div class="slot-content">
+                                                <div class="slot-room">
+                                                    <i class="bi bi-door-open me-1"></i><?= htmlspecialchars($sched['room_name'] ?? '') ?>
+                                                </div>
+                                                <div class="slot-subject d-flex flex-row">
+                                                    <i class="bi bi-book me-1"></i>
+                                                    <h5><?= htmlspecialchars($sched['subject_name'] ?? 'No subject') ?></h5>
+                                                </div>
+                                            </div>
+                                            <?php if ($is_early_end): ?>
+                                                <div class="d-flex align-items-center gap-2 mt-1" style="font-size:12px;">
+                                                    <span class="badge-early-end" title="Schedule ended early" data-bs-toggle="tooltip">
+                                                        <i class="bi bi-stop-circle"></i>
+                                                    </span>
+                                                    <span style="color:#842029;">
+                                                        Ended early: <s style="opacity:0.6;"><?= $scheduled_end ?></s> → <strong style="color:#dc3545;"><?= $end_time ?></strong>
+                                                    </span>
+                                                </div>
                                             <?php endif; ?>
                                         </div>
-                                        <small class="text-muted">
-                                            <i class="bi bi-clock me-1"></i><?= $start ?> - <?= $end ?>
-                                        </small>
-                                        <?php if (!empty($sched['subject_name'])): ?>
-                                            <div style="font-size:0.8rem;" class="text-secondary">
-                                                <i class="bi bi-book me-1"></i><?= htmlspecialchars($sched['subject_name']) ?>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
+                                    <?php endforeach; ?>
                                 </div>
                             <?php endforeach; ?>
-                        <?php else: ?>
-                            <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3 text-muted">
-                                <i class="bi bi-calendar-x" style="font-size:1.6rem;"></i>
-                                <div>No schedules found for this classroom.</div>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3 text-muted">
+                            <i class="bi bi-calendar-x" style="font-size:1.6rem;"></i>
+                            <div>No schedules found for this classroom.</div>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="light" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

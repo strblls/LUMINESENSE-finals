@@ -226,12 +226,14 @@ foreach ($days as $day) $schedule_by_day[$day] = [];
 $r = $conn->query("
     SELECT s.id, s.day_of_week, s.start_time, s.end_time,
            s.extended_until, c.room_name, s.subject_id, sub.name AS subject_name,
+           CONCAT(COALESCE(cf.first_name, ''), ' ', COALESCE(cf.last_name, '')) AS assigned_by_name,
            (SELECT status FROM extension_requests
             WHERE schedule_id = s.id AND faculty_id = $faculty_id
             ORDER BY requested_at DESC LIMIT 1) AS ext_status
     FROM schedules s
     JOIN classrooms c ON c.id = s.classroom_id
     LEFT JOIN subjects sub ON sub.id = s.subject_id
+    LEFT JOIN faculty cf ON cf.id = s.created_by
     WHERE s.faculty_id = $faculty_id
     ORDER BY FIELD(s.day_of_week,'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'),
              s.start_time
@@ -708,8 +710,10 @@ function ordinal(int $number): string
                                     <?php else: foreach ($slots as $slot):
                                         $start     = date('g:i A', strtotime($slot['start_time']));
                                         $is_extension = $slot['extended_until'] && $slot['extended_until'] > $slot['end_time'];
+                                        $is_early_end = $slot['extended_until'] && $slot['extended_until'] < $slot['end_time'];
                                         $end       = date('g:i A', strtotime($is_extension ? $slot['extended_until'] : $slot['end_time']));
                                         $modal_end = date('g:i A', strtotime($slot['end_time']));
+                                        $actual_end = $slot['extended_until'] ? date('g:i A', strtotime($slot['extended_until'])) : null;
                                         $ext       = $is_extension
                                             ? date('g:i A', strtotime($slot['extended_until']))
                                             : null;
@@ -745,7 +749,7 @@ function ordinal(int $number): string
                                                         title="View Details"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-placement="auto"
-                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
+                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>', '<?= htmlspecialchars(trim($slot['assigned_by_name'] ?? '')) ?>', <?= $is_early_end ? 'true' : 'false' ?>, '<?= $modal_end ?>', '<?= $actual_end ?? '' ?>')">
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <span class="badge-ext-pending"
@@ -758,7 +762,7 @@ function ordinal(int $number): string
                                                         title="View Details"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-placement="auto"
-                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
+                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>', '<?= htmlspecialchars(trim($slot['assigned_by_name'] ?? '')) ?>', <?= $is_early_end ? 'true' : 'false' ?>, '<?= $modal_end ?>', '<?= $actual_end ?? '' ?>')">
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <?php if ($is_today): ?>
@@ -780,7 +784,7 @@ function ordinal(int $number): string
                                                         title="View Details"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-placement="auto"
-                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
+                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>', '<?= htmlspecialchars(trim($slot['assigned_by_name'] ?? '')) ?>', <?= $is_early_end ? 'true' : 'false' ?>, '<?= $modal_end ?>', '<?= $actual_end ?? '' ?>')">
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <button class="extend-icon-btn"
@@ -800,7 +804,7 @@ function ordinal(int $number): string
                                                         title="View Details"
                                                         data-bs-toggle="tooltip"
                                                         data-bs-placement="auto"
-                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>')">
+                                                        onclick="openSlotDetails(<?= $slot['id'] ?>, '<?= htmlspecialchars($slot['day_of_week']) ?>', '<?= $start ?>', '<?= $end ?>', '<?= htmlspecialchars($slot['room_name']) ?>', '<?= htmlspecialchars($ext ?? '') ?>', '<?= htmlspecialchars($slot['subject_name'] ?? 'No subject') ?>', '<?= htmlspecialchars(trim($slot['assigned_by_name'] ?? '')) ?>', <?= $is_early_end ? 'true' : 'false' ?>, '<?= $modal_end ?>', '<?= $actual_end ?? '' ?>')">
                                                         <i class="bi bi-eye"></i>
                                                     </button>
                                                     <button class="extend-icon-btn"
@@ -810,6 +814,13 @@ function ordinal(int $number): string
                                                         data-bs-placement="auto">
                                                         <i class="bi bi-clock-history"></i>
                                                     </button>
+                                                <?php endif; ?>
+                                                <?php if ($is_early_end): ?>
+                                                    <span class="badge-early-end"
+                                                        title="Schedule ended early"
+                                                        data-bs-toggle="tooltip">
+                                                        <i class="bi bi-stop-circle"></i>
+                                                    </span>
                                                 <?php endif; ?>
                                             </div>
                                         </div>
@@ -1075,6 +1086,27 @@ function ordinal(int $number): string
                             <div class="flex-grow-1">
                                 <div class="text-muted">Faculty</div>
                                 <strong id="slot-faculty"><?= htmlspecialchars($faculty_name) ?></strong>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3">
+                            <i class="bi bi-person-check" style="font-size:1.6rem; flex-shrink:0; color:var(--secondary-color-4);"></i>
+                            <div class="flex-grow-1">
+                                <div class="text-muted">Assigned By</div>
+                                <strong id="slot-assigned-by"></strong>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3" id="slot-early-end-row" style="display:none !important;">
+                            <i class="bi bi-stop-circle" style="font-size:1.6rem; flex-shrink:0; color:#dc3545;"></i>
+                            <div class="flex-grow-1">
+                                <div class="text-muted">Scheduled End</div>
+                                <strong id="slot-scheduled-end" style="text-decoration:line-through;opacity:0.6;"></strong>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3" id="slot-actual-end-row" style="display:none !important;">
+                            <i class="bi bi-clock" style="font-size:1.6rem; flex-shrink:0; color:#dc3545;"></i>
+                            <div class="flex-grow-1">
+                                <div class="text-muted">Actual End</div>
+                                <strong id="slot-actual-end" style="color:#dc3545;"></strong>
                             </div>
                         </div>
                     </div>

@@ -4,9 +4,16 @@
 //   - Summary cards        (from api/analytics.php → power_sessions + pzem_readings)
 //   - Line chart + Bar     (real hourly or daily avg V/A/W from pzem_readings)
 //   - Daily history table  (multi-day: per-day sessions; Today: real 5-min intervals)
+//   - Archives mode        (archive=YYYY-MM-DD on api/analytics.php; live strip shows "–")
 
 const API_URL      = '../../api/analytics.php';
 const LIVE_API_URL = '../../api/live-pzem.php';
+const ARCHIVE_LIST_URL = '../../api/archive-list.php';
+
+// ── Archive mode state ──────────────────────────────────────────────────
+let archiveDate = null;          // "YYYY-MM-DD" when viewing an archive, else null
+let archiveDatesCache = [];      // cached folder list from archive-list.php
+let archiveModal = null;
 
 // ── Fallback sample data (used only when API call fails — all zeros) ──────────
 const sampleDaily = [
@@ -375,6 +382,10 @@ var currentLabels = [];
 
 // ── LIVE READINGS — polls every 3 seconds ─────────────────────────────────────
 async function fetchLive() {
+    if (isArchiveMode()) {
+        setLiveDash();
+        return;
+    }
     try {
         const cid  = getCid();
         const res  = await fetch(`${LIVE_API_URL}?classroom_id=${cid}`);
@@ -436,6 +447,7 @@ function resumePolling() {
 }
 
 function checkPolling() {
+    if (archiveDate) { pausePolling(); return; }
     var activeRooms  = document.querySelectorAll('.rooms-card .stat-card.active-room');
     var metricEl     = document.querySelector('.dept-member-filter-item.active');
     var metricActive = metricEl && metricEl.textContent.trim() !== 'All Metrics';
@@ -454,6 +466,134 @@ function checkPolling() {
     } else {
         resumePolling();
     }
+}
+
+// ── ARCHIVE MODE ─────────────────────────────────────────────────────────
+function isArchiveMode() { return !!archiveDate; }
+
+function setLiveDash() {
+    var badge = document.getElementById('liveBadge');
+    if (badge) { badge.className = 'live-badge stale'; badge.innerHTML = '<span class="live-dot stale"></span> Archived'; }
+    var status = document.getElementById('liveStatus');
+    if (status) status.textContent = '\u2014';
+    var dot = document.getElementById('liveStatusDot');
+    if (dot) { dot.style.background = '#ccc'; dot.classList.remove('on'); }
+    ['liveVoltage','liveCurrent','livePower','liveEnergy'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = id === 'livePower' ? '\u2014 W' : '\u2014';
+    });
+}
+
+function openArchivePicker() {
+    var modalEl = document.getElementById('archiveModal');
+    if (!modalEl) return;
+    if (!archiveModal) archiveModal = new bootstrap.Modal(modalEl);
+    archiveModal.show();
+    loadArchiveDates();
+}
+
+function loadArchiveDates() {
+    var listEl = document.getElementById('archiveDateList');
+    var searchEl = document.getElementById('archiveSearchInput');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="archive-date-empty">Loading archive dates...</div>';
+    if (searchEl) searchEl.value = '';
+
+    var cid = getCid();
+    fetch(ARCHIVE_LIST_URL + '?classroom_id=' + cid)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (!data.success) throw new Error(data.message || 'Failed to load archives');
+            archiveDatesCache = data.dates || [];
+            renderArchiveDateList('');
+        })
+        .catch(function(err) {
+            console.error('[Archive]', err);
+            listEl.innerHTML = '<div class="archive-date-empty">Failed to load archive dates.</div>';
+        });
+}
+
+function renderArchiveDateList(query) {
+    var listEl = document.getElementById('archiveDateList');
+    if (!listEl) return;
+    var q = (query || '').toLowerCase().trim();
+    var filtered = archiveDatesCache.filter(function(d) {
+        if (!q) return true;
+        return (d.label || d.date || '').toLowerCase().indexOf(q) !== -1;
+    });
+    listEl.innerHTML = '';
+    if (!filtered.length) {
+        listEl.innerHTML = '<div class="archive-date-empty">No archive dates found.</div>';
+        return;
+    }
+    filtered.forEach(function(d) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'archive-date-item';
+        item.setAttribute('data-date', d.date);
+        item.innerHTML = '<span class="ad-date"><i class="bi bi-calendar-event me-1"></i>' + (d.label || d.date) + '</span>'
+            + '<span class="ad-meta">' + (d.minutes || 0) + ' min \u00B7 ' + (d.energy_wh || 0).toFixed(2) + ' Wh</span>';
+        item.addEventListener('click', function() {
+            document.querySelectorAll('#archiveDateList .archive-date-item').forEach(function(x) { x.classList.remove('selected'); });
+            item.classList.add('selected');
+        });
+        listEl.appendChild(item);
+    });
+}
+
+function confirmArchiveSelection() {
+    var selected = document.querySelector('#archiveDateList .archive-date-item.selected');
+    if (!selected) {
+        alert('Select an archive date first.');
+        return;
+    }
+    var d = selected.getAttribute('data-date');
+    if (archiveModal) archiveModal.hide();
+    enterArchiveMode(d);
+}
+
+function enterArchiveMode(dateStr) {
+    archiveDate = dateStr;
+    pausePolling();
+    setLiveDash();
+
+    var openBtn = document.getElementById('archiveOpenBtn');
+    var exitBtn = document.getElementById('exitArchiveBtn');
+    if (openBtn) openBtn.style.display = 'none';
+    if (exitBtn) exitBtn.style.display = '';
+
+    var sub = document.getElementById('tabSubheading');
+    var d = new Date(dateStr + 'T00:00:00');
+    var dateLabel = isNaN(d.getTime())
+        ? dateStr
+        : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    if (sub) sub.textContent = 'Archive \u2014 ' + dateLabel;
+
+    onControlChange();
+}
+
+function exitArchiveMode() {
+    archiveDate = null;
+    var openBtn = document.getElementById('archiveOpenBtn');
+    var exitBtn = document.getElementById('exitArchiveBtn');
+    if (openBtn) openBtn.style.display = '';
+    if (exitBtn) exitBtn.style.display = 'none';
+
+    // Restore subheading based on current room selection
+    var sub = document.getElementById('tabSubheading');
+    if (sub) {
+        var sel = document.getElementById('roomSelect');
+        if (sel && sel.value != 0) {
+            var opt = sel.options[sel.selectedIndex];
+            sub.textContent = opt ? opt.text + ' Selected' : 'Room Selected';
+        } else {
+            sub.textContent = 'All Rooms Selected';
+        }
+    }
+
+    resumePolling();
+    onControlChange();
 }
 
 fetchLive();
@@ -720,10 +860,11 @@ async function onControlChange() {
     const titleEl = document.getElementById('historyTitle');
     if (titleEl) titleEl.textContent = range === 1 ? "Today's History" : range + '-Day History';
 
-    // Update summary label date range
+    // Update summary label date range (archive mode anchors to the archive date)
     var labelEl = document.querySelector('.summary-label');
     if (labelEl) {
-        var now = new Date();
+        var now = archiveDate ? new Date(archiveDate + 'T00:00:00') : new Date();
+        if (isNaN(now.getTime())) now = new Date();
         if (range === 1) {
             labelEl.textContent = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
         } else {
@@ -736,7 +877,7 @@ async function onControlChange() {
     }
 
     var sub = document.getElementById('tabSubheading');
-    if (sub) {
+    if (sub && !archiveDate) {
         var sel = document.getElementById('roomSelect');
         if (sel && sel.value != 0) {
             var opt = sel.options[sel.selectedIndex];
@@ -749,13 +890,15 @@ async function onControlChange() {
     setLoading(true);
 
     try {
-        const res  = await fetch(`${API_URL}?range=${range}&classroom_id=${cid}`);
+        var url = `${API_URL}?range=${range}&classroom_id=${cid}`;
+        if (archiveDate) url += `&archive=${archiveDate}`;
+        const res  = await fetch(url);
         const data = await res.json();
         if (!data.success) throw new Error(data.message ?? 'API error');
 
         lastData = data;
         renderSummaryCards(data.summary);
-        renderFindingsReport(data, range);
+        renderFindingsReport(data, range, archiveDate);
 
         var chartLabels, chartData;
         if (range === 1) {
@@ -783,7 +926,7 @@ async function onControlChange() {
         renderSummaryCards(sampleSummary);
         currentIssues = [];
         renderSavings(null, range);
-        renderFindingsReport(null, range);
+        renderFindingsReport(null, range, archiveDate);
         updateCharts(sampleDaily.map(d => d.label), sampleDaily);
         renderHistoryTable(sampleDaily, sampleSummary, range);
     } finally {
@@ -810,7 +953,13 @@ function renderSavings(s, range) {
     var prev = (typeof s.prev_kwh === 'number') ? s.prev_kwh : 0;
 
     var periodEl = document.getElementById('savingsPeriodLabel');
-    if (periodEl) periodEl.textContent = (range == 1) ? 'Today' : 'Last ' + range + ' days';
+    if (periodEl) {
+        if (isArchiveMode()) {
+            periodEl.textContent = range == 1 ? archiveDateLabel() : 'Last ' + range + ' days \u00B7 ' + archiveDateLabel();
+        } else {
+            periodEl.textContent = (range == 1) ? 'Today' : 'Last ' + range + ' days';
+        }
+    }
 
     var valueEl = document.getElementById('savingsValue');
     var badgeEl = document.getElementById('savingsBadge');
@@ -926,8 +1075,9 @@ function openIssueModal(issue) {
 // ── SUMMARY REPORT OF FINDINGS ────────────────────────────────────────────────
 var findingsSparkCharts = {};
 var findingsMiniChart   = null;
+var findingsScrollOffset = 0;
 
-function renderFindingsReport(data, range) {
+function renderFindingsReport(data, range, archiveDate) {
     var card = document.getElementById('findingsCard');
     if (!card) return;
     destroyFindingsCharts();
@@ -944,9 +1094,30 @@ function renderFindingsReport(data, range) {
 
     var titleEl = document.getElementById('findingsTitle');
     var subEl   = document.getElementById('findingsSub');
-    if (titleEl) titleEl.textContent = isToday ? "Today's Summary Report" : range + '-Day Summary Report';
-    if (subEl)  subEl.textContent  = isToday ? new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-                                            : 'Last ' + range + ' days';
+    if (titleEl) {
+        titleEl.textContent = archiveDate
+            ? 'Archived Summary Report'
+            : (isToday ? "Today's Summary Report" : range + '-Day Summary Report');
+    }
+    if (subEl) {
+        if (archiveDate) {
+            var ad = new Date(archiveDate + 'T00:00:00');
+            var adLabel = isNaN(ad.getTime())
+                ? archiveDate
+                : ad.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            subEl.textContent = range === 1
+                ? adLabel
+                : (function() {
+                    var from = new Date(ad);
+                    from.setDate(from.getDate() - (range - 1));
+                    var opts = { month: 'short', day: 'numeric' };
+                    return from.toLocaleDateString('en-US', opts) + ' \u2013 ' + ad.toLocaleDateString('en-US', opts) + ', ' + ad.getFullYear();
+                })();
+        } else {
+            subEl.textContent = isToday ? new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                                        : 'Last ' + range + ' days';
+        }
+    }
 
     // Series for sparklines + mini chart
     var series;
@@ -975,10 +1146,12 @@ function renderFindingsReport(data, range) {
         }
     }
 
-    // Sparklines (energy + cost derive from the same series)
+    // Sparklines (cumulative energy + cumulative cost)
     var seriesFlat = series.filter(function(v) { return typeof v === 'number' && !isNaN(v); });
-    drawFindingsSpark('findingsSparkEnergy', seriesFlat, '#58078f');
-    drawFindingsSpark('findingsSparkCost', seriesFlat.map(function(v) { return v * 11; }), '#c0004e');
+    var cumEnergy = [], cumCost = [], runE = 0;
+    seriesFlat.forEach(function(v) { runE += v; cumEnergy.push(runE); cumCost.push(+(runE * 11).toFixed(2)); });
+    drawFindingsSpark('findingsSparkEnergy', cumEnergy, '#58078f');
+    drawFindingsSpark('findingsSparkCost', cumCost, '#c0004e');
 
     // Mini chart (energy profile) with peak highlight + issue markers
     renderFindingsMiniChart(seriesLabels, series, data.issues, range);
@@ -1036,10 +1209,13 @@ function renderFindingsMiniChart(labels, series, issues, range) {
     var canvas = document.getElementById('findingsMiniChart');
     var hint   = document.getElementById('findingsChartHint');
     var label  = document.getElementById('findingsChartLabel');
+    var scrollWrap = document.getElementById('findingsScrollWrap');
+    var slider = document.getElementById('findingsScroll');
     if (!canvas || !window.Chart) return;
     if (!labels || !labels.length) {
         if (label) label.textContent = 'Energy Profile';
         if (hint)  hint.textContent  = 'No data';
+        if (scrollWrap) scrollWrap.classList.remove('visible');
         return;
     }
 
@@ -1081,6 +1257,18 @@ function renderFindingsMiniChart(labels, series, issues, range) {
         if (issueByIndex[i]) return 'rgba(220,53,69,0.85)';
         return i === maxIdx ? 'rgba(245,158,11,0.9)' : 'rgba(116,47,211,0.55)';
     });
+
+    findingsScrollOffset = 0;
+    var n = labels.length;
+    if (scrollWrap && slider) {
+        if (n <= WINDOW_SIZE) {
+            scrollWrap.classList.remove('visible');
+        } else {
+            scrollWrap.classList.add('visible');
+            slider.max = n - WINDOW_SIZE;
+            slider.value = 0;
+        }
+    }
 
     findingsMiniChart = new Chart(canvas, {
         type: 'bar',
@@ -1124,8 +1312,29 @@ function renderFindingsMiniChart(labels, series, issues, range) {
         },
     });
 
-    if (label) label.textContent = (parseInt(range) === 1) ? 'Today Energy Profile (Wh per interval)' : 'Daily Energy Profile (Wh)';
+    if (label) label.textContent = isArchiveMode()
+        ? ((parseInt(range) === 1) ? 'Archived Energy Profile (Wh per minute)' : 'Archived Daily Energy Profile (Wh)')
+        : ((parseInt(range) === 1) ? 'Today Energy Profile (Wh per interval)' : 'Daily Energy Profile (Wh)');
     if (hint)  hint.textContent  = 'Amber = peak \u00B7 Red = issue';
+}
+
+function onFindingsScroll(value) {
+    if (!findingsMiniChart || !findingsMiniChart.data || !findingsMiniChart.data.labels) return;
+    var offset = parseInt(value);
+    findingsScrollOffset = offset;
+    findingsMiniChart.options.scales.x.min = offset;
+    findingsMiniChart.options.scales.x.max = offset + WINDOW_SIZE;
+    findingsMiniChart.update();
+    var tipEl = document.getElementById('findingsScrollTip');
+    if (tipEl) {
+        var labels = findingsMiniChart.data.labels;
+        tipEl.textContent = labels[offset] || '';
+        tipEl.classList.add('show');
+        var pct = findingsMiniChart.options.scales.x.max && findingsMiniChart.data.labels.length > WINDOW_SIZE
+            ? (offset / (findingsMiniChart.data.labels.length - WINDOW_SIZE)) * 100 : 0;
+        tipEl.style.left = 'calc(' + pct + '% + ' + (4 - pct * 0.08) + 'px)';
+        tipEl.style.transform = 'translateX(-50%)';
+    }
 }
 
 function renderFindingsList(data, series, seriesLabels, isToday) {
@@ -1218,7 +1427,7 @@ function renderFindingsAnomalies(issues) {
 
     var label = document.createElement('span');
     label.className = 'findings-anomalies-label';
-    label.innerHTML = '<i class="bi bi-bell-fill me-1"></i>Open issues';
+    label.innerHTML = '<i class="bi bi-bell-fill me-1"></i>Listed Issues';
 
     var searchWrap = document.createElement('div');
     searchWrap.className = 'findings-anomalies-search';
@@ -1227,7 +1436,7 @@ function renderFindingsAnomalies(issues) {
     var searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.placeholder = 'Search room or issue...';
-    searchInput.setAttribute('aria-label', 'Search open issues');
+    searchInput.setAttribute('aria-label', 'Search listed issues');
     searchInput.addEventListener('input', function() { renderFindingsAnomalyChips(searchInput.value); });
     searchWrap.appendChild(searchIcon);
     searchWrap.appendChild(searchInput);
@@ -1544,6 +1753,16 @@ document.querySelectorAll('#vawGroup .live-stat-card[data-metric]').forEach(func
 var initLabel = document.querySelector('.summary-label');
 if (initLabel) initLabel.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
+// Archive picker search-as-you-type
+(function() {
+    var searchEl = document.getElementById('archiveSearchInput');
+    if (searchEl) {
+        searchEl.addEventListener('input', function() {
+            renderArchiveDateList(searchEl.value);
+        });
+    }
+})();
+
 // Fetch real data immediately (no dummy pre-render)
 onControlChange();
 
@@ -1624,12 +1843,19 @@ function deselectRoom() {
         c.classList.remove('active-room');
     });
     var sub = document.getElementById('tabSubheading');
-    if (sub) sub.textContent = 'All Rooms Selected';
+    if (sub) sub.textContent = isArchiveMode() ? 'Archive \u2014 ' + archiveDateLabel() : 'All Rooms Selected';
     syncRoomSelect(0);
     if (typeof onControlChange === 'function') onControlChange();
     if (typeof fetchLive === 'function') fetchLive();
     if (typeof checkPolling === 'function') checkPolling();
 }
+
+function archiveDateLabel() {
+    var d = archiveDate ? new Date(archiveDate + 'T00:00:00') : null;
+    if (!d || isNaN(d.getTime())) return archiveDate || '';
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
 document.querySelectorAll('.rooms-card .stat-card').forEach(function(card) {
     card.addEventListener('click', function(e) {
         var active = document.querySelector('.rooms-card .stat-card.active-room');
@@ -1640,15 +1866,17 @@ document.querySelectorAll('.rooms-card .stat-card').forEach(function(card) {
         var rid = this.getAttribute('data-room-id');
         if (sub) {
             if (wasActive) {
-                sub.textContent = 'All Rooms Selected';
+                sub.textContent = isArchiveMode() ? 'Archive \u2014 ' + archiveDateLabel() : 'All Rooms Selected';
                 syncRoomSelect(0);
             } else {
                 var nameEl = this.querySelector('.stat-value');
-                sub.textContent = nameEl ? nameEl.textContent + ' Selected' : 'Room Selected';
+                sub.textContent = isArchiveMode()
+                    ? (nameEl ? nameEl.textContent + ' \u00B7 Archive' : 'Room \u00B7 Archive') + ' \u2014 ' + archiveDateLabel()
+                    : (nameEl ? nameEl.textContent + ' Selected' : 'Room Selected');
                 syncRoomSelect(rid);
             }
         }
-        if (!wasActive && !isRoomPrototype(rid)) {
+        if (!wasActive && !isArchiveMode() && !isRoomPrototype(rid)) {
             showNoDeviceState();
             pausePolling();
         } else {

@@ -1546,6 +1546,61 @@ body.contrast-bg {
     transform: scale(1.04);
 }
 
+/* ── Archive date picker ─────────────────────────────────────────────── */
+.archive-date-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 2px;
+}
+
+.archive-date-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    border: 1px solid #e6def5;
+    background: #fff;
+    color: #333;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-primary, 'Poppins', sans-serif);
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.archive-date-item:hover {
+    border-color: var(--secondary-color-1, #58078f);
+    background: #faf6ff;
+}
+
+.archive-date-item.selected {
+    border-color: var(--secondary-color-1, #58078f);
+    background: #f3ecfb;
+    box-shadow: 0 0 0 3px rgba(88, 7, 143, 0.10);
+}
+
+.archive-date-item .ad-date {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2a1a3f;
+}
+
+.archive-date-item .ad-meta {
+    font-size: 11px;
+    color: #9a8bb0;
+    white-space: nowrap;
+}
+
+.archive-date-empty {
+    padding: 20px 8px;
+    text-align: center;
+    color: #9a8bb0;
+    font-size: 12px;
+}
+
 @media (max-width: 768px) {
     .findings-chips {
         grid-template-columns: repeat(2, 1fr);

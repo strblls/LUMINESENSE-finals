@@ -111,6 +111,31 @@ $r = $stmt->get_result();
 while ($row = $r->fetch_assoc()) $gesture_logs[] = $row;
 $stmt->close();
 
+// - Faculty permissions for lock computation -----------------
+$perm_stmt = $conn->prepare("SELECT lighting_control, gesture_control FROM faculty_permissions WHERE faculty_id = ? LIMIT 1");
+$perm_stmt->bind_param('i', $faculty_id);
+$perm_stmt->execute();
+$perm_row = $perm_stmt->get_result()->fetch_assoc();
+$perm_stmt->close();
+$has_lighting_perm = $perm_row ? (bool)$perm_row['lighting_control'] : true;
+$has_gesture_perm  = $perm_row ? (bool)$perm_row['gesture_control']  : true;
+
+// - Lock logic (mirrors get_overlay_reason in faculty-home.php) --
+$has_schedule = $active_schedule !== null;
+$lock_lighting = !$has_schedule || !$has_lighting_perm;
+$lock_gesture  = !$has_schedule || !$has_gesture_perm;
+
+$lock_message = null;
+if (!$has_schedule) {
+    $lock_message = 'No active schedule. Light and gesture controls are locked.';
+} elseif ($lock_lighting && $lock_gesture) {
+    $lock_message = 'Your account does not have access to light or gesture controls.';
+} elseif ($lock_lighting) {
+    $lock_message = 'Your account does not have access to light controls.';
+} elseif ($lock_gesture) {
+    $lock_message = 'Your account does not have access to gesture controls.';
+}
+
 echo json_encode([
     'success'         => true,
     'server_time'     => $now_time,
@@ -120,10 +145,13 @@ echo json_encode([
     'row3_status'     => $row3_status ?? 'off',
     'pir_occupied'    => (bool)$pir_occupied,
     'pir_since'       => $pir_since,
-    'schedule_active' => $active_schedule !== null,
+    'schedule_active' => $has_schedule,
     'schedule_end'    => $active_schedule
                             ? ($active_schedule['extended_until'] ?? $active_schedule['end_time'])
                             : null,
+    'lock_gesture'    => $lock_gesture,
+    'lock_lighting'   => $lock_lighting,
+    'message'         => $lock_message,
     'logs'            => $logs,
     'gesture_logs'    => $gesture_logs,
 ]);
