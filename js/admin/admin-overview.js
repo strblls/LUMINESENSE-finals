@@ -753,7 +753,9 @@ function updateCardLighting(roomId, r1, r2, r3) {
 
 // ── Live auto-refresh (device-strip + sparklines) ─────────────────────────
 const OVERVIEW_POLL_MS = 5000;
+const CHART_POLL_MS = 30000;
 let overviewPollTimer = null;
+let chartPollTimer = null;
 
 function applyLiveRoom(room) {
     const card = document.querySelector('.room-card[data-room-id="' + room.id + '"]');
@@ -818,6 +820,20 @@ async function pollOverviewLive() {
     }
 }
 
+async function pollOverviewChart() {
+    if (currentPeriod !== 1) return;
+    try {
+        const res = await fetch('../../api/overview-chart.php');
+        const data = await res.json();
+        if (!data || !data.ok) return;
+        CHART_TODAY = data.today || [];
+        updateMainCharts();
+        buildOverviewLineChart();
+    } catch (err) {
+        console.warn('[Overview Chart]', err);
+    }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
     drawAllSparks();
@@ -828,6 +844,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Keep device-strips + sparklines fresh while ESP32/Arduino streams
     overviewPollTimer = setInterval(pollOverviewLive, OVERVIEW_POLL_MS);
+    chartPollTimer = setInterval(pollOverviewChart, CHART_POLL_MS);
 
     // Room selection
     document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(card => {

@@ -15,14 +15,14 @@ $stateLabels = [
     3 => 'Locked',
 ];
 
-// - Non-prototype room early return --------------------
+// - Room existence check --------------------
 if ($cid > 0) {
-    $stmt = $conn->prepare("SELECT is_prototype FROM classrooms WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id FROM classrooms WHERE id = ?");
     $stmt->bind_param('i', $cid);
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    if (!$row || empty($row['is_prototype'])) {
+    if (!$row) {
         echo json_encode([
             'success'   => true,
             'stale'     => true,
