@@ -524,3 +524,137 @@ $conn->query("
         FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
+
+// ── is_archived column for soft-delete archiving ─────────────────────────────
+addColIfMissing($conn, 'faculty', 'is_archived', "TINYINT(1) DEFAULT 0");
+addColIfMissing($conn, 'admins', 'is_archived', "TINYINT(1) DEFAULT 0");
+
+// ── Semester/academic_year columns for flush_schedules ───────────────────────
+addColIfMissing($conn, 'flush_schedules', 'semester', "VARCHAR(20) DEFAULT NULL");
+addColIfMissing($conn, 'flush_schedules', 'academic_year', "VARCHAR(20) DEFAULT NULL");
+
+// ── Archive registry (central log of every flush event) ──────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS archive_registry (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        semester VARCHAR(20) NOT NULL,
+        academic_year VARCHAR(20) NOT NULL,
+        flush_type ENUM('semester','pzem','manual') NOT NULL,
+        flushed_by INT,
+        flushed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        total_archived INT DEFAULT 0,
+        total_deleted INT DEFAULT 0,
+        total_cleared INT DEFAULT 0,
+        notes TEXT
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+// ── Archived schedules ───────────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS archived_schedules (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        registry_id INT NOT NULL,
+        original_id INT,
+        classroom_id INT,
+        faculty_id INT,
+        day_of_week VARCHAR(20),
+        start_time TIME,
+        end_time TIME,
+        extended_until TIME,
+        subject_id INT,
+        created_by INT,
+        archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (registry_id) REFERENCES archive_registry(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+// ── Archived departments ─────────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS archived_departments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        registry_id INT NOT NULL,
+        original_id INT,
+        name VARCHAR(100),
+        head_faculty_id INT,
+        archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (registry_id) REFERENCES archive_registry(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+// ── Archived subject areas ───────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS archived_subject_areas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        registry_id INT NOT NULL,
+        original_id INT,
+        name VARCHAR(100),
+        department_id INT,
+        archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (registry_id) REFERENCES archive_registry(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+// ── Archived subjects ────────────────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS archived_subjects (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        registry_id INT NOT NULL,
+        original_id INT,
+        name VARCHAR(100),
+        subject_area_id INT,
+        archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (registry_id) REFERENCES archive_registry(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+// ── Archived extension requests ──────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS archived_extension_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        registry_id INT NOT NULL,
+        original_id INT,
+        schedule_id INT,
+        faculty_id INT,
+        extend_mins INT,
+        status VARCHAR(20),
+        requested_at DATETIME,
+        reviewed_by INT,
+        reviewed_at DATETIME,
+        archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (registry_id) REFERENCES archive_registry(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+// ── Archived subject assignments ─────────────────────────────────────────────
+$conn->query("
+    CREATE TABLE IF NOT EXISTS archived_subject_assignments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        registry_id INT NOT NULL,
+        original_id INT,
+        faculty_id INT,
+        subject_id INT,
+        archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (registry_id) REFERENCES archive_registry(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+// ── MySQL EVENT: extension_flush_event (runs every Saturday 23:59) ──────────
+$eventScheduler = $conn->query("SHOW VARIABLES LIKE 'event_scheduler'")->fetch_assoc();
+$eventsEnabled = ($eventScheduler['Value'] ?? '') === 'ON';
+if ($eventsEnabled) {
+    $evtCheck = $conn->query("SHOW EVENTS LIKE 'extension_flush_event'");
+    if ($evtCheck && $evtCheck->num_rows === 0) {
+        @$conn->query("
+            CREATE EVENT extension_flush_event
+            ON SCHEDULE EVERY 1 WEEK
+            STARTS CURRENT_TIMESTAMP + INTERVAL (6 - WEEKDAY(CURRENT_TIMESTAMP)) DAY + INTERVAL 23 HOUR + INTERVAL 59 MINUTE
+            ON COMPLETION PRESERVE
+            DO BEGIN
+                UPDATE schedules SET extended_until = NULL WHERE extended_until IS NOT NULL;
+                DELETE FROM extension_requests;
+                INSERT INTO admin_logs (admin_id, action, target_name, notes)
+                VALUES (0, 'extension_flush', 'Extensions Cleared', 'Auto-cleared by MySQL EVENT');
+            END
+        ");
+    }
+}

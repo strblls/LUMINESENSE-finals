@@ -1027,3 +1027,14 @@
     color: var(--accent-black);
     transform: scale(1.08);
 }
+
+/* ── Archived Badge ─────────────────────────────────────────────────────── */
+.badge-archived {
+    background: #b3e5fc;
+    color: #01579b;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 6px;
+    display: inline-block;
+}

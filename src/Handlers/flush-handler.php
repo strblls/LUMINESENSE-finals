@@ -164,4 +164,61 @@ if ($action === 'execute_flush') {
     exit;
 }
 
+// - DELETE_ARCHIVE ------------------------------
+if ($action === 'delete_archive') {
+    $registry_id = (int)($_POST['registry_id'] ?? 0);
+    if (!$registry_id) {
+        echo json_encode(['success' => false, 'message' => 'Invalid archive ID.']); exit;
+    }
+
+    $tables = ['archived_schedules', 'archived_extension_requests', 'archived_departments', 'archived_subject_areas', 'archived_subjects', 'archived_subject_assignments'];
+    foreach ($tables as $t) {
+        $conn->query("DELETE FROM $t WHERE registry_id = $registry_id");
+    }
+    $conn->query("DELETE FROM archive_registry WHERE id = $registry_id");
+
+    log_admin_action($conn, $admin_id, 'archive_deleted', 'Archive', "Deleted archive #$registry_id");
+    echo json_encode(['success' => true, 'message' => 'Archive deleted.']);
+    exit;
+}
+
+// - PAUSE_EXTENSION_EVENT -----------------------
+if ($action === 'pause_extension_event') {
+    $conn->query("ALTER EVENT extension_flush_event DISABLE");
+    log_admin_action($conn, $admin_id, 'extension_event_paused', 'Extensions', 'MySQL EVENT disabled');
+    echo json_encode(['success' => true]); exit;
+}
+
+// - RESUME_EXTENSION_EVENT ----------------------
+if ($action === 'resume_extension_event') {
+    $conn->query("ALTER EVENT extension_flush_event ENABLE");
+    log_admin_action($conn, $admin_id, 'extension_event_resumed', 'Extensions', 'MySQL EVENT enabled');
+    echo json_encode(['success' => true]); exit;
+}
+
+// - EXECUTE_EXTENSION_NOW -----------------------
+if ($action === 'execute_extension_now') {
+    execute_extension_flush($conn);
+    log_admin_action($conn, $admin_id, 'extension_flush', 'Extensions', 'Manual immediate execution');
+    echo json_encode(['success' => true, 'message' => 'Extensions cleared.']); exit;
+}
+
+// - EXECUTE_FLUSH_NOW (immediate) ---------------
+if ($action === 'execute_flush_now') {
+    $semester = trim($_POST['semester'] ?? '');
+    $academic_year = trim($_POST['academic_year'] ?? '');
+
+    $stmt = $conn->prepare("INSERT INTO flush_schedules (scheduled_datetime, flush_schedules, flush_departments, flush_subject_areas, flush_subjects, semester, academic_year, created_by, confirmed, executed)
+                            VALUES (NOW(), 1, 1, 1, 1, ?, ?, ?, 1, 0)");
+    $stmt->bind_param('ssi', $semester, $academic_year, $admin_id);
+    $stmt->execute();
+    $flush_id = $conn->insert_id;
+    $stmt->close();
+
+    $executed_items = execute_flush($conn, $admin_id, $flush_id, 1, 1, 1, $semester, $academic_year);
+
+    echo json_encode(['success' => true, 'message' => 'System flush executed.', 'items' => $executed_items]);
+    exit;
+}
+
 echo json_encode(['success' => false, 'message' => 'Unknown action.']);

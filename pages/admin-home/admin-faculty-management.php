@@ -587,6 +587,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                             <div class="dept-member-filter-item" onclick="filterFacultyByStatus(this, 'approved')">Approved</div>
                                             <div class="dept-member-filter-item" onclick="filterFacultyByStatus(this, 'pending')">Pending</div>
                                             <div class="dept-member-filter-item" onclick="filterFacultyByStatus(this, 'unverified')">Unverified</div>
+                                            <div class="dept-member-filter-item" onclick="filterFacultyByStatus(this, 'archived')">Archived</div>
                                         </div>
                                     </div>
                                     <div class="faculty-side-filter">
@@ -659,7 +660,7 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                                     if ($is_faculty_head) $f_type_label = 'Head';
                                                 }
                                             ?>
-                                                <div class="room-card" data-faculty-status="<?= $f_status ?>" data-faculty-created="<?= htmlspecialchars($acct['created_at'] ?? '') ?>" data-faculty-search="<?= $acct['_search'] ?>" data-faculty-name="<?= strtolower(htmlspecialchars($f_name)) ?>" data-faculty-email="<?= strtolower(htmlspecialchars($f_email)) ?>" data-faculty-type="<?= $acct['_type'] ?>">
+                                                <div class="room-card" data-faculty-status="<?= $f_status ?>" data-faculty-created="<?= htmlspecialchars($acct['created_at'] ?? '') ?>" data-faculty-search="<?= $acct['_search'] ?>" data-faculty-name="<?= strtolower(htmlspecialchars($f_name)) ?>" data-faculty-email="<?= strtolower(htmlspecialchars($f_email)) ?>" data-faculty-type="<?= $acct['_type'] ?>" data-faculty-is-archived="<?= $acct['is_archived'] ?? 0 ?>">
                                                     <div class="room-card-accent <?= $f_accent ?>"></div>
                                                     <div class="room-card-body">
                                                         <div class="room-card-header">
@@ -669,6 +670,9 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                                                 <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
                                                                     <div class="status-badge <?= $f_type_class ?>" style="<?= $f_type_style ?>"><?= $f_type_label ?></div>
                                                                     <span class="room-status-badge <?= $f_badge ?>"><?= $f_badge_label ?></span>
+                                                                    <?php if (!empty($acct['is_archived'])): ?>
+                                                                        <span class="badge-archived">Archived</span>
+                                                                    <?php endif; ?>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -709,6 +713,15 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                                                 onclick="openDeleteFacultyModal(<?= $acct['id'] ?>, '<?= addslashes($f_name) ?>')">
                                                                 <i class="bi bi-trash"></i>
                                                             </button>
+                                                            <?php if (!empty($acct['is_archived'])): ?>
+                                                                <form method="POST" class="mb-0" style="display:inline-flex;" onsubmit="sessionStorage.setItem('activeTab','faculty-directory')">
+                                                                    <input type="hidden" name="faculty_id" value="<?= $acct['id'] ?>">
+                                                                    <input type="hidden" name="action" value="reactivate">
+                                                                    <button type="submit" class="btn-icon" title="Reactivate Account" style="color:#198754;" data-bs-toggle="tooltip" data-bs-placement="auto">
+                                                                        <i class="bi bi-arrow-clockwise"></i>
+                                                                    </button>
+                                                                </form>
+                                                            <?php endif; ?>
                                                             <?php endif; ?>
                                                         </div>
                                                     </div>

@@ -43,6 +43,22 @@ $rd = $conn->query("
 ");
 while ($row = $rd->fetch_assoc()) $dailyByRoom[$row['classroom_id']][$row['d']] = $row;
 
+// Determine which classrooms have an active session right now
+$activeSessions = [];
+$today_dow = date('l');
+$now_time = date('H:i:s');
+$actRes = $conn->query("
+    SELECT DISTINCT classroom_id FROM schedules
+    WHERE day_of_week = '$today_dow'
+      AND start_time <= '$now_time'
+      AND COALESCE(extended_until, end_time) >= '$now_time'
+");
+if ($actRes) {
+    while ($actRow = $actRes->fetch_assoc()) {
+        $activeSessions[] = (int)$actRow['classroom_id'];
+    }
+}
+
 $rooms = [];
 foreach ($roomRows as $rid => $room) {
     $spark = []; $sparkV = []; $sparkA = []; $sparkW = [];
@@ -65,6 +81,7 @@ foreach ($roomRows as $rid => $room) {
         'energy_wh'   => $room['energy_wh'] !== null ? (float)$room['energy_wh'] : null,
         'fresh_secs'  => $room['fresh_secs'] !== null ? (int)$room['fresh_secs'] : null,
         'is_live'     => $room['fresh_secs'] !== null && (int)$room['fresh_secs'] <= 60,
+        'isActiveSession' => in_array((int)$rid, $activeSessions),
         'spark'       => $spark,
         'sparkV'      => $sparkV,
         'sparkA'      => $sparkA,

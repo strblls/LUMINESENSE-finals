@@ -600,10 +600,10 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
 
         <!-- Archive folder picker modal -->
         <div class="modal fade" id="archiveModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content" style="border-radius:12px;overflow:hidden;">
-                    <div class="modal-header" style="background:var(--secondary-color-1);color:#fff;padding:12px 20px;">
-                        <h6 class="modal-title bold"><i class="bi bi-folder2-open me-1"></i>Select an Archive Date</h6>
+            <div class="room-details-modal modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title bold"><i class="bi bi-folder2-open me-1"></i>Select an Archive Date</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body p-3">
@@ -614,10 +614,9 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                         </div>
                         <div class="archive-date-list" id="archiveDateList" style="max-height:300px;overflow-y:auto;"></div>
                         <div class="d-flex justify-content-end gap-2 mt-3">
-                            <button type="button" class="timetable-btn" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="timetable-btn" id="archiveConfirmBtn" onclick="confirmArchiveSelection()" style="background:var(--secondary-color-1);color:#fff;">
-                                <i class="bi bi-check-lg"></i>
-                                <span class="timetable-btn-title bold">View Archive</span>
+                            <button type="button" class="light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="medium" id="archiveConfirmBtn" onclick="confirmArchiveSelection()">
+                                <i class="bi bi-check-lg"></i> View Archive
                             </button>
                         </div>
                     </div>

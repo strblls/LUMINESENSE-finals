@@ -44,6 +44,13 @@ if ((int)$row['is_verified'] !== 1 || $row['approved_by'] === null) {
     header('Location: ../pages/faculty-login.php'); exit;
 }
 
+// Check if faculty account is archived
+if (isset($row['is_archived']) && (int)$row['is_archived'] === 1) {
+    $_SESSION['login_error'] = '';
+    header('Location: ../pages/faculty-login.php?archived=1');
+    exit;
+}
+
 session_regenerate_id(true);
 $_SESSION['faculty_id']        = $row['id'];
 $_SESSION['faculty_name']      = $row['first_name'] . ' ' . $row['last_name'];

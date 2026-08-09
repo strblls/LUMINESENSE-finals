@@ -492,7 +492,10 @@ function filterFacultyCards(query) {
 
         var matchName = q && name.indexOf(q) !== -1;
         var matchEmail = q && email.indexOf(q) !== -1;
-        var matchStatus = activeFacultyStatus === 'all' || status === activeFacultyStatus;
+        var isArchived = card.getAttribute('data-faculty-is-archived') === '1';
+        var matchStatus = activeFacultyStatus === 'all' || 
+            (activeFacultyStatus === 'archived' && isArchived) ||
+            (activeFacultyStatus !== 'archived' && status === activeFacultyStatus && !isArchived);
         var matchDate = true;
         if (activeFacultyDate !== 'all' && created) {
             var d = new Date(created);

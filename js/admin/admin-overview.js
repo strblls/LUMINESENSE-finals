@@ -64,19 +64,23 @@ function drawVawSpark(canvasId, room) {
     const el = document.getElementById(canvasId);
     if (!el || !window.Chart) return;
     if (sparkCharts[canvasId]) sparkCharts[canvasId].destroy();
-    const v = (room && room.sparkV) || [];
-    const a = (room && room.sparkA) || [];
-    const w = (room && room.sparkW) || [];
-    const n = Math.max(v.length, a.length, w.length);
+    const hasSession = room && room.isActiveSession;
+    const v = hasSession ? ((room && room.sparkV) || []) : [];
+    const a = hasSession ? ((room && room.sparkA) || []) : [];
+    const w = hasSession ? ((room && room.sparkW) || []) : [];
+    const n = Math.max(v.length, a.length, w.length, 1);
     const labels = Array.from({ length: n }, (_, i) => i);
+    const grayColor = '#d0d0d0';
     sparkCharts[canvasId] = new Chart(el, {
         type: 'line',
         data: {
             labels,
-            datasets: [
+            datasets: hasSession ? [
                 { data: v, borderColor: COLORS.voltage, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
                 { data: a, borderColor: COLORS.current, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
                 { data: w, borderColor: COLORS.power, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
+            ] : [
+                { data: [0], borderColor: grayColor, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
             ],
         },
         options: {
@@ -947,4 +951,62 @@ document.addEventListener('DOMContentLoaded', function () {
             updateSelectionUI();
         });
     }
+
+    initFacultyManagement();
 });
+
+/* ── Faculty Management Pane ─────────────────────────────────────────────── */
+let FACULTY_MEMBERS = [];
+let facultyFilter = 'all';
+
+async function initFacultyManagement() {
+    // Faculty list is rendered server-side. We just attach behavior.
+    var facultyListEl = document.getElementById('facultyList');
+    if (!facultyListEl) return;
+    FACULTY_MEMBERS = Array.from(facultyListEl.querySelectorAll('.faculty-card'));
+}
+
+function setFacultyFilter(filter, btn) {
+    facultyFilter = filter;
+    document.querySelectorAll('#facultyFilters button').forEach(function(b) {
+        b.classList.remove('selected');
+    });
+    if (btn) btn.classList.add('selected');
+    filterFacultyCards();
+}
+
+function filterFacultyCards() {
+    var search = (document.getElementById('facultySearchInput')?.value || '').toLowerCase();
+    var cards = document.querySelectorAll('.faculty-card');
+    cards.forEach(function(card) {
+        var status = card.getAttribute('data-status');
+        var name = card.querySelector('.faculty-name')?.textContent?.toLowerCase() || '';
+        var matchFilter = facultyFilter === 'all' || status === facultyFilter;
+        var matchSearch = !search || name.includes(search);
+        card.style.display = (matchFilter && matchSearch) ? '' : 'none';
+    });
+}
+
+function selectFaculty(id, el) {
+    document.querySelectorAll('.faculty-card').forEach(function(c) { c.classList.remove('selected'); });
+    if (el) el.classList.add('selected');
+    // Optional: filter the overview chart by this faculty's room
+    var card = el;
+    if (!card) return;
+    var meta = card.querySelector('.faculty-meta');
+    if (!meta) return;
+    var metaText = meta.textContent;
+    // Extract room name from meta text (after the dot separator)
+    var match = metaText.match(/·\s*(\S+)/);
+    if (match) {
+        var roomName = match[1];
+        // Find matching room and select it
+        var roomCards = document.querySelectorAll('.room-card');
+        roomCards.forEach(function(rc) {
+            var rname = rc.querySelector('.room-name')?.textContent?.toLowerCase() || '';
+            if (rname === roomName.toLowerCase()) {
+                selectRoom(parseInt(rc.getAttribute('data-room-id')), rc);
+            }
+        });
+    }
+}

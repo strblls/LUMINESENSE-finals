@@ -57,6 +57,7 @@ bool row3State = false;
 // ── PIR State ──────────────────────────────────────────────
 bool pirState = false;
 bool pirResetUsed = false;
+bool lightOverride = false;
 
 // ── PIR Inactivity Timeout (auto-off after no motion) ──────
 unsigned long lastPirActivity = 0;
@@ -239,16 +240,6 @@ void loop()
             syncStateToFrontend();
             Serial2.println("ACK:ALL:OFF");
         }
-    }
-
-    // Inactivity auto-off: turn lights OFF after no motion for timeout period
-    if (sysState == STATE_OUTSIDE && (row1State || row2State || row3State) &&
-        millis() - lastPirActivity >= pirInactivityTimeoutMs)
-    {
-        Serial.println(F("[PIR] Inactivity timeout — lights OFF"));
-        setAllRows(false);
-        saveState();
-        syncStateToFrontend();
     }
 
     // Day rollover — flush the pending per-minute archive row to a new day's file
@@ -454,7 +445,7 @@ void handlePIR(unsigned long now)
 
         if (sysState == STATE_SCHEDULED)
         {
-            if (!row1State && !row2State && !row3State)
+            if (!row1State && !row2State && !row3State && !lightOverride)
             {
                 Serial.println(F("[PIR] Motion — lights ON"));
                 setAllRows(true);
@@ -462,6 +453,10 @@ void handlePIR(unsigned long now)
                     startSession(rtc.now());
                 saveState();
                 syncStateToFrontend();
+            }
+            else if (lightOverride)
+            {
+                Serial.println(F("[PIR] Motion — skipped (user override active)"));
             }
             else
             {
@@ -597,6 +592,30 @@ void handleEsp32Messages()
                     syncStateToFrontend();
                     continue;
                 }
+                if (msg == "ALL:OFF") {
+                    Serial.println(F("[ESP32] ALL:OFF"));
+                    setAllRows(false);
+                    saveState();
+                    syncStateToFrontend();
+                    continue;
+                }
+                if (msg == "ALL:ON") {
+                    Serial.println(F("[ESP32] ALL:ON"));
+                    setAllRows(true);
+                    saveState();
+                    syncStateToFrontend();
+                    continue;
+                }
+                if (msg == "LIGHT_OVERRIDE=1") {
+                    lightOverride = true;
+                    Serial.println(F("[ESP32] light_override=1"));
+                    continue;
+                }
+                if (msg == "LIGHT_OVERRIDE=0") {
+                    lightOverride = false;
+                    Serial.println(F("[ESP32] light_override=0"));
+                    continue;
+                }
             // while loop continues naturally to next byte
         }
         else
@@ -708,6 +727,7 @@ void checkSchedule()
             sysState = STATE_COOLDOWN;
             cooldownStart = millis();
             pirResetUsed = false;
+            lightOverride = false;
             saveState();
             if (sessionActive)
                 endSession(now);

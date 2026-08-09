@@ -152,6 +152,28 @@ $rb = $conn->query("
 ");
 while ($row = $rb->fetch_assoc()) $alertsByRoom[$row['classroom_id']][] = $row;
 
+// ── Faculty list for management pane ───────────────────────────────────────
+$faculty_stmt = $conn->query("
+    SELECT f.id, f.first_name, f.last_name, f.email, f.is_archived,
+           d.name AS department_name,
+           c.name AS classroom_name,
+           s.start_time, s.end_time, s.extended_until, s.subject
+    FROM faculty f
+    LEFT JOIN departments d ON f.department_id = d.id
+    LEFT JOIN schedules s ON s.faculty_id = f.id
+        AND s.day_of_week = '" . date('l') . "'
+        AND s.start_time <= '" . date('H:i:s') . "'
+        AND COALESCE(s.extended_until, s.end_time) >= '" . date('H:i:s') . "'
+    LEFT JOIN classrooms c ON s.classroom_id = c.id
+    ORDER BY f.is_archived ASC, d.name ASC, f.last_name ASC
+");
+$faculty_list = [];
+if ($faculty_stmt) {
+    while ($frow = $faculty_stmt->fetch_assoc()) {
+        $faculty_list[] = $frow;
+    }
+}
+
 // ── Assemble rooms ───────────────────────────────────────────────────────────
 $nowTime = date('H:i:s');
 $todayDow = (int)date('w');
@@ -580,116 +602,81 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                     </div>
                 </div>
 
-                <!-- ═══════════ ROOM MANAGEMENT · ROOMS PANE ═══════════ -->
-                <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-1);">
-                    <div class="overview-pane overview-pane-rooms">
-                        <div class="section-heading d-flex align-items-center justify-content-between room-manage-header">
-                            <div class="d-flex align-items-center gap-2">
-                                <button type="button" class="timetable-btn" data-panel="panelStatus" title="Filter by Status">
-                                    <i class="bi bi-funnel"></i><span class="timetable-btn-title bold">Status</span>
-                                </button>
-                                <div id="panelStatus" class="timetable-panel p-3 m-3">
-                                    <div class="section-container timetable" style="background-color:#f8f9fa;">
-                                        <ul class="list-unstyled mb-0" id="statusFilterMenu" style="max-height:300px;overflow-y:auto;">
-                                            <li><a class="d-block px-2 py-1 filter-option active" href="#" data-value="">All Statuses</a></li>
-                                            <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="live">Live / Functioning</a></li>
-                                            <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="occupied">Occupied</a></li>
-                                            <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="scheduled">Scheduled</a></li>
-                                            <li><a class="d-block px-2 py-1 filter-option" href="#" data-value="vacant">Vacant</a></li>
-                                        </ul>
-                                    </div>
-                                </div>
-                                <span>Room Management</span><span class="sub" id="roomsSelLabel"> All Rooms</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <input type="text" id="roomSearch" class="form-control" placeholder="Search room or faculty..."
-                                    style="max-width:220px;">
-                                <button type="button" class="light expand-all-btn w-auto" id="expandAllRoomsBtn" title="Expand / collapse all rooms"><i class="bi bi-chevron-down"></i> Expand all</button>
-                                <button type="button" class="light expand-all-btn w-auto" id="selectAllRoomsBtn" title="Select / unselect all rooms"><i class="bi bi-check2-all"></i> Select all</button>
-                                <button type="button" class="medium" id="addRoomBtn" title="Add a new room" onclick="new bootstrap.Modal(document.getElementById('addRoomModal')).show()"><i class="bi bi-plus-lg"></i> Add Room</button>
-                            </div>
+                <!-- ── Split Panes: Room Management + Faculty Management ───────────────── -->
+                <div class="overview-panes">
+                    <!-- Room Management Pane -->
+                    <div class="overview-pane">
+                        <div class="bottom-section-header">
+                            <h3 class="bold mb-0"><i class="bi bi-door-open me-2"></i>Room Management</h3>
                         </div>
-                        <div class="hrooms-list" id="hroomsList">
-                                <?php foreach ($rooms as $r):
-                                    $live   = !empty($r['is_live']);
-                                    $accent = $r['status'] === 'occupied' ? 'accent-occupied' : ($r['status'] === 'scheduled' ? 'accent-scheduled' : 'accent-vacant');
-                                    $badgeLabel = $r['status'] === 'occupied' ? 'Occupied' : ($r['status'] === 'scheduled' ? 'Scheduled' : 'Vacant');
-                                    $badgeClass = 'badge-' . strtolower($r['status']);
-                                    $fac    = $r['faculty_name'] !== '' ? $r['faculty_name'] : '-';
-                                    $v = $r['voltage_v'] !== null ? number_format($r['voltage_v'], 1) : '—';
-                                    $a = $r['current_a'] !== null ? number_format($r['current_a'], 3) : '—';
-                                    $w = $r['power_w']   !== null ? number_format($r['power_w'], 1)   : '—';
-                                    $timeLabel = $r['status'] === 'occupied' ? 'Current Class:' : 'Next class:';
-                                    $timeVal   = $r['status'] === 'occupied' ? $r['current_time'] : ($r['next_time'] !== '' ? $r['next_time'] : 'None scheduled');
-                                ?>
-                                    <div class="hroom-row room-card" data-room-id="<?= $r['id'] ?>"
-                                        data-room="<?= h(strtolower($r['room_name'])) ?>"
-                                        data-status="<?= h($live ? 'live' : $r['status']) ?>"
-                                        data-departments="<?= h(strtolower($r['dept'])) ?>"
-                                        data-sa="<?= h(strtolower($r['subject_area'])) ?>"
-                                        data-subjects="<?= h(strtolower($r['subject'])) ?>">
-                                        <div class="room-card-accent <?= $accent ?>"></div>
-                                        <div class="room-card-body">
-                                            <div class="room-card-header">
-                                                <div>
-                                                    <h2 class="room-card-name"><?= h($r['room_name']) ?><?php if (!empty($r['is_prototype'])): ?><span class="prototype-badge">Device</span><?php endif; ?></h2>
-                                                    <div class="room-card-section">
-                                                        <?= ucfirst(h($r['room_size'])) ?> room
-                                                        <?php if (!empty($r['description'])): ?> &middot; <?= h($r['description']) ?><?php endif; ?>
-                                                    </div>
-                                                </div>
-                                                <span class="room-status-badge <?= $badgeClass ?>"><?= $badgeLabel ?></span>
-                                                <?php if ($is_early_end): ?><span class="room-status-badge badge-ended-early">Ended Early</span><?php endif; ?>
-                                            </div>
-                                            <div class="hroom-spark"><canvas id="sparkCanvas<?= $r['id'] ?>"></canvas></div>
-                                            <div class="room-expand">
-                                                <div class="device-strip mb-2">
-                                                    <div class="dev-left">
-                                                        <span class="device-pill <?= $live ? 'live' : 'none' ?>"><?= $live ? 'LIVE' : 'NO DEVICE' ?></span>
-                                                        <?php if ($live): ?>
-                                                            <span class="dev-pzem">
-                                                                V <b><?= $v ?></b> &middot; A <b><?= $a ?></b> &middot; W <b><?= $w ?></b>
-                                                            </span>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                    <div class="row-bars">
-                                                        <?php for ($row = 1; $row <= 3; $row++):
-                                                            $st = $r['row' . $row . '_status']; ?>
-                                                            <div class="row-bar-item">
-                                                                <span class="row-bar-label">R<?= $row ?></span>
-                                                                <span class="row-bar <?= $st === 'on' ? 'on' : '' ?>"></span>
-                                                            </div>
-                                                        <?php endfor; ?>
-                                                    </div>
-                                                </div>
-                                                <div class="dept-info-card room-info-row mb-2">
-                                                    <i class="bi bi-person-fill"></i>
-                                                    <span class="room-info-label">Faculty:</span>
-                                                    <span class="room-info-val"><?= h($fac) ?></span>
-                                                </div>
-                                                <div class="dept-info-card room-info-row mb-2">
-                                                    <i class="bi bi-clock-fill"></i>
-                                                    <span class="room-info-label"><?= $timeLabel ?></span>
-                                                    <span class="room-info-val"><?= $is_early_end ? $current_time : h($timeVal) ?></span>
-                                                </div>
-                                            </div>
-                                            <div class="room-card-actions">
-                                                <div class="d-flex align-items-center room-icons gap-1">
-                                                    <button class="btn-icon btn-icon-edit" title="Edit"
-                                                        onclick="openEditModal(<?= $r['id'] ?>, '<?= h(addslashes($r['room_name'])) ?>', '<?= h($r['room_size']) ?>', '<?= h(addslashes($r['description'])) ?>')">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </button>
-                                                    <button class="btn-icon btn-icon-del" title="Delete"
-                                                        onclick="openDeleteModal(<?= $r['id'] ?>, '<?= h(addslashes($r['room_name'])) ?>')">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </div>
-                                                <button class="light" onclick="openRoomModal(<?= $r['id'] ?>)">Inspect</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
+                        <div class="bottom-section-search">
+                            <input type="text" id="roomSearchInput" placeholder="Search rooms..." oninput="filterRoomCards()">
+                        </div>
+                        <div class="d-flex gap-2 mb-3 flex-wrap" id="roomFilters">
+                            <button class="light selected" onclick="setRoomFilter('all', this)">All</button>
+                            <button class="light" onclick="setRoomFilter('active', this)">Active</button>
+                            <button class="light" onclick="setRoomFilter('inactive', this)">Inactive</button>
+                        </div>
+                        <div class="room-list" id="roomList">
+                            <?php
+                            $defaultRoomId = null;
+                            foreach ($rooms as $i => $r):
+                                if ($i === 0) $defaultRoomId = $r['id'];
+                                $status = $r['is_live'] ? 'active' : 'inactive';
+                                $statusClass = $r['is_live'] ? 'active' : '';
+                                $isSelected = $i === 0;
+                            ?>
+                            <div class="room-info-row room-card <?php if ($isSelected) echo 'selected'; ?>"
+                                 data-room-id="<?= $r['id'] ?>"
+                                 data-status="<?= $status ?>"
+                                 onclick="selectRoom(<?= $r['id'] ?>, this)">
+                                <span class="room-name bold" style="font-size:14px;"><?= htmlspecialchars($r['room_name']) ?></span>
+                                <span class="room-tag <?= $statusClass ?>"><?= $status ?></span>
                             </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <!-- Faculty Management Pane -->
+                    <div class="overview-pane">
+                        <div class="bottom-section-header">
+                            <h3 class="bold mb-0"><i class="bi bi-people me-2"></i>Faculty Management</h3>
+                        </div>
+                        <div class="bottom-section-search">
+                            <input type="text" id="facultySearchInput" placeholder="Search faculty..." oninput="filterFacultyCards()">
+                        </div>
+                        <div class="d-flex gap-2 mb-3 flex-wrap" id="facultyFilters">
+                            <button class="light selected" onclick="setFacultyFilter('all', this)">All</button>
+                            <button class="light" onclick="setFacultyFilter('active', this)">Active</button>
+                            <button class="light" onclick="setFacultyFilter('archived', this)">Archived</button>
+                        </div>
+                        <div class="faculty-list" id="facultyList">
+                            <?php
+                            foreach ($faculty_list as $fi => $fac):
+                                $fstatus = $fac['is_archived'] ? 'archived' : 'active';
+                                $fstatusClass = $fac['is_archived'] ? 'archived' : 'active';
+                                $fselected = $fi === 0;
+                            ?>
+                            <div class="faculty-card <?php if ($fselected) echo 'selected'; ?>"
+                                 data-faculty-id="<?= $fac['id'] ?>"
+                                 data-status="<?= $fstatus ?>"
+                                 onclick="selectFaculty(<?= $fac['id'] ?>, this)">
+                                <span class="faculty-name bold" style="font-size:14px;"><?= htmlspecialchars($fac['first_name'] . ' ' . $fac['last_name']) ?></span>
+                                <span class="faculty-tag <?= $fstatusClass ?>"><?= $fstatus ?></span>
+                                <div class="faculty-meta">
+                                    <small class="text-muted"><?= htmlspecialchars($fac['department_name'] ?: 'No Dept') ?></small>
+                                    <?php if ($fac['classroom_name']): ?>
+                                    <small class="text-muted">&middot; <?= htmlspecialchars($fac['classroom_name']) ?></small>
+                                    <?php endif; ?>
+                                    <?php if ($fac['start_time']): ?>
+                                    <small class="text-muted">&middot; <?= date('g:i A', strtotime($fac['start_time'])) ?> – <?= date('g:i A', strtotime($fac['extended_until'] ?: $fac['end_time'])) ?></small>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                            <?php if (empty($faculty_list)): ?>
+                            <p class="text-muted small p-3">No faculty members found.</p>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

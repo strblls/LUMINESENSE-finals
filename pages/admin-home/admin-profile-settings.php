@@ -148,6 +148,9 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                             <div class="sidebar-item" data-section="flush">
                                 <i class="bi bi-exclamation-triangle-fill"></i> System Flush
                             </div>
+                            <div class="sidebar-item" data-section="archives">
+                                <i class="bi bi-archive"></i> Past Archives
+                            </div>
                             <?php endif; ?>
                             <div class="sidebar-item" data-section="about">
                                 <i class="bi bi-info-circle"></i> About System
@@ -370,6 +373,20 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                                         </div>
                                         <hr>
                                         <div class="flush-datetime-row">
+                                        <div class="flush-datetime-field">
+                                            <label class="form-label bold">Semester</label>
+                                            <select class="form-select" id="flushSemester">
+                                                <option value="1st Semester">1st Semester</option>
+                                                <option value="2nd Semester">2nd Semester</option>
+                                                <option value="Summer">Summer</option>
+                                            </select>
+                                        </div>
+                                        <div class="flush-datetime-field">
+                                            <label class="form-label bold">Academic Year</label>
+                                            <input type="text" class="form-control" id="flushAcademicYear" value="<?= date('Y') ?>-<?= date('Y') + 1 ?>" placeholder="e.g. 2025-2026">
+                                        </div>
+                                    </div>
+                                    <div class="flush-datetime-row">
                                             <div class="flush-datetime-field">
                                                 <label class="form-label bold">Scheduled Date</label>
                                                 <input type="date" class="form-control" id="flushDate"
@@ -388,59 +405,56 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                                         <button type="button" class="medium w-auto px-3" onclick="scheduleFlush()">
                                             <i class="bi bi-calendar-check me-2"></i>Schedule System Flush
                                         </button>
+                                        <button type="button" class="light w-auto px-3" onclick="executeFlushNow()" style="border:1.5px solid #dc3545;color:#dc3545;margin-left:8px;">
+                                            <i class="bi bi-lightning me-1"></i> Execute Immediately
+                                        </button>
                                         </div>
                                     </form>
                                 </div>
 
-                                <!-- Reset All Extensions Card -->
-                                <?php if ($extension_reset_dt): ?>
-                                <!-- State: Extension reset already scheduled -->
+                                <!-- Extension Reset (MySQL EVENT) -->
                                 <div class="flush-setup-card" style="margin-top: 1rem;">
                                     <div class="info-card-header">
-                                        <h4 class="bold mb-0"><i class="bi bi-clock-history me-2"></i>Extension Reset Scheduled</h4>
+                                        <h4 class="bold mb-0"><i class="bi bi-arrow-repeat me-2"></i>Extension Reset</h4>
+                                        <div class="hover-info-trigger">
+                                            <i class="bi bi-info-circle"></i>
+                                            <div class="hover-info-panel">
+                                                Managed by MySQL EVENT. Runs automatically every Saturday at 11:59 PM.<br>
+                                                No manual scheduling required.
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="flush-countdown">
                                         <div class="countdown-item">
-                                            <span class="countdown-label">Scheduled Date</span>
-                                            <span class="countdown-value"><?= date('F j, Y', strtotime($extension_reset_dt)) ?></span>
+                                            <span class="countdown-label">Schedule</span>
+                                            <span class="countdown-value">Every Saturday, 11:59 PM</span>
                                         </div>
                                         <div class="countdown-item">
-                                            <span class="countdown-label">Scheduled Time</span>
-                                            <span class="countdown-value"><?= date('g:i A', strtotime($extension_reset_dt)) ?></span>
+                                            <span class="countdown-label">Status</span>
+                                            <span class="countdown-value" style="color:#198754;">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Active
+                                            </span>
                                         </div>
-                                    </div>
-                                    <p class="text-muted small mt-2 mb-0">All schedule extensions will be cleared at the scheduled time.</p>
-                                </div>
-                                <?php else: ?>
-                                <!-- State: No extension reset scheduled -->
-                                <div class="flush-setup-card" style="margin-top: 1rem;">
-                                    <div class="info-card-header">
-                                        <h3 class="bold mb-0">Configure Extension Reset</h3>
-                                    </div>
-                                    <p class="text-muted small mb-3">
-                                        All schedule extensions will be cleared at the scheduled date and time.
-                                    </p>
-                                    <div id="flushExtSubform">
-                                        <div class="flush-ext-form-inner">
-                                            <div class="flush-ext-field">
-                                                <label class="form-label bold">Flush Extensions On</label>
-                                                <input type="date" class="form-control" id="flushExtDate"
-                                                    value="<?= date('Y-m-d', strtotime('next Saturday')) ?>">
-                                            </div>
-                                            <div class="flush-ext-field">
-                                                <label class="form-label bold">At</label>
-                                                <input type="time" class="form-control" id="flushExtTime" value="23:59">
-                                            </div>
+                                        <?php if ($extension_reset_dt): ?>
+                                        <div class="countdown-item">
+                                            <span class="countdown-label">Last Reset</span>
+                                            <span class="countdown-value"><?= date('M j, g:i A', strtotime($extension_reset_dt)) ?></span>
                                         </div>
-                                        <small class="text-muted">Default: end of week (Saturday 11:59 PM)</small>
+                                        <?php endif; ?>
                                     </div>
-                                    <div class="d-flex justify-content-center pt-3">
-                                    <button type="button" class="medium w-auto px-3" onclick="scheduleExtensionsFlush()">
-                                        <i class="bi bi-calendar-check me-2"></i>Schedule Extension Reset
-                                    </button>
+                                    <p class="text-muted small mt-2 mb-0">Extensions are automatically cleared every Saturday at 11:59 PM.</p>
+                                    <div class="d-flex gap-2 mt-3">
+                                        <button class="light w-auto px-3" onclick="pauseExtensionFlush()" title="Pause auto-reset">
+                                            <i class="bi bi-pause-circle me-1"></i> Pause
+                                        </button>
+                                        <button class="light w-auto px-3" onclick="resumeExtensionFlush()" title="Resume auto-reset">
+                                            <i class="bi bi-play-circle me-1"></i> Resume
+                                        </button>
+                                        <button class="light w-auto px-3" onclick="executeExtensionFlushNow()" title="Run now" style="border:1.5px solid #dc3545;color:#dc3545;">
+                                            <i class="bi bi-lightning me-1"></i> Execute Now
+                                        </button>
                                     </div>
                                 </div>
-                                <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                             <?php endif; ?>
@@ -482,6 +496,45 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                                     });
                                 })();
                                 </script>
+                            </div>
+
+                            <!-- Past Archives -->
+                            <div id="section-archives" class="section-content">
+                                <div class="info-card">
+                                    <div class="info-card-header">
+                                        <h3 class="bold mb-0"><i class="bi bi-archive me-2"></i>Past Archives</h3>
+                                    </div>
+                                    <p class="text-muted small mb-3">Archived data from previous system flushes. Each archive contains the data that was deleted during the flush.</p>
+                                    <div id="archivesList">
+                                        <?php
+                                        $archives = $conn->query("SELECT * FROM archive_registry ORDER BY flushed_at DESC LIMIT 20");
+                                        if ($archives && $archives->num_rows > 0):
+                                            while ($arch = $archives->fetch_assoc()):
+                                        ?>
+                                        <div class="dept-info-card room-info-row mb-2 d-flex align-items-center justify-content-between" data-archive-id="<?= (int)$arch['id'] ?>">
+                                            <div>
+                                                <span class="bold" style="font-size:14px;"><?= htmlspecialchars($arch['semester'] . ' ' . $arch['academic_year']) ?></span>
+                                                <span class="badge bg-secondary ms-2" style="font-size:11px;"><?= ucfirst($arch['flush_type']) ?></span>
+                                                <br>
+                                                <small class="text-muted">
+                                                    <?= date('M j, Y g:i A', strtotime($arch['flush_at'])) ?>
+                                                    &middot; Archived: <?= $arch['total_archived'] ?> records
+                                                    &middot; Deleted: <?= $arch['total_deleted'] ?> records
+                                                </small>
+                                            </div>
+                                            <div class="d-flex gap-1">
+                                                <button class="btn-icon btn-icon-view" title="View" onclick="viewArchive(<?= $arch['id'] ?>)"><i class="bi bi-eye"></i></button>
+                                                <button class="btn-icon btn-icon-del" title="Delete" onclick="deleteArchive(<?= $arch['id'] ?>)"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                        </div>
+                                        <?php
+                                            endwhile;
+                                        else:
+                                        ?>
+                                        <p class="text-muted small">No archives yet. Archives are created when a system flush is executed.</p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
                             </div>
 
                         </div><!-- /profile-content-area -->

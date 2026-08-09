@@ -134,6 +134,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $message = 'Faculty account removed successfully.';
             $log_name = ($cleanup['name'] ?? '') ?: $f_name;
             log_admin_action($conn, $_SESSION['admin_id'], 'faculty_rejected', $log_name, 'Record deleted');
+
+        } elseif ($action === 'reactivate') {
+            $stmt = $conn->prepare('UPDATE faculty SET is_archived = 0 WHERE id = ?');
+            $stmt->bind_param('i', $faculty_id);
+            $stmt->execute();
+            $stmt->close();
+
+            // Send reactivation email
+            $vendorAutoload = __DIR__ . '/../../vendor/autoload.php';
+            if (!empty($f_email) && file_exists(__DIR__ . '/../Services/mailer.php') && file_exists($vendorAutoload)) {
+                require_once __DIR__ . '/../Services/mailer.php';
+                sendReactivationEmail($f_email, $f_name);
+            }
+
+            $message = 'Faculty account reactivated successfully.';
+            log_admin_action($conn, $_SESSION['admin_id'], 'reactivated', $f_name, 'Account reactivated from archive');
+
+        } elseif ($action === 'reactivate_all') {
+            $stmt = $conn->prepare('UPDATE faculty SET is_archived = 0 WHERE is_archived = 1');
+            $stmt->execute();
+            $affected = $stmt->affected_rows;
+            $stmt->close();
+
+            $message = "$affected faculty account(s) reactivated.";
+            log_admin_action($conn, $_SESSION['admin_id'], 'reactivated', 'All Archived Faculty', "$affected accounts reactivated");
         }
     }
 

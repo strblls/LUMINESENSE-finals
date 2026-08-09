@@ -270,3 +270,109 @@ function showFlushToast(msg, isError) {
     toast.className = 'toast-msg' + (isError ? ' error' : '') + ' show';
     setTimeout(function () { toast.classList.remove('show'); }, 3500);
 }
+
+// ── Execute flush immediately ──────────────────────────────────────────────
+function executeFlushNow() {
+    var semester = document.getElementById('flushSemester')?.value || '';
+    var academicYear = document.getElementById('flushAcademicYear')?.value || '';
+    if (!semester || !academicYear) {
+        showFlushToast('Please select a semester and academic year.', true);
+        return;
+    }
+    if (!confirm('Execute system flush immediately? This will archive and delete all selected data NOW.')) return;
+
+    var formData = new FormData();
+    formData.append('action', 'execute_flush_now');
+    formData.append('semester', semester);
+    formData.append('academic_year', academicYear);
+
+    fetch('../../handlers/flush-handler.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        if (d.success) {
+            showFlushToast('System flush executed successfully!');
+            setTimeout(function () { window.location.reload(); }, 1500);
+        } else {
+            showFlushToast(d.message, true);
+        }
+    })
+    .catch(function () {
+        showFlushToast('Network error.', true);
+    });
+}
+
+// ── Pause extension flush (MySQL EVENT) ────────────────────────────────────
+function pauseExtensionFlush() {
+    if (!confirm('Pause the weekly extension reset?')) return;
+    fetch('../../handlers/flush-handler.php', {
+        method: 'POST',
+        body: new URLSearchParams({ action: 'pause_extension_event' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        if (d.success) { showFlushToast('Extension reset paused.'); setTimeout(function () { location.reload(); }, 1000); }
+        else { showFlushToast(d.message, true); }
+    })
+    .catch(function () { showFlushToast('Network error.', true); });
+}
+
+// ── Resume extension flush (MySQL EVENT) ───────────────────────────────────
+function resumeExtensionFlush() {
+    fetch('../../handlers/flush-handler.php', {
+        method: 'POST',
+        body: new URLSearchParams({ action: 'resume_extension_event' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        if (d.success) { showFlushToast('Extension reset resumed.'); setTimeout(function () { location.reload(); }, 1000); }
+        else { showFlushToast(d.message, true); }
+    })
+    .catch(function () { showFlushToast('Network error.', true); });
+}
+
+// ── Execute extension flush now ────────────────────────────────────────────
+function executeExtensionFlushNow() {
+    if (!confirm('Clear all extensions now?')) return;
+    fetch('../../handlers/flush-handler.php', {
+        method: 'POST',
+        body: new URLSearchParams({ action: 'execute_extension_now' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        if (d.success) { showFlushToast('Extensions cleared.'); setTimeout(function () { location.reload(); }, 1000); }
+        else { showFlushToast(d.message, true); }
+    })
+    .catch(function () { showFlushToast('Network error.', true); });
+}
+
+// ── Delete archive ─────────────────────────────────────────────────────────
+function deleteArchive(registryId) {
+    if (!confirm('Delete this archive? This cannot be undone.')) return;
+    var formData = new FormData();
+    formData.append('action', 'delete_archive');
+    formData.append('registry_id', registryId);
+
+    fetch('../../handlers/flush-handler.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+        if (d.success) {
+            showFlushToast('Archive deleted.');
+            var row = document.querySelector('[data-archive-id="' + registryId + '"]');
+            if (row) row.remove();
+        } else {
+            showFlushToast(d.message, true);
+        }
+    })
+    .catch(function () { showFlushToast('Network error.', true); });
+}
+
+// ── View archive (stub — opens reports page) ──────────────────────────────
+function viewArchive(registryId) {
+    window.location.href = 'admin-reports.php?tab=flush_archive&id=' + registryId;
+}

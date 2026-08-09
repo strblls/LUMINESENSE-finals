@@ -16,6 +16,16 @@
 #include <WiFiManager.h>
 #include <time.h>
 
+// ── Fallback WiFi credentials ──────────────────────────────
+// If WiFiManager settings are reset, ESP32 tries these in order.
+const char* FALLBACK_SSIDS[] = {
+    "capstone",
+};
+const char* FALLBACK_PASS[] = {
+    "betet2027",
+};
+#define NUM_FALLBACKS (sizeof(FALLBACK_SSIDS) / sizeof(FALLBACK_SSIDS[0]))
+
 // ── Server base ────────────────────────────────────────────
 // Change SERVER_BASE to test against a local XAMPP server, e.g.
 //   "http://192.168.1.10/LUMINESENSE-finals"
@@ -70,10 +80,17 @@ int    archiveRowTotal      = 0;
 String lastArchiveSyncDay   = "";
 #define ARCHIVE_BATCH_ROWS 500
 
+// ── Schedule cache (mirrored from Mega for local PIR timeout) ──
+#define MAX_SLOTS 10
+struct Slot { int startH, startM, endH, endM; };
+Slot schedSlots[MAX_SLOTS];
+int  schedSlotCount = 0;
+
 // ── Row State ──────────────────────────────────────────────
 bool row1State = false;
 bool row2State = false;
 bool row3State = false;
+bool lightOverride = false;
 
 // ── PIR State ──────────────────────────────────────────────
 bool pirState          = false;
@@ -86,11 +103,13 @@ unsigned long lastDbPoll        = 0;
 unsigned long lastScheduleFetch = 0;
 unsigned long lastFlagPoll = 0;
 unsigned long lastConfigFetch = 0;
+unsigned long lastNtpResync = 0;
 #define FLAG_POLL_MS 5000
-#define DB_POLL_MS        200
+#define DB_POLL_MS        100
 #define SCHEDULE_FETCH_MS 30000
 #define CONFIG_FETCH_MS   300000
 #define PIR_INACTIVITY_MS 300000ul // 5 minutes
+#define NTP_RESYNC_MS     3600000ul // 1 hour
 
 // ============================================================
 // SETUP
@@ -121,9 +140,31 @@ void setup() {
     wm.setConfigPortalTimeout(180); 
     wm.setConnectTimeout(30);
 
-    Serial.println(F("[WiFi] Starting WiFiManager..."));
+    Serial.println(F("[WiFi] Trying fallback credentials..."));
+    bool connected = false;
+    for (int i = 0; i < NUM_FALLBACKS && !connected; i++) {
+        Serial.print(F("[WiFi] Attempting: "));
+        Serial.println(FALLBACK_SSIDS[i]);
+        WiFi.disconnect();
+        WiFi.begin(FALLBACK_SSIDS[i], FALLBACK_PASS[i]);
+        int attempts = 0;
+        while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+            delay(500);
+            Serial.print(".");
+            attempts++;
+        }
+        Serial.println();
+        connected = (WiFi.status() == WL_CONNECTED);
+        if (connected) {
+            Serial.print(F("[WiFi] Connected to "));
+            Serial.println(FALLBACK_SSIDS[i]);
+        }
+    }
 
-    bool connected = wm.autoConnect("LumineSense-Setup", "luminesense123");
+    if (!connected) {
+        Serial.println(F("[WiFi] All fallbacks failed — starting WiFiManager portal..."));
+        connected = wm.autoConnect("LumineSense-Setup", "luminesense123");
+    }
 
     if (connected) {
         Serial.println();
@@ -160,10 +201,29 @@ void setup() {
 void loop() {
     unsigned long now = millis();
 
-    // PIR inactivity timeout: no motion from any source for 5 min → OFF
+    // Serial command: type "resetwifi" in Serial Monitor to clear saved WiFi
+    if (Serial.available()) {
+        String cmd = Serial.readStringUntil('\n');
+        cmd.trim();
+        if (cmd == "resetwifi") {
+            WiFi.disconnect(true);
+            WiFiManager wm;
+            wm.resetSettings();
+            Serial.println(F("[WiFi] Settings cleared. Restarting..."));
+            delay(1000);
+            ESP.restart();
+        }
+    }
+
+    // PIR inactivity timeout: no motion for 5 min during schedule → turn lights OFF
     if (pirOverrideActive && pirInactiveSince > 0 &&
         now - pirInactiveSince >= PIR_INACTIVITY_MS) {
-        Serial.println(F("[PIR] Inactivity timeout — logging stopped"));
+        if (isWithinSchedule()) {
+            Serial.println(F("[PIR] Inactivity timeout — sending ALL:OFF to Mega"));
+            Serial2.println("ALL:OFF");
+        } else {
+            Serial.println(F("[PIR] Inactivity timeout — outside schedule, skipping"));
+        }
         pirOverrideActive = false;
         pirInactiveSince = 0;
         pendingPirLog = 0;
@@ -220,8 +280,27 @@ void loop() {
         } else if (now - lastConfigFetch >= CONFIG_FETCH_MS) {
             lastConfigFetch = now;
             fetchAndForwardConfig();
+        } else if (now - lastNtpResync >= NTP_RESYNC_MS) {
+            lastNtpResync = now;
+            syncTimeToMega();
         }
     }
+}
+
+// ============================================================
+// SCHEDULE CHECK (local copy for PIR timeout)
+// ============================================================
+bool isWithinSchedule() {
+    if (schedSlotCount == 0) return false;
+    struct tm t;
+    if (!getLocalTime(&t)) return false;
+    int nowMins = t.tm_hour * 60 + t.tm_min;
+    for (int i = 0; i < schedSlotCount; i++) {
+        int startMins = schedSlots[i].startH * 60 + schedSlots[i].startM;
+        int endMins   = schedSlots[i].endH   * 60 + schedSlots[i].endM;
+        if (nowMins >= startMins && nowMins < endMins) return true;
+    }
+    return false;
 }
 
 // ============================================================
@@ -384,10 +463,16 @@ void pollDatabase() {
         bool newR1 = doc["row1"] == 1;
         bool newR2 = doc["row2"] == 1;
         bool newR3 = doc["row3"] == 1;
+        bool newOverride = doc["light_override"] == 1;
 
         if (newR1 != row1State) { setRow(1, newR1); Serial2.println(newR1 ? "ROW1:ON" : "ROW1:OFF"); }
         if (newR2 != row2State) { setRow(2, newR2); Serial2.println(newR2 ? "ROW2:ON" : "ROW2:OFF"); }
         if (newR3 != row3State) { setRow(3, newR3); Serial2.println(newR3 ? "ROW3:ON" : "ROW3:OFF"); }
+        if (newOverride != lightOverride) {
+            lightOverride = newOverride;
+            Serial2.println(lightOverride ? "LIGHT_OVERRIDE=1" : "LIGHT_OVERRIDE=0");
+            Serial.print(F("[DB] light_override=")); Serial.println(lightOverride);
+        }
     } else {
         Serial.print(F("[DB] Poll failed, code: ")); Serial.println(httpCode);
     }
@@ -417,12 +502,38 @@ void fetchAndForwardSchedule() {
         Serial.print(F("[SCHED] Length: "));  Serial.println(payload.length());
 
         if (payload.length() > 0) {
+            // Parse schedule slots for local PIR timeout
+            schedSlotCount = 0;
+            String remaining = payload;
+            while (remaining.length() > 0 && schedSlotCount < MAX_SLOTS) {
+                int comma = remaining.indexOf(',');
+                String slot = (comma == -1) ? remaining : remaining.substring(0, comma);
+                remaining = (comma == -1) ? "" : remaining.substring(comma + 1);
+
+                int dash = slot.indexOf('-', 3);
+                if (dash == -1) continue;
+
+                String startStr = slot.substring(0, dash);
+                String endStr   = slot.substring(dash + 1);
+                int colonS = startStr.indexOf(':');
+                int colonE = endStr.indexOf(':');
+                if (colonS == -1 || colonE == -1) continue;
+
+                schedSlots[schedSlotCount].startH = startStr.substring(0, colonS).toInt();
+                schedSlots[schedSlotCount].startM = startStr.substring(colonS + 1).toInt();
+                schedSlots[schedSlotCount].endH   = endStr.substring(0, colonE).toInt();
+                schedSlots[schedSlotCount].endM   = endStr.substring(colonE + 1).toInt();
+                schedSlotCount++;
+            }
+            Serial.print(F("[SCHED] Cached ")); Serial.print(schedSlotCount); Serial.println(F(" slot(s) locally"));
+
             for (int i = 0; i < 3; i++) {
                 Serial2.println("SCHEDULE:" + payload);
                 delay(200);
             }
             Serial.println(F("[SCHED] Forwarded to Mega (3x)"));
         } else {
+            schedSlotCount = 0;
             Serial.println(F("[SCHED] Empty payload — no schedule today"));
         }
     } else {

@@ -763,3 +763,73 @@
 }
 
 /* ── Compact live readings row reused in section 3 ── */
+
+/* ── Split Panes ─────────────────────────────────────────────────────────── */
+.overview-panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 0 var(--section-padding) var(--section-padding);
+}
+.overview-pane {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+/* ── Faculty Card ────────────────────────────────────────────────────────── */
+.faculty-card {
+    padding: 10px 14px;
+    border: 1px solid var(--light-border);
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    transition: background .18s, border-color .18s, box-shadow .18s;
+    margin-bottom: 8px;
+}
+.faculty-card:hover {
+    border-color: var(--primary);
+}
+.faculty-card.selected {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(31,156,219,.18);
+}
+.faculty-meta {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+.faculty-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-left: 8px;
+}
+.faculty-tag.active {
+    background: rgba(25, 135, 84, 0.12);
+    color: var(--success);
+}
+.faculty-tag.archived {
+    background: #b3e5fc;
+    color: #01579b;
+}
+
+/* ── Room Management pane (keep existing room styles inside pane) ────────── */
+.overview-pane .room-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.overview-pane .bottom-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.overview-pane .bottom-section-search {
+    margin-bottom: 12px;
+}

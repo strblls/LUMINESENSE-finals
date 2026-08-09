@@ -191,6 +191,16 @@ function event_icon(string $type): array
         'issue_raised'   => ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
         'issue_resolved' => ['bi-check-circle-fill',   '#0f5132', '#d1e7dd'],
         'admin_action'   => ['bi-shield-check',        '#084298', '#cfe2ff'],
+        'archive_created'        => ['bi-archive', '#0891b2', '#cffafe'],
+        'archive_deleted'        => ['bi-archive-fill', '#dc2626', '#fee2e2'],
+        'reactivated'            => ['bi-arrow-clockwise', '#16a34a', '#dcfce7'],
+        'system_flush'           => ['bi-trash', '#dc2626', '#fee2e2'],
+        'extension_flush'        => ['bi-arrow-repeat', '#f59e0b', '#fef3c7'],
+        'pzem_sync'              => ['bi-cpu', '#2563eb', '#dbeafe'],
+        'pzem_archive'           => ['bi-cpu-fill', '#0891b2', '#cffafe'],
+        'flush_schedule_updated' => ['bi-calendar-check', '#7c3aed', '#ede9fe'],
+        'extension_event_paused' => ['bi-pause-circle', '#f59e0b', '#fef3c7'],
+        'extension_event_resumed'=> ['bi-play-circle', '#16a34a', '#dcfce7'],
     ];
     $key = strtolower(str_replace(' ', '_', $type));
     return $map[$key] ?? ['bi-clock-history', '#5a5a5a', '#e9ecef'];

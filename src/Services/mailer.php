@@ -373,3 +373,92 @@ function buildChangeEmailBody(string $name, string $otp_code): string
 </html>
 HTML;
 }
+
+/**
+ * Send archive notification after system flush.
+ */
+function sendArchiveNotificationEmail(string $to, string $name, string $semester, string $academic_year, array $stats): bool
+{
+    $mail = new PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host = MAIL_HOST;
+        $mail->SMTPAuth = true;
+        $mail->Username = MAIL_USERNAME;
+        $mail->Password = MAIL_PASSWORD;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = MAIL_PORT;
+        $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
+        $mail->addAddress($to, $name);
+        $mail->isHTML(true);
+        $mail->Subject = "LumineSense - System Flush Completed ($semester $academic_year)";
+
+        $itemsList = implode(', ', $stats['items'] ?? []);
+        $mail->Body = "
+            <div style='font-family:Arial,sans-serif;max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);'>
+                <div style='background:#1a1a2e;padding:28px 32px;text-align:center;'>
+                    <h1 style='color:#f5c518;font-size:20px;margin:0;letter-spacing:2px;'>LUMINESENSE</h1>
+                </div>
+                <div style='padding:32px;color:#333;'>
+                    <p>Hi <strong>{$name}</strong>,</p>
+                    <p>The system flush for <strong>{$semester} {$academic_year}</strong> has been completed.</p>
+                    <p><strong>Items flushed:</strong> {$itemsList}</p>
+                    <p style='font-size:13px;color:#888;'>This is an automated notification from LumineSense.</p>
+                </div>
+                <div style='background:#f9f9f9;text-align:center;padding:16px;font-size:12px;color:#aaa;border-top:1px solid #eee;'>
+                    &copy; " . date('Y') . " LumineSense &middot; University of Negros Occidental &ndash; Recoletos
+                </div>
+            </div>
+        ";
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/**
+ * Send reactivation email when archived account is restored.
+ */
+function sendReactivationEmail(string $to, string $name): bool
+{
+    $mail = new PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host = MAIL_HOST;
+        $mail->SMTPAuth = true;
+        $mail->Username = MAIL_USERNAME;
+        $mail->Password = MAIL_PASSWORD;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = MAIL_PORT;
+        $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
+        $mail->addAddress($to, $name);
+        $mail->isHTML(true);
+        $mail->Subject = 'LumineSense - Account Reactivated';
+        $mail->Body = "
+            <div style='font-family:Arial,sans-serif;max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);'>
+                <div style='background:#1a1a2e;padding:28px 32px;text-align:center;'>
+                    <h1 style='color:#f5c518;font-size:20px;margin:0;letter-spacing:2px;'>LUMINESENSE</h1>
+                </div>
+                <div style='padding:32px;color:#333;'>
+                    <p>Hi <strong>{$name}</strong>,</p>
+                    <p>Your LumineSense faculty account has been <strong style='color:#28a745;'>reactivated</strong> by an Administrator.</p>
+                    <p>You can now log in and access your dashboard.</p>
+                    <div style='text-align:center;margin:28px 0;'>
+                        <a href='http://localhost/LUMINESENSE-finals/pages/faculty-login.php'
+                           style='background:#4a6cf7;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:700;'>
+                            LOG IN NOW
+                        </a>
+                    </div>
+                </div>
+                <div style='background:#f9f9f9;text-align:center;padding:16px;font-size:12px;color:#aaa;border-top:1px solid #eee;'>
+                    &copy; " . date('Y') . " LumineSense &middot; University of Negros Occidental &ndash; Recoletos
+                </div>
+            </div>
+        ";
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}

@@ -165,7 +165,61 @@ if ($tab === 'rooms') {
         }
     }
     $html .= '</tbody></table>';
-} else {
+    } elseif ($tab === 'flush_archive') {
+        $registryId = (int)($_GET['id'] ?? 0);
+        if ($registryId <= 0) {
+            $title = 'Flush Archive';
+            $subtitle = 'No archive ID specified';
+            $html = '<p>No archive ID provided.</p>';
+        } else {
+            $arch = $conn->query("SELECT * FROM archive_registry WHERE id = {$registryId}")->fetch_assoc();
+            if (!$arch) {
+                $title = 'Flush Archive';
+                $subtitle = 'Archive not found';
+                $html = '<p>Archive not found.</p>';
+            } else {
+                $title = 'Flush Archive Detail';
+                $subtitle = $arch['semester'] . ' ' . $arch['academic_year'] . ' | ' . date('M j, Y g:i A', strtotime($arch['flush_at']));
+                $schedQ = $conn->query("SELECT COUNT(*) as cnt FROM archived_schedules WHERE registry_id = {$registryId}");
+                $deptQ = $conn->query("SELECT COUNT(*) as cnt FROM archived_departments WHERE registry_id = {$registryId}");
+                $subjQ = $conn->query("SELECT COUNT(*) as cnt FROM archived_subjects WHERE registry_id = {$registryId}");
+                $extQ = $conn->query("SELECT COUNT(*) as cnt FROM archived_extension_requests WHERE registry_id = {$registryId}");
+                $schedCnt = $schedQ ? $schedQ->fetch_assoc()['cnt'] : 0;
+                $deptCnt = $deptQ ? $deptQ->fetch_assoc()['cnt'] : 0;
+                $subjCnt = $subjQ ? $subjQ->fetch_assoc()['cnt'] : 0;
+                $extCnt = $extQ ? $extQ->fetch_assoc()['cnt'] : 0;
+                $html = '<h2>Flush Archive</h2>';
+                $html .= '<p><strong>Semester:</strong> ' . htmlspecialchars($arch['semester'] . ' ' . $arch['academic_year']) . '</p>';
+                $html .= '<p><strong>Flushed:</strong> ' . date('M j, Y g:i A', strtotime($arch['flush_at'])) . '</p>';
+                $html .= '<p><strong>Archived:</strong> ' . number_format($arch['total_archived']) . ' records | <strong>Deleted:</strong> ' . number_format($arch['total_deleted']) . ' records</p>';
+                $html .= '<table border="1" cellpadding="4" cellspacing="0" width="100%">';
+                $html .= '<tr><th>Category</th><th>Records</th></tr>';
+                $html .= '<tr><td>Schedules</td><td>' . number_format($schedCnt) . '</td></tr>';
+                $html .= '<tr><td>Departments</td><td>' . number_format($deptCnt) . '</td></tr>';
+                $html .= '<tr><td>Subjects</td><td>' . number_format($subjCnt) . '</td></tr>';
+                $html .= '<tr><td>Extension Requests</td><td>' . number_format($extCnt) . '</td></tr>';
+                $html .= '</table>';
+            }
+        }
+    } elseif ($tab === 'pzem_archive') {
+        $title = 'PZEM Archive';
+        $subtitle = 'Daily energy data aggregation history';
+        $result = $conn->query("SELECT archive_date, total_readings, records_archived, records_purged FROM pzem_archive ORDER BY archive_date DESC LIMIT 50");
+        $html = '<h2>PZEM Archive</h2>';
+        $html .= '<table border="1" cellpadding="4" cellspacing="0" width="100%">';
+        $html .= '<tr><th>Date</th><th>Total Readings</th><th>Archived</th><th>Purged</th></tr>';
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $html .= '<tr>';
+                $html .= '<td>' . date('M j, Y', strtotime($row['archive_date'])) . '</td>';
+                $html .= '<td>' . number_format($row['total_readings']) . '</td>';
+                $html .= '<td>' . number_format($row['records_archived']) . '</td>';
+                $html .= '<td>' . number_format($row['records_purged']) . '</td>';
+                $html .= '</tr>';
+            }
+        }
+        $html .= '</table>';
+    } else {
     // - Activity tab -
     $activity_logs = [];
 
@@ -330,6 +384,19 @@ if ($tab === 'rooms') {
 
 $html .= '<p style="text-align:center;margin-top:20px;color:#888;font-size:11px;">Generated on ' . date('F j, Y, g:i A') . '</p>';
 
+// Mode=view: return HTML preview instead of PDF
+if (isset($_GET['mode']) && $_GET['mode'] === 'view') {
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . htmlspecialchars($title ?? 'Report') . '</title>';
+    echo '<style>body{font-family:Arial,sans-serif;padding:20px;font-size:13px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;}th{background:#f5f5f5;font-weight:600;}h2{margin-bottom:2px;}h3{color:#666;font-weight:normal;margin-top:0;}</style>';
+    echo '</head><body>';
+    echo '<h2>' . htmlspecialchars($title ?? 'Report') . '</h2>';
+    if (!empty($subtitle)) echo '<h3>' . htmlspecialchars($subtitle) . '</h3>';
+    echo $html ?? '<p>No data.</p>';
+    echo '</body></html>';
+    exit(0);
+}
+
 $dompdf = new Dompdf();
 $dompdf->setPaper('A4', 'landscape');
 
@@ -345,7 +412,7 @@ $doc .= '<style>
 $dompdf->loadHtml($doc);
 $dompdf->render();
 
-$filename = 'report-' . $tab . '-' . date('Y-m-d') . '.pdf';
+$filename = $title . '.pdf';
 
 header('Content-Type: application/pdf');
 header('Content-Disposition: attachment; filename="' . $filename . '"');

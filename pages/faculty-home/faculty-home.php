@@ -141,6 +141,8 @@ $lighting_blocked = $lighting_reason !== null;
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/pages/faculty-home.css">
     <link rel="stylesheet" href="../../css/faculty/common.css">
+    <link rel="stylesheet" href="../../css/faculty/timetable.css">
+    <link rel="stylesheet" href="../../css/faculty/timetable.css">
     <title>Faculty Dashboard - LumineSense</title>
 </head>
 <body class="contrast-bg">
@@ -586,8 +588,6 @@ $lighting_blocked = $lighting_reason !== null;
                 </div><!-- /col 3 -->
 
             </div>
-
-    <link rel="stylesheet" href="../../css/pages/faculty-home.css">
 
     <script>
         const CLASSROOM_ID = <?= (int) $classroom_id ?>;
