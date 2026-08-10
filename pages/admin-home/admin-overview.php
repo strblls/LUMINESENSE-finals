@@ -157,7 +157,7 @@ $faculty_stmt = $conn->query("
     SELECT f.id, f.first_name, f.last_name, f.email, f.is_archived,
            d.name AS department_name,
            c.name AS classroom_name,
-           s.start_time, s.end_time, s.extended_until, s.subject
+           s.start_time, s.end_time, s.extended_until
     FROM faculty f
     LEFT JOIN departments d ON f.department_id = d.id
     LEFT JOIN schedules s ON s.faculty_id = f.id
