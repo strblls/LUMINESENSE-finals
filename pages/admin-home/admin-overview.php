@@ -157,6 +157,7 @@ $faculty_stmt = $conn->query("
     SELECT f.id, f.first_name, f.last_name, f.email, f.is_archived,
            d.name AS department_name,
            c.room_name AS classroom_name,
+           s.subject_id,
            s.start_time, s.end_time, s.extended_until
     FROM faculty f
     LEFT JOIN departments d ON f.department_id = d.id
@@ -170,7 +171,28 @@ $faculty_stmt = $conn->query("
 $faculty_list = [];
 if ($faculty_stmt) {
     while ($frow = $faculty_stmt->fetch_assoc()) {
+        $frow['subject_name'] = (isset($frow['subject_id']) && isset($subjectMap[$frow['subject_id']]))
+            ? $subjectMap[$frow['subject_id']]['subject_name']
+            : '';
         $faculty_list[] = $frow;
+    }
+}
+
+// ── Full weekly schedules per faculty (for the Gantt maximize pane) ────────
+$faculty_schedules = [];
+$fsched_stmt = $conn->query("
+    SELECT s.faculty_id, s.day_of_week, s.start_time, s.end_time, s.extended_until,
+           c.room_name,
+           COALESCE(TRIM(sub.name), '') AS subject_name
+    FROM schedules s
+    LEFT JOIN classrooms c ON c.id = s.classroom_id
+    LEFT JOIN subjects sub ON sub.id = s.subject_id
+    WHERE s.faculty_id IS NOT NULL
+    ORDER BY s.faculty_id, FIELD(s.day_of_week,'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'), s.start_time
+");
+if ($fsched_stmt) {
+    while ($fs = $fsched_stmt->fetch_assoc()) {
+        $faculty_schedules[(int)$fs['faculty_id']][] = $fs;
     }
 }
 
@@ -179,6 +201,20 @@ $nowTime = date('H:i:s');
 $todayDow = (int)date('w');
 $last7 = [];
 for ($i = 6; $i >= 0; $i--) $last7[] = date('Y-m-d', strtotime("-$i days"));
+
+// ── Rooms with an active session right now (for sparkline availability) ──────
+$activeSessions = [];
+$actRes = $conn->query("
+    SELECT DISTINCT classroom_id FROM schedules
+    WHERE day_of_week = '" . date('l') . "'
+      AND start_time <= '" . date('H:i:s') . "'
+      AND COALESCE(extended_until, end_time) >= '" . date('H:i:s') . "'
+");
+if ($actRes) {
+    while ($actRow = $actRes->fetch_assoc()) {
+        $activeSessions[] = (int)$actRow['classroom_id'];
+    }
+}
 
 $rooms = [];
 foreach ($roomRows as $rid => $room) {
@@ -297,6 +333,7 @@ foreach ($roomRows as $rid => $room) {
         'energy_wh'     => $room['energy_wh'] !== null ? (float)$room['energy_wh'] : null,
         'fresh_secs'    => $room['fresh_secs'] !== null ? (int)$room['fresh_secs'] : null,
         'is_live'       => $is_live,
+        'isActiveSession' => in_array((int)$rid, $activeSessions),
         'status'        => $status,
         'faculty_name'  => $faculty,
         'current_time'  => $current_time,
@@ -728,7 +765,9 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                 <div class="d-flex align-items-center gap-2">
                                     <input type="text" id="facultySearch" class="form-control" placeholder="Search faculty..."
                                         style="max-width:220px;">
+                                    <button type="button" class="light expand-all-btn w-auto" id="expandAllFacultyBtn" title="Expand / collapse all faculty"><i class="bi bi-chevron-down"></i> Expand all</button>
                                     <button type="button" class="light expand-all-btn w-auto" id="selectAllFacultyBtn" title="Select / unselect all faculty"><i class="bi bi-check2-all"></i> Select all</button>
+                                    <button type="button" class="medium" id="maximizeFacultyBtn" title="Open schedule Gantt view"><i class="bi bi-arrows-fullscreen"></i> Maximize</button>
                                 </div>
                             </div>
                             <div class="faculty-list" id="facultyList">
@@ -748,7 +787,11 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                                 <div>
                                                     <h2 class="room-card-name"><?= htmlspecialchars($fac['first_name'] . ' ' . $fac['last_name']) ?></h2>
                                                     <div class="room-card-section">
-                                                        <?= htmlspecialchars($fac['department_name'] ?: 'No Dept') ?>
+                                                        <?php if ($fac['classroom_name']): ?>
+                                                            <?= htmlspecialchars($fac['classroom_name']) ?><?php if ($fac['subject_name']): ?> &middot; <?= htmlspecialchars($fac['subject_name']) ?><?php endif; ?>
+                                                        <?php else: ?>
+                                                            <?= htmlspecialchars($fac['department_name'] ?: 'No Dept') ?>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
                                                 <span class="room-status-badge <?= $fac['is_archived'] ? 'badge-archived' : 'badge-active' ?>"><?= $fac['is_archived'] ? 'Archived' : 'Active' ?></span>
@@ -965,6 +1008,30 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
         </div>
     </div>
 
+    <!-- ── FACULTY SCHEDULE GANTT (maximized) ── -->
+    <div class="modal fade" id="facultyGanttModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content" style="background:#f5f2fa;">
+                <div class="modal-header" style="background:var(--secondary-color-1);color:#fff;">
+                    <h5 class="modal-title"><i class="bi bi-people-fill me-2"></i>Faculty Schedule</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body d-flex flex-column" style="padding:0;">
+                    <div class="d-flex align-items-center gap-2 px-3 py-2" style="border-bottom:1px solid #e5e0ee;">
+                        <span class="small text-muted">Legend:</span>
+                        <span class="gantt-legend gantt-legend-past"></span><span class="small">Past</span>
+                        <span class="gantt-legend gantt-legend-now"></span><span class="small">Now</span>
+                        <span class="gantt-legend gantt-legend-upcoming"></span><span class="small">Upcoming</span>
+                        <span class="gantt-legend gantt-legend-extended"></span><span class="small">Extended</span>
+                    </div>
+                    <div class="flex-grow-1 overflow-auto" id="facultyGanttWrap">
+                        <div id="facultyGantt" style="min-width:1200px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- PART2_MODALS -->
 
     <script src="../../js/lib/animations.js"></script>
@@ -977,6 +1044,8 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
         const SPARK_SUMMARY = <?= json_encode($sparkSummary, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const CHART_DAILY = <?= json_encode($chartDaily, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const CHART_TODAY = <?= json_encode($chartToday, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const FACULTY = <?= json_encode($faculty_list, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const FACULTY_SCHEDULES = <?= json_encode($faculty_schedules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
     </script>
     <script src="../../js/admin/admin-overview.js"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>

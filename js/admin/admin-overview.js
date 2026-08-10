@@ -113,18 +113,35 @@ function drawAllSparks() {
     drawFacultySparks();
 }
 
-// Faculty cards reuse the room-card layout, so give each a flat gray sparkline
+// Faculty cards reuse the room-card layout, so give each a sparkline that
+// reflects availability: the assigned room's V/A/W when in class, else gray.
 function drawFacultySparks() {
     if (!window.Chart) return;
     document.querySelectorAll('#facultyList .hroom-spark canvas').forEach(canvas => {
         const id = canvas.id;
         if (!id) return;
         if (sparkCharts[id]) sparkCharts[id].destroy();
+        const card = canvas.closest('.faculty-card');
+        const roomName = (card && card.getAttribute('data-room-name') || '').toLowerCase();
+        const room = (ROOMS || []).find(r => (r.room_name || '').toLowerCase() === roomName);
+        const hasSession = !!room && !!room.isActiveSession;
+        const v = hasSession ? (room.sparkV || []) : [];
+        const a = hasSession ? (room.sparkA || []) : [];
+        const w = hasSession ? (room.sparkW || []) : [];
+        const n = Math.max(v.length, a.length, w.length, 1);
+        const labels = Array.from({ length: n }, (_, i) => i);
+        const grayColor = '#d0d0d0';
         sparkCharts[id] = new Chart(canvas, {
             type: 'line',
             data: {
-                labels: [0],
-                datasets: [{ data: [0], borderColor: '#d0d0d0', borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 }],
+                labels,
+                datasets: hasSession ? [
+                    { data: v, borderColor: COLORS.voltage, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
+                    { data: a, borderColor: COLORS.current, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
+                    { data: w, borderColor: COLORS.power, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
+                ] : [
+                    { data: [0], borderColor: grayColor, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
+                ],
             },
             options: {
                 responsive: true,
@@ -931,6 +948,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Expand / collapse all faculty details
+    const expandFacBtn = document.getElementById('expandAllFacultyBtn');
+    const facultyListEl = document.getElementById('facultyList');
+    if (expandFacBtn && facultyListEl) {
+        expandFacBtn.addEventListener('click', function () {
+            const expanded = facultyListEl.classList.toggle('expanded');
+            expandFacBtn.classList.toggle('expanded', expanded);
+            expandFacBtn.innerHTML = expanded
+                ? '<i class="bi bi-chevron-up"></i> Collapse all'
+                : '<i class="bi bi-chevron-down"></i> Expand all';
+        });
+    }
+
     // Panel hover + click expand
     const panels = ['panelGuide', 'panelStatus', 'panelPeriod', 'panelMetric'];
     const timers = {};
@@ -978,6 +1008,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     initFacultyManagement();
+
+    // Maximize button → fullscreen schedule Gantt
+    const maximizeBtn = document.getElementById('maximizeFacultyBtn');
+    if (maximizeBtn) maximizeBtn.addEventListener('click', openFacultyGantt);
 });
 
 /* ── Faculty Management Pane ─────────────────────────────────────────────── */
@@ -1036,4 +1070,117 @@ function selectFaculty(id, el) {
             selectRoom(parseInt(rc.getAttribute('data-room-id'), 10));
         }
     });
+}
+
+/* ── Faculty Schedule Gantt (maximize pane) ───────────────────────────────── */
+const GANTT_HOUR_START = 7;   // 7:00 AM
+const GANTT_HOUR_END   = 19;  // 7:00 PM
+const GANTT_HOUR_PX    = 52;  // px per hour
+const GANTT_DAY_ORDER  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const GANTT_DAY_SHORT  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function ganttTimeToMin(t) {
+    if (!t) return GANTT_HOUR_START * 60;
+    const parts = String(t).split(':');
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1] || '0', 10);
+}
+
+function renderFacultyGantt() {
+    const container = document.getElementById('facultyGantt');
+    if (!container) return;
+
+    const dayW = (GANTT_HOUR_END - GANTT_HOUR_START) * GANTT_HOUR_PX;
+    const labelW = 210;
+    const totalW = labelW + 7 * dayW;
+    const rowH = 52;
+    const headerH = 56;
+
+    const nowMin = ganttTimeToMin(new Date().toTimeString().slice(0, 8));
+    const todayDow = new Date().getDay(); // 0 Sun … 6 Sat
+    const todayIdx = todayDow === 0 ? 6 : todayDow - 1; // Monday = 0
+
+    // Build rows
+    const members = (FACULTY || []).filter(f => !f.is_archived);
+    if (!members.length) {
+        container.innerHTML = '<p class="text-muted small p-3">No active faculty members.</p>';
+        return;
+    }
+
+    // Header row
+    let html = '<div class="gantt-grid" style="width:' + totalW + 'px;">';
+    html += '<div class="gantt-header-row">';
+    html += '<div class="gantt-label-cell gantt-label-head" style="width:' + labelW + 'px;height:' + headerH + 'px;">Faculty</div>';
+    GANTT_DAY_ORDER.forEach((day, di) => {
+        const col = '<div class="gantt-day-col" style="width:' + dayW + 'px;height:' + headerH + 'px;">' +
+            '<div class="gantt-day-name">' + GANTT_DAY_SHORT[di] + '</div>' +
+            '<div class="gantt-hour-ticks">' +
+                Array.from({ length: GANTT_HOUR_END - GANTT_HOUR_START }, (_, i) => {
+                    const h = GANTT_HOUR_START + i;
+                    const l = h === GANTT_HOUR_START ? '' : (h % 12 === 0 ? '12 PM' : (h < 12 ? h + ' AM' : (h % 12) + ' PM'));
+                    return '<span style="width:' + GANTT_HOUR_PX + 'px;left:' + (i * GANTT_HOUR_PX) + 'px;">' + l + '</span>';
+                }).join('') +
+            '</div></div>';
+        html += col;
+    });
+    html += '</div>';
+
+    // Faculty rows
+    members.forEach(f => {
+        const scheds = (FACULTY_SCHEDULES || {})[f.id] || [];
+        html += '<div class="gantt-faculty-row">';
+        html += '<div class="gantt-label-cell" style="width:' + labelW + 'px;height:' + rowH + 'px;">' +
+            '<div class="gantt-fac-name">' + escapeHtml(f.first_name + ' ' + f.last_name) + '</div>' +
+            '<div class="gantt-fac-dept">' + escapeHtml(f.department_name || '') + '</div></div>';
+        html += '<div class="gantt-day-area">';
+        for (let di = 0; di < 7; di++) {
+            const day = GANTT_DAY_ORDER[di];
+            const dayScheds = scheds.filter(s => s.day_of_week === day);
+            html += '<div class="gantt-day-area-inner" style="width:' + dayW + 'px;height:' + rowH + 'px;">';
+            if (!dayScheds.length) {
+                html += '<span class="gantt-empty">—</span>';
+            }
+            dayScheds.forEach(s => {
+                const startMin = ganttTimeToMin(s.start_time);
+                const baseEnd = ganttTimeToMin(s.end_time);
+                const extEnd = ganttTimeToMin(s.extended_until);
+                const endMin = extEnd > baseEnd ? extEnd : baseEnd;
+                const left = Math.max(startMin - GANTT_HOUR_START * 60, 0) * (GANTT_HOUR_PX / 60);
+                const width = Math.max((endMin - startMin) * (GANTT_HOUR_PX / 60), 6);
+                const isToday = di === todayIdx;
+                const isNow = isToday && startMin <= nowMin && nowMin <= endMin;
+                const isPast = isToday && endMin < nowMin;
+                const isExtended = extEnd > baseEnd;
+                const cls = isExtended ? 'gantt-block-extended'
+                    : (isNow ? 'gantt-block-now'
+                    : (isPast ? 'gantt-block-past' : 'gantt-block-upcoming'));
+                const startTxt = fmtGanttTime(startMin);
+                const endTxt = fmtGanttTime(endMin);
+                html += '<div class="gantt-block ' + cls + '" style="left:' + left + 'px;width:' + width + 'px;" ' +
+                    'title="' + escapeHtml(s.subject_name || '') + ' · ' + escapeHtml(s.room_name || '') + ' · ' + day + ' · ' + startTxt + ' – ' + endTxt + '">' +
+                    '<span class="gantt-block-subject">' + escapeHtml(s.subject_name || 'Class') + '</span>' +
+                    '<span class="gantt-block-room">' + escapeHtml(s.room_name || '') + '</span>' +
+                    '</div>';
+            });
+            html += '</div>';
+        }
+        html += '</div>';
+        html += '</div>';
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function fmtGanttTime(min) {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hh = h % 12 === 0 ? 12 : h % 12;
+    return hh + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+}
+
+function openFacultyGantt() {
+    renderFacultyGantt();
+    const modalEl = document.getElementById('facultyGanttModal');
+    if (modalEl && window.bootstrap) new bootstrap.Modal(modalEl).show();
 }
