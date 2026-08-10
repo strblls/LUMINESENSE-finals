@@ -1075,7 +1075,6 @@ function selectFaculty(id, el) {
 /* ── Faculty Schedule Gantt (maximize pane) ───────────────────────────────── */
 const GANTT_HOUR_START = 7;   // 7:00 AM
 const GANTT_HOUR_END   = 19;  // 7:00 PM
-const GANTT_HOUR_PX    = 52;  // px per hour
 const GANTT_DAY_ORDER  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const GANTT_DAY_SHORT  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -1091,8 +1090,11 @@ function renderFacultyGantt() {
     const container = document.getElementById('facultyGantt');
     if (!container) return;
 
-    const dayW = (GANTT_HOUR_END - GANTT_HOUR_START) * GANTT_HOUR_PX;
+    const wrap = document.getElementById('facultyGanttWrap');
+    const paneW = (wrap && wrap.clientWidth > 0) ? wrap.clientWidth : 1000;
     const labelW = 210;
+    const dayW = Math.max(paneW - labelW, 300);
+    const hourPx = dayW / (GANTT_HOUR_END - GANTT_HOUR_START);
     const totalW = labelW + dayW;
     const rowH = 52;
     const headerH = 56;
@@ -1122,7 +1124,7 @@ function renderFacultyGantt() {
             Array.from({ length: GANTT_HOUR_END - GANTT_HOUR_START }, (_, i) => {
                 const h = GANTT_HOUR_START + i;
                 const l = h === GANTT_HOUR_START ? '' : (h % 12 === 0 ? '12 PM' : (h < 12 ? h + ' AM' : (h % 12) + ' PM'));
-                return '<span style="width:' + GANTT_HOUR_PX + 'px;left:' + (i * GANTT_HOUR_PX) + 'px;">' + l + '</span>';
+                return '<span style="width:' + hourPx + 'px;left:' + (i * hourPx) + 'px;">' + l + '</span>';
             }).join('') +
         '</div></div>';
     html += '</div>';
@@ -1145,8 +1147,8 @@ function renderFacultyGantt() {
             const baseEnd = ganttTimeToMin(s.end_time);
             const extEnd = ganttTimeToMin(s.extended_until);
             const endMin = extEnd > baseEnd ? extEnd : baseEnd;
-            const left = Math.max(startMin - GANTT_HOUR_START * 60, 0) * (GANTT_HOUR_PX / 60);
-            const width = Math.max((endMin - startMin) * (GANTT_HOUR_PX / 60), 6);
+            const left = Math.max(startMin - GANTT_HOUR_START * 60, 0) * (hourPx / 60);
+            const width = Math.max((endMin - startMin) * (hourPx / 60), 6);
             const isToday = ganttDayIdx === todayIdx;
             const isNow = isToday && startMin <= nowMin && nowMin <= endMin;
             const isPast = isToday && endMin < nowMin;
@@ -1186,10 +1188,20 @@ function fmtGanttTime(min) {
 function openFacultyGantt() {
     const todayDow = new Date().getDay(); // 0 Sun … 6 Sat
     ganttDayIdx = todayDow === 0 ? 6 : todayDow - 1; // default to current day
-    renderFacultyGantt();
     const modalEl = document.getElementById('facultyGanttModal');
-    if (modalEl && window.bootstrap) new bootstrap.Modal(modalEl).show();
+    if (modalEl && window.bootstrap) {
+        const modal = new bootstrap.Modal(modalEl);
+        modalEl.addEventListener('shown.bs.modal', function () { renderFacultyGantt(); }, { once: true });
+        modal.show();
+    } else {
+        renderFacultyGantt();
+    }
 }
+
+window.addEventListener('resize', function () {
+    const wrap = document.getElementById('facultyGanttWrap');
+    if (wrap && wrap.offsetParent !== null) renderFacultyGantt();
+});
 
 /* ── Gantt day-pane navigation (prev / next) ──────────────────────────────── */
 function ganttStep(offset) {

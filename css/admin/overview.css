@@ -994,14 +994,40 @@
     color: #4a3600;
 }
 
-.gantt-nav-btn {
-    width: 30px;
-    height: 30px;
+.gantt-pane {
+    position: relative;
+}
+
+.gantt-pane-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    width: 34px;
+    height: 34px;
     padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--secondary-color-1);
+    box-shadow: 0 4px 14px rgba(47, 0, 79, 0.28);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+.gantt-pane-arrow:hover {
+    background: var(--secondary-color-2);
+    color: #fff;
+    transform: translateY(-50%) scale(1.08);
+}
+.gantt-pane-arrow-prev {
+    left: 10px;
+}
+.gantt-pane-arrow-next {
+    right: 10px;
 }
 
 /* Gantt block detail overlay (scales in like the homepage day overlay) */
