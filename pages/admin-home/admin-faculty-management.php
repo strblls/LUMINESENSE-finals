@@ -587,7 +587,9 @@ $php_content = ob_get_clean(); // Get any PHP output and clear buffer
                                             <div class="dept-member-filter-item" onclick="filterFacultyByStatus(this, 'approved')">Approved</div>
                                             <div class="dept-member-filter-item" onclick="filterFacultyByStatus(this, 'pending')">Pending</div>
                                             <div class="dept-member-filter-item" onclick="filterFacultyByStatus(this, 'unverified')">Unverified</div>
+                                            <?php if ($admin_is_seeded): ?>
                                             <div class="dept-member-filter-item" onclick="filterFacultyByStatus(this, 'archived')">Archived</div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <div class="faculty-side-filter">

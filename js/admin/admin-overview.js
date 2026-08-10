@@ -957,56 +957,62 @@ document.addEventListener('DOMContentLoaded', function () {
 
 /* ── Faculty Management Pane ─────────────────────────────────────────────── */
 let FACULTY_MEMBERS = [];
-let facultyFilter = 'all';
 
 async function initFacultyManagement() {
     // Faculty list is rendered server-side. We just attach behavior.
     var facultyListEl = document.getElementById('facultyList');
     if (!facultyListEl) return;
     FACULTY_MEMBERS = Array.from(facultyListEl.querySelectorAll('.faculty-card'));
-}
 
-function setFacultyFilter(filter, btn) {
-    facultyFilter = filter;
-    document.querySelectorAll('#facultyFilters button').forEach(function(b) {
-        b.classList.remove('selected');
-    });
-    if (btn) btn.classList.add('selected');
-    filterFacultyCards();
+    var searchEl = document.getElementById('facultySearch');
+    if (searchEl) {
+        searchEl.addEventListener('input', function () {
+            filterFacultyCards();
+        });
+    }
+
+    var selectAllBtn = document.getElementById('selectAllFacultyBtn');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function () {
+            var allSelected = FACULTY_MEMBERS.every(function (c) { return c.classList.contains('selected'); });
+            FACULTY_MEMBERS.forEach(function (c) {
+                c.classList.toggle('selected', !allSelected);
+            });
+            selectAllBtn.innerHTML = allSelected
+                ? '<i class="bi bi-check2-all"></i> Select all'
+                : '<i class="bi bi-check2-square"></i> Deselect all';
+        });
+    }
 }
 
 function filterFacultyCards() {
-    var search = (document.getElementById('facultySearchInput')?.value || '').toLowerCase();
-    var cards = document.querySelectorAll('.faculty-card');
+    var search = (document.getElementById('facultySearch')?.value || '').toLowerCase();
+    var cards = document.querySelectorAll('#facultyList .faculty-card');
     cards.forEach(function(card) {
-        var status = card.getAttribute('data-status');
         var name = card.querySelector('.faculty-name')?.textContent?.toLowerCase() || '';
-        var matchFilter = facultyFilter === 'all' || status === facultyFilter;
         var matchSearch = !search || name.includes(search);
-        card.style.display = (matchFilter && matchSearch) ? '' : 'none';
+        card.style.display = matchSearch ? '' : 'none';
     });
 }
 
 function selectFaculty(id, el) {
-    document.querySelectorAll('.faculty-card').forEach(function(c) { c.classList.remove('selected'); });
+    document.querySelectorAll('#facultyList .faculty-card').forEach(function(c) { c.classList.remove('selected'); });
     if (el) el.classList.add('selected');
-    // Optional: filter the overview chart by this faculty's room
+    // Filter the overview chart to this faculty's current room
     var card = el;
     if (!card) return;
     var meta = card.querySelector('.faculty-meta');
     if (!meta) return;
-    var metaText = meta.textContent;
-    // Extract room name from meta text (after the dot separator)
-    var match = metaText.match(/·\s*(\S+)/);
-    if (match) {
-        var roomName = match[1];
-        // Find matching room and select it
-        var roomCards = document.querySelectorAll('.room-card');
-        roomCards.forEach(function(rc) {
-            var rname = rc.querySelector('.room-name')?.textContent?.toLowerCase() || '';
-            if (rname === roomName.toLowerCase()) {
-                selectRoom(parseInt(rc.getAttribute('data-room-id')), rc);
-            }
-        });
-    }
+    var roomSpan = meta.querySelector('span');
+    if (!roomSpan) return;
+    var roomName = roomSpan.textContent.trim();
+    if (!roomName) return;
+    // Find the matching room card and select it
+    var roomCards = document.querySelectorAll('.hroom-row');
+    roomCards.forEach(function(rc) {
+        var rname = rc.querySelector('.room-card-name')?.textContent?.toLowerCase() || '';
+        if (rname === roomName.toLowerCase()) {
+            selectRoom(parseInt(rc.getAttribute('data-room-id'), 10));
+        }
+    });
 }
