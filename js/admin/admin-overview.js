@@ -1100,7 +1100,7 @@ function renderFacultyGantt() {
     const todayIdx = todayDow === 0 ? 6 : todayDow - 1; // Monday = 0
 
     // Build rows
-    const members = (FACULTY || []).filter(f => !f.is_archived);
+    const members = (FACULTY || []);
     if (!members.length) {
         container.innerHTML = '<p class="text-muted small p-3">No active faculty members.</p>';
         return;

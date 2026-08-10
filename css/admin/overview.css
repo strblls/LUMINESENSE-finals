@@ -790,6 +790,10 @@
 }
 
 /* ── Faculty Card (reuses .hroom-row .room-card structure) ──────────────── */
+.faculty-card {
+    padding: 0;
+}
+
 .faculty-card .room-card-body {
     padding: 0;
 }
