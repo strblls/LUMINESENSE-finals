@@ -774,13 +774,12 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                 <?php foreach ($faculty_list as $fi => $fac):
                                     $fstatus = $fac['is_archived'] ? 'archived' : 'active';
                                     $fstatusClass = $fac['is_archived'] ? 'archived' : 'active';
-                                    $fselected = $fi === 0;
                                 ?>
-                                    <div class="faculty-card hroom-row room-card <?php if ($fselected) echo 'selected'; ?>"
+                                    <div class="faculty-card hroom-row room-card"
                                          data-faculty-id="<?= $fac['id'] ?>"
                                          data-room-name="<?= h(strtolower($fac['classroom_name'] ?? '')) ?>"
                                          data-status="<?= $fstatus ?>"
-                                         onclick="selectFaculty(<?= $fac['id'] ?>, this)">
+                                         onclick="selectFaculty(<?= $fac['id'] ?>)">
                                         <div class="room-card-accent <?= $fac['is_archived'] ? 'accent-archived' : 'accent-vacant' ?>"></div>
                                         <div class="room-card-body">
                                             <div class="room-card-header">
@@ -813,9 +812,9 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                             </div>
                                             <div class="room-card-actions">
                                                 <div class="d-flex align-items-center room-icons gap-1">
-                                                    <button class="btn-icon btn-icon-view" title="View faculty" onclick="selectFaculty(<?= $fac['id'] ?>, this.closest('.faculty-card'))"><i class="bi bi-calendar3"></i></button>
+                                                    <button class="btn-icon btn-icon-view" title="View faculty" onclick="selectFaculty(<?= $fac['id'] ?>)"><i class="bi bi-calendar3"></i></button>
                                                 </div>
-                                                <button class="light" onclick="selectFaculty(<?= $fac['id'] ?>, this.closest('.faculty-card'))">View</button>
+                                                <button class="light" onclick="selectFaculty(<?= $fac['id'] ?>)">View</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1017,26 +1016,19 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body d-flex flex-column" style="padding:0;">
-                    <div class="d-flex align-items-center gap-2 px-3 py-2" style="border-bottom:1px solid #e5e0ee;">
-                        <span class="small text-muted">Legend:</span>
-                        <span class="gantt-legend gantt-legend-past"></span><span class="small">Past</span>
-                        <span class="gantt-legend gantt-legend-now"></span><span class="small">Now</span>
-                        <span class="gantt-legend gantt-legend-upcoming"></span><span class="small">Upcoming</span>
-                        <span class="gantt-legend gantt-legend-extended"></span><span class="small">Extended</span>
-                    </div>
                     <div class="flex-grow-1 gantt-pane" id="facultyGanttWrap">
                         <div class="gantt-nav-row">
                             <div class="gantt-nav-spacer"></div>
                             <div class="gantt-wizard-nav d-flex align-items-center justify-content-between gap-2">
                                 <button type="button" class="gantt-nav-btn" id="ganttPrevBtn" title="Previous day"><i class="bi bi-chevron-left"></i></button>
                                 <div class="gantt-wizard-steps gantt-day-tabs d-flex align-items-center justify-content-center gap-2">
+                                    <button type="button" class="timetable-btn gantt-day-tab" data-day="6" title="Sunday"><span class="timetable-btn-title bold">Sun</span></button>
                                     <button type="button" class="timetable-btn gantt-day-tab" data-day="0" title="Monday"><span class="timetable-btn-title bold">Mon</span></button>
                                     <button type="button" class="timetable-btn gantt-day-tab" data-day="1" title="Tuesday"><span class="timetable-btn-title bold">Tue</span></button>
                                     <button type="button" class="timetable-btn gantt-day-tab" data-day="2" title="Wednesday"><span class="timetable-btn-title bold">Wed</span></button>
                                     <button type="button" class="timetable-btn gantt-day-tab" data-day="3" title="Thursday"><span class="timetable-btn-title bold">Thu</span></button>
                                     <button type="button" class="timetable-btn gantt-day-tab" data-day="4" title="Friday"><span class="timetable-btn-title bold">Fri</span></button>
                                     <button type="button" class="timetable-btn gantt-day-tab" data-day="5" title="Saturday"><span class="timetable-btn-title bold">Sat</span></button>
-                                    <button type="button" class="timetable-btn gantt-day-tab" data-day="6" title="Sunday"><span class="timetable-btn-title bold">Sun</span></button>
                                 </div>
                                 <button type="button" class="gantt-nav-btn" id="ganttNextBtn" title="Next day"><i class="bi bi-chevron-right"></i></button>
                             </div>

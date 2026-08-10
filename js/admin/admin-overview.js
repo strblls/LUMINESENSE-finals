@@ -6,6 +6,7 @@
 
 // ── State ────────────────────────────────────────────────────────────────
 let currentRoomId = null;
+let currentFacultyId = null; // null = all faculties selected, 0 = none, >0 = single (mirrors currentRoomId)
 let currentPeriod = 1;
 let currentMetric = 'all';
 let lineChartInstance = null;
@@ -504,10 +505,10 @@ function selectRoom(id) {
     const rid = parseInt(id, 10);
     if (currentRoomId === rid) {
         deselectRoom();
+        setFacultyOnly(null); // back to “all faculties” together with “all rooms”
         return;
     }
-    currentRoomId = rid;
-    updateSelectionUI();
+    setRoomSelection(rid);
 }
 
 function deselectRoom() {
@@ -516,8 +517,120 @@ function deselectRoom() {
 }
 
 function toggleSelectAll() {
-    currentRoomId = (currentRoomId === null) ? 0 : null;
+    const all = currentRoomId !== null;
+    setRoomOnly(all ? null : 0);
+    setFacultyOnly(all ? null : 0);
+}
+
+// ── Room / faculty cross-selection (matched on their classroom/session) ──
+function setRoomOnly(id) {
+    currentRoomId = (id === null || id === undefined) ? null : parseInt(id, 10);
     updateSelectionUI();
+}
+
+function setFacultyOnly(id) {
+    currentFacultyId = (id === null || id === undefined) ? null : parseInt(id, 10);
+    updateFacultySelectionUI();
+}
+
+function setRoomSelection(id) {
+    setRoomOnly(id);
+    syncFacultyFromRoom(id);
+}
+
+function setFacultySelection(id) {
+    setFacultyOnly(id);
+    if (id === null) { setRoomOnly(null); return; }
+    if (id === 0) { setRoomOnly(0); return; }
+    syncRoomFromFaculty(id);
+}
+
+function findRoomCardById(id) {
+    const key = String(id);
+    let out = null;
+    document.querySelectorAll('.hroom-row:not(.faculty-card)').forEach(function (rc) {
+        if (!out && rc.getAttribute('data-room-id') === key) out = rc;
+    });
+    return out;
+}
+
+function findRoomCardByRoomName(name) {
+    const key = (name || '').toLowerCase();
+    if (!key) return null;
+    let out = null;
+    document.querySelectorAll('.hroom-row:not(.faculty-card)').forEach(function (rc) {
+        if (!out && (rc.getAttribute('data-room') || '').toLowerCase() === key) out = rc;
+    });
+    return out;
+}
+
+function findFacultyCardById(id) {
+    const key = String(id);
+    let out = null;
+    document.querySelectorAll('#facultyList .faculty-card').forEach(function (fc) {
+        if (!out && fc.getAttribute('data-faculty-id') === key) out = fc;
+    });
+    return out;
+}
+
+function findFacultyIdByRoomName(name) {
+    const key = (name || '').toLowerCase();
+    if (!key) return null;
+    let out = null;
+    document.querySelectorAll('#facultyList .faculty-card').forEach(function (fc) {
+        if (!out && (fc.getAttribute('data-room-name') || '').toLowerCase() === key) {
+            out = parseInt(fc.getAttribute('data-faculty-id'), 10);
+        }
+    });
+    return out;
+}
+
+// Selecting a room also selects whichever faculty holds a session in it.
+function syncFacultyFromRoom(roomId) {
+    if (roomId === null) { setFacultyOnly(null); return; }
+    const rc = findRoomCardById(roomId);
+    if (!rc) { setFacultyOnly(0); return; }
+    const fid = findFacultyIdByRoomName(rc.getAttribute('data-room'));
+    setFacultyOnly(fid !== null ? fid : 0);
+}
+
+// Selecting a faculty also selects the room where their session is held.
+function syncRoomFromFaculty(facId) {
+    const fc = findFacultyCardById(facId);
+    if (!fc) { setRoomOnly(0); return; }
+    const roomName = fc.getAttribute('data-room-name');
+    const rc = findRoomCardByRoomName(roomName);
+    setRoomOnly(rc ? parseInt(rc.getAttribute('data-room-id'), 10) : 0);
+}
+
+function updateFacultySelectionUI() {
+    const allSel = currentFacultyId === null;
+    const noneSel = currentFacultyId === 0;
+
+    document.querySelectorAll('#facultyList .faculty-card').forEach(function (c) {
+        const fid = parseInt(c.getAttribute('data-faculty-id'), 10);
+        c.classList.toggle('selected', !noneSel && (allSel || fid === currentFacultyId));
+    });
+
+    const label = document.getElementById('facultySelLabel');
+    if (label) {
+        if (noneSel) {
+            label.textContent = ' None';
+        } else if (!allSel) {
+            const fc = findFacultyCardById(currentFacultyId);
+            const name = fc ? (fc.querySelector('.room-card-name') || {}).textContent : '';
+            label.textContent = ' ' + (name || '');
+        } else {
+            label.textContent = ' All Faculty';
+        }
+    }
+
+    const selBtn = document.getElementById('selectAllFacultyBtn');
+    if (selBtn) {
+        selBtn.innerHTML = allSel
+            ? '<i class="bi bi-x-lg"></i> Deselect all'
+            : '<i class="bi bi-check2-all"></i> Select all';
+    }
 }
 
 // ── Filters (status / dept / subject / search) ──────────────────────────
@@ -623,7 +736,7 @@ const alertIconMap = (type) => {
 };
 
 function openRoomModal(id) {
-    currentRoomId = parseInt(id, 10);
+    setRoomSelection(parseInt(id, 10));
     const room = (ROOMS || []).find(r => r.id == id) || {};
     document.getElementById('roomModalLabel').textContent = room.room_name || 'Room Details';
     new bootstrap.Modal(document.getElementById('roomModal')).show();
@@ -1001,9 +1114,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Modal cleanup
     const roomModalEl = document.getElementById('roomModal');
     if (roomModalEl) {
-        roomModalEl.addEventListener('hidden.bs.modal', function () {
-            currentRoomId = null;
-            updateSelectionUI();
+roomModalEl.addEventListener('hidden.bs.modal', function () {
+            setRoomOnly(null);
+            setFacultyOnly(null);
         });
     }
 
@@ -1015,13 +1128,10 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 /* ── Faculty Management Pane ─────────────────────────────────────────────── */
-let FACULTY_MEMBERS = [];
-
 async function initFacultyManagement() {
     // Faculty list is rendered server-side. We just attach behavior.
     var facultyListEl = document.getElementById('facultyList');
     if (!facultyListEl) return;
-    FACULTY_MEMBERS = Array.from(facultyListEl.querySelectorAll('.faculty-card'));
 
     var searchEl = document.getElementById('facultySearch');
     if (searchEl) {
@@ -1033,13 +1143,8 @@ async function initFacultyManagement() {
     var selectAllBtn = document.getElementById('selectAllFacultyBtn');
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', function () {
-            var allSelected = FACULTY_MEMBERS.every(function (c) { return c.classList.contains('selected'); });
-            FACULTY_MEMBERS.forEach(function (c) {
-                c.classList.toggle('selected', !allSelected);
-            });
-            selectAllBtn.innerHTML = allSelected
-                ? '<i class="bi bi-check2-all"></i> Select all'
-                : '<i class="bi bi-check2-square"></i> Deselect all';
+            if (currentFacultyId === null) { setFacultyOnly(0); setRoomOnly(0); }
+            else { setFacultyOnly(null); setRoomOnly(null); }
         });
     }
 }
@@ -1054,22 +1159,14 @@ function filterFacultyCards() {
     });
 }
 
-function selectFaculty(id, el) {
-    document.querySelectorAll('#facultyList .faculty-card').forEach(function(c) { c.classList.remove('selected'); });
-    if (el) el.classList.add('selected');
-    // Filter the overview chart to this faculty's current room
-    var card = el;
-    if (!card) return;
-    var roomName = card.getAttribute('data-room-name');
-    if (!roomName) return;
-    // Find the matching room card and select it
-    var roomCards = document.querySelectorAll('.hroom-row:not(.faculty-card)');
-    roomCards.forEach(function(rc) {
-        var rname = rc.getAttribute('data-room');
-        if (rname === roomName.toLowerCase()) {
-            selectRoom(parseInt(rc.getAttribute('data-room-id'), 10));
-        }
-    });
+function selectFaculty(id) {
+    const fid = parseInt(id, 10);
+    if (currentFacultyId === fid) {
+        setFacultyOnly(null);
+        setRoomOnly(null); // back to “all rooms” together with “all faculties”
+        return;
+    }
+    setFacultySelection(fid);
 }
 
 /* ── Faculty Schedule Gantt (maximize pane) ───────────────────────────────── */
@@ -1140,10 +1237,22 @@ function renderFacultyGantt() {
     const spanMin = Math.max(rangeEnd - rangeStart, 60);
     const hourPx = dayW / (spanMin / 60);
 
-    // Header row (ticks generated across the dynamic range at each hour boundary)
+    // Grid: pinned labels column + one scrollable day region (all faculty rows scroll together).
     let html = '<div class="gantt-grid" style="width:100%;">';
-    html += '<div class="gantt-header-row">';
+
+    // — Pinned label column (header + each faculty + legend) —
+    html += '<div class="gantt-labels-col">';
     html += '<div class="gantt-label-cell gantt-label-head" style="width:' + labelW + 'px;height:' + headerH + 'px;">Faculty</div>';
+    members.forEach(f => {
+        html += '<div class="gantt-label-cell" style="width:' + labelW + 'px;height:' + rowH + 'px;">' +
+            '<div class="gantt-fac-name">' + escapeHtml(f.first_name + ' ' + f.last_name) + '</div>' +
+            '<div class="gantt-fac-dept">' + escapeHtml(f.department_name || '') + '</div></div>';
+    });
+    html += '<div class="gantt-label-cell gantt-legend-label" style="width:' + labelW + 'px;height:' + rowH + 'px;">Legend</div>';
+    html += '</div>';
+
+    // — Scrollable day region (header ticks + all faculty schedules + legend, scrolled together) —
+    html += '<div class="gantt-days-scroll">';
     html += '<div class="gantt-day-col" style="width:' + dayW + 'px;height:' + headerH + 'px;">' +
         '<div class="gantt-hour-ticks">';
     for (let m = rangeStart; m < rangeEnd; m += 60) {
@@ -1152,20 +1261,13 @@ function renderFacultyGantt() {
         html += '<span style="width:' + hourPx + 'px;left:' + ((m - rangeStart) / 60 * hourPx) + 'px;"><em class="gantt-tick-line"></em>' + l + '</span>';
     }
     html += '</div></div>';
-    html += '</div>';
 
-    // Faculty rows
     const daySchedMap = {};
     daySchedList.forEach(({ f, s }) => { (daySchedMap[f.id] = daySchedMap[f.id] || []).push(s); });
 
-    members.forEach(f => {
+    members.forEach((f, fi) => {
         const dayScheds = daySchedMap[f.id] || [];
-        html += '<div class="gantt-faculty-row">';
-        html += '<div class="gantt-label-cell" style="width:' + labelW + 'px;height:' + rowH + 'px;">' +
-            '<div class="gantt-fac-name">' + escapeHtml(f.first_name + ' ' + f.last_name) + '</div>' +
-            '<div class="gantt-fac-dept">' + escapeHtml(f.department_name || '') + '</div></div>';
-        html += '<div class="gantt-day-area">';
-        html += '<div class="gantt-day-area-inner" style="width:' + dayW + 'px;height:' + rowH + 'px;">';
+        html += '<div class="gantt-day-area-inner' + (fi % 2 ? ' gantt-zebra' : '') + '" style="width:' + dayW + 'px;height:' + rowH + 'px;">';
         if (!dayScheds.length) {
             html += '<span class="gantt-empty">—</span>';
         }
@@ -1196,34 +1298,25 @@ function renderFacultyGantt() {
                 '</div>';
         });
         html += '</div>';
-        html += '</div>';
-        html += '</div>';
     });
 
-    html += '</div>';
-    container.innerHTML = html;
+    // Legend appended as the last entry of the scrollable day region
+    html += '<div class="gantt-day-area-inner gantt-legend-row" style="width:' + dayW + 'px;height:' + rowH + 'px;">' +
+        '<span class="gantt-legend gantt-legend-past"></span><span class="small">Past</span>' +
+        '<span class="gantt-legend gantt-legend-now"></span><span class="small">Now</span>' +
+        '<span class="gantt-legend gantt-legend-upcoming"></span><span class="small">Upcoming</span>' +
+        '<span class="gantt-legend gantt-legend-extended"></span><span class="small">Extended</span>' +
+        '</div>';
+    html += '</div>'; // days-scroll
+    html += '</div>'; // grid
 
-    // Keep the header ticks and each row's day area scrolling together.
-    syncGanttScroll();
+    container.innerHTML = html;
 }
 
 function updateGanttDayTabs() {
     document.querySelectorAll('.gantt-day-tab').forEach(function (btn) {
         const idx = parseInt(btn.getAttribute('data-day'), 10);
         btn.classList.toggle('active', idx === ganttDayIdx);
-    });
-}
-
-function syncGanttScroll() {
-    const dayCol = document.querySelector('#facultyGantt .gantt-day-col');
-    const areas = Array.prototype.slice.call(document.querySelectorAll('#facultyGantt .gantt-day-area-inner'));
-    const targets = [dayCol].concat(areas).filter(Boolean);
-    if (targets.length < 2) return;
-    targets.forEach(function (el) {
-        el.addEventListener('scroll', function () {
-            var v = el.scrollLeft;
-            targets.forEach(function (t) { if (t !== el) t.scrollLeft = v; });
-        });
     });
 }
 
