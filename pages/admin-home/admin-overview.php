@@ -790,7 +790,7 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                                         <?php if ($fac['classroom_name']): ?>
                                                             <?= htmlspecialchars($fac['classroom_name']) ?><?php if ($fac['subject_name']): ?> &middot; <?= htmlspecialchars($fac['subject_name']) ?><?php endif; ?>
                                                         <?php else: ?>
-                                                            <?= htmlspecialchars($fac['department_name'] ?: 'No Dept') ?>
+                                                            <?= $fac['is_archived'] ? 'No Class' : 'No Active Class' ?>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
