@@ -892,13 +892,8 @@
     box-sizing: border-box;
     flex: 0 0 auto;
     min-width: 0;
-}
-.gantt-day-name {
-    font-size: 11.5px;
-    font-weight: 700;
-    color: var(--secondary-color-1);
-    text-align: center;
-    padding-top: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 .gantt-hour-ticks {
     position: relative;
@@ -911,6 +906,16 @@
     font-size: 9px;
     color: var(--muted-dark);
     text-align: center;
+    overflow: visible;
+}
+.gantt-tick-line {
+    display: block;
+    height: 100%;
+    border-left: 1px solid #e5e0ee;
+    position: absolute;
+    left: 50%;
+    top: 0;
+    z-index: 0;
 }
 
 .gantt-faculty-row {
@@ -930,6 +935,8 @@
     box-sizing: border-box;
     flex: 0 0 auto;
     min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
     border-right: 1px solid #f0ecf6;
 }
 .gantt-empty {
@@ -1016,7 +1023,7 @@
 
 .gantt-nav-spacer {
     flex-shrink: 0;
-    width: 210px;
+    width: 150px;
 }
 
 /* Gantt day navigation (coverage-wizard style: chevron buttons flanking a centered day pill) */
@@ -1073,6 +1080,40 @@
 .gantt-step.active {
     color: #fff;
     background: var(--secondary-color-1);
+}
+
+/* Day tabs inside the Gantt wizard nav (timetable-btn style, active follows ganttDayIdx) */
+.gantt-day-tab {
+    width: auto;
+    min-width: 44px;
+    height: 32px;
+    border-radius: 8px;
+    gap: 4px;
+    font-size: 12px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+.gantt-day-tab .timetable-btn-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    max-width: none;
+    opacity: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.gantt-day-tab:hover {
+    width: auto;
+    margin-block: 0;
+    padding-inline-start: 13px;
+    padding-inline-end: 13px;
+}
+.gantt-day-tab.active {
+    background: var(--accent-yellow);
+    color: var(--accent-black);
+    transform: scale(1.05);
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.45);
+}
+.gantt-day-tab.active .timetable-btn-title {
+    color: var(--accent-black) !important;
 }
 
 /* Gantt block detail overlay (scales in like the homepage day overlay) */

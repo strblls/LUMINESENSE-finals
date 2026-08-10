@@ -1092,11 +1092,10 @@ function renderFacultyGantt() {
 
     const wrap = document.getElementById('facultyGanttWrap');
     const paneW = (wrap && wrap.clientWidth > 0) ? wrap.clientWidth : 1000;
-    const labelW = 210;
+    const labelW = 150;
     const dayW = Math.max(paneW - labelW, 300);
-    const hourPx = dayW / (GANTT_HOUR_END - GANTT_HOUR_START);
     const rowH = 52;
-    const headerH = 56;
+    const headerH = 38;
 
     const nowMin = ganttTimeToMin(new Date().toTimeString().slice(0, 8));
     const todayDow = new Date().getDay(); // 0 Sun … 6 Sat
@@ -1105,33 +1104,62 @@ function renderFacultyGantt() {
     // Build rows
     const members = (FACULTY || []);
     const day = GANTT_DAY_ORDER[ganttDayIdx];
-    const dayLabel = document.getElementById('ganttDayLabel');
-    if (dayLabel) dayLabel.textContent = day;
+
+    // Active day tab (respects the < / > navigation state)
+    updateGanttDayTabs();
 
     if (!members.length) {
         container.innerHTML = '<p class="text-muted small p-3">No active faculty members.</p>';
         return;
     }
 
-    // Header row
+    // Gather this day's schedules first so the time axis is dynamic (no overlaps / inaccuracy).
+    const daySchedList = [];
+    members.forEach(f => {
+        const scheds = (FACULTY_SCHEDULES || {})[f.id] || [];
+        scheds.filter(s => s.day_of_week === day).forEach(s => daySchedList.push({ f: f, s: s }));
+    });
+
+    // Dynamic axis: from the earliest class to the latest end (hour-rounded, lightly padded).
+    let rangeStart = GANTT_HOUR_START * 60;
+    let rangeEnd = GANTT_HOUR_END * 60;
+    if (daySchedList.length) {
+        let minStart = Infinity, maxEnd = -Infinity;
+        daySchedList.forEach(({ s }) => {
+            const st = ganttTimeToMin(s.start_time);
+            const be = ganttTimeToMin(s.end_time);
+            const en = Math.max(ganttTimeToMin(s.extended_until), be);
+            if (st < minStart) minStart = st;
+            if (en > maxEnd) maxEnd = en;
+        });
+        if (minStart !== Infinity && maxEnd !== -Infinity) {
+            rangeStart = Math.max(Math.floor(minStart / 60) * 60, GANTT_HOUR_START * 60);
+            rangeEnd = Math.min(Math.ceil(maxEnd / 60) * 60, GANTT_HOUR_END * 60);
+        }
+    }
+    const spanMin = Math.max(rangeEnd - rangeStart, 60);
+    const hourPx = dayW / (spanMin / 60);
+
+    // Header row (ticks generated across the dynamic range at each hour boundary)
     let html = '<div class="gantt-grid" style="width:100%;">';
     html += '<div class="gantt-header-row">';
     html += '<div class="gantt-label-cell gantt-label-head" style="width:' + labelW + 'px;height:' + headerH + 'px;">Faculty</div>';
     html += '<div class="gantt-day-col" style="width:' + dayW + 'px;height:' + headerH + 'px;">' +
-        '<div class="gantt-day-name">' + GANTT_DAY_SHORT[ganttDayIdx] + '</div>' +
-        '<div class="gantt-hour-ticks">' +
-            Array.from({ length: GANTT_HOUR_END - GANTT_HOUR_START }, (_, i) => {
-                const h = GANTT_HOUR_START + i;
-                const l = h === GANTT_HOUR_START ? '' : (h % 12 === 0 ? '12 PM' : (h < 12 ? h + ' AM' : (h % 12) + ' PM'));
-                return '<span style="width:' + hourPx + 'px;left:' + (i * hourPx) + 'px;">' + l + '</span>';
-            }).join('') +
-        '</div></div>';
+        '<div class="gantt-hour-ticks">';
+    for (let m = rangeStart; m < rangeEnd; m += 60) {
+        const h = Math.floor(m / 60);
+        const l = (h === Math.floor(rangeStart / 60)) ? '' : (h % 12 === 0 ? '12 PM' : (h < 12 ? h + ' AM' : (h % 12) + ' PM'));
+        html += '<span style="width:' + hourPx + 'px;left:' + ((m - rangeStart) / 60 * hourPx) + 'px;"><em class="gantt-tick-line"></em>' + l + '</span>';
+    }
+    html += '</div></div>';
     html += '</div>';
 
     // Faculty rows
+    const daySchedMap = {};
+    daySchedList.forEach(({ f, s }) => { (daySchedMap[f.id] = daySchedMap[f.id] || []).push(s); });
+
     members.forEach(f => {
-        const scheds = (FACULTY_SCHEDULES || {})[f.id] || [];
-        const dayScheds = scheds.filter(s => s.day_of_week === day);
+        const dayScheds = daySchedMap[f.id] || [];
         html += '<div class="gantt-faculty-row">';
         html += '<div class="gantt-label-cell" style="width:' + labelW + 'px;height:' + rowH + 'px;">' +
             '<div class="gantt-fac-name">' + escapeHtml(f.first_name + ' ' + f.last_name) + '</div>' +
@@ -1145,8 +1173,8 @@ function renderFacultyGantt() {
             const startMin = ganttTimeToMin(s.start_time);
             const baseEnd = ganttTimeToMin(s.end_time);
             const extEnd = ganttTimeToMin(s.extended_until);
-            const endMin = extEnd > baseEnd ? extEnd : baseEnd;
-            const left = Math.max(startMin - GANTT_HOUR_START * 60, 0) * (hourPx / 60);
+            const endMin = Math.max(extEnd, baseEnd);
+            const left = Math.max((startMin - rangeStart) * (hourPx / 60), 0);
             const width = Math.max((endMin - startMin) * (hourPx / 60), 6);
             const isToday = ganttDayIdx === todayIdx;
             const isNow = isToday && startMin <= nowMin && nowMin <= endMin;
@@ -1174,6 +1202,29 @@ function renderFacultyGantt() {
 
     html += '</div>';
     container.innerHTML = html;
+
+    // Keep the header ticks and each row's day area scrolling together.
+    syncGanttScroll();
+}
+
+function updateGanttDayTabs() {
+    document.querySelectorAll('.gantt-day-tab').forEach(function (btn) {
+        const idx = parseInt(btn.getAttribute('data-day'), 10);
+        btn.classList.toggle('active', idx === ganttDayIdx);
+    });
+}
+
+function syncGanttScroll() {
+    const dayCol = document.querySelector('#facultyGantt .gantt-day-col');
+    const areas = Array.prototype.slice.call(document.querySelectorAll('#facultyGantt .gantt-day-area-inner'));
+    const targets = [dayCol].concat(areas).filter(Boolean);
+    if (targets.length < 2) return;
+    targets.forEach(function (el) {
+        el.addEventListener('scroll', function () {
+            var v = el.scrollLeft;
+            targets.forEach(function (t) { if (t !== el) t.scrollLeft = v; });
+        });
+    });
 }
 
 function fmtGanttTime(min) {
@@ -1214,6 +1265,15 @@ if (ganttPrevBtn) ganttPrevBtn.addEventListener('click', function () { ganttStep
 
 const ganttNextBtn = document.getElementById('ganttNextBtn');
 if (ganttNextBtn) ganttNextBtn.addEventListener('click', function () { ganttStep(1); });
+
+/* Direct day-tab navigation (clicking a day tab jumps to that day) */
+document.querySelectorAll('.gantt-day-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        ganttDayIdx = parseInt(btn.getAttribute('data-day'), 10);
+        hideFacultyGanttOverlay();
+        renderFacultyGantt();
+    });
+});
 
 /* ── Gantt block detail overlay (anchored, scales in like the homepage day overlay) ── */
 let ganttOverlayEl = null;

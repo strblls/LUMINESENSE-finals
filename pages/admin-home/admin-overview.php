@@ -1029,8 +1029,14 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                             <div class="gantt-nav-spacer"></div>
                             <div class="gantt-wizard-nav d-flex align-items-center justify-content-between gap-2">
                                 <button type="button" class="gantt-nav-btn" id="ganttPrevBtn" title="Previous day"><i class="bi bi-chevron-left"></i></button>
-                                <div class="gantt-wizard-steps d-flex align-items-center justify-content-center gap-2">
-                                    <span class="gantt-step active" id="ganttDayLabel">Today</span>
+                                <div class="gantt-wizard-steps gantt-day-tabs d-flex align-items-center justify-content-center gap-2">
+                                    <button type="button" class="timetable-btn gantt-day-tab" data-day="0" title="Monday"><span class="timetable-btn-title bold">Mon</span></button>
+                                    <button type="button" class="timetable-btn gantt-day-tab" data-day="1" title="Tuesday"><span class="timetable-btn-title bold">Tue</span></button>
+                                    <button type="button" class="timetable-btn gantt-day-tab" data-day="2" title="Wednesday"><span class="timetable-btn-title bold">Wed</span></button>
+                                    <button type="button" class="timetable-btn gantt-day-tab" data-day="3" title="Thursday"><span class="timetable-btn-title bold">Thu</span></button>
+                                    <button type="button" class="timetable-btn gantt-day-tab" data-day="4" title="Friday"><span class="timetable-btn-title bold">Fri</span></button>
+                                    <button type="button" class="timetable-btn gantt-day-tab" data-day="5" title="Saturday"><span class="timetable-btn-title bold">Sat</span></button>
+                                    <button type="button" class="timetable-btn gantt-day-tab" data-day="6" title="Sunday"><span class="timetable-btn-title bold">Sun</span></button>
                                 </div>
                                 <button type="button" class="gantt-nav-btn" id="ganttNextBtn" title="Next day"><i class="bi bi-chevron-right"></i></button>
                             </div>
