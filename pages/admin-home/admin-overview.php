@@ -156,7 +156,7 @@ while ($row = $rb->fetch_assoc()) $alertsByRoom[$row['classroom_id']][] = $row;
 $faculty_stmt = $conn->query("
     SELECT f.id, f.first_name, f.last_name, f.email, f.is_archived,
            d.name AS department_name,
-           c.name AS classroom_name,
+           c.room_name AS classroom_name,
            s.start_time, s.end_time, s.extended_until
     FROM faculty f
     LEFT JOIN departments d ON f.department_id = d.id
