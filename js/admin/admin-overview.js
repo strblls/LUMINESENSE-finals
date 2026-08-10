@@ -110,6 +110,31 @@ function drawAllSparks() {
     (ROOMS || []).forEach(room => {
         drawVawSpark('sparkCanvas' + room.id, room);
     });
+    drawFacultySparks();
+}
+
+// Faculty cards reuse the room-card layout, so give each a flat gray sparkline
+function drawFacultySparks() {
+    if (!window.Chart) return;
+    document.querySelectorAll('#facultyList .hroom-spark canvas').forEach(canvas => {
+        const id = canvas.id;
+        if (!id) return;
+        if (sparkCharts[id]) sparkCharts[id].destroy();
+        sparkCharts[id] = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: [0],
+                datasets: [{ data: [0], borderColor: '#d0d0d0', borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: { x: { display: false }, y: { display: false } },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            },
+        });
+    });
 }
 
 // ── Live readings ────────────────────────────────────────────────────────
@@ -427,7 +452,7 @@ function updateSelectionUI() {
     const noneSel = currentRoomId === 0;
     const room = !noneSel && !allSel ? (ROOMS || []).find(r => r.id == currentRoomId) : null;
 
-    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(c => {
+    document.querySelectorAll('.spark-card, .room-card:not(.faculty-card), .hroom-row:not(.faculty-card)').forEach(c => {
         const rid = c.getAttribute('data-room-id');
         c.classList.toggle('active-room', !noneSel && (allSel || rid == currentRoomId));
     });
@@ -485,7 +510,7 @@ function applyFilters() {
     const subjVal = (document.querySelector('#subjectFilterMenu .filter-option.active') || {}).dataset?.value || '';
     const searchVal = ((document.getElementById('roomSearch') || {}).value || '').toLowerCase();
 
-    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(card => {
+    document.querySelectorAll('.spark-card, .room-card:not(.faculty-card), .hroom-row:not(.faculty-card)').forEach(card => {
         let show = true;
         if (statusVal) show = show && (card.dataset.status || '') === statusVal.toLowerCase();
         if (deptVal) show = show && (card.dataset.departments || '').toLowerCase().includes(deptVal.toLowerCase());
@@ -851,7 +876,7 @@ document.addEventListener('DOMContentLoaded', function () {
     chartPollTimer = setInterval(pollOverviewChart, CHART_POLL_MS);
 
     // Room selection
-    document.querySelectorAll('.spark-card, .room-card, .hroom-row').forEach(card => {
+    document.querySelectorAll('.spark-card, .room-card:not(.faculty-card), .hroom-row:not(.faculty-card)').forEach(card => {
         card.addEventListener('click', (e) => {
             if (e.target.closest('.room-icons') || e.target.closest('.light') || e.target.closest('.room-card-actions')) return;
             selectRoom(card.getAttribute('data-room-id'));
@@ -989,7 +1014,7 @@ function filterFacultyCards() {
     var search = (document.getElementById('facultySearch')?.value || '').toLowerCase();
     var cards = document.querySelectorAll('#facultyList .faculty-card');
     cards.forEach(function(card) {
-        var name = card.querySelector('.faculty-name')?.textContent?.toLowerCase() || '';
+        var name = card.querySelector('.room-card-name')?.textContent?.toLowerCase() || '';
         var matchSearch = !search || name.includes(search);
         card.style.display = matchSearch ? '' : 'none';
     });
@@ -1001,16 +1026,12 @@ function selectFaculty(id, el) {
     // Filter the overview chart to this faculty's current room
     var card = el;
     if (!card) return;
-    var meta = card.querySelector('.faculty-meta');
-    if (!meta) return;
-    var roomSpan = meta.querySelector('span');
-    if (!roomSpan) return;
-    var roomName = roomSpan.textContent.trim();
+    var roomName = card.getAttribute('data-room-name');
     if (!roomName) return;
     // Find the matching room card and select it
-    var roomCards = document.querySelectorAll('.hroom-row');
+    var roomCards = document.querySelectorAll('.hroom-row:not(.faculty-card)');
     roomCards.forEach(function(rc) {
-        var rname = rc.querySelector('.room-card-name')?.textContent?.toLowerCase() || '';
+        var rname = rc.getAttribute('data-room');
         if (rname === roomName.toLowerCase()) {
             selectRoom(parseInt(rc.getAttribute('data-room-id'), 10));
         }

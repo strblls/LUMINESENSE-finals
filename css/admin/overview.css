@@ -784,81 +784,22 @@
     }
 }
 
-/* ── Faculty Card (matches room card look) ───────────────────────────────── */
-.faculty-card {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--light-border);
-    border-radius: 10px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-}
-.faculty-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 14px 40px rgba(47, 0, 79, .28);
-    border-color: var(--primary);
-}
+/* ── Faculty Card (reuses .hroom-row .room-card structure) ──────────────── */
 .faculty-card.selected {
     border-color: var(--accent-yellow);
     box-shadow: 0 0 0 2px var(--accent-yellow), 0 0 18px 2px rgba(232, 201, 3, 0.45);
 }
-.faculty-card-accent {
-    height: 6px;
-    width: 100%;
-    flex-shrink: 0;
+
+.accent-archived {
+    background: linear-gradient(90deg, #01579b, #4fc3f7);
 }
-.faculty-card-accent.accent-archived {
-    background: #b3e5fc;
+
+.badge-active {
+    background: #d6fbe9;
+    color: #0a7a45;
 }
-.faculty-card-body {
-    padding: 12px 14px;
-}
-.faculty-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-}
-.faculty-name {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--secondary-color-1);
-}
-.faculty-card-section {
-    font-size: 11.5px;
-    color: var(--muted-dark);
-    margin-top: 2px;
-}
-.faculty-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11.5px;
-    color: var(--secondary-color-2);
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px dashed #e9ecef;
-}
-.faculty-meta i {
-    font-size: 12px;
-}
-.faculty-tag {
-    display: inline-flex;
-    align-items: center;
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    padding: 4px 10px;
-    border-radius: 6px;
-    white-space: nowrap;
-}
-.faculty-tag.active {
-    background: rgba(25, 135, 84, 0.12);
-    color: var(--success);
-}
-.faculty-tag.archived {
+
+.badge-archived {
     background: #b3e5fc;
     color: #01579b;
 }

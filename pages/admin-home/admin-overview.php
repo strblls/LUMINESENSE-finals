@@ -737,30 +737,43 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                     $fstatusClass = $fac['is_archived'] ? 'archived' : 'active';
                                     $fselected = $fi === 0;
                                 ?>
-                                    <div class="faculty-card <?php if ($fselected) echo 'selected'; ?>"
+                                    <div class="faculty-card hroom-row room-card <?php if ($fselected) echo 'selected'; ?>"
                                          data-faculty-id="<?= $fac['id'] ?>"
+                                         data-room-name="<?= h(strtolower($fac['classroom_name'] ?? '')) ?>"
                                          data-status="<?= $fstatus ?>"
                                          onclick="selectFaculty(<?= $fac['id'] ?>, this)">
-                                        <div class="faculty-card-accent <?= $fac['is_archived'] ? 'accent-archived' : 'accent-vacant' ?>"></div>
-                                        <div class="faculty-card-body">
-                                            <div class="faculty-card-header">
+                                        <div class="room-card-accent <?= $fac['is_archived'] ? 'accent-archived' : 'accent-vacant' ?>"></div>
+                                        <div class="room-card-body">
+                                            <div class="room-card-header">
                                                 <div>
-                                                    <span class="faculty-name bold"><?= htmlspecialchars($fac['first_name'] . ' ' . $fac['last_name']) ?></span>
-                                                    <div class="faculty-card-section">
+                                                    <h2 class="room-card-name"><?= htmlspecialchars($fac['first_name'] . ' ' . $fac['last_name']) ?></h2>
+                                                    <div class="room-card-section">
                                                         <?= htmlspecialchars($fac['department_name'] ?: 'No Dept') ?>
                                                     </div>
                                                 </div>
-                                                <span class="faculty-tag <?= $fstatusClass ?>"><?= $fstatus ?></span>
+                                                <span class="room-status-badge <?= $fac['is_archived'] ? 'badge-archived' : 'badge-active' ?>"><?= $fac['is_archived'] ? 'Archived' : 'Active' ?></span>
                                             </div>
-                                            <?php if ($fac['classroom_name']): ?>
-                                            <div class="faculty-meta">
-                                                <i class="bi bi-door-open"></i>
-                                                <span><?= htmlspecialchars($fac['classroom_name']) ?></span>
+                                            <div class="hroom-spark"><canvas id="facSparkCanvas<?= $fac['id'] ?>"></canvas></div>
+                                            <div class="room-expand">
+                                                <div class="dept-info-card room-info-row mb-2">
+                                                    <i class="bi bi-door-open"></i>
+                                                    <span class="room-info-label">Room:</span>
+                                                    <span class="room-info-val"><?= htmlspecialchars($fac['classroom_name'] ?: '—') ?></span>
+                                                </div>
                                                 <?php if ($fac['start_time']): ?>
-                                                <span>&middot; <?= date('g:i A', strtotime($fac['start_time'])) ?> – <?= date('g:i A', strtotime($fac['extended_until'] ?: $fac['end_time'])) ?></span>
+                                                <div class="dept-info-card room-info-row mb-2">
+                                                    <i class="bi bi-clock-fill"></i>
+                                                    <span class="room-info-label">Class:</span>
+                                                    <span class="room-info-val"><?= date('g:i A', strtotime($fac['start_time'])) ?> – <?= date('g:i A', strtotime($fac['extended_until'] ?: $fac['end_time'])) ?></span>
+                                                </div>
                                                 <?php endif; ?>
                                             </div>
-                                            <?php endif; ?>
+                                            <div class="room-card-actions">
+                                                <div class="d-flex align-items-center room-icons gap-1">
+                                                    <button class="btn-icon btn-icon-view" title="View faculty" onclick="selectFaculty(<?= $fac['id'] ?>, this.closest('.faculty-card'))"><i class="bi bi-calendar3"></i></button>
+                                                </div>
+                                                <button class="light" onclick="selectFaculty(<?= $fac['id'] ?>, this.closest('.faculty-card'))">View</button>
+                                            </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
