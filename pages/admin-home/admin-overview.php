@@ -1018,14 +1018,23 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                 </div>
                 <div class="modal-body d-flex flex-column" style="padding:0;">
                     <div class="d-flex align-items-center gap-2 px-3 py-2" style="border-bottom:1px solid #e5e0ee;">
-                        <span class="small text-muted">Legend:</span>
+                        <button type="button" class="btn btn-sm btn-light gantt-nav-btn" id="ganttPrevBtn" title="Previous day"><i class="bi bi-chevron-left"></i></button>
+                        <span class="small text-muted" id="ganttDayLabel">Today</span>
+                        <button type="button" class="btn btn-sm btn-light gantt-nav-btn" id="ganttNextBtn" title="Next day"><i class="bi bi-chevron-right"></i></button>
+                        <span class="small text-muted ms-3">Legend:</span>
                         <span class="gantt-legend gantt-legend-past"></span><span class="small">Past</span>
                         <span class="gantt-legend gantt-legend-now"></span><span class="small">Now</span>
                         <span class="gantt-legend gantt-legend-upcoming"></span><span class="small">Upcoming</span>
                         <span class="gantt-legend gantt-legend-extended"></span><span class="small">Extended</span>
                     </div>
                     <div class="flex-grow-1 overflow-auto" id="facultyGanttWrap">
-                        <div id="facultyGantt" style="min-width:1200px;"></div>
+                        <div id="facultyGantt" style="min-width:850px;"></div>
+                    </div>
+
+                    <!-- Gantt block detail overlay (scales in like the homepage day overlay) -->
+                    <div class="cal-day-overlay" id="facultyGanttOverlay">
+                        <div class="cal-day-overlay-header" id="facultyGanttOverlayHeader"></div>
+                        <div class="cal-day-overlay-body" id="facultyGanttOverlayBody"></div>
                     </div>
                 </div>
             </div>
