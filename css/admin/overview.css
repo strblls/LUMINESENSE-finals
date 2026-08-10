@@ -890,7 +890,7 @@
 .gantt-day-col {
     position: relative;
     box-sizing: border-box;
-    flex: 1 1 0;
+    flex: 0 0 auto;
     min-width: 0;
 }
 .gantt-day-name {
@@ -928,7 +928,7 @@
 .gantt-day-area-inner {
     position: relative;
     box-sizing: border-box;
-    flex: 1 1 0;
+    flex: 0 0 auto;
     min-width: 0;
     border-right: 1px solid #f0ecf6;
 }
@@ -998,10 +998,30 @@
 
 .gantt-pane {
     position: relative;
+    overflow: hidden;
+}
+
+/* Gantt day-navigation bar (sits above the grid's day column) */
+.gantt-nav-row {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 8px 6px;
+    background: #f5f2fa;
+    border-bottom: 1px solid #e5e0ee;
+}
+
+.gantt-nav-spacer {
+    flex-shrink: 0;
+    width: 210px;
 }
 
 /* Gantt day navigation (coverage-wizard style: chevron buttons flanking a centered day pill) */
 .gantt-wizard-nav {
+    flex: 1;
     background: rgba(47, 0, 79, 0.04);
     border-radius: 10px;
     padding: 0.5rem;

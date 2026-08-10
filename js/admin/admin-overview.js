@@ -1117,7 +1117,7 @@ function renderFacultyGantt() {
     let html = '<div class="gantt-grid" style="width:100%;">';
     html += '<div class="gantt-header-row">';
     html += '<div class="gantt-label-cell gantt-label-head" style="width:' + labelW + 'px;height:' + headerH + 'px;">Faculty</div>';
-    html += '<div class="gantt-day-col" style="height:' + headerH + 'px;">' +
+    html += '<div class="gantt-day-col" style="width:' + dayW + 'px;height:' + headerH + 'px;">' +
         '<div class="gantt-day-name">' + GANTT_DAY_SHORT[ganttDayIdx] + '</div>' +
         '<div class="gantt-hour-ticks">' +
             Array.from({ length: GANTT_HOUR_END - GANTT_HOUR_START }, (_, i) => {
@@ -1137,7 +1137,7 @@ function renderFacultyGantt() {
             '<div class="gantt-fac-name">' + escapeHtml(f.first_name + ' ' + f.last_name) + '</div>' +
             '<div class="gantt-fac-dept">' + escapeHtml(f.department_name || '') + '</div></div>';
         html += '<div class="gantt-day-area">';
-        html += '<div class="gantt-day-area-inner" style="height:' + rowH + 'px;">';
+        html += '<div class="gantt-day-area-inner" style="width:' + dayW + 'px;height:' + rowH + 'px;">';
         if (!dayScheds.length) {
             html += '<span class="gantt-empty">—</span>';
         }
