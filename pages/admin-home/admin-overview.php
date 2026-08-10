@@ -623,7 +623,7 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                             </ul>
                                         </div>
                                     </div>
-                                    <span>Room Management</span><span class="sub" id="roomsSelLabel"> All Rooms</span>
+                                    <span>Rooms</span><span class="sub" id="roomsSelLabel"> All Rooms</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <input type="text" id="roomSearch" class="form-control" placeholder="Search room or faculty..."
@@ -723,7 +723,7 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                             <div class="section-heading d-flex align-items-center justify-content-between room-manage-header">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="bi bi-people-fill"></i>
-                                    <span>Faculty Management</span><span class="sub" id="facultySelLabel"> All Faculty</span>
+                                    <span>Faculties</span><span class="sub" id="facultySelLabel"> All Faculty</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <input type="text" id="facultySearch" class="form-control" placeholder="Search faculty..."
