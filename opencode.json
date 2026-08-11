@@ -1,0 +1,54 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/deepseek-v4-flash-free",
+  "small_model": "opencode/deepseek-v4-flash-free",
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "php -l*": "allow",
+      "node --check*": "allow"
+    },
+    "edit": "allow"
+  },
+  "watcher": {
+    "ignore": [
+      "vendor/**",
+      "logs/**",
+      "node_modules/**",
+      ".kilo/**",
+      "uploads/**",
+      ".env"
+    ]
+  },
+  "tool_output": {
+    "max_lines": 300,
+    "max_bytes": 65536
+  },
+  "compaction": {
+    "auto": true,
+    "tail_turns": 15
+  },
+  "mcp": {
+    "mysql": {
+      "type": "local",
+      "command": ["npx", "-y", "@benborla29/mcp-server-mysql"],
+      "environment": {
+        "MYSQL_HOST": "127.0.0.1",
+        "MYSQL_PORT": "3306",
+        "MYSQL_USER": "{env:DB_USER}",
+        "MYSQL_PASSWORD": "{env:DB_PASS}",
+        "MYSQL_DATABASE": "luminesense_db"
+      }
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@latest"],
+      "environment": {
+        "BROWSER": "chromium"
+      }
+    }
+  }
+}
