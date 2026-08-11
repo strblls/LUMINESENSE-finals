@@ -1170,8 +1170,8 @@ function selectFaculty(id) {
 }
 
 /* ── Faculty Schedule Gantt (maximize pane) ───────────────────────────────── */
-const GANTT_HOUR_START = 7;   // 7:00 AM
-const GANTT_HOUR_END   = 19;  // 7:00 PM
+const GANTT_HOUR_START = 0;   // 12:00 AM (full day, so labels depict 1 AM through 11:59 PM)
+const GANTT_HOUR_END   = 24;  // 12:00 AM (end of day)
 const GANTT_DAY_ORDER  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const GANTT_DAY_SHORT  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const GANTT_VISIBLE_HOURS = 4; // hours shown at once in the pane (slider shifts this window)
@@ -1179,6 +1179,7 @@ const GANTT_VISIBLE_HOURS = 4; // hours shown at once in the pane (slider shifts
 let ganttDayIdx = 0; // current pane day, Monday = 0 … Sunday = 6 (defaults to today on open)
 let ganttSearch = ''; // Gantt faculty search filter
 let ganttScrollOffset = 0; // minute offset of the visible window from rangeStart (mirrors overviewScrollOffset)
+let ganttAutoPosition = true; // when true, the next render snaps the window onto the first class of the day
 
 function ganttTimeToMin(t) {
     if (!t) return GANTT_HOUR_START * 60;
@@ -1225,27 +1226,29 @@ function renderFacultyGantt() {
         scheds.filter(s => s.day_of_week === day).forEach(s => daySchedList.push({ f: f, s: s }));
     });
 
-    // Dynamic axis: from the earliest class to the latest end (hour-rounded, lightly padded).
-    let rangeStart = GANTT_HOUR_START * 60;
-    let rangeEnd = GANTT_HOUR_END * 60;
-    if (daySchedList.length) {
-        let minStart = Infinity, maxEnd = -Infinity;
-        daySchedList.forEach(({ s }) => {
-            const st = ganttTimeToMin(s.start_time);
-            const be = ganttTimeToMin(s.end_time);
-            const en = Math.max(ganttTimeToMin(s.extended_until), be);
-            if (st < minStart) minStart = st;
-            if (en > maxEnd) maxEnd = en;
-        });
-        if (minStart !== Infinity && maxEnd !== -Infinity) {
-            rangeStart = Math.max(Math.floor(minStart / 60) * 60, GANTT_HOUR_START * 60);
-            rangeEnd = Math.min(Math.ceil(maxEnd / 60) * 60, GANTT_HOUR_END * 60);
-        }
-    }
+    // Axis always spans the full day (12 AM → 12 AM) so hour labels accurately
+    // depict every hour from 1 AM through 11:59 PM; the slider scrolls a fixed
+    // GANTT_VISIBLE_HOURS window across it.
+    const rangeStart = GANTT_HOUR_START * 60;
+    const rangeEnd = GANTT_HOUR_END * 60;
     const spanMin = Math.max(rangeEnd - rangeStart, 60);
     // The pane always shows a fixed GANTT_VISIBLE_HOURS window; the slider shifts it.
     const visWindowMin = GANTT_VISIBLE_HOURS * 60;
     const maxOffset = Math.max(spanMin - visWindowMin, 0);
+
+    // Auto-position the window after navigation: center today's current time, otherwise the first class.
+    if (ganttAutoPosition) {
+        ganttAutoPosition = false;
+        if (ganttDayIdx === todayIdx && nowMin >= rangeStart && nowMin < rangeEnd) {
+            ganttScrollOffset = Math.max(nowMin - visWindowMin / 2, 0);
+        } else {
+            let firstMin = Infinity;
+            daySchedList.forEach(function (item) { ganttTimeToMin(item.s.start_time) < firstMin && (firstMin = ganttTimeToMin(item.s.start_time)); });
+            ganttScrollOffset = (firstMin !== Infinity)
+                ? Math.max(Math.floor(firstMin / 60) * 60, 0)
+                : Math.min(6 * 60, maxOffset); // no classes → start the pane at 6:00 AM
+        }
+    }
     if (ganttScrollOffset > maxOffset) ganttScrollOffset = maxOffset;
     if (ganttScrollOffset < 0) ganttScrollOffset = 0;
     const visStart = rangeStart + ganttScrollOffset;
@@ -1276,7 +1279,8 @@ function renderFacultyGantt() {
     html += '<div class="gantt-labels-col">';
     html += '<div class="gantt-label-cell gantt-label-head" style="width:' + labelW + 'px;height:' + headerH + 'px;">Faculty</div>';
     members.forEach(f => {
-        html += '<div class="gantt-label-cell" style="width:' + labelW + 'px;height:' + rowH + 'px;">' +
+        const isSel = parseInt(f.id, 10) === currentFacultyId;
+        html += '<div class="gantt-label-cell' + (isSel ? ' gantt-fac-selected' : '') + '" style="width:' + labelW + 'px;height:' + rowH + 'px;">' +
             '<div class="gantt-fac-name">' + escapeHtml(f.first_name + ' ' + f.last_name) + '</div>' +
             '<div class="gantt-fac-dept">' + escapeHtml(f.department_name || '') + '</div></div>';
     });
@@ -1296,12 +1300,20 @@ function renderFacultyGantt() {
     }
     html += '</div></div>';
 
+    // Current-time marker: an accent line through the whole day grid on today, with a
+    // "Current" label revealed on hover. Rendered only while the clock falls in the window.
+    if (ganttDayIdx === todayIdx && nowMin >= visStart && nowMin <= visEnd) {
+        const nowX = (nowMin - visStart) * (hourPx / 60);
+        html += '<div class="gantt-now-line" style="left:' + nowX + 'px;"><i class="gantt-now-tag">Current</i></div>';
+    }
+
     const daySchedMap = {};
     daySchedList.forEach(({ f, s }) => { (daySchedMap[f.id] = daySchedMap[f.id] || []).push(s); });
 
     members.forEach((f, fi) => {
         const dayScheds = daySchedMap[f.id] || [];
-        html += '<div class="gantt-day-area-inner' + (fi % 2 ? ' gantt-zebra' : '') + '" style="width:' + dayW + 'px;height:' + rowH + 'px;">';
+        const isSel = parseInt(f.id, 10) === currentFacultyId;
+        html += '<div class="gantt-day-area-inner' + (fi % 2 ? ' gantt-zebra' : '') + (isSel ? ' gantt-fac-selected' : '') + '" style="width:' + dayW + 'px;height:' + rowH + 'px;">';
         if (!dayScheds.length) {
             html += '<span class="gantt-empty">—</span>';
         }
@@ -1359,7 +1371,7 @@ function updateGanttDayTabs() {
 }
 
 function fmtGanttTime(min) {
-    const h = Math.floor(min / 60);
+    const h = Math.floor(min / 60) % 24; // 24:00 → 00:00 (12:00 AM)
     const m = min % 60;
     const ampm = h >= 12 ? 'PM' : 'AM';
     const hh = h % 12 === 0 ? 12 : h % 12;
@@ -1370,6 +1382,15 @@ function openFacultyGantt() {
     const todayDow = new Date().getDay(); // 0 Sun … 6 Sat
     ganttDayIdx = todayDow === 0 ? 6 : todayDow - 1; // default to current day
     ganttScrollOffset = 0;
+    ganttAutoPosition = true;
+    // A faculty selected on the overview becomes the focus of the maximized view:
+    // pre-fill the search (narrows the grid to that member) and highlight their row.
+    const selFaculty = (currentFacultyId > 0)
+        ? (FACULTY || []).find(function (f) { return parseInt(f.id, 10) === currentFacultyId; })
+        : null;
+    ganttSearch = selFaculty ? (selFaculty.first_name + ' ' + selFaculty.last_name).toLowerCase() : '';
+    const searchEl = document.getElementById('ganttFacultySearch');
+    if (searchEl) searchEl.value = selFaculty ? (selFaculty.first_name + ' ' + selFaculty.last_name) : '';
     const modalEl = document.getElementById('facultyGanttModal');
     if (modalEl && window.bootstrap) {
         const modal = new bootstrap.Modal(modalEl);
@@ -1389,6 +1410,7 @@ window.addEventListener('resize', function () {
 function ganttStep(offset) {
     ganttDayIdx = (ganttDayIdx + offset + 7) % 7;
     ganttScrollOffset = 0; // each day starts at its earliest visible hour
+    ganttAutoPosition = true;
     hideFacultyGanttOverlay();
     renderFacultyGantt();
 }
@@ -1404,6 +1426,7 @@ document.querySelectorAll('.gantt-day-tab').forEach(function (btn) {
     btn.addEventListener('click', function () {
         ganttDayIdx = parseInt(btn.getAttribute('data-day'), 10);
         ganttScrollOffset = 0; // each day starts at its earliest visible hour
+        ganttAutoPosition = true;
         hideFacultyGanttOverlay();
         renderFacultyGantt();
     });
@@ -1489,8 +1512,11 @@ document.addEventListener('mouseover', function (e) {
 });
 
 document.addEventListener('mouseout', function (e) {
-    const fromBlock = e.target.closest('.gantt-block');
-    if (!fromBlock) return;
+    const t = e.target;
+    if (!t || !t.closest) return;
+    const fromBlock = t.closest('.gantt-block');
+    const fromOverlay = t.closest('#facultyGanttOverlay');
+    if (!fromBlock && !fromOverlay) return;
     const toEl = e.relatedTarget;
     if (toEl && toEl.closest && toEl.closest('.gantt-block, #facultyGanttOverlay')) return;
     hideFacultyGanttOverlay();

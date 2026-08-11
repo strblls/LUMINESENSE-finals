@@ -1018,9 +1018,8 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                 <div class="modal-body d-flex flex-column" style="padding:0;">
                     <div class="flex-grow-1 gantt-pane" id="facultyGanttWrap">
                         <div class="gantt-nav-row">
-                            <div class="gantt-nav-spacer"></div>
                             <input type="text" id="ganttFacultySearch" class="form-control gantt-search" placeholder="Search faculty..."
-                                style="max-width:210px;flex-shrink:0;">
+                                style="flex:1 1 220px;max-width:420px;">
                             <div class="gantt-wizard-nav d-flex align-items-center justify-content-between gap-2">
                                 <button type="button" class="gantt-nav-btn" id="ganttPrevBtn" title="Previous day"><i class="bi bi-chevron-left"></i></button>
                                 <div class="gantt-wizard-steps gantt-day-tabs d-flex align-items-center justify-content-center gap-2">

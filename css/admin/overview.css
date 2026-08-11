@@ -861,6 +861,7 @@
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    position: relative;
 }
 
 .gantt-label-cell {
@@ -914,7 +915,9 @@
 .gantt-hour-ticks span {
     position: absolute;
     top: 0;
-    font-size: 9px;
+    height: 100%;
+    font-size: 12px;
+    font-weight: 600;
     color: var(--muted-dark);
     text-align: center;
     overflow: visible;
@@ -922,7 +925,7 @@
 .gantt-tick-line {
     display: block;
     height: 100%;
-    border-left: 1px solid #e5e0ee;
+    border-left: 1px solid #efeaf5;
     position: absolute;
     left: 0;
     top: 0;
@@ -939,6 +942,66 @@
 }
 .gantt-day-area-inner.gantt-zebra {
     background: rgba(88, 7, 143, 0.02);
+}
+
+/* Selected-faculty highlight (reflects the overview selection inside the Gantt) */
+.gantt-label-cell.gantt-fac-selected {
+    background: #fff8e1;
+    box-shadow: inset 3px 0 0 var(--accent-yellow);
+}
+.gantt-label-cell.gantt-fac-selected .gantt-fac-name {
+    color: #8a6100;
+}
+.gantt-day-area-inner.gantt-fac-selected {
+    background: rgba(255, 193, 7, 0.09);
+}
+
+/* Current-time marker: accent line through the whole day grid; hover reveals the label */
+.gantt-now-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    background: #e01e5a;
+    z-index: 0;
+}
+.gantt-now-line::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    transform: translateX(-50%);
+    background: #e01e5a;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+}
+.gantt-now-tag {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    background: #e01e5a;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    font-style: normal;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+    z-index: 2;
+}
+.gantt-now-line:hover .gantt-now-tag {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
 }
 .gantt-legend-bar {
     width: 100%;
@@ -1031,11 +1094,6 @@
     padding: 8px 8px 6px;
     background: #f5f2fa;
     border-bottom: 1px solid #e5e0ee;
-}
-
-.gantt-nav-spacer {
-    flex-shrink: 0;
-    width: 150px;
 }
 
 /* Gantt day navigation (coverage-wizard style: chevron buttons flanking a centered day pill) */
