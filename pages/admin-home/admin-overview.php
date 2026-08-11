@@ -1019,6 +1019,8 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                     <div class="flex-grow-1 gantt-pane" id="facultyGanttWrap">
                         <div class="gantt-nav-row">
                             <div class="gantt-nav-spacer"></div>
+                            <input type="text" id="ganttFacultySearch" class="form-control gantt-search" placeholder="Search faculty..."
+                                style="max-width:210px;flex-shrink:0;">
                             <div class="gantt-wizard-nav d-flex align-items-center justify-content-between gap-2">
                                 <button type="button" class="gantt-nav-btn" id="ganttPrevBtn" title="Previous day"><i class="bi bi-chevron-left"></i></button>
                                 <div class="gantt-wizard-steps gantt-day-tabs d-flex align-items-center justify-content-center gap-2">
@@ -1034,6 +1036,14 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                             </div>
                         </div>
                         <div id="facultyGantt"></div>
+
+                        <!-- Gantt time-window scrollbar (mirrors the overview chart scrollbar) -->
+                        <div class="chart-scrollbar-wrap" id="ganttScrollWrap">
+                            <input type="range" class="chart-scrollbar" id="ganttScroll"
+                                min="0" max="0" value="0"
+                                oninput="onGanttScroll(this.value)">
+                            <div class="chart-scroll-tip" id="ganttScrollTip"></div>
+                        </div>
                     </div>
 
                     <!-- Gantt block detail overlay (scales in like the homepage day overlay) -->

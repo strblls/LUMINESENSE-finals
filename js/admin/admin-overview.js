@@ -1174,8 +1174,11 @@ const GANTT_HOUR_START = 7;   // 7:00 AM
 const GANTT_HOUR_END   = 19;  // 7:00 PM
 const GANTT_DAY_ORDER  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const GANTT_DAY_SHORT  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const GANTT_VISIBLE_HOURS = 4; // hours shown at once in the pane (slider shifts this window)
 
 let ganttDayIdx = 0; // current pane day, Monday = 0 … Sunday = 6 (defaults to today on open)
+let ganttSearch = ''; // Gantt faculty search filter
+let ganttScrollOffset = 0; // minute offset of the visible window from rangeStart (mirrors overviewScrollOffset)
 
 function ganttTimeToMin(t) {
     if (!t) return GANTT_HOUR_START * 60;
@@ -1198,15 +1201,20 @@ function renderFacultyGantt() {
     const todayDow = new Date().getDay(); // 0 Sun … 6 Sat
     const todayIdx = todayDow === 0 ? 6 : todayDow - 1; // Monday = 0
 
-    // Build rows
-    const members = (FACULTY || []);
+    // Build rows (search-narrowed)
+    const members = (FACULTY || []).filter(f => {
+        if (!ganttSearch) return true;
+        const hay = (f.first_name + ' ' + f.last_name + ' ' + (f.department_name || '')).toLowerCase();
+        return hay.includes(ganttSearch);
+    });
     const day = GANTT_DAY_ORDER[ganttDayIdx];
 
     // Active day tab (respects the < / > navigation state)
     updateGanttDayTabs();
 
     if (!members.length) {
-        container.innerHTML = '<p class="text-muted small p-3">No active faculty members.</p>';
+        container.innerHTML = '<p class="text-muted small p-3">' +
+            (ganttSearch ? 'No faculty members match that search.' : 'No active faculty members.') + '</p>';
         return;
     }
 
@@ -1235,12 +1243,36 @@ function renderFacultyGantt() {
         }
     }
     const spanMin = Math.max(rangeEnd - rangeStart, 60);
-    const hourPx = dayW / (spanMin / 60);
+    // The pane always shows a fixed GANTT_VISIBLE_HOURS window; the slider shifts it.
+    const visWindowMin = GANTT_VISIBLE_HOURS * 60;
+    const maxOffset = Math.max(spanMin - visWindowMin, 0);
+    if (ganttScrollOffset > maxOffset) ganttScrollOffset = maxOffset;
+    if (ganttScrollOffset < 0) ganttScrollOffset = 0;
+    const visStart = rangeStart + ganttScrollOffset;
+    const visEnd = visStart + visWindowMin;
+    const hourPx = dayW / GANTT_VISIBLE_HOURS;
+
+    // Keep the scrollbar + tooltip in sync with the visible window (mirrors the overview chart).
+    const scrollbarWrap = document.getElementById('ganttScrollWrap');
+    const sliderEl = document.getElementById('ganttScroll');
+    if (scrollbarWrap) scrollbarWrap.classList.toggle('visible', maxOffset > 0);
+    if (sliderEl) { sliderEl.max = maxOffset; sliderEl.value = ganttScrollOffset; }
+    const tipEl = document.getElementById('ganttScrollTip');
+    if (tipEl) {
+        if (maxOffset > 0) {
+            tipEl.textContent = fmtGanttTime(visStart) + ' – ' + fmtGanttTime(visEnd);
+            const pct = (ganttScrollOffset / maxOffset) * 100;
+            tipEl.style.left = 'calc(' + pct + '% + ' + (4 - pct * 0.08) + 'px)';
+            tipEl.style.transform = 'translateX(-50%)';
+        } else {
+            tipEl.classList.remove('show');
+        }
+    }
 
     // Grid: pinned labels column + one scrollable day region (all faculty rows scroll together).
     let html = '<div class="gantt-grid" style="width:100%;">';
 
-    // — Pinned label column (header + each faculty + legend) —
+    // — Pinned label column (header + each faculty) —
     html += '<div class="gantt-labels-col">';
     html += '<div class="gantt-label-cell gantt-label-head" style="width:' + labelW + 'px;height:' + headerH + 'px;">Faculty</div>';
     members.forEach(f => {
@@ -1248,17 +1280,16 @@ function renderFacultyGantt() {
             '<div class="gantt-fac-name">' + escapeHtml(f.first_name + ' ' + f.last_name) + '</div>' +
             '<div class="gantt-fac-dept">' + escapeHtml(f.department_name || '') + '</div></div>';
     });
-    html += '<div class="gantt-label-cell gantt-legend-label" style="width:' + labelW + 'px;height:' + rowH + 'px;">Legend</div>';
     html += '</div>';
 
-    // — Scrollable day region (header ticks + all faculty schedules + legend, scrolled together) —
+    // — Day region (header ticks + all faculty schedules), showing only the visible window —
     html += '<div class="gantt-days-scroll">';
     html += '<div class="gantt-day-col" style="width:' + dayW + 'px;height:' + headerH + 'px;">' +
         '<div class="gantt-hour-ticks">';
-    for (let m = rangeStart; m < rangeEnd; m += 60) {
+    for (let m = visStart; m < visEnd; m += 60) {
         const h = Math.floor(m / 60);
-        const l = (h === Math.floor(rangeStart / 60)) ? '' : (h % 12 === 0 ? '12 PM' : (h < 12 ? h + ' AM' : (h % 12) + ' PM'));
-        html += '<span style="width:' + hourPx + 'px;left:' + ((m - rangeStart) / 60 * hourPx) + 'px;"><em class="gantt-tick-line"></em>' + l + '</span>';
+        const l = (h === Math.floor(visStart / 60)) ? '' : (h % 12 === 0 ? '12 PM' : (h < 12 ? h + ' AM' : (h % 12) + ' PM'));
+        html += '<span style="width:' + hourPx + 'px;left:' + ((m - visStart) / 60 * hourPx) + 'px;"><em class="gantt-tick-line"></em>' + l + '</span>';
     }
     html += '</div></div>';
 
@@ -1276,8 +1307,6 @@ function renderFacultyGantt() {
             const baseEnd = ganttTimeToMin(s.end_time);
             const extEnd = ganttTimeToMin(s.extended_until);
             const endMin = Math.max(extEnd, baseEnd);
-            const left = Math.max((startMin - rangeStart) * (hourPx / 60), 0);
-            const width = Math.max((endMin - startMin) * (hourPx / 60), 6);
             const isToday = ganttDayIdx === todayIdx;
             const isNow = isToday && startMin <= nowMin && nowMin <= endMin;
             const isPast = isToday && endMin < nowMin;
@@ -1285,6 +1314,12 @@ function renderFacultyGantt() {
             const cls = isExtended ? 'gantt-block-extended'
                 : (isNow ? 'gantt-block-now'
                 : (isPast ? 'gantt-block-past' : 'gantt-block-upcoming'));
+            // Clip the block to the visible window so out-of-view parts never show.
+            const clipStart = Math.max(startMin, visStart);
+            const clipEnd = Math.min(endMin, visEnd);
+            if (clipEnd <= clipStart) return;
+            const left = (clipStart - visStart) * (hourPx / 60);
+            const width = Math.max((clipEnd - clipStart) * (hourPx / 60), 6);
             const startTxt = fmtGanttTime(startMin);
             const endTxt = fmtGanttTime(endMin);
             const subjName = s.subject_name || 'Class';
@@ -1299,16 +1334,16 @@ function renderFacultyGantt() {
         });
         html += '</div>';
     });
+    html += '</div>'; // days-scroll
+    html += '</div>'; // grid
 
-    // Legend appended as the last entry of the scrollable day region
-    html += '<div class="gantt-day-area-inner gantt-legend-row" style="width:' + dayW + 'px;height:' + rowH + 'px;">' +
+    // Legend sits apart from the chart, on its own full-width bar (not scrollable).
+    html += '<div class="gantt-legend-bar">' +
         '<span class="gantt-legend gantt-legend-past"></span><span class="small">Past</span>' +
         '<span class="gantt-legend gantt-legend-now"></span><span class="small">Now</span>' +
         '<span class="gantt-legend gantt-legend-upcoming"></span><span class="small">Upcoming</span>' +
         '<span class="gantt-legend gantt-legend-extended"></span><span class="small">Extended</span>' +
         '</div>';
-    html += '</div>'; // days-scroll
-    html += '</div>'; // grid
 
     container.innerHTML = html;
 }
@@ -1331,6 +1366,7 @@ function fmtGanttTime(min) {
 function openFacultyGantt() {
     const todayDow = new Date().getDay(); // 0 Sun … 6 Sat
     ganttDayIdx = todayDow === 0 ? 6 : todayDow - 1; // default to current day
+    ganttScrollOffset = 0;
     const modalEl = document.getElementById('facultyGanttModal');
     if (modalEl && window.bootstrap) {
         const modal = new bootstrap.Modal(modalEl);
@@ -1349,6 +1385,7 @@ window.addEventListener('resize', function () {
 /* ── Gantt day-pane navigation (prev / next) ──────────────────────────────── */
 function ganttStep(offset) {
     ganttDayIdx = (ganttDayIdx + offset + 7) % 7;
+    ganttScrollOffset = 0; // each day starts at its earliest visible hour
     hideFacultyGanttOverlay();
     renderFacultyGantt();
 }
@@ -1363,10 +1400,40 @@ if (ganttNextBtn) ganttNextBtn.addEventListener('click', function () { ganttStep
 document.querySelectorAll('.gantt-day-tab').forEach(function (btn) {
     btn.addEventListener('click', function () {
         ganttDayIdx = parseInt(btn.getAttribute('data-day'), 10);
+        ganttScrollOffset = 0; // each day starts at its earliest visible hour
         hideFacultyGanttOverlay();
         renderFacultyGantt();
     });
 });
+
+/* Time-window scrollbar for the Gantt pane (mirrors the overview chart scrollbar) */
+function onGanttScroll(value) {
+    ganttScrollOffset = parseInt(value, 10) || 0;
+    hideFacultyGanttOverlay();
+    renderFacultyGantt();
+}
+
+const ganttScrollWrapEl = document.getElementById('ganttScrollWrap');
+if (ganttScrollWrapEl) {
+    ganttScrollWrapEl.addEventListener('mouseenter', function () {
+        const t = document.getElementById('ganttScrollTip');
+        if (t && t.textContent) t.classList.add('show');
+    });
+    ganttScrollWrapEl.addEventListener('mouseleave', function () {
+        const t = document.getElementById('ganttScrollTip');
+        if (t) t.classList.remove('show');
+    });
+}
+
+/* Gantt faculty search — re-renders the pane so only matching members appear */
+const ganttSearchEl = document.getElementById('ganttFacultySearch');
+if (ganttSearchEl) {
+    ganttSearchEl.addEventListener('input', function () {
+        ganttSearch = this.value.trim().toLowerCase();
+        hideFacultyGanttOverlay();
+        renderFacultyGantt();
+    });
+}
 
 /* ── Gantt block detail overlay (anchored, scales in like the homepage day overlay) ── */
 let ganttOverlayEl = null;

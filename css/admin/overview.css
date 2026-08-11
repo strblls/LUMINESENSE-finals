@@ -856,12 +856,11 @@
     border-right: 1px solid #ece7f3;
 }
 
-/* Single scroll region shared by the header ticks, every faculty row and the legend */
+/* Windowed day region — scrolling is driven by the Gantt range slider instead of the browser */
 .gantt-days-scroll {
     flex: 1;
     min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
 }
 
 .gantt-label-cell {
@@ -882,13 +881,6 @@
     letter-spacing: .04em;
     background: #f5f2fa;
     border-bottom: 1px solid #e5e0ee;
-}
-.gantt-legend-label {
-    font-weight: 700;
-    font-size: 11px;
-    color: var(--secondary-color-1);
-    text-transform: uppercase;
-    letter-spacing: .04em;
 }
 .gantt-fac-name {
     font-size: 12.5px;
@@ -948,11 +940,16 @@
 .gantt-day-area-inner.gantt-zebra {
     background: rgba(88, 7, 143, 0.02);
 }
-.gantt-legend-row {
+.gantt-legend-bar {
+    width: 100%;
     display: flex;
     align-items: center;
-    background: #f5f2fa !important;
-    border-bottom: none;
+    gap: 4px;
+    padding: 8px 12px;
+    background: #f5f2fa;
+    border-top: 1px solid #e5e0ee;
+    box-sizing: border-box;
+    white-space: nowrap;
 }
 .gantt-empty {
     position: absolute;
