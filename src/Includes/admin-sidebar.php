@@ -18,10 +18,10 @@
             <h3 class="bold mb-0 sidebar-label">Home</h3>
         </div>
         <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
-            <button class="nav-btn" title="Rooms" onclick="dissolve('admin-overview.php')">
+            <button class="nav-btn" title="Rooms & Faculty" onclick="dissolve('admin-overview.php')">
                 <i class="fa-solid fa-person-shelter"></i>
             </button>
-            <h3 class="bold mb-0 sidebar-label">Rooms<br>Overview</h3>
+            <h3 class="bold mb-0 sidebar-label">Rooms &amp;<br>Faculty</h3>
         </div>
         <div class="d-flex flex-row justify-content-center align-items-center gap-2 sidebar-item">
             <button class="nav-btn" title="Consumption Analytics" onclick="dissolve('admin-analytics.php')">

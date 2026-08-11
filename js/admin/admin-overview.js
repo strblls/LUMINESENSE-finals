@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   js/admin/admin-overview.js — Combined "Rooms & Analytics" page
+   js/admin/admin-overview.js — Combined "Rooms & Faculty" page
    All data comes live from the DB via the PHP page. This wiring drives
    the room cards, the overview line chart, and the per-minute scrollbar.
    ═══════════════════════════════════════════════════════════════════════ */

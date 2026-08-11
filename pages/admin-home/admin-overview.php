@@ -1,5 +1,5 @@
 <?php
-$page_title = 'Rooms Overview';
+$page_title = 'Rooms & Faculty';
 require_once __DIR__ . "/../../src/Includes/admin-head.php";
 date_default_timezone_set('Asia/Manila');
 
@@ -514,7 +514,7 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>LumineSense - Rooms &amp; Analytics</title>
+    <title>LumineSense - Rooms &amp; Faculty</title>
 
     <!--External links-->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -559,7 +559,7 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                         </button>
                         <div id="panelGuide" class="timetable-panel p-3 m-3">
                             <div class="section-container timetable" style="background-color:#f8f9fa;width:340px;">
-                                <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Rooms &amp; Analytics Guide</h6>
+                                <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Rooms &amp; Faculty Guide</h6>
                                 <ol class="ps-3 mb-0" style="font-size:12px;line-height:1.7;">
                                     <li><strong>Room Management</strong> — the rooms at a glance are combined here with the management grid.</li>
                                     <li>Functioning (LIVE) rooms are shown first, then by status: Occupied → Scheduled → Vacant.</li>
