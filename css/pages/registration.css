@@ -36,4 +36,30 @@ body {
     background-color: #f9edfa;
 }
 
+/* Hover background effect shared across login/signup pages (mirrors index.php) */
+.form-bg {
+    position: relative;
+    overflow: hidden;
+    min-height: 100vh;
+}
+
+.form-bg .parent-container,
+.form-bg .parent-container-index,
+.form-bg .return-container {
+    position: relative;
+    z-index: 2;
+}
+
+.form-bg .border-glow,
+.form-bg .border-gradient {
+    margin: 5rem;
+}
+
+@media (max-width: 768px) {
+    .form-bg .border-glow,
+    .form-bg .border-gradient {
+        margin: 1.5rem;
+    }
+}
+
 
