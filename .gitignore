@@ -3,6 +3,7 @@
 *.tmp
 *.swp
 logs/
+.playwright-mcp/
 
 # Environment
 .env

@@ -924,7 +924,7 @@
     height: 100%;
     border-left: 1px solid #e5e0ee;
     position: absolute;
-    left: 50%;
+    left: 0;
     top: 0;
     z-index: 0;
 }

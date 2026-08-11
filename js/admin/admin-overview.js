@@ -1286,10 +1286,13 @@ function renderFacultyGantt() {
     html += '<div class="gantt-days-scroll">';
     html += '<div class="gantt-day-col" style="width:' + dayW + 'px;height:' + headerH + 'px;">' +
         '<div class="gantt-hour-ticks">';
-    for (let m = visStart; m < visEnd; m += 60) {
+    // Ticks align to real hour boundaries inside the visible window; every cell gets a label.
+    const firstTick = Math.ceil(visStart / 60) * 60;
+    for (let m = firstTick; m < visEnd; m += 60) {
         const h = Math.floor(m / 60);
-        const l = (h === Math.floor(visStart / 60)) ? '' : (h % 12 === 0 ? '12 PM' : (h < 12 ? h + ' AM' : (h % 12) + ' PM'));
-        html += '<span style="width:' + hourPx + 'px;left:' + ((m - visStart) / 60 * hourPx) + 'px;"><em class="gantt-tick-line"></em>' + l + '</span>';
+        const l = (h % 12 === 0 ? 12 : h % 12) + (h >= 12 ? ' PM' : ' AM');
+        const left = ((m - visStart) / 60) * hourPx;
+        html += '<span style="width:' + hourPx + 'px;left:' + left + 'px;"><em class="gantt-tick-line"></em>' + l + '</span>';
     }
     html += '</div></div>';
 
