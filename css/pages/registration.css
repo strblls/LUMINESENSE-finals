@@ -53,13 +53,13 @@ body {
 .form-bg .border-glow,
 .form-bg .border-gradient {
     margin: 5rem;
+    miax-height: auto;
 }
 
 @media (max-width: 768px) {
+
     .form-bg .border-glow,
     .form-bg .border-gradient {
         margin: 1.5rem;
     }
 }
-
-
