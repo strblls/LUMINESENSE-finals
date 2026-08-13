@@ -19,10 +19,12 @@
 // ── Fallback WiFi credentials ──────────────────────────────
 // If WiFiManager settings are reset, ESP32 tries these in order.
 const char* FALLBACK_SSIDS[] = {
-    "capstone",
+    "LAPTOP-UOHVHQ1N 0251",
+    "capstone"
 };
 const char* FALLBACK_PASS[] = {
     "betet2027",
+    "betet2027"
 };
 #define NUM_FALLBACKS (sizeof(FALLBACK_SSIDS) / sizeof(FALLBACK_SSIDS[0]))
 

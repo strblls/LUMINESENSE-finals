@@ -1,12 +1,14 @@
     (function() {
         const page = window.location.pathname.split('/').pop();
+        // Consumption Analytics subpage was commented out of the sidebar;
+        // indices below match the remaining buttons in order.
         const map = {
             'admin-homepage.php': 0,
+            'admin-overview.php': 1,
             'admin-room-manage.php': 1,
-            'admin-analytics.php': 2,
-            'admin-reports.php': 3,
-            'admin-faculty-management.php': 4,
-            'admin-profile-settings.php': 5
+            'admin-reports.php': 2,
+            'admin-faculty-management.php': 3,
+            'admin-profile-settings.php': 4
         };
         const index = map[page];
         if (index !== null && index !== undefined) {

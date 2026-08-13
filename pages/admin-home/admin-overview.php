@@ -717,8 +717,7 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                             <i class="bi bi-graph-up"></i><span class="timetable-btn-title bold">Metric</span>
                         </button>
                         <div id="panelMetric" class="timetable-panel panel-from-right p-3 m-3">
-                            <div class="section-container timetable" style="background-color:#f8f9fa;">
-                                <div class="dept-member-filter">
+                            <div class="section-container timetable" style="background-color:#f8f9fa;">                                    <div class="dept-member-filter">
                                     <div class="dept-member-filter-header">Filter by Metrics</div>
                                     <div class="dept-member-filter-list">
                                         <div class="dept-member-filter-item active" onclick="handleHeadingMetric(this, 'all')">All Metrics</div>
@@ -729,6 +728,17 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                 </div>
                             </div>
                         </div>
+                        <!-- Export buttons moved here from admin-analytics.php (subpage
+                             commented out of the sidebar); openExport() loads the
+                             analytics data first so exporting works with Live on or off. -->
+                        <button type="button" class="timetable-btn" onclick="openExport('csv')" title="Export CSV">
+                            <i class="bi bi-filetype-csv"></i>
+                            <span class="timetable-btn-title bold">Export<br>CSV</span>
+                        </button>
+                        <button type="button" class="timetable-btn" onclick="openExport('pdf')" title="Export PDF">
+                            <i class="bi bi-filetype-pdf"></i>
+                            <span class="timetable-btn-title bold">Export<br>PDF</span>
+                        </button>
                     </div>
                 </div>
 
@@ -749,9 +759,12 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                 <h3 class="chart-card-title bold" id="overviewLineTitle">Line Graph</h3>
                                 <div class="chart-header-actions">
                                     <span class="summary-label" id="overviewLineMetricLabel">All Metrics</span>
+                                    <!-- Consumption Analytics subpage is commented out; this overview
+                                         page is now the single energy-analytics view (Live toggle on/off).
                                     <button type="button" class="light w-auto mx-2 px-2" onclick="window.location.href='admin-analytics.php'" title="Open full Analytics">
                                         <i class="bi bi-graph-up-arrow"></i>
                                     </button>
+                                    -->
                                 </div>
                             </div>
                             <div class="chart-wrapper" style="height:340px;"><canvas id="overviewLineChart"></canvas></div>

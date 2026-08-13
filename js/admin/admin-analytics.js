@@ -1672,6 +1672,14 @@ function exportSectionPDF(sectionId) {
 
     var canvasId = (sectionId === 'lineGraphCard') ? 'lineChart' : 'barChart';
     var canvas = document.getElementById(canvasId);
+    // On admin-overview the shared live-dashboard charts sit inside a
+    // display:none container while the Live toggle is off, so their canvas is
+    // 0-sized and toDataURL() would be blank. Fall back to the always-visible
+    // overview line chart so the PDF still embeds a real graph image.
+    if (canvas && canvas.width === 0) {
+        var ovCanvas = document.getElementById('overviewLineChart');
+        if (ovCanvas && ovCanvas.width > 0) canvas = ovCanvas;
+    }
     var graphImage = canvas ? canvas.toDataURL('image/png', 1.0) : null;
 
     var payload = {

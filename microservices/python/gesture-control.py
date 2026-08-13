@@ -12,7 +12,10 @@ from mediapipe.tasks.python import vision
 
 app = Flask(__name__)
 API_URL      = os.environ.get("LUMINESENSE_API_URL", "http://localhost/LUMINESENSE-finals/api/lights.php")
+STATUS_URL   = os.environ.get("LUMINESENSE_STATUS_URL", API_URL.replace("/lights.php", "/esp32-status.php"))
 CLASSROOM_ID = int(os.environ.get("LUMINESENSE_CLASSROOM_ID", "1"))
+# Must match ESP32_TOKEN on the server (api/lights.php + api/esp32-status.php).
+DEVICE_TOKEN = os.environ.get("LUMINESENSE_DEVICE_TOKEN", "")
 COOLDOWN     = 1.5
 
 last_trigger = 0
@@ -65,15 +68,44 @@ def set_gesture_state(gesture, confidence):
 
 def send_command(row, state):
     try:
-        requests.post(API_URL, data={
+        resp = requests.post(API_URL, data={
             'classroom_id': CLASSROOM_ID,
             'row':          str(row),
             'state':        state,
-            'triggered_by': 'gesture'
+            'triggered_by': 'gesture',
+            'device_token': DEVICE_TOKEN,
         }, timeout=2)
-        print(f"Sent: row={row} state={state}")
+        if resp.status_code != 200:
+            # Previously lights.php only accepted a faculty/admin session and
+            # silently rejected device calls (HTTP 401). Now it also accepts
+            # device_token, so a rejection means the token/env is misconfigured.
+            print(f"API REJECTED command row={row} state={state} -> HTTP {resp.status_code} {resp.text[:120]}")
+        else:
+            print(f"Sent: row={row} state={state}")
     except Exception as e:
         print(f"API error: {e}")
+
+
+def sync_row_states():
+    """Pull the authoritative row1/row2/row3 states from the DB so a gesture
+    toggle flips the real on/off state instead of a stale in-memory cache.
+    Returns True on success; on failure the caller falls back to local state."""
+    try:
+        resp = requests.get(STATUS_URL, params={
+            'token':        DEVICE_TOKEN,
+            'classroom_id': CLASSROOM_ID,
+        }, timeout=2)
+        if resp.status_code != 200:
+            print(f"STATUS SYNC rejected -> HTTP {resp.status_code} {resp.text[:120]}")
+            return False
+        data = resp.json()
+        row_states[1] = bool(data.get('row1'))
+        row_states[2] = bool(data.get('row2'))
+        row_states[3] = bool(data.get('row3'))
+        return True
+    except Exception as e:
+        print(f"STATUS SYNC error: {e}")
+        return False
 
 
 def handle_gesture(best_gesture):
@@ -82,6 +114,11 @@ def handle_gesture(best_gesture):
     if best_gesture != last_gesture and (now - last_trigger) > COOLDOWN:
         last_trigger = now
         last_gesture = best_gesture
+
+        # Sync the baseline from the DB before each toggle so a gesture
+        # flips the real state, even if a UI/PIR/schedule change happened
+        # since the last gesture. Falls back to the local cache on failure.
+        sync_row_states()
 
         if best_gesture == 'Pointing_Up':
             row_states[1] = not row_states[1]

@@ -189,6 +189,26 @@ function renderStackQueue() {
     }).join('');
 }
 
+// Fetch the classroom's authoritative row states from the server. Returns null
+// on failure so callers can fall back to the (possibly stale) DOM switches.
+async function fetchServerRowStates() {
+    try {
+        if (typeof CLASSROOM_ID === 'undefined') return null;
+        const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data || !data.success) return null;
+        return {
+            1: data.row1_status === 'on',
+            2: data.row2_status === 'on',
+            3: data.row3_status === 'on',
+        };
+    } catch (e) {
+        console.warn('fetchServerRowStates error:', e);
+        return null;
+    }
+}
+
 async function executePendingStack() {
     if (!pendingStack.length) return;
 
@@ -196,13 +216,32 @@ async function executePendingStack() {
     pendingStack = [];
     clearPendingTimeout();
 
-    // Read the current switch states as the baseline, then simulate the whole
-    // stack locally to compute the correct final state of every row.
+    // Compute the baseline from the SERVER's authoritative state, not the DOM
+    // switches. The switches are only refreshed every ~3s by faculty-status.php
+    // (and stop refreshing if that poll fails), so toggling against them fires
+    // the OPPOSITE command whenever the DB changed through another path (PIR
+    // auto-on, cron auto-off, another tab). Fetch the truth at execution time;
+    // fall back to the DOM only if the fetch fails.
     const getSwitch = r => {
         const sw = document.getElementById(`row-${r}-switch`);
         return sw ? sw.checked : false;
     };
-    const initial = { 1: getSwitch(1), 2: getSwitch(2), 3: getSwitch(3) };
+    const serverState = await fetchServerRowStates();
+    let initial;
+    if (serverState) {
+        initial = serverState;
+        // Sync switches/bulbs to the server truth so the UI reflects reality
+        // and subsequent queue labels compute against it.
+        for (let r = 1; r <= 3; r++) {
+            const sw = document.getElementById(`row-${r}-switch`);
+            if (sw) sw.checked = serverState[r];
+            document.querySelectorAll(`.bulb-img[data-row="${r}"]`).forEach(img => {
+                img.src = serverState[r] ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
+            });
+        }
+    } else {
+        initial = { 1: getSwitch(1), 2: getSwitch(2), 3: getSwitch(3) };
+    }
     const final = { ...initial };
 
     for (const it of stack) {

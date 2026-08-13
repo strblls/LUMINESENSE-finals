@@ -389,6 +389,10 @@ function ovSetPeriod(el, days) {
     document.querySelectorAll('#panelPeriod .dept-member-filter-item').forEach(i => i.classList.remove('active'));
     if (el) el.classList.add('active');
     currentPeriod = parseInt(days, 10);
+    // Keep the hidden analytics-runtime select in sync so CSV/PDF exports
+    // (which read periodSelect.value) honour the period picked here.
+    const ps = document.getElementById('periodSelect');
+    if (ps) ps.value = currentPeriod;
     renderLiveReadings();
     buildOverviewLineChart();
     if (currentModalRoom) renderRoomModalChart(extendRoomTodayToNow(currentModalRoom));
@@ -447,6 +451,32 @@ function setLiveMode(on) {
 
 function toggleLiveMode() {
     setLiveMode(!liveMode);
+}
+
+// ── Export (CSV / PDF) ────────────────────────────────────────────────────────
+// The export modal and its handlers live in admin-analytics.js (shared runtime,
+// loaded on this page too). lastData is only populated once the analytics API
+// has been fetched, so ensure it is loaded before opening the modal — otherwise
+// the export silently does nothing when Live mode has never been toggled on.
+function openExport(mode) {
+    const open = function () {
+        if (mode === 'pdf' && typeof window.exportPDF === 'function') {
+            window.exportPDF();
+        } else if (mode === 'csv' && typeof window.exportCSV === 'function') {
+            window.exportCSV();
+        }
+    };
+    if (typeof lastData !== 'undefined' && lastData) { open(); return; }
+    if (typeof window.onControlChange !== 'function') { open(); return; }
+    window.onControlChange();
+    let tries = 0;
+    const iv = setInterval(function () {
+        tries++;
+        if ((typeof lastData !== 'undefined' && lastData) || tries >= 12) {
+            clearInterval(iv);
+            open();
+        }
+    }, 150);
 }
 
 // ── Room selection ───────────────────────────────────────────────────────

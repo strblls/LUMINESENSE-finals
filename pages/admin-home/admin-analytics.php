@@ -114,6 +114,9 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                     </div>
                 </div>
                 <div class="d-flex gap-2" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);">
+                    <!-- CSV / PDF export buttons moved to admin-overview.php (this subpage
+                         is commented out of the admin sidebar; the overview is the single
+                         energy-analytics view). openExport('csv'|'pdf') is used there.
                     <button type="button" class="timetable-btn" onclick="exportCSV()" title="Export CSV">
                         <i class="bi bi-filetype-csv"></i>
                         <span class="timetable-btn-title bold">Export<br>CSV</span>
@@ -122,6 +125,7 @@ include __DIR__ . "/../../src/Handlers/analytics-handler.php";
                         <i class="bi bi-filetype-pdf"></i>
                         <span class="timetable-btn-title bold">Export<br>PDF</span>
                     </button>
+                    -->
                     <button type="button" class="timetable-btn" id="archiveOpenBtn" onclick="openArchivePicker()" title="Archives">
                         <i class="bi bi-folder2-open"></i>
                         <span class="timetable-btn-title bold">Archive</span>

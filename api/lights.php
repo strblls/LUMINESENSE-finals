@@ -7,7 +7,13 @@
 require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
 
-if (empty($_SESSION['faculty_logged_in']) && empty($_SESSION['admin_logged_in'])) {
+// Auth: logged-in faculty/admin session OR a device (gesture service,
+// Arduino/PIR) presenting the shared device token in `device_token`
+// (mirrors api/pir.php's arduino_token check against ESP32_TOKEN).
+$is_session = !empty($_SESSION['faculty_logged_in']) || !empty($_SESSION['admin_logged_in']);
+$is_device  = !empty($_POST['device_token']) && $_POST['device_token'] === ESP32_TOKEN;
+
+if (!$is_session && !$is_device) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Unauthorized.']); exit;
 }
