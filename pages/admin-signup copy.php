@@ -25,6 +25,7 @@
     <link rel="stylesheet" href="../css/base/global.css">
     <link rel="stylesheet" href="../css/base/containers.css">
     <link rel="stylesheet" href="../css/pages/registration.css">
+    <link rel="stylesheet" href="../css/pages/index.css">
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
@@ -32,7 +33,15 @@
 </head>
 
 <body>
-    <div class="return-container">
+    <div class="form-bg">
+        <img src="../images/landing/bgforms.jpg" alt="" class="bg-base" loading="lazy">
+        <img src="../images/landing/bgformsyellow.jpg" alt="" class="bg-base bg-hover" loading="lazy">
+
+        <!--Div Border-->
+        <div class="border-glow" style="position: absolute; inset: 0; box-sizing: border-box; z-index: 1; border-radius: 10px; pointer-events: none;"></div>
+        <div class="border-gradient" style="position: absolute; inset: 0; box-sizing: border-box; z-index: 1; border-radius: 10px; pointer-events: none;"></div>
+
+        <div class="return-container">
         <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('../index.php')">
             <i class="bi bi-house"></i>
         </a>
@@ -135,6 +144,15 @@
     <script src="../js/lib/animations.js"></script>
     <script src="../js/lib/password.js"></script>
     <script src="../js/admin-signup.js"></script>
+    </div>
+    <script>
+        document.querySelector('.form-bg').addEventListener('mousemove', function(e) {
+            this.querySelector('.bg-hover').classList.toggle('active', e.clientX < window.innerWidth / 2);
+        });
+        document.querySelector('.form-bg').addEventListener('mouseleave', function() {
+            this.querySelector('.bg-hover').classList.remove('active');
+        });
+    </script>
 </body>
 
 </html>
