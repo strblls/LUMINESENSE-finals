@@ -25,11 +25,11 @@ $expected = DEVICE_TOKEN;
 $received = $_SERVER['HTTP_X_DEVICE_TOKEN'] ?? 'MISSING';
 
 if ($received !== $expected) {
-    echo json_encode([
-        'error' => 'Unauthorized',
-        'received_token' => $received,
-        'expected_token' => $expected
-    ]);
+    // Return 401 (not 200) so the ESP32 firmware's `httpCode == 200` check
+    // fails loudly instead of logging "Posted to DB OK" on a rejected push.
+    // Never echo the expected token back to unauthenticated callers.
+    http_response_code(401);
+    echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
 

@@ -25,6 +25,9 @@ $expected = DEVICE_TOKEN;
 $received = $_SERVER['HTTP_X_DEVICE_TOKEN'] ?? 'MISSING';
 
 if ($received !== $expected) {
+    // 401 (not 200) so a rejected sync is visible to the device instead of
+    // being mistaken for success.
+    http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
