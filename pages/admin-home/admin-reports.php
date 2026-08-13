@@ -154,7 +154,7 @@ $res5 = $conn->query("
         event_time,
         COALESCE(notes, '') AS notes
     FROM room_logs
-    WHERE event_type IN ('issue_raised', 'issue_resolved')
+    WHERE event_type IN ('issue_raised', 'issue_resolved', 'tilt_alert')
     ORDER BY event_time DESC
     LIMIT 200
 ");
@@ -163,11 +163,11 @@ if ($res5) {
     $res5->free();
 }
 
-// - Issue stats -
+// - Issue stats (tilt_alert counts as an issue raised) -
 $issue_raised_count = 0;
 $issue_resolved_count = 0;
 foreach ($issues as $issue) {
-    if ($issue['event_type'] === 'issue_raised') $issue_raised_count++;
+    if ($issue['event_type'] === 'issue_raised' || $issue['event_type'] === 'tilt_alert') $issue_raised_count++;
     elseif ($issue['event_type'] === 'issue_resolved') $issue_resolved_count++;
 }
 
@@ -190,6 +190,7 @@ function event_icon(string $type): array
         'faculty_pending'  => ['bi-person-plus',        '#664d03', '#fff3cd'],
         'issue_raised'   => ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
         'issue_resolved' => ['bi-check-circle-fill',   '#0f5132', '#d1e7dd'],
+        'tilt_alert'     => ['bi-exclamation-octagon-fill', '#7f1d1d', '#fee2e2'],
         'admin_action'   => ['bi-shield-check',        '#084298', '#cfe2ff'],
         'archive_created'        => ['bi-archive', '#0891b2', '#cffafe'],
         'archive_deleted'        => ['bi-archive-fill', '#dc2626', '#fee2e2'],
@@ -489,6 +490,7 @@ function event_icon(string $type): array
                                 <option value="">All Issues</option>
                                 <option value="issue_raised">Issue Raised</option>
                                 <option value="issue_resolved">Issue Resolved</option>
+                                <option value="tilt_alert">Tilt Alerts</option>
                             </select>
                             <select id="issueDate">
                                 <option value="">All Dates</option>
@@ -503,7 +505,7 @@ function event_icon(string $type): array
                         <?php if (empty($issues)): ?>
                             <div class="empty-state">
                                 <i class="bi bi-inbox"></i>
-                                <p>No issues logged yet. Issues will appear here when PIR detects motion outside schedule or other anomalies occur.</p>
+                                <p>No issues logged yet. Issues will appear here when PIR detects motion outside schedule, the prototype is tilted or shaken, or other anomalies occur.</p>
                             </div>
                         <?php else: ?>
                             <?php foreach ($issues as $issue):
@@ -511,7 +513,9 @@ function event_icon(string $type): array
                                 $logDate = strtotime($issue['event_time']);
                                 $dateStr = date('M j, Y', $logDate);
                                 $timeStr = date('g:i A', $logDate);
+                                $isTilt  = $issue['event_type'] === 'tilt_alert';
                                 $isRaised = $issue['event_type'] === 'issue_raised';
+                                $issueLabel = $isTilt ? 'Tilt Alert' : ($isRaised ? 'Issue Raised' : 'Issue Resolved');
                             ?>
                                 <div class="timeline-item"
                                     data-type="issue"
@@ -519,18 +523,18 @@ function event_icon(string $type): array
                                     data-date="<?= date('Y-m-d', $logDate) ?>"
                                     data-search="<?= strtolower(htmlspecialchars($issue['room_name'] . ' ' . $issue['notes'])) ?>">
                                     <div class="tl-icon" style="background:<?= $iconBg ?>; color:<?= $iconColor ?>;">
-                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        <i class="bi <?= $icon ?>"></i>
                                     </div>
                                     <div class="tl-body">
                                         <p class="tl-action">
-                                            <?= $isRaised ? 'Issue Raised' : 'Issue Resolved' ?>
+                                            <?= $issueLabel ?>
                                             &mdash; <span style="color:var(--secondary-color-3);"><?= htmlspecialchars($issue['room_name']) ?></span>
                                         </p>
                                         <div class="tl-meta">
                                             <span><i class="bi bi-clock"></i> <?= $timeStr ?>, <?= $dateStr ?></span>
                                             <span><i class="bi bi-person"></i> <?= htmlspecialchars($issue['triggered_by']) ?></span>
-                                            <span class="tl-type-badge" style="background:<?= $isRaised ? '#842029' : '#0f5132' ?>; color:#fff;">
-                                                <?= $isRaised ? 'Issue Raised' : 'Issue Resolved' ?>
+                                            <span class="tl-type-badge" style="background:<?= $isTilt ? '#7f1d1d' : ($isRaised ? '#842029' : '#0f5132') ?>; color:#fff;">
+                                                <?= $issueLabel ?>
                                             </span>
                                         </div>
                                         <?php if (!empty($issue['notes'])): ?>

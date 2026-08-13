@@ -292,6 +292,7 @@
                 faculty_pending:  ['bi-person-plus',        '#664d03', '#fff3cd'],
                 issue_raised:   ['bi-exclamation-triangle-fill', '#842029', '#f8d7da'],
                 issue_resolved: ['bi-check-circle-fill',   '#0f5132', '#d1e7dd'],
+                tilt_alert:     ['bi-exclamation-octagon-fill', '#7f1d1d', '#fee2e2'],
                 admin_action:   ['bi-shield-check',        '#084298', '#cfe2ff'],
             };
             const DEFAULT_ICON = ['bi-clock-history', '#5a5a5a', '#e9ecef'];
@@ -417,7 +418,7 @@
                                     motion_detect: 'bi-person-bounding-box', pir_motion: 'bi-person-bounding-box', pir_stopped: 'bi-person-bounding-box', door_open: 'bi-door-open-fill',
                                     door_close: 'bi-door-closed-fill', class_start: 'bi-play-circle-fill',
                                     class_end: 'bi-stop-circle', issue_raised: 'bi-exclamation-triangle-fill',
-                                    issue_resolved: 'bi-check-circle-fill'
+                                    issue_resolved: 'bi-check-circle-fill', tilt_alert: 'bi-exclamation-octagon-fill'
                                 };
                                 var icon = iconMap[log.event_type] || 'bi-clock-history';
                                 html += '<div class="accordion-log-item">';

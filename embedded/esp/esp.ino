@@ -39,6 +39,7 @@ const char* UPDATE_ROWS_URL  = SERVER_BASE "/api/esp32-update-rows.php";
 const char* SCHEDULE_FLAG_URL= SERVER_BASE "/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
 const char* CONFIG_URL      = SERVER_BASE "/api/esp32-config.php?token=LS_ESP32_TOKEN_2025";
 const char* PIR_LOG_URL     = SERVER_BASE "/api/pir-log.php";
+const char* TILT_LOG_URL    = SERVER_BASE "/api/tilt-log.php";
 const char* SESSION_URL     = SERVER_BASE "/api/post_session.php";
 const char* ARCHIVE_SYNC_URL = SERVER_BASE "/api/archive-sync.php";
 
@@ -63,6 +64,7 @@ String pendingPzem          = "";
 String esp32Buffer = "";
 bool   pendingScheduleFetch = false;
 int    pendingPirLog        = -1;  // -1 = none, 0/1 = state to log
+int    pendingTiltLog       = -1;  // -1 = none, 0/1 = tilt state to log
 String pendingReconcile     = "";
 
 // ── Archive sync state ─────────────────────────────────────
@@ -270,6 +272,9 @@ void loop() {
         } else if (pendingPirLog != -1) {
             forwardPirLog(pendingPirLog);
             pendingPirLog = -1;
+        } else if (pendingTiltLog != -1) {
+            forwardTiltLog(pendingTiltLog);
+            pendingTiltLog = -1;
         } else if (now - lastFlagPoll >= FLAG_POLL_MS) {
             lastFlagPoll = now;
             checkScheduleFlag();
@@ -396,6 +401,12 @@ void handleMegaMessages() {
                 else if (msg == "LOG_PIR:0") {
                     if (pirOverrideActive)
                         pirInactiveSince = millis(); // start 5-min timer — does NOT immediately kill schedule
+                }
+                else if (msg == "LOG_TILT:1") {
+                    pendingTiltLog = 1;  // manhandling alert → api/tilt-log.php
+                }
+                else if (msg == "LOG_TILT:0") {
+                    pendingTiltLog = 0;  // sensor settled → log the clear
                 }
             }
         } else {
@@ -669,6 +680,34 @@ void forwardPirLog(int state) {
     httpBusy = false;
 }
 
+
+// ============================================================
+// FORWARD TILT LOG TO DATABASE
+// ============================================================
+void forwardTiltLog(int state) {
+    if (WiFi.status() != WL_CONNECTED) return;
+    if (httpBusy) return;
+    httpBusy = true;
+
+    String json = "{\"classroom_id\":3,\"state\":" + String(state) + "}";
+
+    HTTPClient http;
+    http.begin(TILT_LOG_URL);
+    http.setTimeout(3000);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-Token", "luminesense-secret-token");
+
+    int httpCode = http.POST(json);
+    if (httpCode == 200) {
+        Serial.println(F("[TILT_LOG] Logged to DB OK"));
+    } else {
+        Serial.print(F("[TILT_LOG] Post failed, code: "));
+        Serial.println(httpCode);
+    }
+
+    http.end();
+    httpBusy = false;
+}
 
 // ============================================================
 // FORWARD RECONCILE TO DATABASE

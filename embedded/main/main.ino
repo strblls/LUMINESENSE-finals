@@ -12,6 +12,8 @@
     - ESP32            : WiFi Bridge (Serial2, pins 16/17)
     - MOSFETs          : LED strip control (pins 2, 3, 4)
     - PIR Sensor       : Occupancy detection (pin 5)
+    - Tilt/Ball Sensor : Manhandling detection (pin 6, INPUT_PULLUP)
+    - Piezo Buzzer     : Manhandling alarm (pin 7)
 
   SYSTEM STATES:
     STATE_OUTSIDE   : Outside schedule — PIR ignored, faculty CAN toggle, auto-off after inactivity timeout
@@ -34,6 +36,8 @@
 #define ROW2_PIN 3
 #define ROW3_PIN 10
 #define PIR_PIN  5
+#define TILT_PIN   6
+#define BUZZER_PIN 7
 
 // ── Object Initialization ──────────────────────────────────
 PZEM004Tv30 pzem(Serial1);
@@ -58,6 +62,21 @@ bool row3State = false;
 bool pirState = false;
 bool pirResetUsed = false;
 bool lightOverride = false;
+
+// ── Tilt / Manhandling Alarm State ─────────────────────────
+// Ball switch is wired between TILT_PIN and GND with INPUT_PULLUP:
+//   upright  → closed → reads LOW
+//   tilted   → open   → reads HIGH
+// While tilted the ball rattles, so we trigger on the first edge and
+// re-arm only after the sensor settles AND the cooldown elapses.
+bool tiltTilted      = false; // current debounced sensor state
+bool tiltAlarmActive = false;
+unsigned long tiltAlarmStart  = 0;
+unsigned long lastTiltTrigger = 0; // last time an alarm was raised
+unsigned long lastTiltChange  = 0;
+#define TILT_DEBOUNCE_MS   300   // ignore bounces shorter than this
+#define TILT_ALARM_MS      5000  // how long the buzzer sounds per trigger
+#define TILT_COOLDOWN_MS   30000 // ignore re-triggers for this long (anti-spam)
 
 // ── PIR Inactivity Timeout (auto-off after no motion) ──────
 unsigned long lastPirActivity = 0;
@@ -129,9 +148,12 @@ void setup()
     pinMode(ROW2_PIN, OUTPUT);
     pinMode(ROW3_PIN, OUTPUT);
     pinMode(PIR_PIN, INPUT);
+    pinMode(TILT_PIN, INPUT_PULLUP);
+    pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(ROW1_PIN, LOW);
     digitalWrite(ROW2_PIN, LOW);
     digitalWrite(ROW3_PIN, LOW);
+    noTone(BUZZER_PIN);
 
     Serial.println(F("=== LUMINESENSE Mega Booting... ==="));
 
@@ -205,6 +227,7 @@ void loop()
 
     handleEsp32Messages();
     handlePIR(now);
+    handleTilt(now);
 
     if (now - lastPzemRead >= PZEM_INTERVAL_MS)
     {
@@ -478,6 +501,69 @@ void handlePIR(unsigned long now)
     {
         Serial2.println("LOG_PIR:0"); // tell ESP32: motion stopped → start 5-min inactivity timer
         Serial.println(F("[PIR] Motion stopped"));
+    }
+}
+
+// ============================================================
+// HANDLE TILT SENSOR + PIEZO BUZZER (manhandling alarm)
+// ============================================================
+void handleTilt(unsigned long now)
+{
+    bool reading = digitalRead(TILT_PIN);
+    bool tiltedNow = (reading == HIGH);
+
+    // Edge detection with debounce (ball switch rattles while tilted)
+    if (tiltedNow != tiltTilted)
+    {
+        if (now - lastTiltChange < TILT_DEBOUNCE_MS) return;
+        lastTiltChange = now;
+        tiltTilted = tiltedNow;
+
+        if (tiltTilted)
+        {
+            // Tilted → sound alarm + log, but respect cooldown to avoid spam
+            if (now - lastTiltTrigger >= TILT_COOLDOWN_MS)
+            {
+                lastTiltTrigger = now;
+                tiltAlarmActive = true;
+                tiltAlarmStart  = now;
+                Serial2.println("LOG_TILT:1"); // ESP32 → POST api/tilt-log.php
+                Serial.println(F("[TILT] Tilt detected — ALARM"));
+            }
+            else
+            {
+                Serial.println(F("[TILT] Tilt ignored (cooldown)"));
+            }
+        }
+        else
+        {
+            // Sensor settled again — tell ESP32 so it can log the clear
+            Serial2.println("LOG_TILT:0");
+            Serial.println(F("[TILT] Sensor settled"));
+        }
+    }
+
+    // Alarm siren — alternate 1.2 kHz / 600 Hz while active
+    if (tiltAlarmActive)
+    {
+        if (now - tiltAlarmStart >= TILT_ALARM_MS)
+        {
+            tiltAlarmActive = false;
+            noTone(BUZZER_PIN);
+            Serial.println(F("[TILT] Alarm off"));
+        }
+        else
+        {
+            static unsigned long lastTonePhase = 0;
+            unsigned long phase = (now - tiltAlarmStart) / 200;
+            if (phase != lastTonePhase)
+            {
+                lastTonePhase = phase;
+                // Passive piezo: tone(). For an active (self-oscillating)
+                // buzzer, replace tone/noTone with digitalWrite HIGH/LOW.
+                tone(BUZZER_PIN, (phase % 2 == 0) ? 1200 : 600);
+            }
+        }
     }
 }
 
