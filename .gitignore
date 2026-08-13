@@ -12,6 +12,7 @@ logs/
 # Editors
 .vscode/
 .idea/
+.freebuff/
 
 # Dependencies
 node_modules/

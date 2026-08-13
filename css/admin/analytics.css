@@ -920,6 +920,12 @@ body.contrast-bg {
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
+/* Disabled state (data fits within one window) — keep the control visible */
+.chart-scrollbar:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 /* ── Chart scrollbar tooltip ── */
 .chart-scroll-tip {
     position: absolute;

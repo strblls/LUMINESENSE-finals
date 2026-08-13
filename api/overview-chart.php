@@ -43,6 +43,12 @@ function padMinuteSeries($rows) {
     return $out;
 }
 
+// Optional per-room filter (used by the room inspect + faculty view modals).
+// Without it the endpoint keeps returning the all-rooms aggregate series.
+$cidFilter = isset($_GET['classroom_id']) ? (int)$_GET['classroom_id'] : 0;
+$where = "DATE(recorded_at) = CURDATE()";
+if ($cidFilter > 0) $where .= " AND classroom_id = " . $cidFilter;
+
 // Today per-minute records
 $chartToday = [];
 $chartTodayRaw = [];
@@ -54,7 +60,7 @@ $res = $conn->query("
            ROUND(SUM(power) * (3/3600), 4) AS energy_wh,
            COUNT(*) AS reading_count
     FROM pzem_readings
-    WHERE DATE(recorded_at) = CURDATE()
+    WHERE $where
     GROUP BY hr, mn
     ORDER BY hr, mn
 ");

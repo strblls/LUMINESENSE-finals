@@ -152,9 +152,70 @@ $rb = $conn->query("
 ");
 while ($row = $rb->fetch_assoc()) $alertsByRoom[$row['classroom_id']][] = $row;
 
+// ── Today's flagged issues (annotations for the overview + inspect charts) ──
+$issues_today = [];
+$issues_res = $conn->query("
+    SELECT rl.id, rl.room_name, rl.triggered_by, rl.event_time, COALESCE(rl.notes, '') AS notes,
+           c.id AS room_id
+    FROM room_logs rl
+    LEFT JOIN classrooms c ON c.room_name = rl.room_name
+    WHERE rl.event_type = 'issue_raised' AND DATE(rl.event_time) = CURDATE()
+    ORDER BY rl.event_time ASC
+");
+if ($issues_res) {
+    while ($issueRow = $issues_res->fetch_assoc()) {
+        $issues_today[] = [
+            'id'           => (int)$issueRow['id'],
+            'room_id'      => $issueRow['room_id'] !== null ? (int)$issueRow['room_id'] : null,
+            'room_name'    => $issueRow['room_name'],
+            'triggered_by' => $issueRow['triggered_by'],
+            'event_time'   => $issueRow['event_time'],
+            'notes'        => $issueRow['notes'],
+        ];
+    }
+}
+
+// ── Faculty access-control permissions (info modal toggles) ─────────────────
+$faculty_perms = [];
+$perm_res = $conn->query("SELECT faculty_id, lighting_control, gesture_control FROM faculty_permissions");
+if ($perm_res) {
+    while ($permRow = $perm_res->fetch_assoc()) {
+        $faculty_perms[(int)$permRow['faculty_id']] = [
+            'lighting_control' => (bool)$permRow['lighting_control'],
+            'gesture_control'  => (bool)$permRow['gesture_control'],
+        ];
+    }
+}
+
+// ── Recent activities per faculty (lighting_logs, latest 10 each) ───────────
+$faculty_activity = [];
+$act_res = $conn->query("
+    SELECT l.faculty_id, l.event_type, l.triggered_by, l.row_affected, l.event_time, c.room_name
+    FROM lighting_logs l
+    JOIN classrooms c ON c.id = l.classroom_id
+    WHERE l.faculty_id IS NOT NULL
+    ORDER BY l.event_time DESC
+    LIMIT 400
+");
+if ($act_res) {
+    while ($actRow = $act_res->fetch_assoc()) {
+        $fid = (int)$actRow['faculty_id'];
+        if (!isset($faculty_activity[$fid])) $faculty_activity[$fid] = [];
+        if (count($faculty_activity[$fid]) >= 10) continue;
+        $faculty_activity[$fid][] = [
+            'event_type'    => $actRow['event_type'],
+            'triggered_by'  => $actRow['triggered_by'],
+            'row_affected'  => $actRow['row_affected'],
+            'event_time'    => $actRow['event_time'],
+            'room_name'     => $actRow['room_name'],
+        ];
+    }
+}
+
 // ── Faculty list for management pane ───────────────────────────────────────
 $faculty_stmt = $conn->query("
     SELECT f.id, f.first_name, f.last_name, f.email, f.is_archived,
+           f.approved_at,
            d.name AS department_name,
            c.room_name AS classroom_name,
            s.subject_id,
@@ -170,9 +231,31 @@ $faculty_stmt = $conn->query("
 ");
 $faculty_list = [];
 if ($faculty_stmt) {
+    $facNow = date('H:i:s');
+    $facDow = date('l');
     while ($frow = $faculty_stmt->fetch_assoc()) {
         $frow['subject_name'] = (isset($frow['subject_id']) && isset($subjectMap[$frow['subject_id']]))
             ? $subjectMap[$frow['subject_id']]['subject_name']
+            : '';
+        $curClip = null;
+        $nxtClip = null;
+        foreach (($faculty_schedules[(int)$frow['id']] ?? []) as $fs) {
+            if ($fs['day_of_week'] !== $facDow) continue;
+            if ($fs['start_time'] <= $facNow && $facNow <= ($fs['extended_until'] ?: $fs['end_time'])) {
+                if ($curClip === null) $curClip = $fs;
+            } elseif ($fs['start_time'] > $facNow && ($nxtClip === null || $fs['start_time'] < $nxtClip['start_time'])) {
+                $nxtClip = $fs;
+            }
+            if ($curClip !== null && $nxtClip !== null) break;
+        }
+        $frow['current_class'] = $curClip !== null
+            ? trim($curClip['start_time'] . ' - ' . ($curClip['extended_until'] ?: $curClip['end_time'])) . ($curClip['room_name'] ? ' · ' . $curClip['room_name'] : '')
+            : '';
+        $frow['next_class'] = $nxtClip !== null
+            ? trim($nxtClip['start_time'] . ' - ' . ($nxtClip['extended_until'] ?: $nxtClip['end_time'])) . ($nxtClip['room_name'] ? ' · ' . $nxtClip['room_name'] : '')
+            : '';
+        $frow['approved_on'] = !empty($frow['approved_at'])
+            ? date('M j, Y', strtotime($frow['approved_at']))
             : '';
         $faculty_list[] = $frow;
     }
@@ -181,7 +264,7 @@ if ($faculty_stmt) {
 // ── Full weekly schedules per faculty (for the Gantt maximize pane) ────────
 $faculty_schedules = [];
 $fsched_stmt = $conn->query("
-    SELECT s.faculty_id, s.day_of_week, s.start_time, s.end_time, s.extended_until,
+    SELECT s.id AS sched_id, s.faculty_id, s.classroom_id, s.day_of_week, s.start_time, s.end_time, s.extended_until,
            c.room_name,
            COALESCE(TRIM(sub.name), '') AS subject_name
     FROM schedules s
@@ -402,6 +485,37 @@ if ($row = $res->fetch_assoc()) {
 $res = $conn->query("SELECT COUNT(*) AS c FROM room_logs WHERE event_type = 'issue_raised' AND event_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
 if ($row = $res->fetch_assoc()) $summary['total_anomalies'] = (int)$row['c'];
 
+// ── Faculty energy estimate (30-day, session-attributed) ─────────────────────
+// Faculty have no meters of their own; a power_sessions row is attributed to a
+// faculty whose schedule overlaps that session (same room + day + time window).
+// Estimated: PIR-anonymous/manual sessions are excluded. Row sharing is rare in
+// this deployment, so a session is counted once per matching faculty overlap.
+$faculty_energy = [];
+$fe = $conn->query("
+    SELECT f.id, f.first_name, f.last_name,
+           ROUND(COALESCE(SUM(ps.total_energy_wh),0), 2) AS est_energy_wh,
+           COUNT(ps.id) AS est_sessions,
+           COALESCE(SUM(ps.duration_mins),0) AS est_minutes
+    FROM power_sessions ps
+    JOIN schedules s ON s.classroom_id = ps.classroom_id
+        AND s.day_of_week = DAYNAME(ps.session_date)
+        AND TIME(ps.start_time) < GREATEST(s.end_time, COALESCE(s.extended_until, s.end_time))
+        AND TIME(ps.end_time) > s.start_time
+    JOIN faculty f ON f.id = s.faculty_id
+    WHERE ps.session_date >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+      AND ps.end_time IS NOT NULL
+      AND ps.trigger_source <> 'manual'
+    GROUP BY f.id, f.first_name, f.last_name
+    ORDER BY est_energy_wh DESC
+");
+if ($fe) {
+    while ($frow = $fe->fetch_assoc()) $faculty_energy[] = $frow;
+}
+$feMax = 0;
+foreach ($faculty_energy as $frow) {
+    if ((float)$frow['est_energy_wh'] > $feMax) $feMax = (float)$frow['est_energy_wh'];
+}
+
 // ── 7-day mini trends for the summary cards ───────────────────────────────────
 $sparkSummary = ['energy' => [], 'minutes' => [], 'voltage' => [], 'current' => [], 'power' => [], 'cost' => []];
 $dayAgg = [];
@@ -554,6 +668,9 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                 <!-- ═══════════ MERGED HEADER BAR ═══════════ -->
                 <div class="main-container overview-heading d-flex align-items-center justify-content-between w-auto p-0">
                     <div class="d-flex align-items-center gap-2" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);">
+                        <button type="button" class="timetable-btn" id="liveToggleBtn" title="Toggle the Live dashboard view">
+                            <i class="bi bi-activity"></i><span class="timetable-btn-title bold">Live</span>
+                        </button>
                         <button type="button" class="timetable-btn ms-2" data-panel="panelGuide" title="Guide">
                             <i class="bi bi-info-lg"></i><span class="timetable-btn-title bold">Guide</span>
                         </button>
@@ -588,10 +705,10 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                 <div class="dept-member-filter">
                                     <div class="dept-member-filter-header">Filter by Period</div>
                                     <div class="dept-member-filter-list">
-                                        <div class="dept-member-filter-item active" onclick="setPeriod(this, 1)">Today</div>
-                                        <div class="dept-member-filter-item" onclick="setPeriod(this, 7)">Last 7 days</div>
-                                        <div class="dept-member-filter-item" onclick="setPeriod(this, 14)">Last 14 days</div>
-                                        <div class="dept-member-filter-item" onclick="setPeriod(this, 30)">Last 30 days</div>
+                                        <div class="dept-member-filter-item active" onclick="handleHeadingPeriod(this, 1)">Today</div>
+                                        <div class="dept-member-filter-item" onclick="handleHeadingPeriod(this, 7)">Last 7 days</div>
+                                        <div class="dept-member-filter-item" onclick="handleHeadingPeriod(this, 14)">Last 14 days</div>
+                                        <div class="dept-member-filter-item" onclick="handleHeadingPeriod(this, 30)">Last 30 days</div>
                                     </div>
                                 </div>
                             </div>
@@ -604,10 +721,10 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                 <div class="dept-member-filter">
                                     <div class="dept-member-filter-header">Filter by Metrics</div>
                                     <div class="dept-member-filter-list">
-                                        <div class="dept-member-filter-item active" onclick="setMetric(this, 'all')">All Metrics</div>
-                                        <div class="dept-member-filter-item" onclick="setMetric(this, 'voltage')">Voltage</div>
-                                        <div class="dept-member-filter-item" onclick="setMetric(this, 'current')">Current</div>
-                                        <div class="dept-member-filter-item" onclick="setMetric(this, 'power')">Power</div>
+                                        <div class="dept-member-filter-item active" onclick="handleHeadingMetric(this, 'all')">All Metrics</div>
+                                        <div class="dept-member-filter-item" onclick="handleHeadingMetric(this, 'voltage')">Voltage</div>
+                                        <div class="dept-member-filter-item" onclick="handleHeadingMetric(this, 'current')">Current</div>
+                                        <div class="dept-member-filter-item" onclick="handleHeadingMetric(this, 'power')">Power</div>
                                     </div>
                                 </div>
                             </div>
@@ -615,7 +732,15 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                     </div>
                 </div>
 
+                <!-- ═══════════ LIVE DASHBOARD (toggled via the Live button) ═══════════ -->
+                <div class="live-dashboard live-analytics" id="liveDashboard">
+                    <?php include __DIR__ . "/../../src/Includes/analytics-view.php"; ?>
+                </div>
+
+                <?php include __DIR__ . "/../../src/Includes/analytics-modals.php"; ?>
+
                 <!-- ═══════════ OVERVIEW TIER · LINE GRAPH ═══════════ -->
+                <div class="overview-normal">
                 <div class="section-heading mb-2">Overview</div>
                 <div class="main-container" style="padding:1rem;background-color:var(--secondary-color-2);">
                     <div class="overview-pane overview-pane-chart">
@@ -634,6 +759,13 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                 <input type="range" class="chart-scrollbar" id="overviewLineScroll" min="0" max="0" value="0" oninput="onOverviewChartScroll(this.value)">
                                 <div class="chart-scroll-tip" id="overviewLineScrollTip"></div>
                                 <div class="chart-scroll-pending" id="overviewLineScrollPending"></div>
+                            </div>
+                            <div class="overview-mini-gantt-wrap" id="overviewMiniGanttWrap">
+                                <div class="overview-mini-gantt-head">
+                                    <span class="bold"><i class="bi bi-calendar2-week me-1"></i>Today's Sessions</span>
+                                    <span class="mini-gantt-axis-label" id="overviewMiniGanttAxis"></span>
+                                </div>
+                                <div id="overviewMiniGantt"></div>
                             </div>
                         </div>
                     </div>
@@ -812,9 +944,9 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                             </div>
                                             <div class="room-card-actions">
                                                 <div class="d-flex align-items-center room-icons gap-1">
-                                                    <button class="btn-icon btn-icon-view" title="View faculty" onclick="selectFaculty(<?= $fac['id'] ?>)"><i class="bi bi-calendar3"></i></button>
+                                                    <button class="btn-icon btn-icon-access" title="Faculty info & access control" onclick="openFacultyInfoModal(<?= $fac['id'] ?>)"><i class="bi bi-person-badge"></i></button>
                                                 </div>
-                                                <button class="light" onclick="selectFaculty(<?= $fac['id'] ?>)">View</button>
+                                                <button class="light" onclick="openFacultyViewModal(<?= $fac['id'] ?>)">View</button>
                                             </div>
                                         </div>
                                     </div>
@@ -826,6 +958,7 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                         </div>
                     </div>
                 </div>
+                </div><!-- /overview-normal -->
 
 
             </div><!-- /page-content -->
@@ -942,6 +1075,15 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="overview-chart-pane">
+                        <div class="overview-chart-pane-header">
+                            <h6 class="bold mb-0"><i class="bi bi-bar-chart-line-fill me-2" style="color:var(--secondary-color-2);"></i>Room Overview</h6>
+                            <span class="summary-label" id="roomModalChartLabel">All Metrics</span>
+                        </div>
+                        <div class="overview-chart-wrap">
+                            <canvas id="roomModalChart" height="250"></canvas>
+                        </div>
+                    </div>
                     <div class="d-flex flex-row gap-3 align-items-start flex-wrap">
                         <div class="d-flex flex-column gap-3" style="flex:0 0 340px; min-width:280px; max-width:380px;">
                             <div style="background:var(--accent-yellow);border-radius:12px;padding:20px;border:1px solid #eee;">
@@ -1007,6 +1149,136 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
         </div>
     </div>
 
+    <!-- ── FACULTY INFO + ACCESS CONTROL MODAL ── -->
+    <div class="profile-details-modal modal fade" id="facultyInfoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold"><i class="bi bi-person-vcard-fill me-2"></i>Faculty Details &amp; Access</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="fac-info-profile d-flex align-items-center gap-3 mb-3">
+                        <div class="profile-avatar avatar-icon avatar-large d-flex align-items-center justify-content-center flex-shrink-0" id="facInfoAvatar"></div>
+                        <div>
+                            <h4 class="bold mb-1" id="facInfoName"></h4>
+                            <span class="bold status-badge faculty-member" id="facInfoRole"></span>
+                            <div class="mt-1 text-muted" style="font-size:.85rem;" id="facInfoCoverage"></div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-3 mb-2 flex-row flex-wrap">
+                        <div class="section-container p-3 flex-fill faculty-info-card">
+                            <h6 class="bold mb-2">Assigned Room</h6>
+                            <div id="facInfoRoom" class="mb-2" style="font-size:.9rem;"></div>
+                            <h6 class="bold mb-2">Schedule</h6>
+                            <div id="facInfoSchedule" style="font-size:.85rem;"></div>
+                        </div>
+                        <div class="section-container p-3 flex-fill faculty-info-card">
+                            <h6 class="bold mb-2">Access Control</h6>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-lightbulb-fill fac-access-icon"></i>
+                                    <span class="fac-access-label">Lighting Control</span>
+                                </div>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="facInfoSwitchLighting" onchange="saveFacultyPermission('lighting_control', this.checked)">
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-hand-index-fill fac-access-icon"></i>
+                                    <span class="fac-access-label">Gesture Control</span>
+                                </div>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="facInfoSwitchGesture" onchange="saveFacultyPermission('gesture_control', this.checked)">
+                                </div>
+                            </div>
+                            <p class="text-muted small mb-0 mt-2"><i class="bi bi-info-circle me-1"></i>Toggles persist immediately to the faculty member's controls.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── FACULTY VIEW MODAL (schedule overview + access + activity) ── -->
+    <div class="room-details-modal modal fade" id="facultyViewModal" tabindex="-1" aria-labelledby="facultyViewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="facultyViewModalLabel">Faculty Schedule</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="overview-chart-pane">
+                        <div class="overview-chart-pane-header">
+                            <h6 class="bold mb-0"><i class="bi bi-bar-chart-line-fill me-2" style="color:var(--secondary-color-2);"></i>Room Overview</h6>
+                            <span class="summary-label" id="facultyViewChartLabel">All Metrics</span>
+                        </div>
+                        <div class="overview-chart-wrap">
+                            <canvas id="facultyViewChart" height="250"></canvas>
+                        </div>
+                        <div class="overview-mini-gantt-wrap" id="facultyViewMiniGanttWrap">
+                            <div class="overview-mini-gantt-head">
+                                <span class="bold"><i class="bi bi-calendar2-week me-1"></i>Today's Sessions</span>
+                                <span class="mini-gantt-axis-label" id="facultyViewMiniGanttAxis"></span>
+                            </div>
+                            <div id="facultyViewMiniGantt"></div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-row gap-3 align-items-start flex-wrap">
+                        <div class="d-flex flex-column gap-3" style="flex:0 0 340px; min-width:280px; max-width:380px;">
+                            <div class="admin-override-panel">
+                                <div class="override-panel-header">
+                                    <i class="bi bi-shield-lock-fill"></i>
+                                    <span>Administrative Access</span>
+                                    <span class="override-live-badge">LIVE</span>
+                                </div>
+                                <div class="override-rows">
+                                    <div class="fac-access-item">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-lightbulb-fill fac-access-icon"></i>
+                                            <span class="fac-access-label">Lighting Control</span>
+                                        </div>
+                                        <div class="override-row-toggle">
+                                            <input class="override-switch" type="checkbox" role="switch" id="facViewSwitchLighting" onchange="saveFacultyPermission('lighting_control', this.checked)">
+                                            <label class="override-switch-label" for="facViewSwitchLighting"></label>
+                                        </div>
+                                    </div>
+                                    <div class="fac-access-item">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-hand-index-fill fac-access-icon"></i>
+                                            <span class="fac-access-label">Gesture Control</span>
+                                        </div>
+                                        <div class="override-row-toggle">
+                                            <input class="override-switch" type="checkbox" role="switch" id="facViewSwitchGesture" onchange="saveFacultyPermission('gesture_control', this.checked)">
+                                            <label class="override-switch-label" for="facViewSwitchGesture"></label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="override-footer-note"><i class="bi bi-info-circle"></i> Toggles persist immediately to the faculty member's controls.</div>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column gap-3" style="flex:1;min-width:220px;">
+                            <div style="background:#f8f9fa;border-radius:12px;padding:16px;">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="bold mb-0">Weekly Timetable</h6>
+                                </div>
+                                <div id="facultyViewTimetable"><em class="text-muted">Loading…</em></div>
+                            </div>
+                            <div style="background:#f8f9fa;border-radius:12px;padding:16px;">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="bold mb-0">Recent Activities</h6>
+                                </div>
+                                <div class="activity-list px-1" id="facultyViewActivities" style="min-height:40px;"><em class="text-muted" style="font-size:.82rem;">Loading…</em></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ── FACULTY SCHEDULE GANTT (maximized) ── -->
     <div class="modal fade" id="facultyGanttModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-fullscreen">
@@ -1015,8 +1287,8 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                     <h5 class="modal-title"><i class="bi bi-people-fill me-2"></i>Faculty Schedule</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body d-flex flex-column" style="padding:0;">
-                    <div class="flex-grow-1 gantt-pane" id="facultyGanttWrap">
+                <div class="modal-body gantt-modal-body" style="padding:0;">
+                    <div class="gantt-pane" id="facultyGanttWrap">
                         <div class="gantt-nav-row">
                             <input type="text" id="ganttFacultySearch" class="form-control gantt-search" placeholder="Search faculty..."
                                 style="flex:1 1 220px;max-width:420px;">
@@ -1045,6 +1317,25 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                         </div>
                     </div>
 
+                    <!-- Gantt session-detail panel (appears below the vertical scroll area on block click) -->
+                    <div class="gantt-session-detail d-none" id="ganttSessionDetail">
+                        <div class="gantt-session-header">
+                            <div class="gantt-session-title">
+                                <h6 class="mb-1" id="ganttSdTitle">Session</h6>
+                                <small class="text-muted" id="ganttSdSubtitle"></small>
+                            </div>
+                            <button type="button" class="btn-icon btn-icon-del" title="Close" onclick="closeGanttSessionPanel()"><i class="bi bi-x-lg"></i></button>
+                        </div>
+                        <div class="gantt-sd-stats" id="ganttSdStats"></div>
+                        <div class="gantt-sd-chart-wrap">
+                            <canvas id="ganttSdChart"></canvas>
+                        </div>
+                        <div class="gantt-sd-anomalies">
+                            <div class="gantt-sd-anomalies-head"><i class="bi bi-exclamation-triangle me-1"></i>Anomalies / Issues</div>
+                            <div id="ganttSdAnomalies"></div>
+                        </div>
+                    </div>
+
                     <!-- Gantt block detail overlay (scales in like the homepage day overlay) -->
                     <div class="cal-day-overlay" id="facultyGanttOverlay">
                         <div class="cal-day-overlay-header" id="facultyGanttOverlayHeader"></div>
@@ -1069,8 +1360,15 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
         const CHART_TODAY = <?= json_encode($chartToday, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const FACULTY = <?= json_encode($faculty_list, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const FACULTY_SCHEDULES = <?= json_encode($faculty_schedules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const OVERVIEW_ISSUES = <?= json_encode($issues_today, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const FACULTY_PERMS = <?= json_encode($faculty_perms, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const FACULTY_ACTIVITY = <?= json_encode($faculty_activity, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const roomData = <?= json_encode(array_map(function ($r) { return ['id' => (int)$r['id'], 'room_name' => (string)$r['room_name'], 'is_prototype' => (int)!empty($r['is_prototype'])]; }, $rooms), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const defaultCid = <?= (int)($rooms[0]['id'] ?? 0) ?>;
+        window.LumiAnalyticsMulti = true;
     </script>
     <script src="../../js/admin/admin-overview.js"></script>
+    <script src="../../js/admin/admin-analytics.js?v=<?= time() ?>"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 

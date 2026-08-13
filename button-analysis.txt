@@ -1,0 +1,217 @@
+[
+  {
+    "text": "",
+    "class": "",
+    "id": "sidebarTrigger"
+  },
+  {
+    "text": "Logout",
+    "class": "topbar-logout light w-auto",
+    "id": ""
+  },
+  {
+    "text": "Live",
+    "class": "timetable-btn active",
+    "id": "liveToggleBtn"
+  },
+  {
+    "text": "Guide",
+    "class": "timetable-btn ms-2",
+    "id": ""
+  },
+  {
+    "text": "Period",
+    "class": "timetable-btn",
+    "id": ""
+  },
+  {
+    "text": "Metric",
+    "class": "timetable-btn",
+    "id": ""
+  },
+  {
+    "text": "View calculation",
+    "class": "savings-details-btn",
+    "id": ""
+  },
+  {
+    "text": "",
+    "class": "chart-nav chart-nav-left disabled",
+    "id": "chartNavLeft"
+  },
+  {
+    "text": "",
+    "class": "chart-nav chart-nav-right",
+    "id": "chartNavRight"
+  },
+  {
+    "text": "Line Graph",
+    "class": "export-option-btn",
+    "id": ""
+  },
+  {
+    "text": "Vertical Bar Graph",
+    "class": "export-option-btn",
+    "id": ""
+  },
+  {
+    "text": "History Table",
+    "class": "export-option-btn",
+    "id": ""
+  },
+  {
+    "text": "Cancel",
+    "class": "light",
+    "id": ""
+  },
+  {
+    "text": "View Archive",
+    "class": "medium",
+    "id": "archiveConfirmBtn"
+  },
+  {
+    "text": "Status",
+    "class": "timetable-btn",
+    "id": ""
+  },
+  {
+    "text": "Expand all",
+    "class": "light expand-all-btn w-auto",
+    "id": "expandAllRoomsBtn"
+  },
+  {
+    "text": "Unselect all",
+    "class": "light expand-all-btn w-auto",
+    "id": "selectAllRoomsBtn"
+  },
+  {
+    "text": "Add Room",
+    "class": "medium",
+    "id": "addRoomBtn"
+  },
+  {
+    "text": "Inspect",
+    "class": "light",
+    "id": ""
+  },
+  {
+    "text": "Inspect",
+    "class": "light",
+    "id": ""
+  },
+  {
+    "text": "Expand all",
+    "class": "light expand-all-btn w-auto",
+    "id": "expandAllFacultyBtn"
+  },
+  {
+    "text": "Select all",
+    "class": "light expand-all-btn w-auto",
+    "id": "selectAllFacultyBtn"
+  },
+  {
+    "text": "Maximize",
+    "class": "medium",
+    "id": "maximizeFacultyBtn"
+  },
+  {
+    "text": "View",
+    "class": "light",
+    "id": ""
+  },
+  {
+    "text": "View",
+    "class": "light",
+    "id": ""
+  },
+  {
+    "text": "View",
+    "class": "light",
+    "id": ""
+  },
+  {
+    "text": "Logout",
+    "class": "profile-btn",
+    "id": ""
+  },
+  {
+    "text": "Cancel",
+    "class": "light",
+    "id": ""
+  },
+  {
+    "text": "Add Room",
+    "class": "medium",
+    "id": ""
+  },
+  {
+    "text": "Cancel",
+    "class": "light",
+    "id": ""
+  },
+  {
+    "text": "Save Changes",
+    "class": "medium",
+    "id": ""
+  },
+  {
+    "text": "Cancel",
+    "class": "light",
+    "id": ""
+  },
+  {
+    "text": "Delete",
+    "class": "medium",
+    "id": ""
+  },
+  {
+    "text": "OFF",
+    "class": "override-master-btn off",
+    "id": "allLightsBtn"
+  },
+  {
+    "text": "",
+    "class": "gantt-nav-btn",
+    "id": "ganttPrevBtn"
+  },
+  {
+    "text": "Sun",
+    "class": "timetable-btn gantt-day-tab",
+    "id": ""
+  },
+  {
+    "text": "Mon",
+    "class": "timetable-btn gantt-day-tab",
+    "id": ""
+  },
+  {
+    "text": "Tue",
+    "class": "timetable-btn gantt-day-tab",
+    "id": ""
+  },
+  {
+    "text": "Wed",
+    "class": "timetable-btn gantt-day-tab",
+    "id": ""
+  },
+  {
+    "text": "Thu",
+    "class": "timetable-btn gantt-day-tab",
+    "id": ""
+  },
+  {
+    "text": "Fri",
+    "class": "timetable-btn gantt-day-tab",
+    "id": ""
+  },
+  {
+    "text": "Sat",
+    "class": "timetable-btn gantt-day-tab",
+    "id": ""
+  },
+  {
+    "text": "",
+    "class": "gantt-nav-btn",
+    "id": "ganttNextBtn"
+  }
+]

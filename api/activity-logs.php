@@ -9,6 +9,31 @@ if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['faculty_logged_in'])
 }
 session_write_close();
 
+// Optional per-faculty filter — returns the faculty member's latest lighting
+// activities (used by the admin overview faculty-view modal) and skips the
+// global feed below.
+$facultyId = isset($_GET['faculty_id']) ? (int)$_GET['faculty_id'] : 0;
+if ($facultyId > 0) {
+    $facLogs = [];
+    $stmt = $conn->prepare("
+        SELECT l.event_type, l.triggered_by, l.row_affected, l.event_time, c.room_name
+        FROM lighting_logs l
+        JOIN classrooms c ON c.id = l.classroom_id
+        WHERE l.faculty_id = ?
+        ORDER BY l.event_time DESC
+        LIMIT 10
+    ");
+    if ($stmt) {
+        $stmt->bind_param('i', $facultyId);
+        $stmt->execute();
+        $resF = $stmt->get_result();
+        while ($rowF = $resF->fetch_assoc()) $facLogs[] = $rowF;
+        $stmt->close();
+    }
+    echo json_encode(['success' => true, 'faculty' => $facLogs]);
+    exit;
+}
+
 $logs = [];
 
 // Room event logs

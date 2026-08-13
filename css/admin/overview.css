@@ -828,8 +828,8 @@
 .gantt-legend-extended { background: linear-gradient(90deg, #f0a500, #ffd24a); }
 
 #facultyGanttWrap {
-    max-height: calc(100vh - 130px);
-    overflow: auto;
+    position: relative;
+    overflow: visible;
 }
 
 .gantt-grid {
@@ -919,7 +919,8 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--muted-dark);
-    text-align: center;
+    text-align: left;
+    padding-left: 6px;
     overflow: visible;
 }
 .gantt-tick-line {
@@ -1081,6 +1082,13 @@
 .gantt-pane {
     position: relative;
     overflow: hidden;
+}
+
+/* Gantt modal body: normal block flow so the session-detail panel sits below the
+   chart (under the time-window scrollbar) and is reached by scrolling up/down. */
+.gantt-modal-body {
+    display: block;
+    overflow-y: auto;
 }
 
 /* Gantt day-navigation bar (sits above the grid's day column) */
@@ -1245,4 +1253,755 @@
     max-height: 180px !important;
     overflow-y: auto !important;
     display: block !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Live Dashboard toggle view
+   ══════════════════════════════════════════════════════════════ */
+.live-dashboard {
+    display: none;
+}
+
+body.live-mode .live-dashboard {
+    display: block;
+}
+
+body.live-mode .overview-normal {
+    display: none;
+}
+
+#liveToggleBtn.active {
+    color: var(--accent-black);
+    background: var(--accent-yellow);
+    box-shadow: 0 0 0 2px var(--accent-yellow), 0 0 16px 2px rgba(255, 193, 7, 0.55);
+}
+
+/* Ported analytics view inside the Live container (shared runtime) */
+.live-dashboard.live-analytics {
+    padding: 6px 2px 40px 2px;
+}
+
+@media (max-width: 1100px) {
+    .live-dashboard.live-analytics {
+        padding: 6px 0 30px 0;
+    }
+}
+
+/* Ported analytics sidebar — stat-card base look. On the standalone analytics
+   page this comes from faculty-management.css; scope it here for the Live view. */
+.live-dashboard .rooms-card .stat-card {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: #ffffff;
+    border-left: 4px solid var(--secondary-color-2, #58078f);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+}
+
+/* Stat value/label parity with the standalone analytics page
+   (faculty-management.css is not loaded on admin-overview). */
+.live-dashboard .rooms-card .stat-card .stat-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--secondary-color-1, #2f004f);
+}
+
+.live-dashboard .rooms-card .stat-card .stat-label {
+    font-size: 0.7rem;
+    color: #000;
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Faculty slicer — selected rows get a yellow ring (distinct from rooms) */
+.live-dashboard .rooms-card.faculty-slice-card .stat-card.active-room {
+    border-color: var(--accent-yellow, #e8c903) !important;
+    box-shadow: 0 0 14px rgba(232, 201, 3, 0.45) !important;
+}
+
+/* Chart carousel (line <-> bar switcher) */
+.chart-carousel {
+    position: relative;
+    overflow: hidden;
+    margin: 14px 0;
+}
+
+.chart-track {
+    display: flex;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-track.at-bar {
+    transform: translateX(-100%);
+}
+
+.chart-track > .card-white {
+    flex: 0 0 100%;
+    min-width: 100%;
+    box-sizing: border-box;
+    height: 620px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-track .chart-wrapper {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    position: relative;
+}
+
+.chart-track .chart-wrapper canvas {
+    max-height: 100%;
+}
+
+.chart-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 6;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid #e6e0ee;
+    background: #ffffff;
+    color: var(--secondary-color-2, #58078f);
+    box-shadow: 0 2px 8px rgba(47, 0, 79, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.25s, box-shadow 0.25s;
+}
+
+.chart-nav-left { left: 10px; }
+.chart-nav-right { right: 10px; }
+
+.chart-nav:not(.disabled):hover {
+    box-shadow: 0 4px 12px rgba(47, 0, 79, 0.30);
+}
+
+.chart-nav.disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Room Inspect modal — overview chart pane */
+.overview-chart-pane {
+    background: #ffffff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 0 0 16px;
+    box-shadow: 0 4px 18px rgba(47, 0, 79, 0.08);
+}
+
+.overview-chart-pane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.overview-chart-wrap {
+    height: 250px;
+}
+
+.live-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.live-kpi {
+    background: #fff;
+    border-radius: 10px;
+    border-top: 4px solid var(--secondary-color-2);
+    padding: 12px 14px;
+    box-shadow: 0 4px 18px rgba(47, 0, 79, 0.10);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.live-kpi-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--secondary-color-4);
+}
+
+.live-kpi-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--secondary-color-2);
+}
+
+.live-dashboard-grid {
+    display: grid;
+    grid-template-columns: 250px 1fr 300px;
+    gap: 14px;
+    align-items: start;
+    min-width: 0;
+}
+
+.live-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.live-panel {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: 0 4px 18px rgba(47, 0, 79, 0.10);
+    min-width: 0;
+}
+
+.live-panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--secondary-color-4);
+    margin-bottom: 8px;
+}
+
+.live-est {
+    font-size: 9px;
+    letter-spacing: normal;
+    text-transform: none;
+    font-weight: 500;
+    color: #9a94a8;
+}
+
+.live-filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.live-filter-btn {
+    border: 1.5px solid #e6e0ee;
+    background: #fff;
+    color: var(--secondary-color-4);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.live-filter-btn:hover {
+    border-color: var(--secondary-color-2);
+    color: var(--secondary-color-2);
+}
+
+.live-filter-btn.active {
+    background: var(--secondary-color-2);
+    border-color: var(--secondary-color-2);
+    color: #fff;
+}
+
+.live-chart-pane {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(47, 0, 79, 0.10);
+    padding: 14px;
+    min-width: 0;
+}
+
+.live-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.live-chart-wrap {
+    position: relative;
+    height: 56vh;
+    min-height: 380px;
+    min-width: 0;
+}
+
+.live-chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.live-chip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 52vh;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.live-chip {
+    border: 1.5px solid #ece7f3;
+    background: #faf9fc;
+    color: var(--secondary-color-1);
+    border-radius: 8px;
+    padding: 7px 10px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.live-chip-no-hover:hover,
+.live-chip:hover {
+    border-color: var(--secondary-color-2);
+}
+
+.live-chip.active {
+    border-color: var(--secondary-color-2);
+    box-shadow: 0 0 0 2px var(--secondary-color-2), 0 0 16px 2px rgba(88, 7, 143, 0.30);
+    background: #f7f2ff;
+}
+
+.live-chip-name {
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.live-chip-meta {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--secondary-color-4);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.live-chip.active .live-chip-meta {
+    color: var(--secondary-color-2);
+}
+
+.live-fac-energy-row {
+    width: 100%;
+    border: 1.5px solid #ece7f3;
+    background: #faf9fc;
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.live-fac-energy-row + .live-fac-energy-row {
+    margin-top: 6px;
+}
+
+.live-fac-energy-row.active {
+    border-color: var(--secondary-color-2);
+    box-shadow: 0 0 0 2px var(--secondary-color-2);
+    background: #f7f2ff;
+}
+
+.live-fac-energy-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.live-fac-energy-meter {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: #efeaf5;
+    overflow: hidden;
+    min-width: 30px;
+}
+
+.live-fac-energy-meter i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--secondary-color-2), #b06ae0);
+}
+
+.live-fac-energy-val {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--secondary-color-2);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Live dashboard responsive ── */
+@media (max-width: 1400px) {
+    .live-dashboard-grid {
+        grid-template-columns: 215px 1fr 265px;
+    }
+}
+
+@media (max-width: 1100px) {
+    .live-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .live-chart-wrap {
+        height: 46vh;
+    }
+
+    .live-chip-list {
+        max-height: 260px;
+    }
+
+    .live-sidebar-right {
+        order: 2;
+    }
+
+    .live-chart-pane {
+        order: 1;
+    }
+
+    .live-sidebar-left {
+        order: 3;
+    }
+}
+
+/* ── Mini Gantt under the overview chart pane (untoggled / Today) ──────── */
+.overview-mini-gantt-wrap {
+    margin-top: 10px;
+    padding: 10px 12px 8px;
+    background: #fbf9fe;
+    border: 1px solid #ece7f3;
+    border-radius: 12px;
+}
+
+.overview-mini-gantt-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+    font-size: 12.5px;
+    color: var(--secondary-color-1);
+}
+
+.mini-gantt-axis-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mini-gantt-grid {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+    background: #fff;
+    border: 1px solid #ece7f3;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.mini-gantt-labels {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    background: #f5f2fa;
+    border-right: 1px solid #e5e0ee;
+}
+
+.mini-gantt-cell {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 10px;
+    box-sizing: border-box;
+    border-bottom: 1px solid #f0ecf6;
+}
+
+.mini-gantt-head {
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--secondary-color-1);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    background: #f5f2fa;
+    border-bottom: 1px solid #e5e0ee;
+}
+
+.mini-gantt-timeline {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.mini-gantt-ticks {
+    position: relative;
+    background: #f5f2fa;
+    border-bottom: 1px solid #e5e0ee;
+}
+
+.mini-gantt-tick {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #efeaf5;
+}
+
+.mini-gantt-tick-labeled {
+    width: auto;
+    border-left: 1px solid #e1d8ec;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--muted-dark);
+    padding-left: 3px;
+    line-height: 26px;
+    white-space: nowrap;
+}
+
+.mini-gantt-row {
+    position: relative;
+    box-sizing: border-box;
+    border-bottom: 1px solid #f0ecf6;
+}
+
+.mini-gantt-zebra {
+    background: #faf8fd;
+}
+
+.mini-gantt-block {
+    top: 7px;
+    bottom: 7px;
+    padding: 2px 5px;
+}
+
+/* ── Faculty view modal (schedule overview + access + activity) ────────── */
+#facultyViewTimetable {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    overflow-x: auto;
+}
+
+#facultyViewTimetable .weekly-schedule-grid {
+    width: auto;
+    grid-template-columns: repeat(7, minmax(130px, 1fr));
+}
+
+/* Access-control toggles inside the admin-override panel styling */
+.fac-access-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.fac-access-item + .fac-access-item {
+    border-top: 1px solid rgba(255, 255, 255, .08);
+    padding-top: 12px;
+}
+
+.fac-access-item .fac-access-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, .72);
+}
+
+/* ── Faculty info + access modal ───────────────────────────────────────── */
+.fac-info-profile {
+    background: #f5f2fa;
+    border: 1px solid #ece7f3;
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.fac-access-icon {
+    font-size: 1.05rem;
+    color: var(--secondary-color-2);
+    width: 22px;
+    text-align: center;
+}
+
+.fac-access-label {
+    font-weight: 600;
+    font-size: .88rem;
+    color: var(--secondary-color-1);
+}
+
+.status-badge.faculty-archived {
+    background: #6c757d;
+    color: #fff;
+}
+
+/* ── Gantt session-detail panel (below the chart scroll area, inside modal) ────────────── */
+.gantt-session-detail {
+    margin: 4px 10px 10px;
+    max-width: calc(100% - 20px);
+    background: #fff;
+    border: 1px solid #ece7f3;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(47, 0, 79, .05);
+    overflow: hidden;
+    font-size: 0.92rem;
+}
+
+.gantt-session-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #4b1671, #742fd3);
+    color: #fff;
+}
+
+.gantt-session-title h6 {
+    font-weight: 700;
+    color: #fff;
+}
+
+.gantt-session-title small {
+    color: #e6d9f5;
+}
+
+.gantt-session-header .btn-icon-del {
+    background: rgba(255, 255, 255, .15);
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+}
+.gantt-session-header .btn-icon-del:hover {
+    background: rgba(255, 255, 255, .28);
+    color: #fff;
+}
+
+.gantt-sd-empty {
+    font-size: 13px;
+    color: var(--muted-dark);
+}
+
+.gantt-sd-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    padding: 14px;
+}
+
+.gantt-sd-stat {
+    background: #f6f3fb;
+    border: 1px solid #ece7f3;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.gantt-sd-stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted-dark);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-bottom: 4px;
+}
+
+.gantt-sd-stat-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+}
+
+.gantt-sd-chart-wrap {
+    height: 200px;
+    margin: 0 14px 14px;
+    padding: 10px;
+    background: #fbf9fe;
+    border: 1px solid #ece7f3;
+    border-radius: 10px;
+}
+
+.gantt-sd-anomalies {
+    margin: 0 14px 14px;
+    border: 1px solid #ece7f3;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.gantt-sd-anomalies-head {
+    display: flex;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    padding: 8px 12px;
+    background: #f5f2fa;
+    border-bottom: 1px solid #ece7f3;
+}
+
+.gantt-sd-anomaly-none {
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--muted-dark);
+}
+
+.gantt-sd-anomaly {
+    display: flex;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0ecf6;
+}
+.gantt-sd-anomaly:last-child { border-bottom: none; }
+
+.gantt-sd-anomaly-icon {
+    color: #dc3545;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+.gantt-sd-anomaly-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4b3d63;
+    text-transform: capitalize;
+}
+.gantt-sd-anomaly-title .badge {
+    font-size: 10px;
+    background: #fce4e6;
+    color: #b02a37;
+    font-weight: 700;
+}
+
+.gantt-sd-anomaly-meta {
+    font-size: 11.5px;
+    color: var(--muted-dark);
+}
+
+.gantt-sd-anomaly-notes {
+    font-size: 12px;
+    color: var(--secondary-color-2);
+    margin-top: 2px;
 }

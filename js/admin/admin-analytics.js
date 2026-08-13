@@ -10,6 +10,11 @@ const API_URL      = '../../api/analytics.php';
 const LIVE_API_URL = '../../api/live-pzem.php';
 const ARCHIVE_LIST_URL = '../../api/archive-list.php';
 
+// Embedded mode: admin-overview reuses this runtime inside its Live-view
+// container (window.LumiAnalyticsMulti === true). In that mode nothing
+// auto-polls; the page resumes polling only when Live is toggled on.
+const LUMI_EMBEDDED = typeof window !== 'undefined' && window.LumiAnalyticsMulti === true;
+
 // ── Archive mode state ──────────────────────────────────────────────────
 let archiveDate = null;          // "YYYY-MM-DD" when viewing an archive, else null
 let archiveDatesCache = [];      // cached folder list from archive-list.php
@@ -448,7 +453,8 @@ function resumePolling() {
 
 function checkPolling() {
     if (archiveDate) { pausePolling(); return; }
-    var activeRooms  = document.querySelectorAll('.rooms-card .stat-card.active-room');
+    if (LUMI_EMBEDDED && !document.body.classList.contains('live-mode')) { pausePolling(); return; }
+    var activeRooms  = document.querySelectorAll('.rooms-card .stat-card:not(.faculty-stat-card).active-room');
     var metricEl     = document.querySelector('.dept-member-filter-item.active');
     var metricActive = metricEl && metricEl.textContent.trim() !== 'All Metrics';
     var periodSelect = document.getElementById('periodSelect');
@@ -596,8 +602,10 @@ function exitArchiveMode() {
     onControlChange();
 }
 
-fetchLive();
-liveInterval = setInterval(fetchLive, 3000);
+if (!LUMI_EMBEDDED) {
+    fetchLive();
+    liveInterval = setInterval(fetchLive, 3000);
+}
 
 // ── Period / Metric filter helpers ────────────────────────────────────────────
 function setPeriod(el, days) {
@@ -759,7 +767,8 @@ function updateCharts(labels, chartData) {
     // Store labels for tooltip use
     currentLabels = labels;
 
-    // Update scrollbars, auto-scroll to rightmost on new data
+    // Update scrollbars — the control stays visible on every chart so it is
+    // always discoverable; it is disabled while data fits within one window.
     ['lineChart', 'barChart'].forEach(function(key) {
         var chart = key === 'lineChart' ? lineChartInstance : barChartInstance;
         var wrap = document.getElementById(key + 'ScrollWrap');
@@ -768,9 +777,14 @@ function updateCharts(labels, chartData) {
         var pendingEl = document.getElementById(key + 'ScrollPending');
         if (!wrap || !slider) return;
         var n = chart.data.labels.length;
+        wrap.classList.add('visible');
         if (n <= WINDOW_SIZE) {
-            wrap.classList.remove('visible');
+            slider.disabled = true;
+            slider.max = 0;
+            slider.value = 0;
             chartScrollOffset[key] = 0;
+            if (tipEl) tipEl.classList.remove('show');
+            if (pendingEl) pendingEl.classList.remove('show');
             if (chart.options.scales.x) {
                 chart.options.scales.x.min = undefined;
                 chart.options.scales.x.max = undefined;
@@ -778,7 +792,7 @@ function updateCharts(labels, chartData) {
             }
             return;
         }
-        wrap.classList.add('visible');
+        slider.disabled = false;
         var maxVal = n - WINDOW_SIZE;
         slider.max = maxVal;
         if (scrollbarHovered[key]) {
@@ -1763,13 +1777,15 @@ if (initLabel) initLabel.textContent = new Date().toLocaleDateString('en-US', { 
     }
 })();
 
-// Fetch real data immediately (no dummy pre-render)
-onControlChange();
-
-// Silent background refresh every 30 s
-dataInterval = setInterval(() => {
+if (!LUMI_EMBEDDED) {
+    // Fetch real data immediately (no dummy pre-render)
     onControlChange();
-}, 30000);
+
+    // Silent background refresh every 30 s
+    dataInterval = setInterval(() => {
+        onControlChange();
+    }, 30000);
+}
 
 (function() {
     var panels = ['panelGuideInfo', 'panelFilterInfo'];
@@ -1839,7 +1855,7 @@ function showNoDeviceState() {
     updateChartTitles();
 }
 function deselectRoom() {
-    document.querySelectorAll('.rooms-card .stat-card.active-room').forEach(function(c) {
+    document.querySelectorAll('.rooms-card .stat-card:not(.faculty-stat-card).active-room').forEach(function(c) {
         c.classList.remove('active-room');
     });
     var sub = document.getElementById('tabSubheading');
@@ -1856,9 +1872,9 @@ function archiveDateLabel() {
     return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-document.querySelectorAll('.rooms-card .stat-card').forEach(function(card) {
+document.querySelectorAll('.rooms-card .stat-card:not(.faculty-stat-card)').forEach(function(card) {
     card.addEventListener('click', function(e) {
-        var active = document.querySelector('.rooms-card .stat-card.active-room');
+        var active = document.querySelector('.rooms-card .stat-card:not(.faculty-stat-card).active-room');
         if (active && active !== this) active.classList.remove('active-room');
         var wasActive = this.classList.contains('active-room');
         this.classList.toggle('active-room');

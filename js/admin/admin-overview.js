@@ -9,9 +9,9 @@ let currentRoomId = null;
 let currentFacultyId = null; // null = all faculties selected, 0 = none, >0 = single (mirrors currentRoomId)
 let currentPeriod = 1;
 let currentMetric = 'all';
-let lineChartInstance = null;
-let barChartInstance = null;
+let liveMode = false; // Live dashboard (shared analytics runtime) on/off
 let overviewLineInstance = null;
+let liveChartToday = null; // refreshed CHART_TODAY from the poll (CHART_TODAY is a const)
 const sparkCharts = {};
 
 // ── Chart window scroll state (Today / per-minute view) ──────────────────
@@ -28,7 +28,7 @@ const COLORS = {
     lineFill: 'rgba(88, 7, 143, 0.10)',
 };
 
-const METRIC_LABELS = { voltage: 'Voltage', current: 'Current', power: 'Power' };
+const OV_METRIC_LABELS = { voltage: 'Voltage', current: 'Current', power: 'Power' };
 
 // ── Sparkline helper ────────────────────────────────────────────────────
 function drawSpark(canvasId, data, color) {
@@ -192,34 +192,6 @@ function renderLiveReadings() {
     if (dot) { dot.className = 'live-status-dot ' + (on ? 'on' : 'off'); }
 }
 
-// ── Main charts ──────────────────────────────────────────────────────────
-function buildLineChart(labels, rows) {
-    const ctx = document.getElementById('lineChart');
-    if (!ctx || !window.Chart) return;
-    if (lineChartInstance) lineChartInstance.destroy();
-    const datasets = [];
-    if (currentMetric === 'all' || currentMetric === 'voltage') {
-        datasets.push({ label: 'Voltage (V)', data: rows.map(r => r.avg_voltage), borderColor: COLORS.voltage, backgroundColor: 'rgba(47,0,79,.06)', tension: 0.35, pointRadius: 2 });
-    }
-    if (currentMetric === 'all' || currentMetric === 'current') {
-        datasets.push({ label: 'Current (A)', data: rows.map(r => r.avg_current), borderColor: COLORS.current, backgroundColor: 'rgba(13,148,136,.06)', tension: 0.35, pointRadius: 2 });
-    }
-    if (currentMetric === 'all' || currentMetric === 'power') {
-        datasets.push({ label: 'Power (W)', data: rows.map(r => r.avg_power), borderColor: COLORS.power, backgroundColor: 'rgba(245,158,11,.06)', tension: 0.35, pointRadius: 2 });
-    }
-    lineChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            scales: { x: { grid: { display: false } }, y: { beginAtZero: false } },
-            plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
-        },
-    });
-}
-
 // ── Overview tier line graph (all V/A/W, like admin-analytics.php) ──────
 // Respects the room selection: all rooms → aggregate CHART_DAILY,
 // single room → that room's VAW series, none → empty.
@@ -228,7 +200,8 @@ function buildOverviewLineChart() {
     if (!ctx || !window.Chart) return;
     if (overviewLineInstance) overviewLineInstance.destroy();
 
-    const rows = currentPeriod === 1 ? (CHART_TODAY || []) : (CHART_DAILY || []);
+    const todayRows = (liveChartToday || CHART_TODAY || []);
+    const rows = currentPeriod === 1 ? todayRows : (CHART_DAILY || []);
     const labels = rows.map(r => r.label);
     const datasets = [];
     const selected = currentRoomId;
@@ -256,13 +229,16 @@ function buildOverviewLineChart() {
         if (showMetric('power'))   datasets.push({ label: 'Power (W)', metric: 'power', data: rows.map(r => r.avg_power), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2', spanGaps: false });
     }
 
+    mapOverviewIssues(labels);
     overviewLineInstance = new Chart(ctx, {
         type: 'line',
         data: { labels, datasets },
+        plugins: [overviewIssuePlugin],
         options: {
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
+            onClick: onOverviewChartClick,
             plugins: {
                 legend: {
                     position: 'top',
@@ -294,7 +270,7 @@ function buildOverviewLineChart() {
     });
     updateOverviewLineTitle();
     const metricLabelEl = document.getElementById('overviewLineMetricLabel');
-    if (metricLabelEl) metricLabelEl.textContent = currentMetric === 'all' ? 'All Metrics' : (METRIC_LABELS[currentMetric] || currentMetric);
+    if (metricLabelEl) metricLabelEl.textContent = currentMetric === 'all' ? 'All Metrics' : (OV_METRIC_LABELS[currentMetric] || currentMetric);
     updateOverviewScrollbar();
 }
 
@@ -308,21 +284,28 @@ function updateOverviewScrollbar() {
 
     const chart = overviewLineInstance;
     const n = chart.data.labels.length;
-    const isToday = currentPeriod === 1;
+    overviewLabels = chart.data.labels;
 
-    if (!isToday || n <= OVERVIEW_WINDOW_SIZE) {
-        wrap.classList.remove('visible');
+    // Scrollbar control stays visible on every chart so it is always
+    // discoverable; it is disabled while data fits within one window.
+    wrap.classList.add('visible');
+    if (n <= OVERVIEW_WINDOW_SIZE) {
+        slider.disabled = true;
+        slider.max = 0;
+        slider.value = 0;
         overviewScrollOffset = 0;
+        if (tipEl) tipEl.classList.remove('show');
+        if (pendingEl) pendingEl.classList.remove('show');
         if (chart.options.scales.x) {
             chart.options.scales.x.min = undefined;
             chart.options.scales.x.max = undefined;
             chart.update();
         }
+        renderOverviewMiniGantt();
         return;
     }
 
-    wrap.classList.add('visible');
-    overviewLabels = chart.data.labels;
+    slider.disabled = false;
     const maxVal = n - OVERVIEW_WINDOW_SIZE;
     slider.max = maxVal;
 
@@ -337,6 +320,7 @@ function updateOverviewScrollbar() {
         chart.update();
         if (pendingEl) pendingEl.classList.remove('show');
     }
+    renderOverviewMiniGantt();
 }
 
 function updateOverviewScrollTip() {
@@ -360,6 +344,7 @@ function onOverviewChartScroll(value) {
     overviewLineInstance.options.scales.x.max = offset + OVERVIEW_WINDOW_SIZE;
     overviewLineInstance.update();
     updateOverviewScrollTip();
+    renderOverviewMiniGantt();
     const pendingEl = document.getElementById('overviewLineScrollPending');
     if (pendingEl) {
         const slider = document.getElementById('overviewLineScroll');
@@ -379,7 +364,7 @@ function updateOverviewLineTitle() {
     if (chart) {
         metricNames = chart.data.datasets
             .filter((ds, i) => !chart.getDatasetMeta(i).hidden)
-            .map(ds => METRIC_LABELS[ds.metric] || ds.metric);
+            .map(ds => OV_METRIC_LABELS[ds.metric] || ds.metric);
     }
 
     let roomsLabel = 'All Rooms';
@@ -399,59 +384,23 @@ function updateOverviewLineTitle() {
     }
 }
 
-function buildBarChart(labels, rows) {
-    const ctx = document.getElementById('barChart');
-    if (!ctx || !window.Chart) return;
-    if (barChartInstance) barChartInstance.destroy();
-    barChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Energy (Wh)',
-                data: rows.map(r => r.energy_wh),
-                backgroundColor: 'rgba(88, 7, 143, 0.65)',
-                borderRadius: 4,
-            }],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            scales: { x: { grid: { display: false } }, y: { beginAtZero: true } },
-            plugins: { legend: { display: false } },
-        },
-    });
-}
-
-function updateMainCharts() {
-    const isToday = currentPeriod === 1;
-    const rows = isToday ? (CHART_TODAY || []) : (CHART_DAILY || []).slice(-currentPeriod);
-    const labels = rows.map(r => r.label);
-    buildLineChart(labels, rows);
-    buildBarChart(labels, rows);
-    const lm = document.getElementById('lineMetricLabel');
-    if (lm) lm.textContent = currentMetric === 'all' ? 'All Metrics' : currentMetric.charAt(0).toUpperCase() + currentMetric.slice(1);
-    const bm = document.getElementById('barMetricLabel');
-    if (bm) bm.textContent = currentMetric === 'all' ? 'All Metrics' : currentMetric.charAt(0).toUpperCase() + currentMetric.slice(1);
-}
-
-// ── Period / Metric ──────────────────────────────────────────────────────
-function setPeriod(el, days) {
+// ── Period / Metric ─────────────────────────────────────────────────────────
+function ovSetPeriod(el, days) {
     document.querySelectorAll('#panelPeriod .dept-member-filter-item').forEach(i => i.classList.remove('active'));
     if (el) el.classList.add('active');
     currentPeriod = parseInt(days, 10);
-    updateMainCharts();
+    renderLiveReadings();
     buildOverviewLineChart();
+    if (currentModalRoom) renderRoomModalChart(extendRoomTodayToNow(currentModalRoom));
     closePanel('panelPeriod');
 }
 
-function setMetric(el, metric) {
+function ovSetMetric(el, metric) {
     document.querySelectorAll('#panelMetric .dept-member-filter-item').forEach(i => i.classList.remove('active'));
     if (el) el.classList.add('active');
     currentMetric = metric;
-    updateMainCharts();
     buildOverviewLineChart();
+    if (currentModalRoom) renderRoomModalChart(extendRoomTodayToNow(currentModalRoom));
     // Live card emphasis
     document.querySelectorAll('#vawGroup .live-stat-card').forEach(c => {
         c.classList.remove('metric-active', 'metric-dimmed');
@@ -461,6 +410,43 @@ function setMetric(el, metric) {
         }
     });
     closePanel('panelMetric');
+}
+
+// ── Live / analytics routing ─────────────────────────────────────────────
+// The heading Period & Metric panels drive the normal overview charts while
+// Live is off, and the shared admin-analytics.js runtime while Live is on.
+function handleHeadingPeriod(el, days) {
+    if (liveMode && typeof window.setPeriod === 'function') {
+        window.setPeriod(el, days);
+        return;
+    }
+    ovSetPeriod(el, days);
+}
+
+function handleHeadingMetric(el, metric) {
+    if (liveMode && typeof window.setMetric === 'function') {
+        window.setMetric(el, metric);
+        return;
+    }
+    ovSetMetric(el, metric);
+}
+
+function setLiveMode(on) {
+    document.body.classList.toggle('live-mode', on);
+    liveMode = on;
+    const btn = document.getElementById('liveToggleBtn');
+    if (btn) btn.classList.toggle('active', on);
+    if (on) {
+        if (typeof window.resumePolling === 'function') window.resumePolling();
+        if (typeof window.onControlChange === 'function') window.onControlChange();
+    } else {
+        if (typeof window.pausePolling === 'function') window.pausePolling();
+        updateSelectionUI();
+    }
+}
+
+function toggleLiveMode() {
+    setLiveMode(!liveMode);
 }
 
 // ── Room selection ───────────────────────────────────────────────────────
@@ -504,15 +490,23 @@ function updateSelectionUI() {
 function selectRoom(id) {
     const rid = parseInt(id, 10);
     if (currentRoomId === rid) {
-        deselectRoom();
+        ovDeselectRoom();
         setFacultyOnly(null); // back to “all faculties” together with “all rooms”
         return;
     }
     setRoomSelection(rid);
 }
 
-function deselectRoom() {
+function ovDeselectRoom() {
     currentRoomId = null;
+    updateSelectionUI();
+}
+
+// Deselect all faculties (and rooms, keeping the pair in sync).
+function deselectAllFaculties() {
+    setFacultyOnly(null);
+    setRoomOnly(null);
+    updateFacultySelectionUI();
     updateSelectionUI();
 }
 
@@ -543,6 +537,808 @@ function setFacultySelection(id) {
     if (id === null) { setRoomOnly(null); return; }
     if (id === 0) { setRoomOnly(0); return; }
     syncRoomFromFaculty(id);
+}
+
+// ── Faculty slicer (Live dashboard shared view) ──────────────────────────
+function findRoomStatCard(rid) {
+    const key = String(rid);
+    let out = null;
+    document.querySelectorAll('.rooms-card .stat-card:not(.faculty-stat-card)').forEach(function (c) {
+        if (!out && c.getAttribute('data-room-id') === key) out = c;
+    });
+    return out;
+}
+
+function findFacultyStatCard(fid) {
+    const key = String(fid);
+    let out = null;
+    document.querySelectorAll('.rooms-card.faculty-slice-card .stat-card').forEach(function (c) {
+        if (!out && c.getAttribute('data-faculty-id') === key) out = c;
+    });
+    return out;
+}
+
+// Clicking a Faculty row single-selects it and cross-selects their room in
+// the Room slicer + graphs (the shared analytics runtime drives the data).
+function selectFacultyFromSlicer(card) {
+    if (!card) return;
+    const wasActive = card.classList.contains('active-room');
+    const rid = parseInt(card.getAttribute('data-room-id') || '0', 10) || 0;
+
+    document.querySelectorAll('.rooms-card .stat-card.active-room').forEach(function (c) {
+        c.classList.remove('active-room');
+    });
+
+    const sub = document.getElementById('tabSubheading');
+    if (wasActive) {
+        if (typeof syncRoomSelect === 'function') syncRoomSelect(0);
+        if (typeof onControlChange === 'function') onControlChange();
+        if (sub) sub.textContent = 'All Rooms Selected';
+        return;
+    }
+
+    card.classList.add('active-room');
+    if (rid > 0) {
+        const rc = findRoomStatCard(rid);
+        if (rc) rc.classList.add('active-room');
+    }
+    if (typeof syncRoomSelect === 'function') syncRoomSelect(rid);
+    if (typeof onControlChange === 'function') onControlChange();
+    if (sub) {
+        const nameEl = card.querySelector('.stat-value');
+        sub.textContent = (nameEl ? nameEl.textContent : 'Faculty') + ' Selected';
+    }
+}
+
+// ── Chart carousel (line <-> bar switcher) ───────────────────────────────
+let chartCarouselIndex = 0;
+
+function initChartCarousel() {
+    const track = document.getElementById('chartTrack');
+    if (!track) return;
+    chartCarouselIndex = 0;
+    track.classList.remove('at-bar');
+    const left = document.getElementById('chartNavLeft');
+    const right = document.getElementById('chartNavRight');
+    if (left) left.classList.add('disabled');
+    if (right) right.classList.remove('disabled');
+    resizeChartInstances();
+}
+
+function resizeChartInstances() {
+    if (typeof lineChartInstance !== 'undefined' && typeof lineChartInstance.resize === 'function') lineChartInstance.resize();
+    if (typeof barChartInstance !== 'undefined' && typeof barChartInstance.resize === 'function') barChartInstance.resize();
+}
+
+function chartCarouselStep(dir) {
+    const track = document.getElementById('chartTrack');
+    if (!track) return;
+    const total = track.children.length;
+    const next = Math.max(0, Math.min(total - 1, chartCarouselIndex + dir));
+    if (next === chartCarouselIndex) return;
+    chartCarouselIndex = next;
+    track.classList.toggle('at-bar', chartCarouselIndex > 0);
+    const left = document.getElementById('chartNavLeft');
+    const right = document.getElementById('chartNavRight');
+    if (left) left.classList.toggle('disabled', chartCarouselIndex === 0);
+    if (right) right.classList.toggle('disabled', chartCarouselIndex === total - 1);
+    setTimeout(function () {
+        let inst = null;
+        if (chartCarouselIndex === 1 && typeof barChartInstance !== 'undefined') inst = barChartInstance;
+        else if (chartCarouselIndex === 0 && typeof lineChartInstance !== 'undefined') inst = lineChartInstance;
+        if (inst && typeof inst.resize === 'function') inst.resize();
+    }, 480);
+}
+
+// ── Room Inspect modal — overview chart ───────────────────────────────────
+let roomModalChartInstance = null;
+let currentModalRoom = null;
+let roomModalTimer = null; // 30s live re-sync while the room modal is open
+let roomModalChartReq = 0; // guards against out-of-order fetch responses
+
+function renderRoomModalChart(room) {
+    const canvas = document.getElementById('roomModalChart');
+    if (!canvas || !window.Chart) return;
+    if (roomModalChartInstance) { roomModalChartInstance.destroy(); roomModalChartInstance = null; }
+
+    const today = !!(room && room.todayLabels && room.todayLabels.length);
+    const labelsArr = today ? (room.todayLabels || []) : (room.dailyLabels || []).slice(-7);
+    let v = (today ? (room.todayV || []) : (room.dailyV || []).slice(-7)).slice();
+    let a = (today ? (room.todayA || []) : (room.dailyA || []).slice(-7)).slice();
+    let w = (today ? (room.todayW || []) : (room.dailyW || []).slice(-7)).slice();
+    let labels = labelsArr.map(String);
+
+    // Keep long per-minute "today" series legible inside the modal pane.
+    const MAX_PTS = 120;
+    if (labels.length > MAX_PTS) {
+        const step = labels.length / MAX_PTS;
+        const idxs = [];
+        for (let i = 0; i < MAX_PTS; i++) idxs.push(Math.floor(i * step));
+        const pick = (arr) => idxs.map(function (i) { return arr[i] == null ? null : arr[i]; });
+        labels = idxs.map(function (i) { return labelsArr[i]; }).map(String);
+        v = pick(v); a = pick(a); w = pick(w);
+    }
+
+    const n = Math.max(labels.length, v.length, a.length, w.length);
+    const pad = (arr) => { const x = (arr || []).slice(); while (x.length < n) x.push(null); return x; };
+    const name = (room && room.room_name) || 'Room';
+
+    // Respect the metric currently filtered on the overview (All / V / A / W).
+    const showMetric = (m) => currentMetric === 'all' || currentMetric === m;
+    const hasData = n > 0;
+    const datasets = [];
+    if (hasData) {
+        if (showMetric('voltage')) datasets.push({ label: name + ' \u00B7 Voltage (V)', data: pad(v), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2 });
+        if (showMetric('current')) datasets.push({ label: name + ' \u00B7 Current (A)', data: pad(a), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1' });
+        if (showMetric('power'))   datasets.push({ label: name + ' \u00B7 Power (W)', data: pad(w), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2' });
+    }
+    if (!datasets.length) datasets.push({ label: 'No data', data: [], borderColor: '#cccccc', pointRadius: 0 });
+
+    // Flagged issues for this room, aligned to the (possibly down-sampled) labels.
+    const roomIssues = (OVERVIEW_ISSUES || []).filter(function (iss) { return iss.room_id != null && String(iss.room_id) === String(room && room.id); });
+    roomModalIssuesMapped = mapIssuesToLabels(roomIssues, labels);
+
+    const labelEl = document.getElementById('roomModalChartLabel');
+    if (labelEl) labelEl.textContent = currentMetric === 'all' ? 'All Metrics' : (OV_METRIC_LABELS[currentMetric] || currentMetric);
+
+    roomModalChartInstance = new Chart(canvas, {
+        type: 'line',
+        data: { labels: hasData ? labels : ['No data'], datasets },
+        plugins: [roomModalIssuePlugin],
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            onClick: onRoomModalChartClick,
+            plugins: {
+                legend: { position: 'top', labels: { font: { family: 'Poppins', size: 10 }, boxWidth: 12, padding: 12 } },
+            },
+            scales: {
+                x: { ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+                y: { type: 'linear', display: true, position: 'left', title: { display: false }, ticks: { color: '#742fd3', font: { family: 'Poppins', size: 10 } }, grid: { color: 'rgba(47,0,79,0.07)' } },
+                y1: { type: 'linear', display: true, position: 'left', title: { display: false }, ticks: { color: '#f59e0b', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+                y2: { type: 'linear', display: true, position: 'right', title: { display: false }, ticks: { color: '#16a34a', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+            },
+        },
+    });
+}
+
+// ── Flagged issue annotations on the overview + inspect charts ───────────────
+let overviewIssuesMapped = [];
+let roomModalIssuesMapped = [];
+
+// Align issues to chart labels by matching their "HH:MM" time to the nearest
+// per-minute label index (works for both full and down-sampled series).
+function mapIssuesToLabels(issues, labels) {
+    const mapped = new Array(labels.length).fill(null);
+    if (!issues || !issues.length || !labels || !labels.length) return mapped;
+    const minLabels = labels.map(l => (/^\d{2}:\d{2}$/.test(l) ? ganttTimeToMin(l) : -1));
+    issues.forEach(issue => {
+        const tMin = ganttTimeToMin(String(issue.event_time || '').slice(11, 16));
+        if (tMin < 0) return;
+        let best = -1, bestDiff = Infinity;
+        minLabels.forEach((ml, i) => {
+            if (ml < 0) return;
+            const d = Math.abs(ml - tMin);
+            if (d < bestDiff) { bestDiff = d; best = i; }
+        });
+        if (best >= 0) mapped[best] = issue;
+    });
+    return mapped;
+}
+
+// Issues shown on the overview chart honor the current room selection.
+function mapOverviewIssues(labels) {
+    overviewIssuesMapped = [];
+    if (!OVERVIEW_ISSUES || !OVERVIEW_ISSUES.length) return;
+    let issues = OVERVIEW_ISSUES;
+    if (currentRoomId === 0) issues = [];
+    else if (currentRoomId > 0) issues = issues.filter(iss => String(iss.room_id) === String(currentRoomId));
+    overviewIssuesMapped = mapIssuesToLabels(issues, labels);
+}
+
+function getMappedIssueIndex(e, chart, mapped) {
+    if (!mapped || !mapped.length) return null;
+    const chartArea = chart.chartArea;
+    if (!chartArea) return null;
+    const pos = Chart.helpers.getRelativePosition(e, chart);
+    if (pos.x < chartArea.left || pos.x > chartArea.right) return null;
+    if (pos.y < chartArea.top || pos.y > chartArea.bottom) return null;
+    const xScale = chart.scales.x;
+    if (!xScale) return null;
+    let best = null, bestDist = 16;
+    mapped.forEach(function (issue, i) {
+        if (!issue) return;
+        const px = xScale.getPixelForValue(i);
+        const d = Math.abs(px - pos.x);
+        if (d < bestDist) { bestDist = d; best = i; }
+    });
+    return best;
+}
+
+const overviewIssuePlugin = {
+    id: 'overviewIssueMarker',
+    afterDraw: function (chart) {
+        if (!overviewIssuesMapped || !overviewIssuesMapped.length) return;
+        const chartArea = chart.chartArea;
+        const xScale = chart.scales.x;
+        if (!chartArea || !xScale) return;
+        const ctx = chart.ctx;
+        for (let i = 0; i < overviewIssuesMapped.length; i++) {
+            if (!overviewIssuesMapped[i]) continue;
+            const x = xScale.getPixelForValue(i);
+            if (x < chartArea.left || x > chartArea.right) continue;
+            drawIssueMarker(ctx, x, chartArea.top + 12);
+        }
+    }
+};
+
+const roomModalIssuePlugin = {
+    id: 'roomModalIssueMarker',
+    afterDraw: function (chart) {
+        if (!roomModalIssuesMapped || !roomModalIssuesMapped.length) return;
+        const chartArea = chart.chartArea;
+        const xScale = chart.scales.x;
+        if (!chartArea || !xScale) return;
+        const ctx = chart.ctx;
+        for (let i = 0; i < roomModalIssuesMapped.length; i++) {
+            if (!roomModalIssuesMapped[i]) continue;
+            const x = xScale.getPixelForValue(i);
+            if (x < chartArea.left || x > chartArea.right) continue;
+            drawIssueMarker(ctx, x, chartArea.top + 12);
+        }
+    }
+};
+
+function onOverviewChartClick(e, active, chart) {
+    const idx = getMappedIssueIndex(e, chart, overviewIssuesMapped);
+    if (idx != null && overviewIssuesMapped[idx]) openIssueModal(overviewIssuesMapped[idx]);
+}
+
+function onRoomModalChartClick(e, active, chart) {
+    const idx = getMappedIssueIndex(e, chart, roomModalIssuesMapped);
+    if (idx != null && roomModalIssuesMapped[idx]) openIssueModal(roomModalIssuesMapped[idx]);
+}
+
+// ── Mini Gantt under the overview chart pane (untoggled / Today view) ────────
+// The time axis mirrors the overview chart's per-minute labels and follows the
+// chart's scrollbar window, so the session rows line up with the plotted data.
+function renderOverviewMiniGantt() {
+    const container = document.getElementById('overviewMiniGantt');
+    const wrap = document.getElementById('overviewMiniGanttWrap');
+    const axisEl = document.getElementById('overviewMiniGanttAxis');
+    if (!container || !wrap) return;
+
+    const labels = (overviewLabels && overviewLabels.length)
+        ? overviewLabels
+        : (CHART_TODAY || []).map(r => r.label);
+    const isMinute = labels.length && /^\d{2}:\d{2}$/.test(labels[labels.length - 1] || '');
+
+    if (currentPeriod !== 1 || !isMinute || !labels.length) {
+        wrap.style.display = 'none';
+        return;
+    }
+
+    const startIdx = Math.max(0, Math.min(overviewScrollOffset || 0, labels.length - 1));
+    const endIdx = Math.min(startIdx + OVERVIEW_WINDOW_SIZE, labels.length);
+    const visStartMin = ganttTimeToMin(labels[startIdx]);
+    const visEndMin = endIdx < labels.length ? ganttTimeToMin(labels[endIdx]) : visStartMin + OVERVIEW_WINDOW_SIZE;
+    const spanMin = Math.max(visEndMin - visStartMin, 1);
+
+    const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const nowMin = ganttTimeToMin(new Date().toTimeString().slice(0, 8));
+
+    const rows = [];
+    (FACULTY || []).forEach(f => {
+        const todayScheds = ((FACULTY_SCHEDULES || {})[f.id] || []).filter(s => s.day_of_week === todayName);
+        if (todayScheds.length) rows.push({ f: f, scheds: todayScheds });
+    });
+
+    if (!rows.length) {
+        wrap.style.display = 'none';
+        return;
+    }
+    wrap.style.display = '';
+
+    const labelW = 150;
+    const paneW = container.clientWidth || 600;
+    const dayW = Math.max(paneW - labelW, 260);
+    const rowH = 40;
+    const headerH = 26;
+    const pxPerMin = dayW / spanMin;
+
+    if (axisEl) axisEl.textContent = fmtGanttTime(visStartMin) + ' – ' + fmtGanttTime(visEndMin) + ' \u00B7 synced to the chart window';
+
+    let html = '<div class="mini-gantt-grid">';
+    html += '<div class="mini-gantt-labels">';
+    html += '<div class="mini-gantt-cell mini-gantt-head" style="width:' + labelW + 'px;height:' + headerH + 'px;">Faculty</div>';
+    rows.forEach(r => {
+        html += '<div class="mini-gantt-cell" style="width:' + labelW + 'px;height:' + rowH + 'px;">' +
+            '<div class="gantt-fac-name">' + escapeHtml(r.f.first_name + ' ' + r.f.last_name) + '</div>' +
+            '<div class="gantt-fac-dept">' + escapeHtml(r.f.department_name || '') + '</div></div>';
+    });
+    html += '</div>';
+
+    html += '<div class="mini-gantt-timeline">';
+    html += '<div class="mini-gantt-ticks" style="height:' + headerH + 'px;">';
+    for (let m = visStartMin; m <= visEndMin; m++) {
+        const left = (m - visStartMin) * pxPerMin;
+        const isLabel = (m % 5 === 0) || m === visStartMin || m === visEndMin;
+        html += '<span class="mini-gantt-tick' + (isLabel ? ' mini-gantt-tick-labeled' : '') + '" style="left:' + left + 'px;">' +
+            (isLabel ? fmtGanttTime(m).replace(' ', '') : '') + '</span>';
+    }
+    html += '</div>';
+
+    if (nowMin >= visStartMin && nowMin <= visEndMin) {
+        const nowX = (nowMin - visStartMin) * pxPerMin;
+        html += '<div class="gantt-now-line" style="left:' + nowX + 'px;"><i class="gantt-now-tag">Current</i></div>';
+    }
+
+    rows.forEach((r, fi) => {
+        html += '<div class="mini-gantt-row' + (fi % 2 ? ' mini-gantt-zebra' : '') + '" style="height:' + rowH + 'px;">';
+        r.scheds.forEach(s => {
+            const startMin = ganttTimeToMin(s.start_time);
+            const baseEnd = ganttTimeToMin(s.end_time);
+            const extEnd = ganttTimeToMin(s.extended_until);
+            const endMin = Math.max(extEnd, baseEnd);
+            const clipStart = Math.max(startMin, visStartMin);
+            const clipEnd = Math.min(endMin, visEndMin);
+            if (clipEnd <= clipStart) return;
+            const left = (clipStart - visStartMin) * pxPerMin;
+            const width = Math.max((clipEnd - clipStart) * pxPerMin, 4);
+            const isNow = startMin <= nowMin && nowMin <= endMin;
+            const isPast = endMin < nowMin;
+            const isExtended = extEnd > baseEnd;
+            const cls = isExtended ? 'gantt-block-extended' : (isNow ? 'gantt-block-now' : (isPast ? 'gantt-block-past' : 'gantt-block-upcoming'));
+            html += '<div class="gantt-block mini-gantt-block ' + cls + '" style="left:' + left + 'px;width:' + width + 'px;" ' +
+                'data-subject="' + escapeHtml(s.subject_name || 'Class') + '" ' +
+                'data-room="' + escapeHtml(s.room_name || '\u2014') + '" ' +
+                'data-time="' + escapeHtml(fmtGanttTime(startMin) + ' \u2013 ' + fmtGanttTime(endMin)) + '">' +
+                '<span class="gantt-block-subject">' + escapeHtml(s.subject_name || 'Class') + '</span></div>';
+        });
+        html += '</div>';
+    });
+    html += '</div>'; // timeline
+    html += '</div>'; // grid
+
+    container.innerHTML = html;
+}
+
+// ── Faculty info + access control modal ─────────────────────────────────────
+function openFacultyInfoModal(id) {
+    const fac = (FACULTY || []).find(f => parseInt(f.id, 10) === parseInt(id, 10));
+    if (!fac) return;
+
+    const initials = ((fac.first_name || '') + ' ' + (fac.last_name || '')).split(/\s+/).filter(Boolean).slice(0, 2).map(w => (w[0] || '')).join('').toUpperCase();
+    const avatar = document.getElementById('facInfoAvatar');
+    if (avatar) avatar.textContent = initials || '?';
+
+    const nameEl = document.getElementById('facInfoName');
+    if (nameEl) nameEl.textContent = (fac.first_name || '') + ' ' + (fac.last_name || '');
+
+    const roleEl = document.getElementById('facInfoRole');
+    if (roleEl) {
+        roleEl.textContent = fac.is_archived ? 'Archived' : 'Active';
+        roleEl.className = 'bold status-badge ' + (fac.is_archived ? 'faculty-archived' : 'faculty-member');
+    }
+
+    const covEl = document.getElementById('facInfoCoverage');
+    if (covEl) {
+        const parts = [];
+        if (fac.department_name) parts.push('<i class="bi bi-briefcase me-1"></i>' + escapeHtml(fac.department_name));
+        if (fac.email) parts.push('<i class="bi bi-envelope me-1"></i>' + escapeHtml(fac.email));
+        covEl.innerHTML = parts.join(' &nbsp;&middot;&nbsp; ') || 'No coverage details.';
+    }
+
+    const roomEl = document.getElementById('facInfoRoom');
+    if (roomEl) {
+        roomEl.innerHTML = fac.classroom_name
+            ? '<i class="bi bi-door-open me-1"></i>' + escapeHtml(fac.classroom_name) + (fac.subject_name ? ' &middot; ' + escapeHtml(fac.subject_name) : '')
+            : (fac.is_archived ? 'No Class' : 'No Active Class');
+    }
+
+    const schedEl = document.getElementById('facInfoSchedule');
+    if (schedEl) {
+        const fmt24 = (t) => { if (!t) return ''; const p = String(t).split(':'); return p.slice(0, 2).join(':'); };
+        const classEnd = fac.extended_until ? fmt24(fac.extended_until) : (fac.end_time ? fmt24(fac.end_time) : '');
+        const lines = [];
+        if (fac.current_class) lines.push('<div><span class="text-muted">Now:</span> ' + escapeHtml(fac.current_class) + '</div>');
+        if (fac.next_class) lines.push('<div><span class="text-muted">Next:</span> ' + escapeHtml(fac.next_class) + '</div>');
+        if (fac.start_time) lines.push('<div><span class="text-muted">Class:</span> ' + escapeHtml(fmt24(fac.start_time)) + ' \u2013 ' + escapeHtml(classEnd) + '</div>');
+        if (fac.approved_on) lines.push('<div><span class="text-muted">Approved:</span> ' + escapeHtml(fac.approved_on) + '</div>');
+        schedEl.innerHTML = lines.join('') || '<em class="text-muted">No schedule today.</em>';
+    }
+
+    window.lumiFacultyId = parseInt(id, 10);
+    const perms = FACULTY_PERMS[id] || {};
+    const lc = document.getElementById('facInfoSwitchLighting');
+    const gc = document.getElementById('facInfoSwitchGesture');
+    if (lc) lc.checked = perms.lighting_control !== false;
+    if (gc) gc.checked = perms.gesture_control !== false;
+
+    const modal = new bootstrap.Modal(document.getElementById('facultyInfoModal'));
+    modal.show();
+}
+
+function saveFacultyPermission(permission, value) {
+    const form = new FormData();
+    form.append('faculty_id', window.lumiFacultyId || 0);
+    form.append('permission', permission);
+    form.append('value', value ? 1 : 0);
+    fetch('../../api/permissions.php', {
+        method: 'POST',
+        body: form
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) revertFacultyPermissionSwitch(permission, value);
+        })
+        .catch(function () {
+            revertFacultyPermissionSwitch(permission, value);
+        });
+}
+
+// Revert every permission toggle (info + view modals) when a save fails.
+function revertFacultyPermissionSwitch(permission, value) {
+    const id = permission === 'lighting_control' ? 'Lighting' : 'Gesture';
+    ['facInfoSwitch' + id, 'facViewSwitch' + id].forEach(function (pid) {
+        const el = document.getElementById(pid);
+        if (el) el.checked = !value;
+    });
+}
+
+// ── Faculty view modal (schedule overview + access + activity) ───────────────
+let facultyViewChartInstance = null;
+let currentFacultyView = null;
+let facultyViewTimer = null; // 30s live re-sync while the modal is open
+let facultyViewChartReq = 0; // guards against out-of-order fetch responses
+
+function openFacultyViewModal(id) {
+    const fac = (FACULTY || []).find(f => parseInt(f.id, 10) === parseInt(id, 10));
+    if (!fac) return;
+    currentFacultyView = fac;
+    window.lumiFacultyId = parseInt(id, 10);
+
+    const label = document.getElementById('facultyViewModalLabel');
+    if (label) label.textContent = (fac.first_name || '') + ' ' + (fac.last_name || '') + ' · Faculty Schedule';
+
+    const modalEl = document.getElementById('facultyViewModal');
+    if (modalEl && !modalEl.dataset.facViewTimerBound) {
+        modalEl.dataset.facViewTimerBound = '1';
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            if (facultyViewTimer) { clearInterval(facultyViewTimer); facultyViewTimer = null; }
+        });
+    }
+    if (facultyViewTimer) { clearInterval(facultyViewTimer); facultyViewTimer = null; }
+    facultyViewTimer = setInterval(refreshFacultyViewLive, 30000);
+
+    new bootstrap.Modal(modalEl).show();
+    renderFacultyView(fac);
+    refreshFacultyViewLive(); // paint real readings for the extended minutes immediately
+}
+
+// Lightweight live refresh while the modal is open: fetch fresh per-minute
+// readings for the faculty's room and re-render the chart + mini-gantt so a
+// running session keeps tracking. Access/timetable/activities are untouched.
+// Falls back to the local extend-to-now behavior when the fetch fails.
+function refreshFacultyViewLive() {
+    const fac = currentFacultyView;
+    if (!fac) return;
+    const room = (ROOMS || []).find(r => r.room_name === fac.classroom_name) || null;
+    const req = ++facultyViewChartReq;
+    fetchRoomTodaySeries(room ? room.id : 0).then(function (today) {
+        if (req !== facultyViewChartReq) return; // stale response
+        const roomNow = today && room
+            ? extendRoomTodayToNow(roomWithFreshToday(room, today))
+            : extendRoomTodayToNow(room);
+        renderFacultyViewChart(fac, roomNow);
+        renderFacultyViewMiniGantt(fac, roomNow);
+    });
+    // Fresh activities for the recent-activities card (keep current on failure).
+    fetchFacultyActivity(fac.id).then(function (logs) {
+        if (req !== facultyViewChartReq || !logs) return;
+        renderFacultyViewActivities(fac, logs);
+    });
+}
+
+// Extend the room's per-minute "today" series up to the current minute
+// (labels padded, values null) so sessions that started after page load still
+// appear in the modal chart and its synced mini-gantt. Returns a fresh object
+// and never mutates the shared ROOMS entry.
+function extendRoomTodayToNow(room) {
+    if (!room || !room.todayLabels || !room.todayLabels.length) return room;
+    const nowMin = ganttTimeToMin(new Date().toTimeString().slice(0, 8));
+    const lastMin = ganttTimeToMin(room.todayLabels[room.todayLabels.length - 1]);
+    if (nowMin <= lastMin) return room; // series already reaches the current minute
+    const labels = room.todayLabels.slice();
+    const v = room.todayV ? room.todayV.slice() : [];
+    const a = room.todayA ? room.todayA.slice() : [];
+    const w = room.todayW ? room.todayW.slice() : [];
+    for (let m = lastMin + 1; m <= nowMin; m++) {
+        labels.push(String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+        v.push(null);
+        a.push(null);
+        w.push(null);
+    }
+    return Object.assign({}, room, { todayLabels: labels, todayV: v, todayA: a, todayW: w });
+}
+
+// Fetch today's per-minute series for one room (padded to the current minute
+// server-side). Returns null on failure so callers can fall back to the
+// local extend-to-now behavior.
+function fetchRoomTodaySeries(cid) {
+    return fetch('../../api/overview-chart.php?classroom_id=' + encodeURIComponent(cid), {
+        headers: { 'Accept': 'application/json' }
+    })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            return (data && data.ok && Array.isArray(data.today)) ? data.today : null;
+        })
+        .catch(function () { return null; });
+}
+
+// Fetch the merged log feed for one room (get-room-logs.php). Null on failure.
+function fetchRoomAlerts(roomName) {
+    return fetch('../../api/get-room-logs.php?room=' + encodeURIComponent(roomName), {
+        headers: { 'Accept': 'application/json' }
+    })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            return (data && data.success && Array.isArray(data.data)) ? data.data : null;
+        })
+        .catch(function () { return null; });
+}
+
+// Fetch the latest lighting-log activities for one faculty member
+// (activity-logs.php?faculty_id=). Null on failure.
+function fetchFacultyActivity(fid) {
+    return fetch('../../api/activity-logs.php?faculty_id=' + encodeURIComponent(fid), {
+        headers: { 'Accept': 'application/json' }
+    })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            return (data && data.success && Array.isArray(data.faculty)) ? data.faculty : null;
+        })
+        .catch(function () { return null; });
+}
+
+// Replace a room's today series with freshly-fetched per-minute rows.
+function roomWithFreshToday(room, todayRows) {
+    if (!room || !todayRows || !todayRows.length) return room;
+    const labels = [];
+    const v = [];
+    const a = [];
+    const w = [];
+    todayRows.forEach(function (r) {
+        labels.push(r.label);
+        v.push(r.avg_voltage != null ? r.avg_voltage : null);
+        a.push(r.avg_current != null ? r.avg_current : null);
+        w.push(r.avg_power != null ? r.avg_power : null);
+    });
+    return Object.assign({}, room, { todayLabels: labels, todayV: v, todayA: a, todayW: w });
+}
+
+function renderFacultyView(fac) {
+    // The faculty's assigned room provides the energy series for the chart pane.
+    const room = (ROOMS || []).find(r => r.room_name === fac.classroom_name) || null;
+    const roomNow = extendRoomTodayToNow(room);
+    renderFacultyViewChart(fac, roomNow);
+    renderFacultyViewMiniGantt(fac, roomNow);
+    renderFacultyViewAccess(fac);
+    renderFacultyViewTimetable(fac);
+    renderFacultyViewActivities(fac);
+}
+
+// Chart pane for the faculty view modal (energy series of the faculty's room).
+function renderFacultyViewChart(fac, room) {
+    const canvas = document.getElementById('facultyViewChart');
+    if (!canvas || !window.Chart) return;
+    if (facultyViewChartInstance) { facultyViewChartInstance.destroy(); facultyViewChartInstance = null; }
+
+    const today = !!(room && room.todayLabels && room.todayLabels.length);
+    const labelsArr = today ? (room.todayLabels || []) : (room.dailyLabels || []).slice(-7);
+    let v = (today ? (room.todayV || []) : (room.dailyV || []).slice(-7)).slice();
+    let a = (today ? (room.todayA || []) : (room.dailyA || []).slice(-7)).slice();
+    let w = (today ? (room.todayW || []) : (room.dailyW || []).slice(-7)).slice();
+    let labels = labelsArr.map(String);
+
+    // Keep long per-minute "today" series legible inside the modal pane.
+    const MAX_PTS = 120;
+    if (labels.length > MAX_PTS) {
+        const step = labels.length / MAX_PTS;
+        const idxs = [];
+        for (let i = 0; i < MAX_PTS; i++) idxs.push(Math.floor(i * step));
+        const pick = (arr) => idxs.map(function (i) { return arr[i] == null ? null : arr[i]; });
+        labels = idxs.map(function (i) { return labelsArr[i]; }).map(String);
+        v = pick(v); a = pick(a); w = pick(w);
+    }
+
+    const n = Math.max(labels.length, v.length, a.length, w.length);
+    const pad = (arr) => { const x = (arr || []).slice(); while (x.length < n) x.push(null); return x; };
+    const name = (fac.first_name || '') + ' ' + (fac.last_name || '');
+
+    const showMetric = (m) => currentMetric === 'all' || currentMetric === m;
+    const hasData = n > 0;
+    const datasets = [];
+    if (hasData) {
+        if (showMetric('voltage')) datasets.push({ label: name + ' · Voltage (V)', data: pad(v), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2 });
+        if (showMetric('current')) datasets.push({ label: name + ' · Current (A)', data: pad(a), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1' });
+        if (showMetric('power'))   datasets.push({ label: name + ' · Power (W)', data: pad(w), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2' });
+    }
+    if (!datasets.length) datasets.push({ label: 'No data', data: [], borderColor: '#cccccc', pointRadius: 0 });
+
+    const labelEl = document.getElementById('facultyViewChartLabel');
+    if (labelEl) labelEl.textContent = currentMetric === 'all' ? 'All Metrics' : (OV_METRIC_LABELS[currentMetric] || currentMetric);
+
+    facultyViewChartInstance = new Chart(canvas, {
+        type: 'line',
+        data: { labels: hasData ? labels : ['No data'], datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+                legend: { position: 'top', labels: { font: { family: 'Poppins', size: 10 }, boxWidth: 12, padding: 12 } },
+            },
+            scales: {
+                x: { ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+                y: { type: 'linear', display: true, position: 'left', title: { display: false }, ticks: { color: '#742fd3', font: { family: 'Poppins', size: 10 } }, grid: { color: 'rgba(47,0,79,0.07)' } },
+                y1: { type: 'linear', display: true, position: 'left', title: { display: false }, ticks: { color: '#f59e0b', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+                y2: { type: 'linear', display: true, position: 'right', title: { display: false }, ticks: { color: '#16a34a', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+            },
+        },
+    });
+}
+
+// Mini Gantt inside the faculty view modal — a single row for the selected
+// faculty, aligned to the same x-axis span as the modal chart above it.
+function renderFacultyViewMiniGantt(fac, room) {
+    const container = document.getElementById('facultyViewMiniGantt');
+    const wrap = document.getElementById('facultyViewMiniGanttWrap');
+    const axisEl = document.getElementById('facultyViewMiniGanttAxis');
+    if (!container || !wrap) return;
+
+    const labels = (room && room.todayLabels) || [];
+    const isMinute = labels.length && /^\d{2}:\d{2}$/.test(labels[labels.length - 1] || '');
+    if (!isMinute || !labels.length) {
+        wrap.style.display = 'none';
+        return;
+    }
+
+    const visStartMin = ganttTimeToMin(labels[0]);
+    const visEndMin = ganttTimeToMin(labels[labels.length - 1]) + 1;
+    const spanMin = Math.max(visEndMin - visStartMin, 1);
+
+    const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const nowMin = ganttTimeToMin(new Date().toTimeString().slice(0, 8));
+    const scheds = ((FACULTY_SCHEDULES || {})[fac.id] || []).filter(s => s.day_of_week === todayName);
+
+    if (!scheds.length) {
+        wrap.style.display = 'none';
+        return;
+    }
+    wrap.style.display = '';
+
+    const labelW = 150;
+    const paneW = container.clientWidth || 600;
+    const dayW = Math.max(paneW - labelW, 260);
+    const rowH = 40;
+    const headerH = 26;
+    const pxPerMin = dayW / spanMin;
+
+    if (axisEl) axisEl.textContent = fmtGanttTime(visStartMin) + ' – ' + fmtGanttTime(visEndMin) + ' · synced to the chart';
+
+    let html = '<div class="mini-gantt-grid">';
+    html += '<div class="mini-gantt-labels">';
+    html += '<div class="mini-gantt-cell mini-gantt-head" style="width:' + labelW + 'px;height:' + headerH + 'px;">Faculty</div>';
+    html += '<div class="mini-gantt-cell" style="width:' + labelW + 'px;height:' + rowH + 'px;">' +
+        '<div class="gantt-fac-name">' + escapeHtml(fac.first_name + ' ' + fac.last_name) + '</div>' +
+        '<div class="gantt-fac-dept">' + escapeHtml(fac.department_name || '') + '</div></div>';
+    html += '</div>';
+
+    html += '<div class="mini-gantt-timeline">';
+    html += '<div class="mini-gantt-ticks" style="height:' + headerH + 'px;">';
+    for (let m = visStartMin; m <= visEndMin; m++) {
+        const left = (m - visStartMin) * pxPerMin;
+        const isLabel = (m % 5 === 0) || m === visStartMin || m === visEndMin;
+        html += '<span class="mini-gantt-tick' + (isLabel ? ' mini-gantt-tick-labeled' : '') + '" style="left:' + left + 'px;">' +
+            (isLabel ? fmtGanttTime(m).replace(' ', '') : '') + '</span>';
+    }
+    html += '</div>';
+
+    if (nowMin >= visStartMin && nowMin <= visEndMin) {
+        const nowX = (nowMin - visStartMin) * pxPerMin;
+        html += '<div class="gantt-now-line" style="left:' + nowX + 'px;"><i class="gantt-now-tag">Current</i></div>';
+    }
+
+    html += '<div class="mini-gantt-row" style="height:' + rowH + 'px;">';
+    scheds.forEach(s => {
+        const startMin = ganttTimeToMin(s.start_time);
+        const baseEnd = ganttTimeToMin(s.end_time);
+        const extEnd = ganttTimeToMin(s.extended_until);
+        const endMin = Math.max(extEnd, baseEnd);
+        const clipStart = Math.max(startMin, visStartMin);
+        const clipEnd = Math.min(endMin, visEndMin);
+        if (clipEnd <= clipStart) return;
+        const left = (clipStart - visStartMin) * pxPerMin;
+        const width = Math.max((clipEnd - clipStart) * pxPerMin, 4);
+        const isNow = startMin <= nowMin && nowMin <= endMin;
+        const isPast = endMin < nowMin;
+        const isExtended = extEnd > baseEnd;
+        const cls = isExtended ? 'gantt-block-extended' : (isNow ? 'gantt-block-now' : (isPast ? 'gantt-block-past' : 'gantt-block-upcoming'));
+        html += '<div class="gantt-block mini-gantt-block ' + cls + '" style="left:' + left + 'px;width:' + width + 'px;" ' +
+            'data-subject="' + escapeHtml(s.subject_name || 'Class') + '" ' +
+            'data-room="' + escapeHtml(s.room_name || '—') + '" ' +
+            'data-time="' + escapeHtml(fmtGanttTime(startMin) + ' – ' + fmtGanttTime(endMin)) + '">' +
+            '<span class="gantt-block-subject">' + escapeHtml(s.subject_name || 'Class') + '</span></div>';
+    });
+    html += '</div>';
+    html += '</div>'; // timeline
+    html += '</div>'; // grid
+
+    container.innerHTML = html;
+}
+
+// Access-control toggles (same permissions as the faculty info modal).
+function renderFacultyViewAccess(fac) {
+    const perms = FACULTY_PERMS[fac.id] || {};
+    const lc = document.getElementById('facViewSwitchLighting');
+    const gc = document.getElementById('facViewSwitchGesture');
+    if (lc) lc.checked = perms.lighting_control !== false;
+    if (gc) gc.checked = perms.gesture_control !== false;
+}
+
+// Weekly timetable for this faculty member only.
+function renderFacultyViewTimetable(fac) {
+    const el = document.getElementById('facultyViewTimetable');
+    if (!el) return;
+    const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const grouped = {};
+    dayOrder.forEach(d => grouped[d] = []);
+    ((FACULTY_SCHEDULES || {})[fac.id] || []).forEach(s => {
+        if (grouped[s.day_of_week]) grouped[s.day_of_week].push(s);
+    });
+    const hasAny = dayOrder.some(d => grouped[d].length);
+    if (!hasAny) {
+        el.innerHTML = '<div class="modal-slot-empty">No classes scheduled for this faculty member.</div>';
+        return;
+    }
+    const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const fmt12 = (t) => { const m = ganttTimeToMin(t); return fmtGanttTime(m); };
+    el.innerHTML = '<div class="weekly-schedule-grid" style="min-width:max-content;">' + dayOrder.map(day => {
+        const slots = grouped[day] || [];
+        const slotsHtml = slots.length
+            ? slots.map(s => `<div class="slot-row">
+                <div class="slot-time"><span class="slot-time-start">${escapeHtml(fmt12(s.start_time))}</span><span class="slot-time-separator">TO</span><span class="slot-time-end">${escapeHtml(fmt12(s.end_time))}</span></div>
+                <div class="slot-content"><div class="slot-room"><i class="bi bi-door-open me-1"></i>${escapeHtml(s.room_name || '—')}${s.subject_name ? ' · ' + escapeHtml(s.subject_name) : ''}</div></div>
+            </div>`).join('')
+            : '<p class="no-sched">No classes.</p>';
+        return `<div class="day-card${day === todayName ? ' today' : ''}"><div class="day-label">${day}${day === todayName ? ' · Today' : ''}</div>${slotsHtml}</div>`;
+    }).join('') + '</div>';
+}
+
+// Recent activities for this faculty member (lighting_logs, latest 10).
+// Accepts freshly-fetched logs; falls back to the page-load FACULTY_ACTIVITY.
+function renderFacultyViewActivities(fac, freshLogs) {
+    const el = document.getElementById('facultyViewActivities');
+    if (!el) return;
+    const logs = freshLogs || (FACULTY_ACTIVITY || {})[fac.id] || [];
+    if (logs.length) {
+        el.innerHTML = logs.map(a => {
+            const icon = alertIconMap(a.event_type);
+            const label = (a.event_type || '').replace(/_/g, ' ');
+            const rowTxt = a.row_affected ? ' · Row ' + escapeHtml(a.row_affected) : '';
+            return `<div class="modal-timeline-item">
+                <div class="modal-tl-icon" style="background:${icon[2]};color:${icon[1]};"><i class="bi ${icon[0]}"></i></div>
+                <div class="modal-tl-body">
+                    <p class="modal-tl-action">${label.charAt(0).toUpperCase() + label.slice(1)}${rowTxt}</p>
+                    <div class="modal-tl-meta"><span><i class="bi bi-clock"></i> ${escapeHtml(displayLogTime(a.event_time))}</span><span class="modal-tl-badge" style="background:${icon[2]};color:${icon[1]};">${escapeHtml(a.room_name || 'system')}</span></div>
+                </div>
+            </div>`;
+        }).join('');
+    } else {
+        el.innerHTML = '<div class="modal-slot-empty">No activity recorded for this faculty member.</div>';
+    }
 }
 
 function findRoomCardById(id) {
@@ -668,30 +1464,8 @@ function bindFilterMenu(menuId) {
 }
 
 // ── Export ───────────────────────────────────────────────────────────────
-function exportCSV() {
-    const dailyRows = currentPeriod > 1 ? (CHART_DAILY || []).slice(-currentPeriod) : (CHART_DAILY || []);
-    const rows = currentPeriod === 1 ? (CHART_TODAY || []) : dailyRows;
-    if (!rows.length) { alert('No data to export.'); return; }
-    let csv = currentPeriod === 1
-        ? 'Time,Energy (Wh),Voltage (V),Current (A),Power (W)\n'
-        : 'Date,Sessions,Occupied (hrs),Energy (Wh),Energy (kWh)\n';
-    rows.forEach(r => {
-        csv += currentPeriod === 1
-            ? [r.time, r.energy_wh, r.avg_voltage, r.avg_current, r.avg_power].join(',') + '\n'
-            : [r.label, r.sessions, (r.minutes / 60).toFixed(1), r.energy_wh, r.energy_kwh].join(',') + '\n';
-    });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'luminesense_overview.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function exportPDF() {
-    alert('PDF export is stubbed in the static preview. It will be wired to export-analytics-pdf.php after live data is connected.');
-}
+// CSV/PDF export of the analytics charts lives in admin-analytics.js
+// (shared runtime); the overview heading exposes its own actions instead.
 
 // ── Panel hover helpers ──────────────────────────────────────────────────
 function closePanel(id) {
@@ -738,37 +1512,27 @@ const alertIconMap = (type) => {
 function openRoomModal(id) {
     setRoomSelection(parseInt(id, 10));
     const room = (ROOMS || []).find(r => r.id == id) || {};
+    currentModalRoom = room;
     document.getElementById('roomModalLabel').textContent = room.room_name || 'Room Details';
-    new bootstrap.Modal(document.getElementById('roomModal')).show();
+
+    const modalEl = document.getElementById('roomModal');
+    if (modalEl && !modalEl.dataset.roomModalTimerBound) {
+        modalEl.dataset.roomModalTimerBound = '1';
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            if (roomModalTimer) { clearInterval(roomModalTimer); roomModalTimer = null; }
+        });
+    }
+    if (roomModalTimer) { clearInterval(roomModalTimer); roomModalTimer = null; }
+    roomModalTimer = setInterval(refreshRoomModalLive, 30000);
+
+    new bootstrap.Modal(modalEl).show();
     renderRoomModalFrom(room);
+    refreshRoomModalLive(); // paint real readings for the extended minutes immediately
 }
 
 function renderRoomModalFrom(room) {
-    const schedEl = document.getElementById('modalCurrentSched');
-    if (room.status === 'occupied' && room.faculty_name) {
-        schedEl.innerHTML = `<div class="d-flex align-items-start gap-3">
-            <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;font-size:1rem;"><span class="bold">${initialsOf(room.faculty_name)}</span></div>
-            <div style="flex:1;min-width:0;">
-                <p class="bold mb-0" style="font-size:.9rem;">${escapeHtml(room.faculty_name)}</p>
-                <small class="text-muted">Faculty Member</small>
-                <div style="font-size:.9rem;font-weight:600;margin-top:.15rem;">${room.current_time || ''}</div>
-                <div style="font-size:.82rem;margin-top:2px;"><span class="badge-occupied" style="padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">OCCUPIED</span></div>
-            </div>
-        </div>`;
-    } else if (room.status === 'scheduled' && room.next_time) {
-        schedEl.innerHTML = `<div class="d-flex align-items-start gap-3">
-            <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;font-size:1rem;background:#fff5d6;color:#a06800;"><i class="bi bi-calendar-event" style="font-size:1.2rem;"></i></div>
-            <div style="flex:1;min-width:0;">
-                <span style="display:inline-block;background:#fff5d6;color:#a06800;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;margin-bottom:6px;">SCHEDULED</span>
-                <div style="font-size:.9rem;font-weight:600;">${escapeHtml(room.next_time)}</div>
-            </div>
-        </div>`;
-    } else {
-        schedEl.innerHTML = `<div>
-            <span style="background:#d6fbe9;color:#0a7a45;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">VACANT</span>
-            <p class="text-muted mt-2 mb-0" style="font-size:.85rem;">No classes scheduled.</p>
-        </div>`;
-    }
+    renderRoomModalChart(extendRoomTodayToNow(room));
+    renderModalCurrentSched(room);
 
     // Weekly timetable
     const todayEl = document.getElementById('modalTodaySched');
@@ -790,24 +1554,8 @@ function renderRoomModalFrom(room) {
         return `<div class="day-card${day === todayName ? ' today' : ''}"><div class="day-label">${day}${day === todayName ? ' · Today' : ''}</div>${slotsHtml}</div>`;
     }).join('') + '</div>';
 
-    // Alerts
-    const alerts = room.alerts || [];
-    const previewEl = document.getElementById('modalAlertsPreview');
-    if (alerts.length) {
-        previewEl.innerHTML = alerts.map(a => {
-            const icon = alertIconMap(a.event_type);
-            const label = (a.event_type || '').replace(/_/g, ' ');
-            return `<div class="modal-timeline-item">
-                <div class="modal-tl-icon" style="background:${icon[2]};color:${icon[1]};"><i class="bi ${icon[0]}"></i></div>
-                <div class="modal-tl-body">
-                    <p class="modal-tl-action">${label.charAt(0).toUpperCase() + label.slice(1)}</p>
-                    <div class="modal-tl-meta"><span><i class="bi bi-clock"></i> ${escapeHtml(a.event_time || '')}</span><span class="modal-tl-badge" style="background:${icon[2]};color:${icon[1]};">${escapeHtml(a.triggered_by || 'system')}</span></div>
-                </div>
-            </div>`;
-        }).join('');
-    } else {
-        previewEl.innerHTML = '<div class="modal-slot-empty">No activity recorded for this room.</div>';
-    }
+    // Alerts (fresh data replaces this on the 30s live tick)
+    renderRoomAlerts(document.getElementById('modalAlertsPreview'), room.alerts || []);
 
     // Override toggles (local)
     rowState = {
@@ -823,6 +1571,138 @@ function renderRoomModalFrom(room) {
         if (sw) sw.checked = rowState[r];
     });
     syncAllLightsLabel();
+}
+
+const DAY_IDX = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+
+// Parse a "g:i A" formatted time (PHP fmtTime) into minutes since midnight.
+function parseFmtTime(t) {
+    const m = String(t || '').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!m) return -1;
+    let h = parseInt(m[1], 10) % 12;
+    if (/pm/i.test(m[3])) h += 12;
+    return h * 60 + parseInt(m[2], 10);
+}
+
+// Live "Current Schedule" card for the room modal — recomputed from the room's
+// weekly schedules + the current time so it can't go stale mid-day.
+function renderModalCurrentSched(room) {
+    const schedEl = document.getElementById('modalCurrentSched');
+    if (!schedEl) return;
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const todayIdx = now.getDay();
+    const todayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const scheds = (room.schedules || []);
+
+    let current = null;
+    let nextToday = null;
+    let nextAny = null;
+    scheds.forEach(s => {
+        const start = parseFmtTime(s.start_time);
+        const end = parseFmtTime(s.end_time);
+        if (s.day_of_week === todayName) {
+            if (start >= 0 && end >= 0 && start <= nowMin && nowMin <= end && !current) current = s;
+            if (start >= 0 && start > nowMin && (!nextToday || start < parseFmtTime(nextToday.start_time))) nextToday = s;
+        }
+        const idx = DAY_IDX[s.day_of_week];
+        if (idx !== undefined && start >= 0) {
+            let offset = idx - todayIdx;
+            if (offset < 0) offset += 7;
+            if (offset === 0 && start <= nowMin) offset = 7; // today's slot already passed
+            if (!nextAny || offset < nextAny.offset || (offset === nextAny.offset && start < nextAny.startMin)) {
+                nextAny = { s: s, offset: offset, startMin: start };
+            }
+        }
+    });
+
+    if (current) {
+        const fac = current.faculty_name || '';
+        schedEl.innerHTML = `<div class="d-flex align-items-start gap-3">
+            <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;font-size:1rem;"><span class="bold">${initialsOf(fac)}</span></div>
+            <div style="flex:1;min-width:0;">
+                <p class="bold mb-0" style="font-size:.9rem;">${escapeHtml(fac)}</p>
+                <small class="text-muted">Faculty Member</small>
+                <div style="font-size:.9rem;font-weight:600;margin-top:.15rem;">${escapeHtml(current.start_time)} – ${escapeHtml(current.end_time)}</div>
+                <div style="font-size:.82rem;margin-top:2px;"><span class="badge-occupied" style="padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">OCCUPIED</span></div>
+            </div>
+        </div>`;
+        return;
+    }
+
+    let nextLabel = '';
+    if (nextToday) {
+        nextLabel = escapeHtml(nextToday.start_time) + ' – ' + escapeHtml(nextToday.end_time);
+    } else if (nextAny) {
+        const d = new Date();
+        d.setDate(d.getDate() + nextAny.offset);
+        nextLabel = escapeHtml(d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' · ' + nextAny.s.start_time);
+    }
+
+    if (nextLabel) {
+        schedEl.innerHTML = `<div class="d-flex align-items-start gap-3">
+            <div class="avatar-icon d-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;font-size:1rem;background:#fff5d6;color:#a06800;"><i class="bi bi-calendar-event" style="font-size:1.2rem;"></i></div>
+            <div style="flex:1;min-width:0;">
+                <span style="display:inline-block;background:#fff5d6;color:#a06800;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;margin-bottom:6px;">SCHEDULED</span>
+                <div style="font-size:.9rem;font-weight:600;">${nextLabel}</div>
+            </div>
+        </div>`;
+        return;
+    }
+
+    schedEl.innerHTML = `<div>
+        <span style="background:#d6fbe9;color:#0a7a45;padding:2px 8px;border-radius:10px;font-weight:700;font-size:10px;">VACANT</span>
+        <p class="text-muted mt-2 mb-0" style="font-size:.85rem;">No classes scheduled.</p>
+    </div>`;
+}
+
+// Normalize a log timestamp (ISO from the APIs, or raw from the page globals)
+// into the "Y-m-d H:i:s" display used by the modals.
+function displayLogTime(t) {
+    return String(t == null ? '' : t).replace('T', ' ').replace('+08:00', '');
+}
+
+// Alerts/activity timeline items for the room modal (same markup as before).
+function renderRoomAlerts(previewEl, alerts) {
+    if (!previewEl) return;
+    if (alerts && alerts.length) {
+        previewEl.innerHTML = alerts.map(a => {
+            const icon = alertIconMap(a.event_type);
+            const label = (a.event_type || '').replace(/_/g, ' ');
+            return `<div class="modal-timeline-item">
+                <div class="modal-tl-icon" style="background:${icon[2]};color:${icon[1]};"><i class="bi ${icon[0]}"></i></div>
+                <div class="modal-tl-body">
+                    <p class="modal-tl-action">${label.charAt(0).toUpperCase() + label.slice(1)}</p>
+                    <div class="modal-tl-meta"><span><i class="bi bi-clock"></i> ${escapeHtml(displayLogTime(a.event_time))}</span><span class="modal-tl-badge" style="background:${icon[2]};color:${icon[1]};">${escapeHtml(a.triggered_by || 'system')}</span></div>
+                </div>
+            </div>`;
+        }).join('');
+    } else {
+        previewEl.innerHTML = '<div class="modal-slot-empty">No activity recorded for this room.</div>';
+    }
+}
+
+// Lightweight live refresh while the room modal is open (mirrors the faculty
+// view modal): fetch fresh per-minute readings + room logs and re-render the
+// chart, current-schedule card and alerts. Timetable/override toggles are
+// untouched. Falls back to the local extend-to-now behavior on fetch failure.
+function refreshRoomModalLive() {
+    const room = currentModalRoom;
+    if (!room || !room.id) return;
+    const req = ++roomModalChartReq;
+    fetchRoomTodaySeries(room.id).then(function (today) {
+        if (req !== roomModalChartReq) return; // stale response
+        const roomNow = today
+            ? extendRoomTodayToNow(roomWithFreshToday(room, today))
+            : extendRoomTodayToNow(room);
+        renderRoomModalChart(roomNow);
+        renderModalCurrentSched(room);
+    });
+    // Fresh alerts for the alerts card (keep the current list on failure).
+    fetchRoomAlerts(room.room_name).then(function (logs) {
+        if (req !== roomModalChartReq || !logs) return;
+        renderRoomAlerts(document.getElementById('modalAlertsPreview'), logs);
+    });
 }
 
 function initialsOf(name) {
@@ -973,20 +1853,19 @@ async function pollOverviewLive() {
         const data = await res.json();
         if (!data || !data.ok) return;
         (data.rooms || []).forEach(applyLiveRoom);
-        renderLiveReadings();
+        if (!liveMode) renderLiveReadings();
     } catch (err) {
         console.warn('[Overview Live]', err);
     }
 }
 
 async function pollOverviewChart() {
-    if (currentPeriod !== 1) return;
+    if (liveMode || currentPeriod !== 1) return;
     try {
         const res = await fetch('../../api/overview-chart.php');
         const data = await res.json();
         if (!data || !data.ok) return;
-        CHART_TODAY = data.today || [];
-        updateMainCharts();
+        liveChartToday = data.today || [];
         buildOverviewLineChart();
     } catch (err) {
         console.warn('[Overview Chart]', err);
@@ -998,12 +1877,15 @@ document.addEventListener('DOMContentLoaded', function () {
     drawAllSparks();
     renderLiveReadings();
     buildOverviewLineChart();
-    updateMainCharts();
     updateSelectionUI();
 
     // Keep device-strips + sparklines fresh while ESP32/Arduino streams
     overviewPollTimer = setInterval(pollOverviewLive, OVERVIEW_POLL_MS);
     chartPollTimer = setInterval(pollOverviewChart, CHART_POLL_MS);
+
+    // Live dashboard toggle
+    const liveBtn = document.getElementById('liveToggleBtn');
+    if (liveBtn) liveBtn.addEventListener('click', toggleLiveMode);
 
     // Room selection
     document.querySelectorAll('.spark-card, .room-card:not(.faculty-card), .hroom-row:not(.faculty-card)').forEach(card => {
@@ -1015,14 +1897,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const selectAllBtn = document.getElementById('selectAllRoomsBtn');
     if (selectAllBtn) selectAllBtn.addEventListener('click', toggleSelectAll);
 
-    // Metric cards in live readings
-    document.querySelectorAll('#vawGroup .live-stat-card[data-metric]').forEach(card => {
+    // Live dashboard shared view: Faculty slicer selection + cross-sync.
+    document.querySelectorAll('.rooms-card.faculty-slice-card .stat-card').forEach(card => {
         card.addEventListener('click', function () {
-            const isActive = this.classList.contains('metric-active');
-            if (isActive) { setMetric(null, 'all'); return; }
-            setMetric(this, this.getAttribute('data-metric'));
+            selectFacultyFromSlicer(this);
         });
     });
+    // Selecting a Room row clears the (single) Faculty selection so the
+    // slicers always agree (room click handler in admin-analytics.js drives data).
+    document.querySelectorAll('.rooms-card .stat-card:not(.faculty-stat-card)').forEach(function (c) {
+        c.addEventListener('click', function () {
+            document.querySelectorAll('.rooms-card.faculty-slice-card .stat-card.active-room').forEach(function (f) {
+                f.classList.remove('active-room');
+            });
+        });
+    });
+
+    // Metric cards in live readings (bound by admin-analytics.js itself)
 
     // Filters
     ['statusFilterMenu'].forEach(bindFilterMenu);
@@ -1111,10 +2002,12 @@ document.addEventListener('DOMContentLoaded', function () {
         panel.addEventListener('click', function () { closeNow(); });
     });
 
-    // Modal cleanup
+// Modal cleanup
     const roomModalEl = document.getElementById('roomModal');
     if (roomModalEl) {
-roomModalEl.addEventListener('hidden.bs.modal', function () {
+        roomModalEl.addEventListener('hidden.bs.modal', function () {
+            if (roomModalChartInstance) { roomModalChartInstance.destroy(); roomModalChartInstance = null; }
+            currentModalRoom = null;
             setRoomOnly(null);
             setFacultyOnly(null);
         });
@@ -1125,6 +2018,12 @@ roomModalEl.addEventListener('hidden.bs.modal', function () {
     // Maximize button → fullscreen schedule Gantt
     const maximizeBtn = document.getElementById('maximizeFacultyBtn');
     if (maximizeBtn) maximizeBtn.addEventListener('click', openFacultyGantt);
+
+    // Live dashboard starts ON by default (per product request).
+    if (liveBtn) {
+        setLiveMode(true);
+        initChartCarousel();
+    }
 });
 
 /* ── Faculty Management Pane ─────────────────────────────────────────────── */
@@ -1342,7 +2241,12 @@ function renderFacultyGantt() {
             html += '<div class="gantt-block ' + cls + '" style="left:' + left + 'px;width:' + width + 'px;" ' +
                 'data-subject="' + escapeHtml(subjName) + '" ' +
                 'data-room="' + escapeHtml(roomName) + '" ' +
-                'data-time="' + escapeHtml(startTxt + ' – ' + endTxt) + '">' +
+                'data-time="' + escapeHtml(startTxt + ' – ' + endTxt) + '" ' +
+                'data-faculty-id="' + f.id + '" ' +
+                'data-classroom-id="' + (s.classroom_id || 0) + '" ' +
+                'data-sched-id="' + (s.sched_id || 0) + '" ' +
+                'data-start="' + (s.start_time || '') + '" ' +
+                'data-end="' + (s.extended_until || s.end_time || '') + '">' +
                 '<span class="gantt-block-subject">' + escapeHtml(subjName) + '</span>' +
                 '<span class="gantt-block-room">' + escapeHtml(roomName) + '</span>' +
                 '</div>';
@@ -1412,6 +2316,7 @@ function ganttStep(offset) {
     ganttScrollOffset = 0; // each day starts at its earliest visible hour
     ganttAutoPosition = true;
     hideFacultyGanttOverlay();
+    closeGanttSessionPanel();
     renderFacultyGantt();
 }
 
@@ -1428,6 +2333,7 @@ document.querySelectorAll('.gantt-day-tab').forEach(function (btn) {
         ganttScrollOffset = 0; // each day starts at its earliest visible hour
         ganttAutoPosition = true;
         hideFacultyGanttOverlay();
+        closeGanttSessionPanel();
         renderFacultyGantt();
     });
 });
@@ -1457,6 +2363,7 @@ if (ganttSearchEl) {
     ganttSearchEl.addEventListener('input', function () {
         ganttSearch = this.value.trim().toLowerCase();
         hideFacultyGanttOverlay();
+        closeGanttSessionPanel();
         renderFacultyGantt();
     });
 }
@@ -1521,3 +2428,187 @@ document.addEventListener('mouseout', function (e) {
     if (toEl && toEl.closest && toEl.closest('.gantt-block, #facultyGanttOverlay')) return;
     hideFacultyGanttOverlay();
 });
+
+/* ── Gantt session-detail panel (appears below the chart on block click) ── */
+let ganttSdChartInstance = null;
+
+function destroyGanttSdChart() {
+    if (ganttSdChartInstance) { ganttSdChartInstance.destroy(); ganttSdChartInstance = null; }
+}
+
+// Concrete date for the selected (weekly) gantt day: today if it's that weekday,
+// otherwise the next future occurrence of that weekday.
+function ganttSessionDate(dayIdx) {
+    const today = new Date();
+    const todayDow = today.getDay();            // 0 Sun … 6 Sat
+    const selDow = (dayIdx + 1) % 7;            // Mon(0) → 1 … Sun(6) → 0
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    if (selDow !== todayDow) {
+        d.setDate(d.getDate() + ((selDow - todayDow + 7) % 7));
+    }
+    return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+}
+
+function fmtDurationMin(min) {
+    const m = Math.max(parseInt(min, 10) || 0, 0);
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    return h > 0 ? h + ' hr ' + r + ' min' : r + ' min';
+}
+
+function ganttSdStat(label, value) {
+    return '<div class="gantt-sd-stat"><div class="gantt-sd-stat-label">' + label + '</div>' +
+        '<div class="gantt-sd-stat-value">' + value + '</div></div>';
+}
+
+function renderGanttSdStats(data) {
+    const el = document.getElementById('ganttSdStats');
+    if (!el) return;
+    const has = !!data.has_data;
+    const dash = '<span class="text-muted">—</span>';
+    const energyWh = parseFloat(data.total_energy_wh) || 0;
+    const energyTxt = has
+        ? (energyWh >= 1000 ? (energyWh / 1000).toFixed(3) + ' kWh' : energyWh.toFixed(2) + ' Wh')
+        : 'No data';
+    el.innerHTML =
+        '<div class="gantt-sd-empty px-1 pb-2" ' + (has ? 'style="display:none;"' : '') + '>No energy readings recorded for this session.</div>' +
+        '<div class="gantt-sd-stat-grid">' +
+        ganttSdStat('Time consumed', fmtDurationMin(data.duration_min)) +
+        ganttSdStat('Total energy', energyTxt) +
+        ganttSdStat('Est. cost', has ? '₱' + parseFloat(data.est_cost_php || 0).toFixed(2) : dash) +
+        ganttSdStat('Avg Voltage', has ? (data.avg_voltage || 0) + ' V' : dash) +
+        ganttSdStat('Avg Current', has ? (data.avg_current || 0) + ' A' : dash) +
+        ganttSdStat('Avg Power', has ? (data.avg_power || 0) + ' W' : dash) +
+        ganttSdStat('Peak Power', has ? (data.peak_power_w || 0) + ' W' : dash) +
+        '</div>';
+}
+
+function renderGanttSdAnomalies(anomalies, hasData) {
+    const el = document.getElementById('ganttSdAnomalies');
+    if (!el) return;
+    const list = anomalies || [];
+    if (!list.length) {
+        el.innerHTML = '<div class="gantt-sd-anomaly-none">' +
+            (hasData ? 'No anomalies detected in this session.' : 'No anomalies recorded.') +
+            '</div>';
+        return;
+    }
+    el.innerHTML = list.map(function (a) {
+        return '<div class="gantt-sd-anomaly">' +
+            '<span class="gantt-sd-anomaly-icon"><i class="bi bi-exclamation-triangle-fill"></i></span>' +
+            '<div class="gantt-sd-anomaly-body">' +
+            '<div class="gantt-sd-anomaly-title">' + escapeHtml((a.event_type || 'issue_raised').replace(/_/g, ' ')) +
+            ' <span class="badge">' + escapeHtml(a.triggered_by || 'system') + '</span></div>' +
+            '<div class="gantt-sd-anomaly-meta"><i class="bi bi-clock me-1"></i>' + escapeHtml(a.event_time || '') + '</div>' +
+            (a.notes ? '<div class="gantt-sd-anomaly-notes">' + escapeHtml(a.notes) + '</div>' : '') +
+            '</div></div>';
+    }).join('');
+}
+
+function renderGanttSdChart(data) {
+    const canvas = document.getElementById('ganttSdChart');
+    if (!canvas || !window.Chart) return;
+    destroyGanttSdChart();
+    const has = !!data.has_data && (data.chart && data.chart.labels.length);
+    if (!has) {
+        canvas.style.display = 'none';
+        return;
+    }
+    canvas.style.display = 'block';
+    ganttSdChartInstance = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: data.chart.labels,
+            datasets: [
+                { label: 'Voltage (V)', data: data.chart.voltage, borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.08)', fill: true, tension: 0.3, pointRadius: 1 },
+                { label: 'Current (A)', data: data.chart.current, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)', fill: true, tension: 0.3, pointRadius: 1, yAxisID: 'y1' },
+                { label: 'Power (W)', data: data.chart.power, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.08)', fill: true, tension: 0.3, pointRadius: 1, yAxisID: 'y1' },
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+                legend: { position: 'top', labels: { font: { family: 'Poppins', size: 10 }, boxWidth: 12, padding: 12 } },
+            },
+            scales: {
+                x: { ticks: { color: '#4d4d4d', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+                y: { type: 'linear', display: true, position: 'left', ticks: { color: '#742fd3', font: { family: 'Poppins', size: 10 } }, grid: { color: 'rgba(47,0,79,0.07)' } },
+                y1: { type: 'linear', display: true, position: 'right', ticks: { color: '#f59e0b', font: { family: 'Poppins', size: 10 } }, grid: { display: false } },
+            },
+        },
+    });
+}
+
+function showGanttSessionPanel(block) {
+    const panel = document.getElementById('ganttSessionDetail');
+    if (!panel) return;
+    const cid = parseInt(block.getAttribute('data-classroom-id'), 10);
+    const fid = parseInt(block.getAttribute('data-faculty-id'), 10);
+    const subject = block.getAttribute('data-subject') || 'Class';
+    const room = block.getAttribute('data-room') || '—';
+    const timeTxt = block.getAttribute('data-time') || '';
+    const start = block.getAttribute('data-start') || '';
+    const end = block.getAttribute('data-end') || '';
+
+    const fac = (FACULTY || []).find(function (f) { return parseInt(f.id, 10) === fid; });
+    const facName = fac ? (fac.first_name + ' ' + fac.last_name) : 'Faculty';
+    const date = ganttSessionDate(ganttDayIdx);
+
+    document.getElementById('ganttSdTitle').textContent = subject;
+    const subEl = document.getElementById('ganttSdSubtitle');
+    if (subEl) subEl.textContent = room + ' · ' + facName + ' · ' + date + ' · ' + timeTxt;
+
+    panel.classList.remove('d-none');
+    document.getElementById('ganttSdStats').innerHTML = '<div class="gantt-sd-empty text-muted py-2">Loading session data…</div>';
+    document.getElementById('ganttSdAnomalies').innerHTML = '';
+    destroyGanttSdChart();
+    const canvas = document.getElementById('ganttSdChart');
+    if (canvas) canvas.style.display = 'none';
+
+    if (cid <= 0 || !start || !end) {
+        renderGanttSdStats({ duration_min: 0, has_data: false });
+        renderGanttSdAnomalies([], false);
+        return;
+    }
+
+    fetch('../../api/session-detail.php?classroom_id=' + cid +
+        '&date=' + encodeURIComponent(date) +
+        '&start=' + encodeURIComponent(start) +
+        '&end=' + encodeURIComponent(end))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data || data.success === false) throw new Error('bad');
+            renderGanttSdStats(data);
+            renderGanttSdAnomalies(data.anomalies, data.has_data);
+            renderGanttSdChart(data);
+        })
+        .catch(function () {
+            document.getElementById('ganttSdStats').innerHTML = '<div class="gantt-sd-empty text-muted py-2">Could not load session data.</div>';
+        });
+}
+
+function closeGanttSessionPanel() {
+    const panel = document.getElementById('ganttSessionDetail');
+    if (panel) panel.classList.add('d-none');
+    destroyGanttSdChart();
+}
+
+// Clicking a gantt block shows the session-detail panel below the chart.
+document.addEventListener('click', function (e) {
+    const block = e.target.closest('.gantt-block');
+    if (!block) return;
+    hideFacultyGanttOverlay();
+    showGanttSessionPanel(block);
+});
+
+// Clean up the panel/chart when the maximized modal closes.
+const ganttModalEl = document.getElementById('facultyGanttModal');
+if (ganttModalEl) {
+    ganttModalEl.addEventListener('hidden.bs.modal', function () {
+        closeGanttSessionPanel();
+    });
+}
