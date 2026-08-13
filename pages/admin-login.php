@@ -38,7 +38,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success_modal'], $_SESSION['lo
 <body>
     <div class="form-bg">
         <img src="../images/landing/bgforms.jpg" alt="" class="bg-base" loading="lazy">
-        <img src="../images/landing/bgforms-yellow.jpg" alt="" class="bg-base bg-hover" loading="lazy">
+        <img src="../images/landing/bgformsyellow.jpg" alt="" class="bg-base bg-hover" loading="lazy">
 
         <!--Div Border-->
         <div class="border-glow" style="position: absolute; inset: 0; box-sizing: border-box; z-index: 1; border-radius: 10px; pointer-events: none;"></div>
