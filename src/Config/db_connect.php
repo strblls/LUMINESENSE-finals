@@ -470,6 +470,19 @@ $conn->query("
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
 
+// ── Tilt/manhandling alert log (tilt sensor + piezo buzzer on Mega) ──────
+// state=1 is raised as a tilt_alert issue in room_logs (Issues Logged tab).
+$conn->query("
+    CREATE TABLE IF NOT EXISTS tilt_logs (
+        id            INT AUTO_INCREMENT PRIMARY KEY,
+        classroom_id  INT NOT NULL,
+        state         TINYINT(1) NOT NULL COMMENT '1=tilt detected, 0=sensor settled',
+        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,
+        INDEX idx_tilt_logs_room (classroom_id, id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
 // ── Class lifecycle logs (class_start / class_end) ──────────────────────────
 $conn->query("
     CREATE TABLE IF NOT EXISTS class_logs (

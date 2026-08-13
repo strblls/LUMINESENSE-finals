@@ -128,11 +128,11 @@ if ($r3) { $room_count = (int)$r3->fetch_assoc()['cnt']; $r3->free(); }
 $r4 = $conn->query("SELECT COUNT(*) AS cnt FROM classrooms c WHERE COALESCE((SELECT l.event_type FROM lighting_logs l WHERE l.classroom_id = c.id ORDER BY l.id DESC LIMIT 1),'off') = 'on'");
 if ($r4) { $lights_on = (int)$r4->fetch_assoc()['cnt']; $r4->free(); }
 
-// Issue counts from room_logs
-$r5 = $conn->query("SELECT event_type, COUNT(*) AS cnt FROM room_logs WHERE event_type IN ('issue_raised','issue_resolved') GROUP BY event_type");
+// Issue counts from room_logs (tilt_alert counts as an issue raised)
+$r5 = $conn->query("SELECT event_type, COUNT(*) AS cnt FROM room_logs WHERE event_type IN ('issue_raised','issue_resolved','tilt_alert') GROUP BY event_type");
 if ($r5) {
     while ($row = $r5->fetch_assoc()) {
-        if ($row['event_type'] === 'issue_raised') $issue_raised = (int)$row['cnt'];
+        if ($row['event_type'] === 'issue_raised' || $row['event_type'] === 'tilt_alert') $issue_raised += (int)$row['cnt'];
         elseif ($row['event_type'] === 'issue_resolved') $issue_resolved = (int)$row['cnt'];
     }
     $r5->free();

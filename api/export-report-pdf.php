@@ -20,6 +20,7 @@ function pdfEventStyle(string $action): array {
     $map = [
         'issue_raised'   => ['#842029', '#f8d7da'],
         'issue_resolved' => ['#0f5132', '#d1e7dd'],
+        'tilt_alert'     => ['#7f1d1d', '#fee2e2'],
         'light_on'       => ['#0f5132', '#d1e7dd'],
         'light_off'      => ['#842029', '#f8d7da'],
         'pir_motion'     => ['#084298', '#cfe2ff'],
@@ -111,7 +112,7 @@ if ($tab === 'rooms') {
     }
     $html .= '</tbody></table>';
 } elseif ($tab === 'issues') {
-    $where = ["event_type IN ('issue_raised','issue_resolved')"];
+    $where = ["event_type IN ('issue_raised','issue_resolved','tilt_alert')"];
     if ($search) {
         $s = $conn->real_escape_string($search);
         $where[] = "(room_name LIKE '%$s%' OR notes LIKE '%$s%' OR triggered_by LIKE '%$s%')";
@@ -152,8 +153,9 @@ if ($tab === 'rooms') {
     } else {
         foreach ($issues as $issue) {
             [$fg, $bg] = pdfEventStyle($issue['event_type']);
+            $isTilt   = $issue['event_type'] === 'tilt_alert';
             $isRaised = $issue['event_type'] === 'issue_raised';
-            $label = $isRaised ? 'Issue Raised' : 'Issue Resolved';
+            $label = $isTilt ? 'Tilt Alert' : ($isRaised ? 'Issue Raised' : 'Issue Resolved');
             $timeStr = date('M j, Y g:i A', strtotime($issue['event_time']));
             $html .= '<tr>';
             $html .= '<td style="white-space:nowrap;">' . $timeStr . '</td>';
