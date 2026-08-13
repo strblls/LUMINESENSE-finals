@@ -172,8 +172,21 @@ function formatLabelDate(dt) {
 const METRIC_LABELS = { voltage: 'Voltage', current: 'Current', power: 'Power' };
 const CHART_TITLES   = { lineGraphCard: 'lineChartTitle', barGraphCard: 'barChartTitle' };
 
-// ── Chart instances ───────────────────────────────────────────────────────────
-const barChartInstance = new Chart(document.getElementById('barChart'), {
+// ── Chart instances — created lazily (see createAnalyticsCharts below) ────────
+let barChartInstance = null;
+let lineChartInstance = null;
+
+// Charts must never be instantiated while their container is hidden
+// (display:none). Chart.js 4 sizes the canvas to the browser's maximum in
+// that case and throws "Canvas exceeds max size" on resize. On the
+// admin-overview page the shared live-dashboard charts stay display:none
+// until the Live toggle is on, so creation is deferred to that moment.
+function createAnalyticsCharts() {
+    if (barChartInstance && lineChartInstance) return;
+    if (!chartsVisible()) return;
+    // Clear any half-created/poisoned instances before (re)creating.
+    destroyAnalyticsCharts();
+    barChartInstance = new Chart(document.getElementById('barChart'), {
     type: 'bar',
     plugins: [issueMarkerPlugin],
     data: {
@@ -267,7 +280,7 @@ const barChartInstance = new Chart(document.getElementById('barChart'), {
     }
 });
 
-const lineChartInstance = new Chart(document.getElementById('lineChart'), {
+    lineChartInstance = new Chart(document.getElementById('lineChart'), {
     type: 'line',
     plugins: [issueMarkerPlugin],
     data: {
@@ -371,6 +384,20 @@ const lineChartInstance = new Chart(document.getElementById('lineChart'), {
         }
     }
 });
+
+    // End createAnalyticsCharts()
+}
+
+function chartsVisible() {
+    const el = document.getElementById('chartCarousel') || document.getElementById('lineChart') || document.getElementById('barChart');
+    if (!el) return false;
+    return el.offsetParent !== null || el.getClientRects().length > 0;
+}
+
+function destroyAnalyticsCharts() {
+    if (barChartInstance) { barChartInstance.destroy(); barChartInstance = null; }
+    if (lineChartInstance) { lineChartInstance.destroy(); lineChartInstance = null; }
+}
 
 let lastData = null;
 
@@ -617,6 +644,7 @@ function setPeriod(el, days) {
 }
 
 function syncVawFromLegend() {
+    if (!lineChartInstance || !barChartInstance) return;
     var charts    = [lineChartInstance, barChartInstance];
     var allHidden = true;
     charts.forEach(function(ch) {
@@ -675,6 +703,7 @@ function updateChartTitles() {
 }
 
 function setMetric(el, metric) {
+    if (!lineChartInstance || !barChartInstance) return;
     el.parentElement.querySelectorAll('.dept-member-filter-item').forEach(i => i.classList.remove('active'));
     el.classList.add('active');
     var charts = [lineChartInstance, barChartInstance];
@@ -729,6 +758,7 @@ function setMetric(el, metric) {
  */
 function updateCharts(labels, chartData) {
     if (!labels || labels.length === 0) labels = ['No data'];
+    if (!lineChartInstance || !barChartInstance) return;
 
     var count = labels.length;
 
@@ -868,6 +898,8 @@ function toggleChartMaximize(cardId) {
 
 // ── MAIN FETCH + RENDER ───────────────────────────────────────────────────────
 async function onControlChange() {
+    // Charts may not exist yet (embedded overview: created on Live toggle).
+    createAnalyticsCharts();
     const range = parseInt(document.getElementById('periodSelect').value);
     const cid   = getCid();
 
@@ -1192,6 +1224,9 @@ function destroyFindingsCharts() {
 function drawFindingsSpark(canvasId, dataArr, color) {
     var el = document.getElementById(canvasId);
     if (!el || !window.Chart) return;
+    // Skip while the canvas is hidden/zero-sized — Chart.js throws
+    // "Canvas exceeds max size" when created in a display:none container.
+    if (el.offsetParent === null && !el.getClientRects().length) return;
     if (findingsSparkCharts[canvasId]) findingsSparkCharts[canvasId].destroy();
     var flat = (dataArr || []).map(Number);
     if (!flat.length) flat = [0];
@@ -1226,6 +1261,8 @@ function renderFindingsMiniChart(labels, series, issues, range) {
     var scrollWrap = document.getElementById('findingsScrollWrap');
     var slider = document.getElementById('findingsScroll');
     if (!canvas || !window.Chart) return;
+    // Skip while the canvas is hidden/zero-sized (same Chart.js constraint).
+    if (canvas.offsetParent === null && !canvas.getClientRects().length) return;
     if (!labels || !labels.length) {
         if (label) label.textContent = 'Energy Profile';
         if (hint)  hint.textContent  = 'No data';
@@ -1512,16 +1549,21 @@ function renderHistoryTable(rows, summary, range) {
 
         var totalEnergy = 0, totalVoltage = 0, totalCurrent = 0, totalPower = 0;
         rows.forEach(function(r) {
-            totalEnergy  += r.energy_wh;
-            totalVoltage += r.avg_voltage;
-            totalCurrent += r.avg_current;
-            totalPower   += r.avg_power;
+            // Readings may be null (device gaps / padded minutes) — render dashes.
+            var en = (r.energy_wh != null) ? r.energy_wh : 0;
+            var v  = (r.avg_voltage != null) ? r.avg_voltage : 0;
+            var a  = (r.avg_current != null) ? r.avg_current : 0;
+            var p  = (r.avg_power   != null) ? r.avg_power   : 0;
+            totalEnergy  += en;
+            totalVoltage += v;
+            totalCurrent += a;
+            totalPower   += p;
             var tr = document.createElement('tr');
             tr.innerHTML = '<td>' + r.time + '</td>'
-                + '<td class="text-center">' + r.energy_wh.toFixed(4)   + '</td>'
-                + '<td class="text-center">' + r.avg_voltage.toFixed(1) + '</td>'
-                + '<td class="text-center">' + r.avg_current.toFixed(3) + '</td>'
-                + '<td class="text-center">' + r.avg_power.toFixed(1)   + '</td>';
+                + '<td class="text-center">' + en.toFixed(4) + '</td>'
+                + '<td class="text-center">' + v.toFixed(1)  + '</td>'
+                + '<td class="text-center">' + a.toFixed(3)  + '</td>'
+                + '<td class="text-center">' + p.toFixed(1)  + '</td>';
             tbody.appendChild(tr);
         });
 
@@ -1555,20 +1597,21 @@ function renderHistoryTable(rows, summary, range) {
     }
 
     rows.forEach(d => {
-        const kwh = (d.energy_wh / 1000).toFixed(4);
+        const wh  = (d.energy_wh != null) ? d.energy_wh : 0;
+        const kwh = (wh / 1000).toFixed(4);
         const hrs = ((d.minutes  ?? 0) / 60).toFixed(1);
         const tr  = document.createElement('tr');
         tr.innerHTML = `
             <td>${d.label}</td>
             <td class="text-center">${d.sessions}</td>
             <td class="text-center">${hrs} hrs</td>
-            <td class="text-center">${d.energy_wh.toFixed(2)} Wh</td>
+            <td class="text-center">${wh.toFixed(2)} Wh</td>
             <td class="text-center">${kwh} kWh</td>
         `;
         tbody.appendChild(tr);
     });
 
-    const totalWh   = rows.reduce((s, d) => s + d.energy_wh, 0);
+    const totalWh   = rows.reduce((s, d) => s + ((d.energy_wh != null) ? d.energy_wh : 0), 0);
     const totalKwh  = (totalWh / 1000).toFixed(4);
     const totalMins = rows.reduce((s, d) => s + (d.minutes ?? 0), 0);
     const totalHrs  = (totalMins / 60).toFixed(1);
@@ -1673,10 +1716,11 @@ function exportSectionPDF(sectionId) {
     var canvasId = (sectionId === 'lineGraphCard') ? 'lineChart' : 'barChart';
     var canvas = document.getElementById(canvasId);
     // On admin-overview the shared live-dashboard charts sit inside a
-    // display:none container while the Live toggle is off, so their canvas is
-    // 0-sized and toDataURL() would be blank. Fall back to the always-visible
-    // overview line chart so the PDF still embeds a real graph image.
-    if (canvas && canvas.width === 0) {
+    // display:none container while the Live toggle is off (and are destroyed
+    // on toggle-off), so their canvas is blank/0-sized. Fall back to the
+    // always-visible overview line chart so the PDF embeds a real graph image.
+    var liveDashboardVisible = document.body.classList.contains('live-mode');
+    if (!liveDashboardVisible || (canvas && canvas.width === 0)) {
         var ovCanvas = document.getElementById('overviewLineChart');
         if (ovCanvas && ovCanvas.width > 0) canvas = ovCanvas;
     }
@@ -1787,6 +1831,7 @@ if (initLabel) initLabel.textContent = new Date().toLocaleDateString('en-US', { 
 
 if (!LUMI_EMBEDDED) {
     // Fetch real data immediately (no dummy pre-render)
+    createAnalyticsCharts();
     onControlChange();
 
     // Silent background refresh every 30 s
@@ -1850,12 +1895,12 @@ function showNoDeviceState() {
     var fCard = document.getElementById('findingsCard');
     if (fCard) fCard.style.display = 'none';
     destroyFindingsCharts();
-    if (typeof lineChartInstance !== 'undefined') {
+    if (lineChartInstance) {
         lineChartInstance.data.labels = ['No data'];
         lineChartInstance.data.datasets.forEach(function(ds) { ds.data = []; });
         lineChartInstance.update();
     }
-    if (typeof barChartInstance !== 'undefined') {
+    if (barChartInstance) {
         barChartInstance.data.labels = ['No data'];
         barChartInstance.data.datasets.forEach(function(ds) { ds.data = []; });
         barChartInstance.update();

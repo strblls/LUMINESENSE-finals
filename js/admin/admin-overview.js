@@ -441,10 +441,17 @@ function setLiveMode(on) {
     const btn = document.getElementById('liveToggleBtn');
     if (btn) btn.classList.toggle('active', on);
     if (on) {
+        // Charts are created lazily by admin-analytics.js once the live
+        // dashboard is visible (avoids Chart.js "Canvas exceeds max size").
+        if (typeof window.createAnalyticsCharts === 'function') window.createAnalyticsCharts();
         if (typeof window.resumePolling === 'function') window.resumePolling();
         if (typeof window.onControlChange === 'function') window.onControlChange();
     } else {
         if (typeof window.pausePolling === 'function') window.pausePolling();
+        // Release chart instances while the dashboard is hidden so the next
+        // toggle recreates them in a visible container.
+        if (typeof window.destroyAnalyticsCharts === 'function') window.destroyAnalyticsCharts();
+        if (typeof window.destroyFindingsCharts === 'function') window.destroyFindingsCharts();
         updateSelectionUI();
     }
 }
