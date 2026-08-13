@@ -30,26 +30,17 @@ unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_su
     <link rel="stylesheet" href="../css/base/global.css">
     <link rel="stylesheet" href="../css/base/containers.css">
     <link rel="stylesheet" href="../css/pages/registration.css">
-    <link rel="stylesheet" href="../css/pages/index.css">
 
     <title>Faculty Login - LumineSense</title>
 </head>
 
 <body>
-    <div class="form-bg">
-        <img src="../images/landing/bgforms.jpg" alt="" class="bg-base" loading="lazy">
-        <img src="../images/landing/bgformsyellow.jpg" alt="" class="bg-base bg-hover" loading="lazy">
-
-        <!--Div Border-->
-        <div class="border-glow" style="position: absolute; inset: 0; box-sizing: border-box; z-index: 1; border-radius: 10px; pointer-events: none;"></div>
-        <div class="border-gradient" style="position: absolute; inset: 0; box-sizing: border-box; z-index: 1; border-radius: 10px; pointer-events: none;"></div>
-
-        <div class="return-container">
-            <a class="medium d-flex justify-content-center align-items-center"
-                onclick="dissolve('../index.php')">
-                <i class="bi bi-house"></i>
-            </a>
-        </div>
+    <div class="return-container">
+        <a class="medium d-flex justify-content-center align-items-center"
+            onclick="dissolve('../index.php')">
+            <i class="bi bi-house"></i>
+        </a>
+    </div>
 
     <div class="parent-container">
         <div class="registration-container">
@@ -116,41 +107,8 @@ unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_su
         </div>
     </div>
 
-    <!-- Archived Account Modal -->
-    <div id="archivedModal" style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center;">
-        <div style="position:absolute; inset:0; background:rgba(0,0,0,.4);" onclick="closeArchivedModal()"></div>
-        <div style="position:relative; z-index:10; background:#fff; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,.18); max-width:420px; width:90%; padding:32px; border-top:4px solid #0d6efd; text-align:center;">
-            <i class="bi bi-archive" style="font-size:2.5rem; color:#0d6efd; display:block; margin-bottom:12px;"></i>
-            <h4 class="bold mb-2">Account Archived</h4>
-            <p style="font-size:14px; color:#555; margin-bottom:8px;">Your faculty account has been archived as part of the end-of-semester system flush.</p>
-            <p style="font-size:14px; color:#555; margin-bottom:20px;">Contact the administrator to reactivate your account.</p>
-            <button class="medium w-100" onclick="closeArchivedModal()">OK</button>
-        </div>
-    </div>
-    <script>
-    (function() {
-        var params = new URLSearchParams(window.location.search);
-        if (params.get('archived') === '1') {
-            document.getElementById('archivedModal').style.display = 'flex';
-        }
-        window.closeArchivedModal = function() {
-            document.getElementById('archivedModal').style.display = 'none';
-            window.history.replaceState({}, '', window.location.pathname);
-        };
-    })();
-    </script>
-
     <script src="../js/lib/animations.js"></script>
     <script src="../js/lib/password.js"></script>
-    </div>
-    <script>
-        document.querySelector('.form-bg').addEventListener('mousemove', function(e) {
-            this.querySelector('.bg-hover').classList.toggle('active', e.clientX < window.innerWidth / 2);
-        });
-        document.querySelector('.form-bg').addEventListener('mouseleave', function() {
-            this.querySelector('.bg-hover').classList.remove('active');
-        });
-    </script>
 </body>
 
 </html>
