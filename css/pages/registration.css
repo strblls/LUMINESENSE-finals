@@ -1,8 +1,12 @@
 body {
     min-height: 100vh;
-    background: linear-gradient(to bottom,
-            var(--secondary-color-1) 0% 25%,
-            var(--primary-color) 25% 100%);
+    background-color: var(--primary-color);
+    background-image:
+        linear-gradient(to bottom, var(--secondary-color-1) 0% 25%, transparent 25%),
+        url('../../images/landing/bg-off.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
 }
 
 .registration-container {
@@ -19,7 +23,7 @@ body {
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    padding: 3px;
+    padding: 7px;
     background: linear-gradient(115deg, #f8c64f, #9b00e9, #58078f, #f9edba, #f8c64f);
     background-size: 300% 300%;
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);

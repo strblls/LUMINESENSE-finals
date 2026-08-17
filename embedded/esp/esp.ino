@@ -15,6 +15,8 @@
 #include <ArduinoJson.h>
 #include <WiFiManager.h>
 #include <time.h>
+#include <sys/time.h>
+#include <Preferences.h>
 
 // ── Fallback WiFi credentials ──────────────────────────────
 // If WiFiManager settings are reset, ESP32 tries these in order.
@@ -29,9 +31,14 @@ const char* FALLBACK_PASS[] = {
 #define NUM_FALLBACKS (sizeof(FALLBACK_SSIDS) / sizeof(FALLBACK_SSIDS[0]))
 
 // ── Server base ────────────────────────────────────────────
-// Change SERVER_BASE to test against a local XAMPP server, e.g.
-//   "http://192.168.1.10/LUMINESENSE-finals"
-#define SERVER_BASE "https://luminesense-bet.site"
+// Points at the laptop's XAMPP server over its 2.4GHz mobile hotspot.
+// The laptop's hotspot gateway is 192.168.137.1 by default (Windows);
+// confirm with `ipconfig` → Mobile Hotspot adapter, or read the
+// [HEARTBEAT] gateway= line in the serial monitor after boot.
+#define SERVER_BASE "http://192.168.137.1/LUMINESENSE-finals"
+
+// ── Device token ───────────────────────────────────────────
+#define ESP32_TOKEN "LS_ESP32_TOKEN_2025"
 
 // ── Server URLs ────────────────────────────────────────────
 const char* TOGGLE_URL       = SERVER_BASE "/api/esp32-light-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
@@ -115,6 +122,76 @@ unsigned long lastNtpResync = 0;
 #define PIR_INACTIVITY_MS 300000ul // 5 minutes
 #define NTP_RESYNC_MS     3600000ul // 1 hour
 
+// ── NVS time persistence ────────────────────────────────────
+// NTP may be unreachable when the laptop hotspot has no internet.
+// We persist the last-known epoch so the ESP32 keeps a usable clock
+// across reboots, and fetch time from the local XAMPP server as a
+// fallback source instead of depending on pool.ntp.org.
+Preferences timePrefs;
+
+void saveLastKnownEpoch(unsigned long epoch) {
+    if (epoch == 0) return;
+    timePrefs.begin("lumi-time", false);
+    timePrefs.putULong("epoch", epoch);
+    timePrefs.end();
+}
+
+unsigned long loadLastKnownEpoch() {
+    timePrefs.begin("lumi-time", true);
+    unsigned long epoch = timePrefs.getULong("epoch", 0);
+    timePrefs.end();
+    return epoch;
+}
+
+// Fetch current epoch from the local server (api/esp32-time.php).
+bool fetchTimeFromServer() {
+    if (WiFi.status() != WL_CONNECTED) return false;
+    HTTPClient http;
+    http.setTimeout(3000);
+    String url = String(SERVER_BASE) + "/api/esp32-time.php?token=" + ESP32_TOKEN;
+    http.begin(url);
+    int code = http.GET();
+    bool ok = false;
+    if (code == HTTP_CODE_OK) {
+        String payload = http.getString();
+        StaticJsonDocument<256> doc;
+        DeserializationError err = deserializeJson(doc, payload);
+        if (!err && doc["success"] == true && doc["epoch"].is<unsigned long>()) {
+            unsigned long epoch = doc["epoch"].as<unsigned long>();
+            if (epoch > 1000000000ul) { // sanity: year > 2001
+                struct timeval tv = { (time_t)epoch, 0 };
+                settimeofday(&tv, NULL);
+                saveLastKnownEpoch(epoch);
+                ok = true;
+                Serial.println(F("[TIME] Synced from local server"));
+            }
+        }
+    }
+    http.end();
+    return ok;
+}
+
+// Restore the last-known time from NVS (offline boot fallback).
+bool restoreSavedTime() {
+    unsigned long epoch = loadLastKnownEpoch();
+    if (epoch > 1000000000ul) {
+        struct timeval tv = { (time_t)epoch, 0 };
+        settimeofday(&tv, NULL);
+        Serial.println(F("[TIME] Restored saved time from NVS"));
+        return true;
+    }
+    return false;
+}
+
+// Try to (re)establish the clock: NTP first, then local server, then NVS.
+void ensureTime() {
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) return; // clock already valid
+    if (fetchTimeFromServer()) return;
+    if (restoreSavedTime()) return;
+    Serial.println(F("[TIME] No time source available"));
+}
+
 // ============================================================
 // SETUP
 // ============================================================
@@ -179,7 +256,9 @@ void setup() {
         fetchAndForwardSchedule();
         fetchAndForwardConfig();
 
-        // NTP time sync — send accurate time to Mega
+        // NTP time sync — send accurate time to Mega. NTP first, then fall
+        // back to the local server / last-known time so schedule logic keeps
+        // working even when the hotspot has no internet.
         configTime(8 * 3600, 0, "pool.ntp.org", "time.nist.gov");
         struct tm timeinfo;
         int ntpRetries = 0;
@@ -188,9 +267,14 @@ void setup() {
             ntpRetries++;
         }
         if (ntpRetries < 20) {
+            saveLastKnownEpoch(mktime(&timeinfo));
             syncTimeToMega();
         } else {
-            Serial.println(F("[NTP] Time sync failed — will retry in loop"));
+            Serial.println(F("[NTP] Time sync failed — using local fallback"));
+            ensureTime();
+            if (getLocalTime(&timeinfo)) {
+                syncTimeToMega();
+            }
         }
     } else {
         Serial.println(F("[WiFi] Config portal timed out — running offline"));
@@ -247,7 +331,9 @@ void loop() {
             Serial.print(F("connected"));
         }
         Serial.print(F(" ip="));
-        Serial.println(WiFi.localIP());
+        Serial.print(WiFi.localIP());
+        Serial.print(F(" gateway="));
+        Serial.println(WiFi.gatewayIP());
     }
 
     handlePIR(now);
@@ -289,6 +375,12 @@ void loop() {
             fetchAndForwardConfig();
         } else if (now - lastNtpResync >= NTP_RESYNC_MS) {
             lastNtpResync = now;
+            // Persist the current time for offline reboots, and re-sync the
+            // clock (NTP may still be unreachable — the local server is the
+            // reliable fallback in that case).
+            struct tm t;
+            if (getLocalTime(&t)) saveLastKnownEpoch(mktime(&t));
+            else ensureTime();
             syncTimeToMega();
         }
     }
