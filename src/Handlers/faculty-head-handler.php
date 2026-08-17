@@ -250,6 +250,41 @@ if ($action === 'add_schedule') {
     }
     $chk_overlap->close();
 
+    // A faculty member cannot be in two rooms at the same time. Check the
+    // member's own schedule for a time overlap on the same day, regardless of
+    // which room the other class is in.
+    $chk_teacher = $conn->prepare("
+        SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name,
+               sub.name AS subject_name,
+               CONCAT(f.first_name, ' ', f.last_name) AS teacher_name
+        FROM schedules s
+        JOIN classrooms c ON c.id = s.classroom_id
+        LEFT JOIN subjects sub ON sub.id = s.subject_id
+        JOIN faculty f ON f.id = s.faculty_id
+        WHERE s.faculty_id = ? AND s.day_of_week = ?
+          AND s.start_time < ? AND s.end_time > ?
+        LIMIT 1
+    ");
+    $chk_teacher->bind_param('isss', $member_id, $day, $end, $start);
+    $chk_teacher->execute();
+    $teacher_overlap = $chk_teacher->get_result()->fetch_assoc();
+    if ($teacher_overlap) {
+        $chk_teacher->close();
+        echo json_encode([
+            'success' => false,
+            'message' => 'overlap',
+            'conflict' => [
+                'day'       => $teacher_overlap['day_of_week'],
+                'start'     => date('g:i A', strtotime($teacher_overlap['start_time'])),
+                'end'       => date('g:i A', strtotime($teacher_overlap['end_time'])),
+                'room'      => $teacher_overlap['room_name'],
+                'subject'   => $teacher_overlap['subject_name'] ?? 'None',
+                'teacher'   => $teacher_overlap['teacher_name']
+            ]
+        ]); exit;
+    }
+    $chk_teacher->close();
+
     $stmt = $conn->prepare("
         INSERT INTO schedules (classroom_id, faculty_id, created_by, day_of_week, start_time, end_time, subject_id)
         VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -351,6 +386,42 @@ if ($action === 'update_schedule') {
         ]); exit;
     }
     $chk->close();
+
+    // A faculty member cannot be in two rooms at the same time. Check the
+    // member's own schedule for a time overlap on the same day, regardless of
+    // which room the other class is in (exclude the slot being edited).
+    $chk_teacher = $conn->prepare("
+        SELECT s.id, s.day_of_week, s.start_time, s.end_time, c.room_name,
+               sub.name AS subject_name,
+               CONCAT(f.first_name, ' ', f.last_name) AS teacher_name
+        FROM schedules s
+        JOIN classrooms c ON c.id = s.classroom_id
+        LEFT JOIN subjects sub ON sub.id = s.subject_id
+        JOIN faculty f ON f.id = s.faculty_id
+        WHERE s.faculty_id = ? AND s.day_of_week = ?
+          AND s.start_time < ? AND s.end_time > ?
+          AND s.id != ?
+        LIMIT 1
+    ");
+    $chk_teacher->bind_param('isssi', $slot['faculty_id'], $day, $end, $start, $slot_id);
+    $chk_teacher->execute();
+    $teacher_overlap = $chk_teacher->get_result()->fetch_assoc();
+    if ($teacher_overlap) {
+        $chk_teacher->close();
+        echo json_encode([
+            'success' => false,
+            'message' => 'overlap',
+            'conflict' => [
+                'day'       => $teacher_overlap['day_of_week'],
+                'start'     => date('g:i A', strtotime($teacher_overlap['start_time'])),
+                'end'       => date('g:i A', strtotime($teacher_overlap['end_time'])),
+                'room'      => $teacher_overlap['room_name'],
+                'subject'   => $teacher_overlap['subject_name'] ?? 'None',
+                'teacher'   => $teacher_overlap['teacher_name']
+            ]
+        ]); exit;
+    }
+    $chk_teacher->close();
 
     if ($target_subject_id > 0) {
         $stmt = $conn->prepare("

@@ -29,8 +29,33 @@ $state      = $_POST['state'] ?? 'off';   // 'on' or 'off'
 $faculty_id = !empty($_SESSION['faculty_id']) ? (int)$_SESSION['faculty_id'] : null;
 $triggered  = $_POST['triggered_by'] ?? 'manual';
 
-if (!$cid || !in_array($state, ['on', 'off'])) {
-    echo json_encode(['success' => false, 'message' => 'classroom_id and state (on|off) required.']); exit;
+if (!$cid) {
+    echo json_encode(['success' => false, 'message' => 'classroom_id required.']); exit;
+}
+
+// Gesture detection logs (faculty-home.js flushGestureEvents) POST only
+// classroom_id/faculty_id/events. Those must be logged, NOT treated as an
+// "all lights OFF" command (the old defaults row='all', state='off' turned
+// every light off a few seconds after a gesture turned them on).
+$events = $_POST['events'] ?? null;
+if ($events !== null && empty($_POST['row'])) {
+    $decoded = json_decode($events, true);
+    if (is_array($decoded)) {
+        foreach ($decoded as $ev) {
+            $ev_type = !empty($ev['eventType']) ? $ev['eventType'] : 'gesture';
+            $stmt = $conn->prepare("INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by) VALUES (?,?,?,?)");
+            $ev_type = in_array($ev_type, ['on', 'off', 'security_alert', 'gesture', 'schedule'], true) ? $ev_type : 'gesture';
+            $stmt->bind_param('iiss', $cid, $faculty_id, $ev_type, $triggered);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+    echo json_encode(['success' => true, 'logged_events' => is_array($decoded) ? count($decoded) : 0]);
+    exit;
+}
+
+if (!in_array($state, ['on', 'off'])) {
+    echo json_encode(['success' => false, 'message' => 'state (on|off) required.']); exit;
 }
 
 // When toggling individual rows we only update classroom light_status to 'on'

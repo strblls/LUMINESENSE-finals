@@ -72,6 +72,7 @@ const CONFIRM_TIMEOUT_MS = 15000;
 const GESTURE_ACCURACY_THRESHOLD = 70; // was 80
 const GESTURE_DECAY_THRESHOLD = 60;    // was 70
 const DROPOUT_TOLERANCE_MS = 350;       // Allow 350ms of flicker/dropout before resetting timer
+const GESTURE_GAP_MS = 2000;            // 2s minimum gap before the same gesture can register again
 const ROW_GESTURE = { Pointing_Up: 1, Victory: 2, ILoveYou: 3 };
 const MAX_STACK_SIZE = 4;               // Max queued commands before confirmation
 const HAND_STALE_MS = 1500;             // Forget a hand after this long without detection
@@ -94,6 +95,13 @@ function getHandState(key) {
     return st;
 }
 
+// Last time each gesture type registered an action (keyed by gesture name), so a
+// 2s gap is enforced globally — not per hand. This blocks double-fires from a
+// single flickery detection (dropout re-hold, or the handedness label flipping
+// Left↔Right for the same physical hand) while still allowing two DIFFERENT
+// gestures from two hands to queue simultaneously.
+const lastGestureActionAt = new Map();
+
 function showStackFeedback(html) {
     if (!gestureResult) return;
     gestureResult.innerHTML = html;
@@ -104,13 +112,18 @@ function showStackFeedback(html) {
 let _lastGestureRaw = 'No Gesture';
 let _smoothedConfidence = 0;
 
+// Last-known authoritative row states from the server (refreshed on every
+// successful fetchServerRowStates call). Used as the toggle baseline so a
+// gesture flips the REAL state instead of the (up to 3s stale) DOM switches.
+let _serverRowStates = null;
+
 function updatePillsState() {
     const pendingRows = new Set();
     let allAffected = false;
 
     for (const it of pendingStack) {
         if (it.action === 'all_on' || it.action === 'all_off') allAffected = true;
-        else if (it.action === 'toggle_row') pendingRows.add(it.row);
+        else if (it.action === 'set_row') pendingRows.add(it.row);
     }
 
     [1, 2, 3].forEach(r => {
@@ -153,8 +166,8 @@ function flashAllPills() {
     }, 1200);
 }
 
-function pushAction(gesture, action, label, row) {
-    pendingStack.push({ id: ++_stackId, gesture, action, label, row });
+function pushAction(gesture, action, label, row, state) {
+    pendingStack.push({ id: ++_stackId, gesture, action, label, row, state });
     updatePillsState();
     renderStackQueue();
     startPendingTimeout();
@@ -198,11 +211,12 @@ async function fetchServerRowStates() {
         if (!res.ok) return null;
         const data = await res.json();
         if (!data || !data.success) return null;
-        return {
+        _serverRowStates = {
             1: data.row1_status === 'on',
             2: data.row2_status === 'on',
             3: data.row3_status === 'on',
         };
+        return _serverRowStates;
     } catch (e) {
         console.warn('fetchServerRowStates error:', e);
         return null;
@@ -239,6 +253,11 @@ async function executePendingStack() {
                 img.src = serverState[r] ? '../../images/bulb-on.png' : '../../images/bulb-off.png';
             });
         }
+    } else if (_serverRowStates) {
+        // No fresh fetch (offline/timeout) — fall back to the last known
+        // authoritative server snapshot, which is still more accurate than the
+        // 3s-stale DOM switches.
+        initial = _serverRowStates;
     } else {
         initial = { 1: getSwitch(1), 2: getSwitch(2), 3: getSwitch(3) };
     }
@@ -249,12 +268,17 @@ async function executePendingStack() {
             final[1] = final[2] = final[3] = true;
         } else if (it.action === 'all_off') {
             final[1] = final[2] = final[3] = false;
-        } else if (it.action === 'toggle_row') {
-            final[it.row] = !final[it.row];
+        } else if (it.action === 'set_row') {
+            final[it.row] = it.state === 'on';
         }
     }
 
     const overallOn = final[1] || final[2] || final[3];
+
+    // Keep the cached server snapshot in sync with what we just commanded, so
+    // the next gesture's toggle target computes against the REAL current state
+    // instead of the pre-command snapshot (which caused "shows ON, turns OFF").
+    _serverRowStates = final;
 
     // Update UI switches, bulbs and badge to the final state
     for (let r = 1; r <= 3; r++) {
@@ -270,7 +294,7 @@ async function executePendingStack() {
     const flashRows = new Set();
     let flashAll = false;
     for (const it of stack) {
-        if (it.action === 'toggle_row') flashRows.add(it.row);
+        if (it.action === 'set_row') flashRows.add(it.row);
         else flashAll = true;
     }
     if (flashAll) {
@@ -377,10 +401,17 @@ function processHand(handKey, gesture, confidence) {
         st.dropoutStart = null;
     }
 
-    // Once held for DEBOUNCE_MS, this hand registers its command
+    // Once held for DEBOUNCE_MS, this hand registers its command — but only if at
+    // least GESTURE_GAP_MS (2s) has passed since the same gesture last fired,
+    // so dropout flicker / handedness flips can't double-register a toggle
+    // (e.g. queue "Row 1 ON" then immediately "Row 1 OFF").
     if (!st.actioned && st.lastGesture && st.lastGesture !== 'No Gesture' && (Date.now() - st.heldSince) >= DEBOUNCE_MS) {
         st.actioned = true;
-        handleActionGesture(handKey, st.lastGesture);
+        const lastFired = lastGestureActionAt.get(st.lastGesture) || 0;
+        if (Date.now() - lastFired >= GESTURE_GAP_MS) {
+            lastGestureActionAt.set(st.lastGesture, Date.now());
+            handleActionGesture(handKey, st.lastGesture);
+        }
     }
 }
 
@@ -420,26 +451,33 @@ function handleActionGesture(handKey, gesture) {
         showStackFeedback(`<span class="text-confirm bold">📥 Queued: All Lights ON (${pendingStack.length}/${MAX_STACK_SIZE})</span>`);
     } else if (ROW_GESTURE[gesture] !== undefined) {
         const rowNum = ROW_GESTURE[gesture];
-        // Compute the row's effective state AFTER the already-queued commands,
-        // so repeating a row gesture alternates its target (ON/OFF/ON/...).
+        // Resolve the ABSOLUTE target now, against the authoritative lighting
+        // status (server truth + already-queued commands). Repeating a row
+        // gesture alternates its target (ON/OFF/ON/...), but the queued command
+        // is no longer a blind "toggle" — it's a definitive on/off. This keeps
+        // the bridge simple and accurate: it never flips the opposite way just
+        // because the DB changed between queue time and confirm time.
         const effectiveState = simulateRowState(rowNum);
-        const targetStateLabel = effectiveState ? 'OFF' : 'ON';
-        pushAction(gesture, 'toggle_row', `Row ${rowNum} ${targetStateLabel}`, rowNum);
+        const targetState = effectiveState ? 'off' : 'on';
+        const targetStateLabel = targetState === 'on' ? 'ON' : 'OFF';
+        pushAction(gesture, 'set_row', `Row ${rowNum} ${targetStateLabel}`, rowNum, targetState);
         showStackFeedback(`<span class="text-confirm bold">📥 Queued: Row ${rowNum} ${targetStateLabel} (${pendingStack.length}/${MAX_STACK_SIZE})</span>`);
     }
 }
 
 // Simulates what a row's state will be after all currently queued commands run.
+// Baseline is the last-known server truth (cached on fetch), falling back to
+// the DOM switch so the queued target matches the real lighting status.
 function simulateRowState(row) {
     const sw = document.getElementById(`row-${row}-switch`);
-    let state = sw ? sw.checked : false;
+    let state = _serverRowStates ? _serverRowStates[row] : (sw ? sw.checked : false);
     for (const it of pendingStack) {
         if (it.action === 'all_on') {
             state = true;
         } else if (it.action === 'all_off') {
             state = false;
-        } else if (it.action === 'toggle_row' && it.row === row) {
-            state = !state;
+        } else if (it.action === 'set_row' && it.row === row) {
+            state = it.state === 'on';
         }
     }
     return state;
