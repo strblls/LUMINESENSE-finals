@@ -3,7 +3,7 @@ body {
     background-color: #f9edfa;
     background-image: url('../../images/landing/bg-off.png');
     background-repeat: no-repeat;
-    background-size: 100% 15%;
+    background-size: auto 56%;
     background-position: top center;
 }
 
