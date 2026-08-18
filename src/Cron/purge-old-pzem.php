@@ -20,7 +20,7 @@ $threshold = date('Y-m-d H:i:s', strtotime("-{$days} days"));
 echo "=== PZEM Purge ===\n";
 echo "Deleting readings before: {$threshold}\n";
 
-$countResult = $conn->query("SELECT COUNT(*) as cnt FROM pzem_readings WHERE reading_time < '{$threshold}'");
+$countResult = $conn->query("SELECT COUNT(*) as cnt FROM pzem_readings WHERE recorded_at < '{$threshold}'");
 $rowCount = ($countResult && $countResult->num_rows > 0) ? (int)$countResult->fetch_assoc()['cnt'] : 0;
 echo "Rows to delete: {$rowCount}\n";
 
@@ -32,7 +32,7 @@ if ($rowCount === 0) {
 $deleted = 0;
 $chunkSize = 5000;
 while ($deleted < $rowCount) {
-    $result = $conn->query("DELETE FROM pzem_readings WHERE reading_time < '{$threshold}' LIMIT {$chunkSize}");
+    $result = $conn->query("DELETE FROM pzem_readings WHERE recorded_at < '{$threshold}' LIMIT {$chunkSize}");
     if (!$result) {
         echo "Error: " . $conn->error . "\n";
         break;

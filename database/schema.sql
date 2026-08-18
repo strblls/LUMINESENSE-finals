@@ -1845,7 +1845,24 @@ CREATE TABLE `power_sessions` (
   `peak_power` float DEFAULT NULL,
   `total_energy_wh` float DEFAULT NULL,
   `pir_reset_used` tinyint(1) DEFAULT 0,
+  `faculty_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Table structure for table `faculty_energy_daily`
+--
+
+CREATE TABLE `faculty_energy_daily` (
+  `faculty_id` int(11) NOT NULL,
+  `day` date NOT NULL,
+  `energy_wh` decimal(12,3) DEFAULT 0.000,
+  `minutes` int(11) DEFAULT 0,
+  `sessions` int(11) DEFAULT 0,
+  `avg_voltage` float DEFAULT NULL,
+  `avg_current` float DEFAULT NULL,
+  `avg_power` float DEFAULT NULL,
+  `peak_power` float DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -4701,7 +4718,15 @@ ALTER TABLE `lighting_logs`
 ALTER TABLE `power_sessions`
   ADD PRIMARY KEY (`id`),
   ADD KEY `classroom_id` (`classroom_id`),
-  ADD KEY `session_date` (`session_date`);
+  ADD KEY `session_date` (`session_date`),
+  ADD KEY `idx_sessions_faculty` (`faculty_id`,`session_date`);
+
+--
+-- Indexes for table `faculty_energy_daily`
+--
+ALTER TABLE `faculty_energy_daily`
+  ADD PRIMARY KEY (`faculty_id`,`day`),
+  ADD KEY `day` (`day`);
 
 --
 -- Indexes for table `pzem_live`
@@ -4987,6 +5012,12 @@ ALTER TABLE `schedules`
   ADD CONSTRAINT `schedules_ibfk_1` FOREIGN KEY (`classroom_id`) REFERENCES `classrooms` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `schedules_ibfk_3` FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `schedules_ibfk_4` FOREIGN KEY (`created_by`) REFERENCES `faculty` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `faculty_energy_daily`
+--
+ALTER TABLE `faculty_energy_daily`
+  ADD CONSTRAINT `faculty_energy_daily_ibfk_1` FOREIGN KEY (`faculty_id`) REFERENCES `faculty` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `subjects`

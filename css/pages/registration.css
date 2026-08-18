@@ -3,19 +3,33 @@ body {
     background-color: #f9edfa;
 }
 
-body::before {
+body::before,
+body::after {
     content: "";
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 28vh;
-    background-image: url('../../images/landing/bg-off.png');
     background-repeat: no-repeat;
     background-size: cover;
     background-position: top center;
     pointer-events: none;
     z-index: 0;
+}
+
+body::before {
+    background-image: url('../../images/login/bg-off-login.png');
+}
+
+body::after {
+    background-image: url('../../images/login/bg-on-login.png');
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+body:hover::after {
+    opacity: 1;
 }
 
 .registration-container {

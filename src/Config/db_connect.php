@@ -538,6 +538,34 @@ $conn->query("
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
 
+// ── Per-faculty energy attribution ────────────────────────────────────────────
+// power_sessions.faculty_id credits a session to the faculty whose schedule
+// overlapped the session window (Option A: first match, else NULL).
+addColIfMissing($conn, 'power_sessions', 'faculty_id', 'INT DEFAULT NULL');
+$idx = $conn->query("SHOW INDEX FROM power_sessions WHERE Key_name = 'idx_sessions_faculty'");
+if ($idx && $idx->num_rows === 0) {
+    $conn->query("ALTER TABLE power_sessions ADD INDEX idx_sessions_faculty (faculty_id, session_date)");
+}
+
+// faculty_energy_daily — compact per-faculty daily rollup (1 row/faculty/day).
+// Feeds 7/14/30-day sparklines + charts with a single indexed query.
+$conn->query("
+    CREATE TABLE IF NOT EXISTS faculty_energy_daily (
+        faculty_id  INT NOT NULL,
+        day         DATE NOT NULL,
+        energy_wh   DECIMAL(12,3) NOT NULL DEFAULT 0,
+        minutes     INT NOT NULL DEFAULT 0,
+        sessions    INT NOT NULL DEFAULT 0,
+        avg_voltage FLOAT DEFAULT NULL,
+        avg_current FLOAT DEFAULT NULL,
+        avg_power   FLOAT DEFAULT NULL,
+        peak_power  FLOAT DEFAULT NULL,
+        PRIMARY KEY (faculty_id, day),
+        CONSTRAINT fk_faculty_energy_daily_faculty
+            FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
 // ── is_archived column for soft-delete archiving ─────────────────────────────
 addColIfMissing($conn, 'faculty', 'is_archived', "TINYINT(1) DEFAULT 0");
 addColIfMissing($conn, 'admins', 'is_archived', "TINYINT(1) DEFAULT 0");

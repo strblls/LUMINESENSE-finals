@@ -58,19 +58,37 @@ if ($trigger === 'reconcile') {
     exit;
 }
 
-// 11 params â†’ 11-char type string: i s s s i s d d d d i
+// Option A attribution: first schedule whose window covers this session.
+$faculty_id = null;
+$af = $conn->prepare("
+    SELECT s.faculty_id
+    FROM schedules s
+    WHERE s.classroom_id = ?
+      AND s.day_of_week = DAYNAME(?)
+      AND s.faculty_id IS NOT NULL
+      AND s.start_time <= TIME(?)
+      AND GREATEST(s.end_time, COALESCE(s.extended_until, s.end_time)) >= TIME(?)
+    ORDER BY s.start_time ASC
+    LIMIT 1
+");
+$af->bind_param('isss', $cid, $session_date, $start_time, $start_time);
+$af->execute();
+$afRow = $af->get_result()->fetch_assoc();
+if ($afRow) $faculty_id = (int)$afRow['faculty_id'];
+$af->close();
+
 $stmt = $conn->prepare("
     INSERT INTO power_sessions
         (classroom_id, session_date, start_time, end_time, duration_mins,
          trigger_source, avg_voltage, avg_current, peak_power,
-         total_energy_wh, pir_reset_used)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         total_energy_wh, pir_reset_used, faculty_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ");
 $stmt->bind_param(
-    'isssisddddi',
+    'isssisddddii',
     $cid, $session_date, $start_datetime, $end_time, $duration,
     $trigger, $avg_voltage, $avg_current, $peak_power,
-    $energy, $pir_reset
+    $energy, $pir_reset, $faculty_id
 );
 $stmt->execute();
 $stmt->close();

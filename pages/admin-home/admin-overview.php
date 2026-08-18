@@ -485,26 +485,22 @@ if ($row = $res->fetch_assoc()) {
 $res = $conn->query("SELECT COUNT(*) AS c FROM room_logs WHERE event_type = 'issue_raised' AND event_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
 if ($row = $res->fetch_assoc()) $summary['total_anomalies'] = (int)$row['c'];
 
-// ── Faculty energy estimate (30-day, session-attributed) ─────────────────────
-// Faculty have no meters of their own; a power_sessions row is attributed to a
-// faculty whose schedule overlaps that session (same room + day + time window).
-// Estimated: PIR-anonymous/manual sessions are excluded. Row sharing is rare in
-// this deployment, so a session is counted once per matching faculty overlap.
+// ── Faculty energy (30-day, session-attributed via power_sessions.faculty_id) ─
+// Faculty have no meters of their own; each power_sessions row is attributed at
+// session close to the faculty whose schedule covered that window (Option A).
+// Daily aggregates come from the compact faculty_energy_daily rollup. Unassigned
+// (NULL faculty_id) sessions stay in room totals only.
 $faculty_energy = [];
 $fe = $conn->query("
     SELECT f.id, f.first_name, f.last_name,
-           ROUND(COALESCE(SUM(ps.total_energy_wh),0), 2) AS est_energy_wh,
-           COUNT(ps.id) AS est_sessions,
-           COALESCE(SUM(ps.duration_mins),0) AS est_minutes
-    FROM power_sessions ps
-    JOIN schedules s ON s.classroom_id = ps.classroom_id
-        AND s.day_of_week = DAYNAME(ps.session_date)
-        AND TIME(ps.start_time) < GREATEST(s.end_time, COALESCE(s.extended_until, s.end_time))
-        AND TIME(ps.end_time) > s.start_time
-    JOIN faculty f ON f.id = s.faculty_id
-    WHERE ps.session_date >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
-      AND ps.end_time IS NOT NULL
-      AND ps.trigger_source <> 'manual'
+           ROUND(COALESCE(SUM(fe.energy_wh),0), 2) AS est_energy_wh,
+           COALESCE(SUM(fe.sessions),0) AS est_sessions,
+           COALESCE(SUM(fe.minutes),0)  AS est_minutes
+    FROM faculty f
+    LEFT JOIN faculty_energy_daily fe
+           ON fe.faculty_id = f.id
+          AND fe.day >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+    WHERE f.is_archived = 0
     GROUP BY f.id, f.first_name, f.last_name
     ORDER BY est_energy_wh DESC
 ");
@@ -514,6 +510,26 @@ if ($fe) {
 $feMax = 0;
 foreach ($faculty_energy as $frow) {
     if ((float)$frow['est_energy_wh'] > $feMax) $feMax = (float)$frow['est_energy_wh'];
+}
+$fac_energy_map = [];
+foreach ($faculty_energy as $frow) {
+    $fac_energy_map[(int)$frow['id']] = $frow;
+}
+
+// Per-faculty daily series (last 30 days) for sparklines + faculty view chart.
+$faculty_daily = [];
+$fd = $conn->query("
+    SELECT fe.faculty_id, fe.day, fe.energy_wh, fe.minutes, fe.sessions,
+           fe.avg_voltage, fe.avg_current, fe.peak_power
+    FROM faculty_energy_daily fe
+    WHERE fe.day >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)
+    ORDER BY fe.day
+");
+if ($fd) {
+    while ($frow = $fd->fetch_assoc()) {
+        $fid = (int)$frow['faculty_id'];
+        $faculty_daily[$fid][$frow['day']] = $frow;
+    }
 }
 
 // ── 7-day mini trends for the summary cards ───────────────────────────────────
@@ -954,6 +970,14 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                                     <span class="room-info-val"><?= date('g:i A', strtotime($fac['start_time'])) ?> – <?= date('g:i A', strtotime($fac['extended_until'] ?: $fac['end_time'])) ?></span>
                                                 </div>
                                                 <?php endif; ?>
+                                                <?php $fac_eng = $fac_energy_map[(int)$fac['id']] ?? null; ?>
+                                                <?php if ($fac_eng && (float)$fac_eng['est_energy_wh'] > 0): ?>
+                                                <div class="dept-info-card room-info-row mb-2">
+                                                    <i class="bi bi-lightning-charge"></i>
+                                                    <span class="room-info-label">Energy (30d):</span>
+                                                    <span class="room-info-val"><?= number_format((float)$fac_eng['est_energy_wh'] / 1000, 3) ?> kWh &middot; <?= (int)$fac_eng['est_sessions'] ?> sessions &middot; <?= (int)$fac_eng['est_minutes'] ?> min</span>
+                                                </div>
+                                                <?php endif; ?>
                                             </div>
                                             <div class="room-card-actions">
                                                 <div class="d-flex align-items-center room-icons gap-1">
@@ -1372,6 +1396,8 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
         const CHART_DAILY = <?= json_encode($chartDaily, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const CHART_TODAY = <?= json_encode($chartToday, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const FACULTY = <?= json_encode($faculty_list, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const FACULTY_ENERGY = <?= json_encode($faculty_energy, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        const FACULTY_DAILY = <?= json_encode($faculty_daily, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const FACULTY_SCHEDULES = <?= json_encode($faculty_schedules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const OVERVIEW_ISSUES = <?= json_encode($issues_today, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         const FACULTY_PERMS = <?= json_encode($faculty_perms, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;

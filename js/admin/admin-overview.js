@@ -114,8 +114,27 @@ function drawAllSparks() {
     drawFacultySparks();
 }
 
-// Faculty cards reuse the room-card layout, so give each a sparkline that
-// reflects availability: the assigned room's V/A/W when in class, else gray.
+// Per-faculty 7-day energy series from FACULTY_DAILY (rollup). Returns an array
+// of {label, energy_wh, minutes} for the last `days` days (0-padded).
+function facultyEnergySeries(facId, days) {
+    const daily = (FACULTY_DAILY || {})[facId] || {};
+    const out = [];
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+        const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        const row = daily[key];
+        out.push({
+            label: key,
+            energy_wh: row ? parseFloat(row.energy_wh) : 0,
+            minutes: row ? parseInt(row.minutes, 10) || 0 : 0,
+        });
+    }
+    return out;
+}
+
+// Faculty cards show the faculty's own 7-day energy sparkline (from the daily
+// rollup). Gray when the faculty has no attributed energy history.
 function drawFacultySparks() {
     if (!window.Chart) return;
     document.querySelectorAll('#facultyList .hroom-spark canvas').forEach(canvas => {
@@ -123,23 +142,18 @@ function drawFacultySparks() {
         if (!id) return;
         if (sparkCharts[id]) sparkCharts[id].destroy();
         const card = canvas.closest('.faculty-card');
-        const roomName = (card && card.getAttribute('data-room-name') || '').toLowerCase();
-        const room = (ROOMS || []).find(r => (r.room_name || '').toLowerCase() === roomName);
-        const hasSession = !!room && !!room.isActiveSession;
-        const v = hasSession ? (room.sparkV || []) : [];
-        const a = hasSession ? (room.sparkA || []) : [];
-        const w = hasSession ? (room.sparkW || []) : [];
-        const n = Math.max(v.length, a.length, w.length, 1);
-        const labels = Array.from({ length: n }, (_, i) => i);
+        const facId = card ? parseInt(card.getAttribute('data-faculty-id'), 10) : 0;
+        const series = facultyEnergySeries(facId, 7);
+        const hasData = series.some(s => s.energy_wh > 0);
+        const data = hasData ? series.map(s => s.energy_wh) : [0];
+        const labels = series.map(s => s.label);
         const grayColor = '#d0d0d0';
         sparkCharts[id] = new Chart(canvas, {
             type: 'line',
             data: {
                 labels,
-                datasets: hasSession ? [
-                    { data: v, borderColor: COLORS.voltage, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
-                    { data: a, borderColor: COLORS.current, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
-                    { data: w, borderColor: COLORS.power, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
+                datasets: hasData ? [
+                    { data, borderColor: COLORS.energy, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
                 ] : [
                     { data: [0], borderColor: grayColor, borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.35 },
                 ],
@@ -1156,7 +1170,6 @@ function roomWithFreshToday(room, todayRows) {
 }
 
 function renderFacultyView(fac) {
-    // The faculty's assigned room provides the energy series for the chart pane.
     const room = (ROOMS || []).find(r => r.room_name === fac.classroom_name) || null;
     const roomNow = extendRoomTodayToNow(room);
     renderFacultyViewChart(fac, roomNow);
@@ -1166,47 +1179,36 @@ function renderFacultyView(fac) {
     renderFacultyViewActivities(fac);
 }
 
-// Chart pane for the faculty view modal (energy series of the faculty's room).
+// Chart pane for the faculty view modal — the faculty's own daily energy series
+// from the faculty_energy_daily rollup (session-attributed). Metrics map to
+// daily aggregates: energy (Wh), avg_voltage, avg_current, peak_power.
 function renderFacultyViewChart(fac, room) {
     const canvas = document.getElementById('facultyViewChart');
     if (!canvas || !window.Chart) return;
     if (facultyViewChartInstance) { facultyViewChartInstance.destroy(); facultyViewChartInstance = null; }
 
-    const today = !!(room && room.todayLabels && room.todayLabels.length);
-    const labelsArr = today ? (room.todayLabels || []) : (room.dailyLabels || []).slice(-7);
-    let v = (today ? (room.todayV || []) : (room.dailyV || []).slice(-7)).slice();
-    let a = (today ? (room.todayA || []) : (room.dailyA || []).slice(-7)).slice();
-    let w = (today ? (room.todayW || []) : (room.dailyW || []).slice(-7)).slice();
-    let labels = labelsArr.map(String);
+    const series = facultyEnergySeries(fac.id, 7);
+    const daily = (FACULTY_DAILY || {})[fac.id] || {};
+    const labels = series.map(s => s.label);
+    const e = series.map(s => s.energy_wh);
+    const v = labels.map(k => daily[k] && daily[k].avg_voltage != null ? parseFloat(daily[k].avg_voltage) : null);
+    const a = labels.map(k => daily[k] && daily[k].avg_current != null ? parseFloat(daily[k].avg_current) : null);
+    const w = labels.map(k => daily[k] && daily[k].peak_power != null ? parseFloat(daily[k].peak_power) : null);
 
-    // Keep long per-minute "today" series legible inside the modal pane.
-    const MAX_PTS = 120;
-    if (labels.length > MAX_PTS) {
-        const step = labels.length / MAX_PTS;
-        const idxs = [];
-        for (let i = 0; i < MAX_PTS; i++) idxs.push(Math.floor(i * step));
-        const pick = (arr) => idxs.map(function (i) { return arr[i] == null ? null : arr[i]; });
-        labels = idxs.map(function (i) { return labelsArr[i]; }).map(String);
-        v = pick(v); a = pick(a); w = pick(w);
-    }
-
-    const n = Math.max(labels.length, v.length, a.length, w.length);
-    const pad = (arr) => { const x = (arr || []).slice(); while (x.length < n) x.push(null); return x; };
     const name = (fac.first_name || '') + ' ' + (fac.last_name || '');
 
     const showMetric = (m) => currentMetric === 'all' || currentMetric === m;
-    const hasData = n > 0;
     const datasets = [];
-    if (hasData) {
-        if (showMetric('voltage')) datasets.push({ label: name + ' · Voltage (V)', data: pad(v), borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2 });
-        if (showMetric('current')) datasets.push({ label: name + ' · Current (A)', data: pad(a), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1' });
-        if (showMetric('power'))   datasets.push({ label: name + ' · Power (W)', data: pad(w), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2' });
-    }
+    if (showMetric('all') || currentMetric === 'voltage') datasets.push({ label: name + ' · Energy (Wh)', data: e, borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2 });
+    if (showMetric('voltage')) datasets.push({ label: name + ' · Avg Voltage (V)', data: v, borderColor: '#742fd3', backgroundColor: 'rgba(116,47,211,0.10)', fill: true, tension: 0.3, pointRadius: 2 });
+    if (showMetric('current')) datasets.push({ label: name + ' · Avg Current (A)', data: a, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y1' });
+    if (showMetric('power'))   datasets.push({ label: name + ' · Peak Power (W)', data: w, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.10)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y2' });
     if (!datasets.length) datasets.push({ label: 'No data', data: [], borderColor: '#cccccc', pointRadius: 0 });
 
     const labelEl = document.getElementById('facultyViewChartLabel');
-    if (labelEl) labelEl.textContent = currentMetric === 'all' ? 'All Metrics' : (OV_METRIC_LABELS[currentMetric] || currentMetric);
+    if (labelEl) labelEl.textContent = currentMetric === 'all' ? 'Energy (Wh) · Daily' : (OV_METRIC_LABELS[currentMetric] || currentMetric);
 
+    const hasData = e.some(x => x > 0) || v.some(x => x != null) || a.some(x => x != null) || w.some(x => x != null);
     facultyViewChartInstance = new Chart(canvas, {
         type: 'line',
         data: { labels: hasData ? labels : ['No data'], datasets },

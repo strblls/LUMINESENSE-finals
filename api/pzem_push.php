@@ -185,6 +185,26 @@ if (!$isOff && !$openSession) {
     $peakW   = (float)($agg['peak_power']     ?? 0);
     $totalWh = (float)($agg['total_energy_wh'] ?? 0);
 
+    // Option A attribution: first schedule whose window covers the session.
+    $faculty_id = null;
+    $af = $conn->prepare("
+        SELECT s.faculty_id
+        FROM schedules s
+        WHERE s.classroom_id = ?
+          AND s.day_of_week = DAYNAME(?)
+          AND s.faculty_id IS NOT NULL
+          AND s.start_time <= TIME(?)
+          AND GREATEST(s.end_time, COALESCE(s.extended_until, s.end_time)) >= TIME(?)
+        ORDER BY s.start_time ASC
+        LIMIT 1
+    ");
+    $nowDatetime = date('Y-m-d H:i:s');
+    $af->bind_param('isss', $cid, $nowDatetime, $nowDatetime, $nowDatetime);
+    $af->execute();
+    $afRow = $af->get_result()->fetch_assoc();
+    if ($afRow) $faculty_id = (int)$afRow['faculty_id'];
+    $af->close();
+
     $stmt = $conn->prepare("
         UPDATE power_sessions
         SET
@@ -193,10 +213,11 @@ if (!$isOff && !$openSession) {
             avg_voltage     = ?,
             avg_current     = ?,
             peak_power      = ?,
-            total_energy_wh = ?
+            total_energy_wh = ?,
+            faculty_id      = ?
         WHERE id = ?
     ");
-    $stmt->bind_param('ddddi', $avgV, $avgA, $peakW, $totalWh, $sid);
+    $stmt->bind_param('ddddiii', $avgV, $avgA, $peakW, $totalWh, $faculty_id, $sid);
     $stmt->execute();
     $stmt->close();
 }
