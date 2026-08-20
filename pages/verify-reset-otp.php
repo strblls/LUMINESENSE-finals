@@ -30,6 +30,7 @@ $cooldown = max(0, 60 - (time() - $lastSent));
     <title>Verify Code - LumineSense</title>
 </head>
 <body>
+    <div class="bg-hover-zone" aria-hidden="true"></div>
     <div class="return-container">
         <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('forgot-password.php')">
             <i class="bi bi-arrow-left"></i>

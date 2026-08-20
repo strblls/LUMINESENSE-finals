@@ -86,4 +86,8 @@
 
     checkTime();
     setInterval(checkTime, 1000);
+
+    // Exposed so other scripts (e.g. the 5-min Final Warning escalation in
+    // faculty-topbar.js) can reuse the same chime + speech + toast alert.
+    window.lumiNotifyAlert = showNotification;
 })();

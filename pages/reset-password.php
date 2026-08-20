@@ -26,6 +26,7 @@ unset($_SESSION['reset_error']);
     <title>Reset Password - LumineSense</title>
 </head>
 <body>
+    <div class="bg-hover-zone" aria-hidden="true"></div>
     <div class="return-container">
         <a class="medium d-flex justify-content-center align-items-center" onclick="dissolve('verify-reset-otp.php')">
             <i class="bi bi-arrow-left"></i>

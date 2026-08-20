@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="../css/pages/pending-approval.css">
 </head>
 <body>
+<div class="bg-hover-zone" aria-hidden="true"></div>
 <div class="parent-container justify-content-center align-items-center">
     <div class="pending-card">
 

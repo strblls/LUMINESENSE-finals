@@ -28,8 +28,27 @@ body::after {
     transition: opacity 0.3s ease;
 }
 
-body:hover::after {
+body:has(.bg-hover-zone:hover)::after {
     opacity: 1;
+}
+
+/* Hover-capture layer: sits above the band (z 0) but below the containers
+   (z 2), so the transition only fires over the exposed background band and
+   leaves when the pointer exits it — never over the overlapped containers. */
+.bg-hover-zone {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 28vh;
+    z-index: 1;
+}
+
+/* Keep the band transition behind the login/registration card and the return
+   button. */
+.registration-container,
+.return-container {
+    z-index: 2;
 }
 
 .registration-container {

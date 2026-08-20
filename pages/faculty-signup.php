@@ -31,6 +31,7 @@
 </head>
 
 <body>
+    <div class="bg-hover-zone" aria-hidden="true"></div>
     <div class="return-container">
         <a class="medium d-flex justify-content-center align-items-center"
            onclick="dissolve('../index.php')">

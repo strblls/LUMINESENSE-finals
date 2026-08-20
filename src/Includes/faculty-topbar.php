@@ -95,6 +95,21 @@ if (isset($conn) && $conn instanceof mysqli) {
 </div>
 
 <!---
+     AUTO LOGOUT OVERLAY — class session ended
+-->
+<div id="autoLogoutOverlay" class="page-timeout-overlay" style="display:none;">
+    <div class="page-timeout-modal">
+        <i class="bi bi-stop-circle" style="font-size:2.5rem;color:var(--secondary-color-3);margin-bottom:0.75rem;"></i>
+        <h5 class="schedule-ended-title">Session Ended</h5>
+        <p class="schedule-ended-text">Your class session has ended. You will be logged out automatically in <span id="autoLogoutCountdown">30</span> seconds.</p>
+        <div class="mt-3 d-flex flex-column align-items-center gap-2">
+            <button class="light" id="autoLogoutNowBtn">Log out now</button>
+            <button class="btn btn-link btn-sm text-secondary" id="autoLogoutCancelBtn" type="button">Stay signed in</button>
+        </div>
+    </div>
+</div>
+
+<!---
      PAGE TIMEOUT OVERLAY (1 min inactivity)
 - -->
 <div id="pageTimeoutOverlay" class="page-timeout-overlay" style="display:none;">
@@ -108,6 +123,24 @@ if (isset($conn) && $conn instanceof mysqli) {
                    autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly'); this.value='';">
             <div><span id="timeoutPinError" class="text-danger small"></span></div>
             <button class="light" id="timeoutPinSubmit">Unlock</button>
+        </div>
+    </div>
+</div>
+
+<!---
+     FINAL WARNING OVERLAY — post-class PIN timeout escalation
+     Appears when the faculty member dismissed the session-ended overlay,
+     the 1-min inactivity PIN overlay showed, and no PIN was entered
+     within 5 minutes. Accept logs out; dismissing restarts the 5-min cycle.
+-->
+<div id="fiveMinLogoutOverlay" class="page-timeout-overlay" style="display:none;z-index:10001;">
+    <div class="page-timeout-modal">
+        <i class="bi bi-exclamation-triangle" style="font-size:2.5rem;color:var(--secondary-color-3);margin-bottom:0.75rem;"></i>
+        <h5 class="schedule-ended-title">Final Warning</h5>
+        <p class="schedule-ended-text">You have not entered your PIN. Your account will be logged out in <span id="fiveMinLogoutCountdown">5:00</span>.</p>
+        <div class="mt-3 d-flex flex-column align-items-center gap-2">
+            <button class="light" id="fiveMinLogoutNowBtn">Log out now</button>
+            <button class="btn btn-link btn-sm text-secondary" id="fiveMinLogoutCancelBtn" type="button">I'll stay — try PIN</button>
         </div>
     </div>
 </div>
@@ -131,3 +164,4 @@ if (isset($conn) && $conn instanceof mysqli) {
 </script>
 <script src="../../js/includes/faculty-topbar.js"></script>
 <script src="../../js/includes/topbar-fade.js"></script>
+<script src="../../js/faculty/faculty-auto-logout.js"></script>

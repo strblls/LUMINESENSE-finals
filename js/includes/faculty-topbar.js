@@ -8,6 +8,82 @@ var HAS_PIN = !!(window.lumiHasPin);
 var PIN_VERIFIED = false;
 var _timeoutTimer = null;
 
+// ── Post-class PIN escalation (Final Warning) ──────────────
+// Armed only when the faculty member is post-class (lumiPostClassArmed).
+// A fixed 5-minute deadline is keyed to the moment the PIN overlay shows;
+// no PIN entered before it fires → Final Warning overlay. Dismissing the
+// Final Warning restarts a full 5-minute cycle.
+var FIVE_MIN_MS    = 5 * 60 * 1000;
+var fiveMinTimer   = null;
+var fiveMinDeadline = 0;
+var fiveMinTick    = null;
+
+function fmtFiveMin(ms) {
+    var total = Math.max(0, Math.ceil(ms / 1000));
+    var m = Math.floor(total / 60);
+    var s = total % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function armFiveMinEscalation() {
+    if (window.lumiPostClassArmed !== true) return;
+    var ov = document.getElementById('fiveMinLogoutOverlay');
+    if (!ov) return;
+    if (fiveMinTimer) clearTimeout(fiveMinTimer);
+    fiveMinDeadline = Date.now() + FIVE_MIN_MS;
+    fiveMinTimer = setTimeout(showFiveMinOverlay, FIVE_MIN_MS);
+}
+
+function clearFiveMinEscalation() {
+    if (fiveMinTimer) clearTimeout(fiveMinTimer);
+    fiveMinTimer = null;
+    if (fiveMinTick) clearInterval(fiveMinTick);
+    fiveMinTick = null;
+    var ov = document.getElementById('fiveMinLogoutOverlay');
+    if (ov) ov.style.display = 'none';
+}
+
+function showFiveMinOverlay() {
+    var ov = document.getElementById('fiveMinLogoutOverlay');
+    if (!ov) return;
+    ov.style.display = 'flex';
+    var countEl = document.getElementById('fiveMinLogoutCountdown');
+    if (fiveMinTick) clearInterval(fiveMinTick);
+    fiveMinTick = setInterval(function () {
+        var remain = fiveMinDeadline - Date.now();
+        if (countEl) countEl.textContent = fmtFiveMin(remain);
+        if (remain <= 0) {
+            clearInterval(fiveMinTick);
+            fiveMinTick = null;
+            if (typeof window.lumiDoLogout === 'function') window.lumiDoLogout();
+        }
+    }, 1000);
+    if (typeof window.lumiNotifyAlert === 'function') {
+        window.lumiNotifyAlert('Final Warning', 'Your account will be logged out in 5 minutes. Please enter your PIN or log out now.');
+    }
+}
+
+function dismissFiveMinOverlay() {
+    clearFiveMinEscalation();
+    armFiveMinEscalation();
+}
+
+// Expose so the session watcher (faculty-auto-logout.js) can cancel the
+// escalation when a new class becomes active.
+window.lumiCancelFiveMinEscalation = clearFiveMinEscalation;
+
+(function () {
+    var fwOv = document.getElementById('fiveMinLogoutOverlay');
+    if (fwOv) {
+        var fwNow = document.getElementById('fiveMinLogoutNowBtn');
+        var fwCancel = document.getElementById('fiveMinLogoutCancelBtn');
+        if (fwNow) fwNow.addEventListener('click', function () {
+            if (typeof window.lumiDoLogout === 'function') window.lumiDoLogout();
+        });
+        if (fwCancel) fwCancel.addEventListener('click', dismissFiveMinOverlay);
+    }
+})();
+
 async function verifyPin(pin) {
     var r = await fetch('../../api/pin.php', {
         method: 'POST',
@@ -37,6 +113,7 @@ function showPageTimeout() {
     PIN_VERIFIED = false;
     if (typeof showPinOverlays === 'function') showPinOverlays();
     if (typeof window.resetCameraState === 'function') window.resetCameraState();
+    armFiveMinEscalation();
 }
 
 function hidePageTimeout() {
@@ -44,6 +121,7 @@ function hidePageTimeout() {
     if (ov) ov.style.display = 'none';
     PIN_VERIFIED = true;
     if (typeof hidePinOverlays === 'function') hidePinOverlays();
+    clearFiveMinEscalation();
     resetPageTimeout();
 }
 

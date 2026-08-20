@@ -12,6 +12,7 @@
 
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <WiFiManager.h>
 #include <time.h>
@@ -30,27 +31,69 @@ const char* FALLBACK_PASS[] = {
 };
 #define NUM_FALLBACKS (sizeof(FALLBACK_SSIDS) / sizeof(FALLBACK_SSIDS[0]))
 
-// ── Server base ────────────────────────────────────────────
-// Points at the laptop's XAMPP server over its 2.4GHz mobile hotspot.
-// The laptop's hotspot gateway is 192.168.137.1 by default (Windows);
-// confirm with `ipconfig` → Mobile Hotspot adapter, or read the
-// [HEARTBEAT] gateway= line in the serial monitor after boot.
-#define SERVER_BASE "http://192.168.137.1/LUMINESENSE-finals"
+// ── Server configuration (runtime-configurable) ─────────────
+// Defaults work out of the box with the laptop's XAMPP over its 2.4GHz
+// mobile hotspot (gateway 192.168.137.1). For a Hostinger deployment,
+// open the WiFiManager portal and set:
+//   server        = https://luminesense-bet.site
+//   esp_token     = ESP32 query token (?token=...)     [default LS_ESP32_TOKEN_2025]
+//   device_token  = X-Device-Token header token        [default luminesense-secret-token]
+//   classroom_id  = classroom row to poll/drive        [default 3]
+// Values are persisted in NVS and survive reboots.
+char serverBase[160] = "http://192.168.137.1/LUMINESENSE-finals";
+char espToken[64]    = "LS_ESP32_TOKEN_2025";
+char deviceToken[64] = "luminesense-secret-token";
+int  classroomId     = 3;
 
-// ── Device token ───────────────────────────────────────────
-#define ESP32_TOKEN "LS_ESP32_TOKEN_2025"
+Preferences cfgPrefs;
 
-// ── Server URLs ────────────────────────────────────────────
-const char* TOGGLE_URL       = SERVER_BASE "/api/esp32-light-status.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* SCHEDULE_URL     = SERVER_BASE "/api/esp32-schedule.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* PZEM_POST_URL    = SERVER_BASE "/api/pzem_push.php";
-const char* UPDATE_ROWS_URL  = SERVER_BASE "/api/esp32-update-rows.php";
-const char* SCHEDULE_FLAG_URL= SERVER_BASE "/api/esp32-schedule-flag.php?token=LS_ESP32_TOKEN_2025&classroom_id=3";
-const char* CONFIG_URL      = SERVER_BASE "/api/esp32-config.php?token=LS_ESP32_TOKEN_2025";
-const char* PIR_LOG_URL     = SERVER_BASE "/api/pir-log.php";
-const char* TILT_LOG_URL    = SERVER_BASE "/api/tilt-log.php";
-const char* SESSION_URL     = SERVER_BASE "/api/post_session.php";
-const char* ARCHIVE_SYNC_URL = SERVER_BASE "/api/archive-sync.php";
+void loadConfig() {
+    cfgPrefs.begin("lumi-cfg", true);
+    String s = cfgPrefs.getString("server", "");
+    if (s.length() > 0) { strncpy(serverBase, s.c_str(), sizeof(serverBase) - 1); serverBase[sizeof(serverBase) - 1] = '\0'; }
+    s = cfgPrefs.getString("esp_token", "");
+    if (s.length() > 0) { strncpy(espToken, s.c_str(), sizeof(espToken) - 1); espToken[sizeof(espToken) - 1] = '\0'; }
+    s = cfgPrefs.getString("device_token", "");
+    if (s.length() > 0) { strncpy(deviceToken, s.c_str(), sizeof(deviceToken) - 1); deviceToken[sizeof(deviceToken) - 1] = '\0'; }
+    classroomId = cfgPrefs.getInt("classroom_id", 3);
+    cfgPrefs.end();
+}
+
+void saveConfig(const char* server, const char* espTok, const char* devTok, int cid) {
+    cfgPrefs.begin("lumi-cfg", false);
+    if (server && strlen(server) > 0) cfgPrefs.putString("server", server);
+    if (espTok && strlen(espTok) > 0) cfgPrefs.putString("esp_token", espTok);
+    if (devTok && strlen(devTok) > 0) cfgPrefs.putString("device_token", devTok);
+    cfgPrefs.putInt("classroom_id", cid);
+    cfgPrefs.end();
+    loadConfig();
+}
+
+// URL builders — built at call time so config changes take effect immediately.
+String toggleUrl()       { return String(serverBase) + "/api/esp32-light-status.php?token=" + espToken + "&classroom_id=" + classroomId; }
+String scheduleUrl()     { return String(serverBase) + "/api/esp32-schedule.php?token=" + espToken + "&classroom_id=" + classroomId; }
+String scheduleFlagUrl() { return String(serverBase) + "/api/esp32-schedule-flag.php?token=" + espToken + "&classroom_id=" + classroomId; }
+String configUrl()       { return String(serverBase) + "/api/esp32-config.php?token=" + espToken; }
+String timeUrl()         { return String(serverBase) + "/api/esp32-time.php?token=" + espToken; }
+String pzemPostUrl()     { return String(serverBase) + "/api/pzem_push.php"; }
+String updateRowsUrl()   { return String(serverBase) + "/api/esp32-update-rows.php"; }
+String pirLogUrl()       { return String(serverBase) + "/api/pir-log.php"; }
+String tiltLogUrl()      { return String(serverBase) + "/api/tilt-log.php"; }
+String sessionUrl()      { return String(serverBase) + "/api/post_session.php"; }
+String archiveSyncUrl()  { return String(serverBase) + "/api/archive-sync.php"; }
+
+// HTTP begin that supports both plain HTTP and HTTPS. Uses WiFiClientSecure
+// with setInsecure() so any valid TLS host (e.g. Hostinger) can be reached.
+WiFiClientSecure secureHttpClient;
+WiFiClient       plainHttpClient;
+
+bool beginHttp(HTTPClient& http, const String& url) {
+    if (url.startsWith("https://")) {
+        secureHttpClient.setInsecure();
+        return http.begin(secureHttpClient, url);
+    }
+    return http.begin(plainHttpClient, url);
+}
 
 // ── Pin Definitions ────────────────────────────────────────
 #define ROW1_PIN 25
@@ -148,8 +191,8 @@ bool fetchTimeFromServer() {
     if (WiFi.status() != WL_CONNECTED) return false;
     HTTPClient http;
     http.setTimeout(3000);
-    String url = String(SERVER_BASE) + "/api/esp32-time.php?token=" + ESP32_TOKEN;
-    http.begin(url);
+    String url = timeUrl();
+    beginHttp(http, url);
     int code = http.GET();
     bool ok = false;
     if (code == HTTP_CODE_OK) {
@@ -199,6 +242,9 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
+    // Load persisted server/token config before WiFiManager may change it.
+    loadConfig();
+
     // Serial2 to Mega
     Serial2.begin(9600, SERIAL_8N1, MEGA_RX, MEGA_TX);
     delay(500);
@@ -220,6 +266,18 @@ void setup() {
     // wm.resetSettings(); // uncomment to forget saved WiFi
     wm.setConfigPortalTimeout(180); 
     wm.setConnectTimeout(30);
+
+    // Runtime server config fields (shown in the config portal).
+    char cidDefault[8];
+    snprintf(cidDefault, sizeof(cidDefault), "%d", classroomId);
+    WiFiManagerParameter customServer("server", "Server base URL", serverBase, sizeof(serverBase));
+    WiFiManagerParameter customEspTok("esp_token", "ESP32 query token (?token=)", espToken, sizeof(espToken));
+    WiFiManagerParameter customDevTok("device_token", "Device header token (X-Device-Token)", deviceToken, sizeof(deviceToken));
+    WiFiManagerParameter customCid("classroom_id", "Classroom ID", cidDefault, sizeof(cidDefault));
+    wm.addParameter(&customServer);
+    wm.addParameter(&customEspTok);
+    wm.addParameter(&customDevTok);
+    wm.addParameter(&customCid);
 
     Serial.println(F("[WiFi] Trying fallback credentials..."));
     bool connected = false;
@@ -253,6 +311,14 @@ void setup() {
         Serial.println(WiFi.localIP());
         WiFi.setAutoReconnect(true);
         delay(500);
+
+        // Persist whatever the portal fields hold now (changed fields win;
+        // defaults are saved when the portal was never shown).
+        saveConfig(customServer.getValue(), customEspTok.getValue(),
+                   customDevTok.getValue(), atoi(customCid.getValue()));
+        Serial.print(F("[CFG] server="));     Serial.println(serverBase);
+        Serial.print(F("[CFG] classroom_id=")); Serial.println(classroomId);
+
         fetchAndForwardSchedule();
         fetchAndForwardConfig();
 
@@ -548,7 +614,7 @@ void pollDatabase() {
     httpBusy = true;
 
     HTTPClient http;
-    http.begin(TOGGLE_URL);
+    beginHttp(http, toggleUrl());
     http.setTimeout(1500);
     int httpCode = http.GET();
 
@@ -595,7 +661,7 @@ void fetchAndForwardSchedule() {
     httpBusy = true;
 
     HTTPClient http;
-    http.begin(SCHEDULE_URL);
+    beginHttp(http, scheduleUrl());
     http.setTimeout(3000);
     int httpCode = http.GET();
 
@@ -658,7 +724,7 @@ void fetchAndForwardConfig() {
     httpBusy = true;
 
     HTTPClient http;
-    http.begin(CONFIG_URL);
+    beginHttp(http, configUrl());
     http.setTimeout(3000);
     int httpCode = http.GET();
 
@@ -721,17 +787,17 @@ void forwardPzemToDb(String jsonStr) {
 
     // Add classroom_id if Mega didn't include it
     if (!doc.containsKey("classroom_id")) {
-        doc["classroom_id"] = 3;
+        doc["classroom_id"] = classroomId;
     }
 
     String outJson;
     serializeJson(doc, outJson);
 
     HTTPClient http;
-    http.begin(PZEM_POST_URL);
+    beginHttp(http, pzemPostUrl());
     http.setTimeout(3000);
     http.addHeader("Content-Type", "application/json");
-    http.addHeader("X-Device-Token", "luminesense-secret-token");
+    http.addHeader("X-Device-Token", deviceToken);
 
     int httpCode = http.POST(outJson);
     if (httpCode == 200) {
@@ -754,13 +820,13 @@ void forwardPirLog(int state) {
     if (httpBusy) return;
     httpBusy = true;
 
-    String json = "{\"classroom_id\":3,\"state\":" + String(state) + "}";
+    String json = "{\"classroom_id\":" + String(classroomId) + ",\"state\":" + String(state) + "}";
 
     HTTPClient http;
-    http.begin(PIR_LOG_URL);
+    beginHttp(http, pirLogUrl());
     http.setTimeout(3000);
     http.addHeader("Content-Type", "application/json");
-    http.addHeader("X-Device-Token", "luminesense-secret-token");
+    http.addHeader("X-Device-Token", deviceToken);
 
     int httpCode = http.POST(json);
     if (httpCode == 200) {
@@ -783,13 +849,13 @@ void forwardTiltLog(int state) {
     if (httpBusy) return;
     httpBusy = true;
 
-    String json = "{\"classroom_id\":3,\"state\":" + String(state) + "}";
+    String json = "{\"classroom_id\":" + String(classroomId) + ",\"state\":" + String(state) + "}";
 
     HTTPClient http;
-    http.begin(TILT_LOG_URL);
+    beginHttp(http, tiltLogUrl());
     http.setTimeout(3000);
     http.addHeader("Content-Type", "application/json");
-    http.addHeader("X-Device-Token", "luminesense-secret-token");
+    http.addHeader("X-Device-Token", deviceToken);
 
     int httpCode = http.POST(json);
     if (httpCode == 200) {
@@ -828,7 +894,7 @@ void forwardReconcile(String data) {
     String sTotWh   = data.substring(c4 + 1, c5);
     String sCount   = data.substring(c5 + 1);
 
-    String json = "{\"classroom_id\":3,\"session_date\":\"" + sDate +
+    String json = "{\"classroom_id\":" + String(classroomId) + ",\"session_date\":\"" + sDate +
                   "\",\"start_time\":\"" + sTime +
                   "\",\"duration_mins\":0" +
                   ",\"avg_voltage\":" + sAvgV +
@@ -841,10 +907,10 @@ void forwardReconcile(String data) {
     httpBusy = true;
 
     HTTPClient http;
-    http.begin(SESSION_URL);
+    beginHttp(http, sessionUrl());
     http.setTimeout(3000);
     http.addHeader("Content-Type", "application/json");
-    http.addHeader("X-Device-Token", "luminesense-secret-token");
+    http.addHeader("X-Device-Token", deviceToken);
 
     int httpCode = http.POST(json);
     if (httpCode == 200) {
@@ -868,11 +934,11 @@ void updateRowsInDb(bool r1, bool r2, bool r3) {
     httpBusy = true;
 
     HTTPClient http;
-    http.begin(UPDATE_ROWS_URL);
+    beginHttp(http, updateRowsUrl());
     http.setTimeout(3000);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
-    String body = "token=LS_ESP32_TOKEN_2025&classroom_id=3";
+    String body = "token=" + String(espToken) + "&classroom_id=" + String(classroomId);
     body += "&row1=" + String(r1 ? "on" : "off");
     body += "&row2=" + String(r2 ? "on" : "off");
     body += "&row3=" + String(r3 ? "on" : "off");
@@ -888,7 +954,7 @@ void checkScheduleFlag() {
     httpBusy = true;
 
     HTTPClient http;
-    http.begin(SCHEDULE_FLAG_URL);
+    beginHttp(http, scheduleFlagUrl());
     http.setTimeout(3000);
     int httpCode = http.GET();
 
@@ -1014,7 +1080,7 @@ void flushArchiveBatch(bool force) {
     }
     if (!force && archiveBatchCount < ARCHIVE_BATCH_ROWS) return;
 
-    archiveBatchPending = "{\"classroom_id\":3,\"archive_date\":\"" + archivePendingDate +
+    archiveBatchPending = "{\"classroom_id\":" + String(classroomId) + ",\"archive_date\":\"" + archivePendingDate +
                           "\",\"rows\":[" + archiveRowsJson + "]}";
     archiveRowsJson = "";
     archiveBatchCount = 0;
@@ -1028,10 +1094,10 @@ void postArchive(String json) {
     httpBusy = true;
 
     HTTPClient http;
-    http.begin(ARCHIVE_SYNC_URL);
+    beginHttp(http, archiveSyncUrl());
     http.setTimeout(10000);
     http.addHeader("Content-Type", "application/json");
-    http.addHeader("X-Device-Token", "luminesense-secret-token");
+    http.addHeader("X-Device-Token", deviceToken);
 
     int httpCode = http.POST(json);
     if (httpCode == 200) {

@@ -135,6 +135,10 @@
     width: 140px;
     text-align: center;
 }
+/* Final Warning (post-class PIN escalation) sits above the PIN overlay */
+#fiveMinLogoutOverlay {
+    z-index: 10001;
+}
 
 /* ── Tutorial System ──────────────────────────────────────────── */
 .tutorial-floater {

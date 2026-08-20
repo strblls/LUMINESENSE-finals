@@ -35,6 +35,7 @@ unset($_SESSION['login_error'], $_SESSION['signup_success'], $_SESSION['login_su
 </head>
 
 <body>
+    <div class="bg-hover-zone" aria-hidden="true"></div>
     <div class="return-container">
         <a class="medium d-flex justify-content-center align-items-center"
             onclick="dissolve('../index.php')">

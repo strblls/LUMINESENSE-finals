@@ -139,6 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="../css/pages/verify-email.css">
 </head>
 <body>
+<div class="bg-hover-zone" aria-hidden="true"></div>
 <div class="parent-container">
     <div class="registration-container">
         <div class="image-background <?= $role === 'faculty' ? 'faculty' : '' ?>">
