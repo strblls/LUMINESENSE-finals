@@ -53,6 +53,18 @@ void loadConfig() {
     cfgPrefs.begin("lumi-cfg", true);
     String s = cfgPrefs.getString("server", "");
     if (s.length() > 0) { strncpy(serverBase, s.c_str(), sizeof(serverBase) - 1); serverBase[sizeof(serverBase) - 1] = '\0'; }
+    // Auto-migrate back to remote Hostinger if NVS still holds the local XAMPP URL
+    // (put back luminesense-bet.site as default). Portal can still override to local if needed.
+    if (String(serverBase).indexOf("192.168.137.1") != -1) {
+        strncpy(serverBase, "https://luminesense-bet.site", sizeof(serverBase) - 1);
+        serverBase[sizeof(serverBase) - 1] = '\0';
+        // persist the migration so next boot is clean
+        cfgPrefs.end();
+        cfgPrefs.begin("lumi-cfg", false);
+        cfgPrefs.putString("server", serverBase);
+        cfgPrefs.end();
+        cfgPrefs.begin("lumi-cfg", true);
+    }
     s = cfgPrefs.getString("esp_token", "");
     if (s.length() > 0) { strncpy(espToken, s.c_str(), sizeof(espToken) - 1); espToken[sizeof(espToken) - 1] = '\0'; }
     s = cfgPrefs.getString("device_token", "");
@@ -782,8 +794,9 @@ void pollDatabase() {
     if (httpBusy) return;
     httpBusy = true;
 
+    String url = toggleUrl();
     HTTPClient http;
-    beginHttp(http, toggleUrl());
+    beginHttp(http, url);
     http.setTimeout(5000);
     int httpCode = http.GET();
 
@@ -814,7 +827,15 @@ void pollDatabase() {
             Serial.print(F("[DB] light_override=")); Serial.println(lightOverride);
         }
     } else {
-        Serial.print(F("[DB] Poll failed, code: ")); Serial.println(httpCode);
+        Serial.print(F("[DB] Poll failed, code: ")); Serial.print(httpCode);
+        Serial.print(F(" ")); Serial.print(http.errorToString(httpCode));
+        Serial.print(F(" url=")); Serial.println(url);
+        // Hint: -1 = no TCP/TLS (hotspot has no internet). If serverBase is https://luminesense-bet.site
+        // but the Windows hotspot at 192.168.137.1 has no internet sharing, use the portal to set
+        // server=http://192.168.137.1/LUMINESENSE-finals for local XAMPP.
+        if (httpCode == -1) {
+            Serial.println(F("[DB] Tip: connect laptop hotspot to internet or change Server base URL via WiFiManager portal (LumineSense-Setup -> 192.168.4.1)"));
+        }
     }
 
     http.end();
@@ -829,8 +850,9 @@ void fetchAndForwardSchedule() {
     if (httpBusy) return;
     httpBusy = true;
 
+    String url = scheduleUrl();
     HTTPClient http;
-    beginHttp(http, scheduleUrl());
+    beginHttp(http, url);
     http.setTimeout(5000);
     int httpCode = http.GET();
 
@@ -877,7 +899,10 @@ void fetchAndForwardSchedule() {
             Serial.println(F("[SCHED] Empty payload — no schedule today"));
         }
     } else {
-        Serial.print(F("[SCHED] Fetch failed, code: ")); Serial.println(httpCode);
+        Serial.print(F("[SCHED] Fetch failed, code: ")); Serial.print(httpCode);
+        Serial.print(F(" ")); Serial.print(http.errorToString(httpCode));
+        Serial.print(F(" url=")); Serial.println(url);
+        if (httpCode == -1) Serial.println(F("[SCHED] Tip: XAMPP Apache not reachable at 192.168.137.1 — check XAMPP is running and Windows Firewall allows Apache on Private network"));
     }
 
     http.end();
@@ -892,8 +917,9 @@ void fetchAndForwardConfig() {
     if (httpBusy) return;
     httpBusy = true;
 
+    String url = configUrl();
     HTTPClient http;
-    beginHttp(http, configUrl());
+    beginHttp(http, url);
     http.setTimeout(5000);
     int httpCode = http.GET();
 
@@ -912,7 +938,10 @@ void fetchAndForwardConfig() {
             Serial.println(timeoutMs);
         }
     } else {
-        Serial.print(F("[CONFIG] Fetch failed, code: ")); Serial.println(httpCode);
+        Serial.print(F("[CONFIG] Fetch failed, code: ")); Serial.print(httpCode);
+        Serial.print(F(" ")); Serial.print(http.errorToString(httpCode));
+        Serial.print(F(" url=")); Serial.println(url);
+        if (httpCode == -1) Serial.println(F("[CONFIG] Tip: XAMPP Apache not reachable — same as SCHED"));
     }
 
     http.end();
