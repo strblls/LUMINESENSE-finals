@@ -140,7 +140,7 @@ String serial2Buffer = "";
 void setup()
 {
     Serial.begin(9600);
-    Serial2.begin(9600);
+    Serial2.begin(115200); // must match ESP32 Serial2 115200 for WS instant forwarding
     Wire.begin();
     Serial1.begin(9600);
 

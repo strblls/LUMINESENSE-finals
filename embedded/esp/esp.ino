@@ -18,29 +18,31 @@
 #include <time.h>
 #include <sys/time.h>
 #include <Preferences.h>
+// Async server for near-zero latency lighting control (replaces any WebServer.h)
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 
 // ── Fallback WiFi credentials ──────────────────────────────
 // If WiFiManager settings are reset, ESP32 tries these in order.
 const char* FALLBACK_SSIDS[] = {
     "LAPTOP-UOHVHQ1N 0251",
-    "capstone"
 };
 const char* FALLBACK_PASS[] = {
     "betet2027",
-    "betet2027"
 };
 #define NUM_FALLBACKS (sizeof(FALLBACK_SSIDS) / sizeof(FALLBACK_SSIDS[0]))
 
 // ── Server configuration (runtime-configurable) ─────────────
-// Defaults work out of the box with the laptop's XAMPP over its 2.4GHz
-// mobile hotspot (gateway 192.168.137.1). For a Hostinger deployment,
-// open the WiFiManager portal and set:
-//   server        = https://luminesense-bet.site
+// Production default (Hostinger). To develop against the laptop's XAMPP
+// hotspot instead, open the WiFiManager portal and set:
+//   server        = http://192.168.137.1/LUMINESENSE-finals
 //   esp_token     = ESP32 query token (?token=...)     [default LS_ESP32_TOKEN_2025]
-//   device_token  = X-Device-Token header token        [default luminesense-secret-token]
+//   device_token  = Device header token (X-Device-Token) [default luminesense-secret-token]
 //   classroom_id  = classroom row to poll/drive        [default 3]
-// Values are persisted in NVS and survive reboots.
-char serverBase[160] = "http://192.168.137.1/LUMINESENSE-finals";
+// Values are persisted in NVS and survive reboots. NOTE: the saved NVS value
+// overrides this compiled default, so after changing the default you must also
+// type `resetcfg` in the Serial Monitor (clears NVS) or update the portal.
+char serverBase[160] = "https://luminesense-bet.site";
 char espToken[64]    = "LS_ESP32_TOKEN_2025";
 char deviceToken[64] = "luminesense-secret-token";
 int  classroomId     = 3;
@@ -106,6 +108,11 @@ bool beginHttp(HTTPClient& http, const String& url) {
 #define MEGA_RX 4   // ESP32 RX (was 16)
 #define MEGA_TX 2   // ESP32 TX (was 17)
 
+// ── Async WebServer + WebSocket (headless network-to-serial bridge) ─
+// No WebServer.h — strictly AsyncTCP + ESPAsyncWebServer
+AsyncWebServer server(80);      // async HTTP server on port 80
+AsyncWebSocket ws("/ws");       // WebSocket endpoint at ws://192.168.137.200/ws
+
 // ── HTTP busy flag ─────────────────────────────────────────
 bool httpBusy = false;
 
@@ -158,12 +165,106 @@ unsigned long lastScheduleFetch = 0;
 unsigned long lastFlagPoll = 0;
 unsigned long lastConfigFetch = 0;
 unsigned long lastNtpResync = 0;
-#define FLAG_POLL_MS 5000
-#define DB_POLL_MS        100
+#define FLAG_POLL_MS 3000
+#define DB_POLL_MS        800  // faster remote reflection: was 2000ms, now ~0.8s for near-instant via luminesense-bet.site
 #define SCHEDULE_FETCH_MS 30000
 #define CONFIG_FETCH_MS   300000
 #define PIR_INACTIVITY_MS 300000ul // 5 minutes
 #define NTP_RESYNC_MS     3600000ul // 1 hour
+
+// ── Async WebSocket helpers (instant Serial2 forwarding) ────
+// Forward a lighting command to Mega with zero HTTP overhead — the fast path
+inline void forwardToMega(const String &cmd) {
+    Serial2.println(cmd); // instant, non-blocking
+    Serial.print(F("[WS->MEGA] ")); Serial.println(cmd);
+}
+
+// Broadcast current row state to all WS clients (for externally-hosted UI sync)
+void broadcastState() {
+    StaticJsonDocument<128> doc;
+    doc["type"] = "state";
+    doc["row1"] = row1State;
+    doc["row2"] = row2State;
+    doc["row3"] = row3State;
+    doc["override"] = lightOverride;
+    String out; serializeJson(doc, out);
+    ws.textAll(out);
+}
+
+// WebSocket event handler — listens for WS_TEXT (e.g. ALL:ON) and bridges to Mega
+void onWsEvent(AsyncWebSocket *srv, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
+    if (type == WS_EVT_CONNECT) {
+        Serial.printf("[WS] Client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+        // Send current state instantly so externally-hosted UI is in sync
+        StaticJsonDocument<128> doc;
+        doc["type"] = "state";
+        doc["row1"] = row1State;
+        doc["row2"] = row2State;
+        doc["row3"] = row3State;
+        doc["override"] = lightOverride;
+        String out; serializeJson(doc, out);
+        client->text(out);
+    } else if (type == WS_EVT_DISCONNECT) {
+        Serial.printf("[WS] Client #%u disconnected\n", client->id());
+    } else if (type == WS_EVT_DATA) {
+        AwsFrameInfo *info = (AwsFrameInfo*)arg;
+        if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
+            data[len] = 0;
+            String cmd = String((char*)data);
+            cmd.trim();
+            if (cmd.length() == 0) return;
+            String upper = cmd; upper.toUpperCase(); // Mega expects ALL:ON, ROW1:OFF
+            forwardToMega(upper); // near-zero latency bridge — this is the instant path
+            ws.textAll(upper); // echo to all browsers for sync
+        }
+    }
+}
+
+// UI hosted externally (luminesense-bet.site) + local health probe — ESP remains remote-hosted but adds instant WS
+const char INDEX_HTML[] PROGMEM = R"rawliteral(
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LumineSense — Lights</title>
+<style>body{font-family:system-ui,sans-serif;max-width:480px;margin:2rem auto;padding:0 1rem}button{padding:.8rem 1.2rem;margin:.3rem;font-size:1rem;border:0;border-radius:.5rem;cursor:pointer}
+.on{background:#16a34a;color:#fff}.off{background:#dc2626;color:#fff}.row{display:flex;gap:.5rem;align-items:center;margin:.6rem 0}
+#log{font:12px monospace;background:#111;color:#0f0;padding:.6rem;height:160px;overflow:auto;white-space:pre-wrap}</style>
+</head><body>
+<h2>LumineSense — Instant Lighting (Local)</h2>
+<div class="row"><b>ALL</b> <button class="on" onclick="send('ALL:ON')">ON</button> <button class="off" onclick="send('ALL:OFF')">OFF</button></div>
+<div class="row"><b>ROW1</b> <button class="on" onclick="send('ROW1:ON')">ON</button> <button class="off" onclick="send('ROW1:OFF')">OFF</button></div>
+<div class="row"><b>ROW2</b> <button class="on" onclick="send('ROW2:ON')">ON</button> <button class="off" onclick="send('ROW2:OFF')">OFF</button></div>
+<div class="row"><b>ROW3</b> <button class="on" onclick="send('ROW3:ON')">ON</button> <button class="off" onclick="send('ROW3:OFF')">OFF</button></div>
+<div id="status">WS: connecting...</div>
+<pre id="log"></pre>
+<script>
+let ws, statusEl=document.getElementById('status'), logEl=document.getElementById('log');
+function log(m){ logEl.textContent += m+"\n"; logEl.scrollTop=logEl.scrollHeight; }
+function connect(){
+  const proto=location.protocol==='https:'?'wss://':'ws://';
+  ws=new WebSocket(proto+location.host+'/ws');
+  ws.onopen=()=>{ statusEl.textContent='WS: connected'; log('WS open'); };
+  ws.onclose=()=>{ statusEl.textContent='WS: disconnected — retrying...'; log('WS close'); setTimeout(connect,1500); };
+  ws.onerror=(e)=> log('WS error');
+  ws.onmessage=(e)=> log('<< '+e.data);
+}
+function send(cmd){ if(ws&&ws.readyState===1){ ws.send(cmd); log('>> '+cmd);} else log('WS not ready'); }
+connect();
+</script>
+</body></html>
+)rawliteral";
+
+void initAsyncServer() {
+    ws.onEvent(onWsEvent);          // attach WS event handler
+    server.addHandler(&ws);         // mount /ws on async server
+    // Keep UI locally for diagnostics; remote UI is on luminesense-bet.site (DB polling remains the internet path)
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send_P(200, "text/html", INDEX_HTML);
+    });
+    server.on("/health", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(200, "application/json", "{\"ok\":true}");
+    });
+    server.begin(); // non-blocking — no handleClient() needed
+    Serial.println(F("[HTTP] AsyncWebServer on :80 + WS /ws (remote-hosted + local instant)"));
+}
 
 // ── NVS time persistence ────────────────────────────────────
 // NTP may be unreachable when the laptop hotspot has no internet.
@@ -190,7 +291,7 @@ unsigned long loadLastKnownEpoch() {
 bool fetchTimeFromServer() {
     if (WiFi.status() != WL_CONNECTED) return false;
     HTTPClient http;
-    http.setTimeout(3000);
+    http.setTimeout(5000);
     String url = timeUrl();
     beginHttp(http, url);
     int code = http.GET();
@@ -245,8 +346,8 @@ void setup() {
     // Load persisted server/token config before WiFiManager may change it.
     loadConfig();
 
-    // Serial2 to Mega
-    Serial2.begin(9600, SERIAL_8N1, MEGA_RX, MEGA_TX);
+    // Serial2 to Mega — 115200 for near-zero latency (Mega must also use 115200 on Serial2)
+    Serial2.begin(115200, SERIAL_8N1, MEGA_RX, MEGA_TX);
     delay(500);
     Serial2.flush();
 
@@ -262,10 +363,17 @@ void setup() {
     pinMode(PIR_PIN, INPUT);
 
     // WiFi Manager — all inside setup()!
+    // Force clean STA state before any WiFi work. Keep DHCP (remote-hosted) — no static IP
+    WiFi.mode(WIFI_STA);
+    WiFi.persistent(false);
+    WiFi.disconnect(true);
+    delay(500);
+
     WiFiManager wm;
     // wm.resetSettings(); // uncomment to forget saved WiFi
-    wm.setConfigPortalTimeout(180); 
+    wm.setConfigPortalTimeout(180);
     wm.setConnectTimeout(30);
+    wm.setCleanConnect(true); // let WM also clean state before its own begin()
 
     // Runtime server config fields (shown in the config portal).
     char cidDefault[8];
@@ -284,25 +392,55 @@ void setup() {
     for (int i = 0; i < NUM_FALLBACKS && !connected; i++) {
         Serial.print(F("[WiFi] Attempting: "));
         Serial.println(FALLBACK_SSIDS[i]);
-        WiFi.disconnect();
+        WiFi.disconnect(true);
+        delay(500);
+        WiFi.mode(WIFI_STA);
         WiFi.begin(FALLBACK_SSIDS[i], FALLBACK_PASS[i]);
         int attempts = 0;
         while (WiFi.status() != WL_CONNECTED && attempts < 20) {
             delay(500);
             Serial.print(".");
             attempts++;
+            wl_status_t st = WiFi.status();
+            if (st == WL_CONNECT_FAILED) {
+                Serial.println();
+                Serial.println(F("[WiFi] WL_CONNECT_FAILED — wrong password?"));
+                break;
+            }
+            if (st == WL_NO_SSID_AVAIL) {
+                Serial.println();
+                Serial.println(F("[WiFi] WL_NO_SSID_AVAIL — AP not found (is hotspot on? 2.4 GHz band enabled?)"));
+                break;
+            }
         }
         Serial.println();
         connected = (WiFi.status() == WL_CONNECTED);
         if (connected) {
             Serial.print(F("[WiFi] Connected to "));
             Serial.println(FALLBACK_SSIDS[i]);
+        } else {
+            Serial.print(F("[WiFi] Failed to connect to "));
+            Serial.print(FALLBACK_SSIDS[i]);
+            Serial.print(F(" status="));
+            Serial.println((int)WiFi.status());
         }
     }
 
     if (!connected) {
         Serial.println(F("[WiFi] All fallbacks failed — starting WiFiManager portal..."));
+        // Critical: fallback loop leaves STA in CONNECTING state on failure.
+        // Without this cleanup WiFiManager's next WiFi.begin() fails with
+        // "E wifi:sta is connecting, return error / cannot set config".
+        WiFi.disconnect(true);
+        delay(1000);
+        WiFi.mode(WIFI_STA);
         connected = wm.autoConnect("LumineSense-Setup", "luminesense123");
+        if (!connected) {
+            // Clean again so loop()'s WiFi.reconnect() starts from IDLE
+            WiFi.disconnect(true);
+            delay(500);
+            WiFi.mode(WIFI_STA);
+        }
     }
 
     if (connected) {
@@ -346,6 +484,9 @@ void setup() {
         Serial.println(F("[WiFi] Config portal timed out — running offline"));
     }
 
+    // Start async server + WebSocket regardless of WiFi state (AP mode still serves UI)
+    initAsyncServer();
+
     Serial.println(F("=== ESP32 Ready ==="));
 }
 
@@ -353,6 +494,7 @@ void setup() {
 // MAIN LOOP
 // ============================================================
 void loop() {
+    ws.cleanupClients(); // free closed WS clients — only blocking-safe call needed
     unsigned long now = millis();
 
     // Serial command: type "resetwifi" in Serial Monitor to clear saved WiFi
@@ -364,6 +506,14 @@ void loop() {
             WiFiManager wm;
             wm.resetSettings();
             Serial.println(F("[WiFi] Settings cleared. Restarting..."));
+            delay(1000);
+            ESP.restart();
+        }
+        if (cmd == "resetcfg") {
+            cfgPrefs.begin("lumi-cfg", false);
+            cfgPrefs.clear();
+            cfgPrefs.end();
+            Serial.println(F("[CFG] Runtime config cleared (server/token/classroom). Restarting..."));
             delay(1000);
             ESP.restart();
         }
@@ -385,14 +535,33 @@ void loop() {
 
     // heartbeat print — once per 2s instead of every single loop
     static unsigned long lastHeartbeat = 0;
+    static unsigned long lastReconnectAttempt = 0;
     if (now - lastHeartbeat >= 2000) {
         lastHeartbeat = now;
         Serial.print(F("[HEARTBEAT] busy="));
         Serial.print(httpBusy);
         Serial.print(F(" wifi="));
         if (WiFi.status() != WL_CONNECTED) {
-            Serial.print(F("DISCONNECTED—reconnecting..."));
-            WiFi.reconnect();
+            Serial.print(F("DISCONNECTED status="));
+            Serial.print((int)WiFi.status());
+            // Throttle reconnect: ESP-IDF needs time between attempts.
+            // Spamming WiFi.reconnect() while still CONNECTING triggers
+            // the same "sta is connecting" error seen at boot.
+            if (now - lastReconnectAttempt >= 10000) {
+                lastReconnectAttempt = now;
+                Serial.print(F(" — reconnecting..."));
+                // If stuck in CONNECTING for >10s, force clean restart
+                if (WiFi.status() == WL_IDLE_STATUS || WiFi.status() == WL_DISCONNECTED) {
+                    WiFi.reconnect();
+                } else {
+                    WiFi.disconnect(true);
+                    delay(200);
+                    WiFi.mode(WIFI_STA);
+                    WiFi.reconnect();
+                }
+            } else {
+                Serial.print(F(" (waiting)"));
+            }
         } else {
             Serial.print(F("connected"));
         }
@@ -615,7 +784,7 @@ void pollDatabase() {
 
     HTTPClient http;
     beginHttp(http, toggleUrl());
-    http.setTimeout(1500);
+    http.setTimeout(5000);
     int httpCode = http.GET();
 
     if (httpCode == 200) {
@@ -662,7 +831,7 @@ void fetchAndForwardSchedule() {
 
     HTTPClient http;
     beginHttp(http, scheduleUrl());
-    http.setTimeout(3000);
+    http.setTimeout(5000);
     int httpCode = http.GET();
 
     if (httpCode == 200) {
@@ -725,7 +894,7 @@ void fetchAndForwardConfig() {
 
     HTTPClient http;
     beginHttp(http, configUrl());
-    http.setTimeout(3000);
+    http.setTimeout(5000);
     int httpCode = http.GET();
 
     if (httpCode == 200) {
@@ -795,7 +964,7 @@ void forwardPzemToDb(String jsonStr) {
 
     HTTPClient http;
     beginHttp(http, pzemPostUrl());
-    http.setTimeout(3000);
+    http.setTimeout(5000);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Token", deviceToken);
 
@@ -824,7 +993,7 @@ void forwardPirLog(int state) {
 
     HTTPClient http;
     beginHttp(http, pirLogUrl());
-    http.setTimeout(3000);
+    http.setTimeout(5000);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Token", deviceToken);
 
@@ -853,7 +1022,7 @@ void forwardTiltLog(int state) {
 
     HTTPClient http;
     beginHttp(http, tiltLogUrl());
-    http.setTimeout(3000);
+    http.setTimeout(5000);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Token", deviceToken);
 
@@ -908,7 +1077,7 @@ void forwardReconcile(String data) {
 
     HTTPClient http;
     beginHttp(http, sessionUrl());
-    http.setTimeout(3000);
+    http.setTimeout(5000);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Token", deviceToken);
 
@@ -935,7 +1104,7 @@ void updateRowsInDb(bool r1, bool r2, bool r3) {
 
     HTTPClient http;
     beginHttp(http, updateRowsUrl());
-    http.setTimeout(3000);
+    http.setTimeout(5000);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
     String body = "token=" + String(espToken) + "&classroom_id=" + String(classroomId);
@@ -955,7 +1124,7 @@ void checkScheduleFlag() {
 
     HTTPClient http;
     beginHttp(http, scheduleFlagUrl());
-    http.setTimeout(3000);
+    http.setTimeout(5000);
     int httpCode = http.GET();
 
     if (httpCode == 200) {

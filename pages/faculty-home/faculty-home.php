@@ -593,8 +593,15 @@ $lighting_blocked = $lighting_reason !== null;
         const CLASSROOM_ID = <?= (int) $classroom_id ?>;
         const FACULTY_ID = <?= (int) $faculty_id ?>;
         const HAS_ACTIVE_SCHEDULE = <?= $active_schedule ? 'true' : 'false' ?>;
+        // Local ESP async control — discovered working at 192.168.137.126.
+        // From luminesense-bet.site (https) the browser blocks ws:// to a private IP (mixed-content),
+        // so this is only used when the dashboard is opened via http://192.168.137.1/LUMINESENSE-finals
+        // or when on the same hotspot LAN. Remote internet users fall back to DB polling (2s latency).
+        const ESP_HTTP_URL = "http://192.168.137.126";
+        const ESP_WS_URL   = "ws://192.168.137.126/ws";
     </script>
     <script src="../../js/faculty/faculty-home.js?v=<?= time() ?>"></script>
+    <script src="../../js/lib/toggles.js?v=<?= time() ?>"></script>
 
     <!-- Countdown timer for Time Left widget -->
     <script>
@@ -1137,7 +1144,6 @@ $lighting_blocked = $lighting_reason !== null;
 </div>
 
     <script src="../../js/lib/animations.js"></script>
-    <script src="../../js/lib/toggles.js"></script>
     <script src="../../js/lib/tooltip.js"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
