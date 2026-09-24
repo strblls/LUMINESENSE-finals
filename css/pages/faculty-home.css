@@ -551,6 +551,10 @@
 .timer-display { font-size: 2rem; font-weight: 700; text-align: center; margin: 0.5rem 0; display: flex; align-items: center; justify-content: center; gap: 0.25rem; }
 .timer-input { width: 100%; font-size: 3.5rem; font-weight: 700; text-align: center; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; color: #333; padding: 0.25rem; }
 .gesture-loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.65); z-index: 25; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+.light-grid-busy-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 24; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+#lightingControlsContent.is-busy { pointer-events: none; }
+#lightingControlsContent.is-busy .lighting-grid,
+#lightingControlsContent.is-busy #allLightsContainer { opacity: 0.55; }
 .gesture-loading-spinner { color: #fff; display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; }
 .timer-input:focus { outline: none; border-color: var(--secondary-color-1,#6c5ce7); background: #fff; }
 .timer-labels { margin-top: 0.5rem; }

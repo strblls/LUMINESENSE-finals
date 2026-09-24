@@ -3,6 +3,50 @@
 // Persists every change to api/lights.php so the DB stays in sync.
 // Remote-hosted: luminesense-bet.site is source of truth; ESP polls it via pollDatabase().
 
+// ── Shared lighting-grid busy overlay (faculty grid only) ───────────────────
+// Block + queue: while a toggle/gesture POST is in flight the grid shows a
+// buffering overlay and ignores extra input. Hides on API response.
+// Exposed on window so the gesture module (initialize-gesture.js) reuses it.
+window.__lightGridBusy = window.__lightGridBusy || (function () {
+    let count = 0;
+    const DEFAULT_LABEL = 'Updating lights...';
+    function els() {
+        return {
+            overlay: document.getElementById('lightGridBusyOverlay'),
+            label: document.getElementById('lightGridBusyLabel'),
+            content: document.getElementById('lightingControlsContent'),
+            switches: ['row-1-switch', 'row-2-switch', 'row-3-switch']
+                .map(id => document.getElementById(id))
+                .filter(Boolean),
+        };
+    }
+    function begin(label) {
+        count += 1;
+        const { overlay, label: labelEl, content, switches } = els();
+        if (labelEl) labelEl.textContent = label || DEFAULT_LABEL;
+        if (overlay) overlay.style.display = 'flex';
+        if (content) content.classList.add('is-busy');
+        switches.forEach(sw => {
+            if (sw.dataset.busyPrev === undefined) sw.dataset.busyPrev = sw.disabled ? '1' : '0';
+            sw.disabled = true;
+        });
+    }
+    function end() {
+        count = Math.max(0, count - 1);
+        if (count > 0) return;
+        const { overlay, label: labelEl, content, switches } = els();
+        if (overlay) overlay.style.display = 'none';
+        if (labelEl) labelEl.textContent = DEFAULT_LABEL;
+        if (content) content.classList.remove('is-busy');
+        switches.forEach(sw => {
+            sw.disabled = sw.dataset.busyPrev === '1';
+            delete sw.dataset.busyPrev;
+        });
+    }
+    function isBusy() { return count > 0; }
+    return { begin, end, isBusy };
+})();
+
 const allLightsBtn = document.getElementById('all-lights');
 
 if (allLightsBtn) {
@@ -25,6 +69,10 @@ const bulbOn  = '../../images/bulb-on.png';
     }
 
     async function persistLight(row, state, newGlobalLightStatus) {
+        const busy = window.__lightGridBusy;
+        if (busy) busy.begin();
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 8000);
         try {
             const cid = (typeof CLASSROOM_ID !== 'undefined') ? CLASSROOM_ID : 0;
             const form = new FormData();
@@ -34,9 +82,20 @@ const bulbOn  = '../../images/bulb-on.png';
             if (newGlobalLightStatus !== undefined) {
                 form.append('new_global_light_status', newGlobalLightStatus);
             }
-            await fetch('../../api/lights.php', { method: 'POST', body: form });
+            const res = await fetch('../../api/lights.php', { method: 'POST', body: form, signal: ctrl.signal });
+            if (!res.ok && typeof showToast === 'function') {
+                showToast('Light update failed. Will retry on next sync.', 'error');
+            }
         } catch (e) {
             console.warn('persistLight error:', e);
+            if (typeof showToast === 'function' && e && e.name !== 'AbortError') {
+                showToast('Network error updating lights.', 'error');
+            } else if (typeof showToast === 'function') {
+                showToast('Light update timed out. Will retry on next sync.', 'error');
+            }
+        } finally {
+            clearTimeout(timer);
+            if (busy) busy.end();
         }
     }
 
@@ -68,6 +127,12 @@ const bulbOn  = '../../images/bulb-on.png';
         const sw = document.getElementById(switchId);
         if (!sw) return;
         sw.addEventListener('change', function () {
+            const busy = window.__lightGridBusy;
+            if (busy && busy.isBusy()) {
+                // Block re-entry while a request is in flight: revert and wait.
+                this.checked = !this.checked;
+                return;
+            }
             setRow(bulbs, this.checked);
             const sw1 = document.getElementById('row-1-switch');
             const sw2 = document.getElementById('row-2-switch');
@@ -81,6 +146,8 @@ const bulbOn  = '../../images/bulb-on.png';
 
     // ── All-lights power button ───────────────────────────────────────────────
     allLightsBtn.addEventListener('click', () => {
+        const busy = window.__lightGridBusy;
+        if (busy && busy.isBusy()) return; // block while a request is in flight
         // Dynamically check if any row is currently checked
         const sw1 = document.getElementById('row-1-switch');
         const sw2 = document.getElementById('row-2-switch');

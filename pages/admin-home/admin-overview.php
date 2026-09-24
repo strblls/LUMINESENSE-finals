@@ -1343,6 +1343,10 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                 <button type="button" class="gantt-nav-btn" id="ganttNextBtn" title="Next day"><i class="bi bi-chevron-right"></i></button>
                             </div>
                         </div>
+                        <div class="gantt-view-toggle" role="tablist" aria-label="Gantt view">
+                            <button type="button" class="timetable-btn gantt-view-tab active" id="ganttViewDayBtn" title="Day schedule view"><i class="bi bi-calendar2-week"></i><span class="timetable-btn-title bold">Day</span></button>
+                            <button type="button" class="timetable-btn gantt-view-tab" id="ganttViewHistBtn" title="Search all past sessions"><i class="bi bi-clock-history"></i><span class="timetable-btn-title bold">History</span></button>
+                        </div>
                         <div id="facultyGantt"></div>
 
                         <!-- Gantt time-window scrollbar (mirrors the overview chart scrollbar) -->
@@ -1352,6 +1356,25 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                 oninput="onGanttScroll(this.value)">
                             <div class="chart-scroll-tip" id="ganttScrollTip"></div>
                         </div>
+
+                        <!-- Session history (search across all closed power sessions) -->
+                        <div id="ganttHistoryWrap" style="display:none;">
+                            <div class="gantt-history-filters">
+                                <input type="date" id="sessHistFrom" class="form-control" title="From date">
+                                <input type="date" id="sessHistTo" class="form-control" title="To date">
+                                <select id="sessHistRoom" class="form-select" title="Room"><option value="0">All rooms</option></select>
+                                <select id="sessHistFac" class="form-select" title="Faculty"><option value="0">All faculty</option></select>
+                                <button type="button" class="timetable-btn" id="sessHistSearchBtn" title="Search sessions"><i class="bi bi-search"></i><span class="timetable-btn-title bold">Search</span></button>
+                                <button type="button" class="timetable-btn" id="sessHistResetBtn" title="Clear filters"><i class="bi bi-x-circle"></i><span class="timetable-btn-title bold">Reset</span></button>
+                            </div>
+                            <div class="gantt-history-meta" id="sessHistMeta"></div>
+                            <div id="sessHistList"></div>
+                            <div class="gantt-history-pager">
+                                <button type="button" class="gantt-nav-btn" id="sessHistPrevBtn" title="Previous page"><i class="bi bi-chevron-left"></i></button>
+                                <span id="sessHistPage"></span>
+                                <button type="button" class="gantt-nav-btn" id="sessHistNextBtn" title="Next page"><i class="bi bi-chevron-right"></i></button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Gantt session-detail panel (appears below the vertical scroll area on block click) -->
@@ -1359,7 +1382,7 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                         <div class="gantt-session-header">
                             <div class="gantt-session-title">
                                 <h6 class="mb-1" id="ganttSdTitle">Session</h6>
-                                <small class="text-muted" id="ganttSdSubtitle"></small>
+                                <smal id="ganttSdSubtitle"></small>
                             </div>
                             <button type="button" class="btn-icon btn-icon-del" title="Close" onclick="closeGanttSessionPanel()"><i class="bi bi-x-lg"></i></button>
                         </div>

@@ -12,6 +12,33 @@ function updateBadge(id, ok) {
     const interval = 3000;
     const bulbOff = '../../images/bulb-off.png';
     const bulbOn  = '../../images/bulb-on.png';
+    const PIR_BUFFER_MS = 1500; // buffering overlay hold for PIR auto-on/off
+    let prevPirOccupied = null; // null = not yet initialized (no overlay on first load)
+    let prevRowsOn = null;      // null = not yet initialized
+    let pirBufferTimer = null;
+
+    // True when the newest server log entry is a recent NON-PIR change
+    // (e.g. own toggle whose poll was skipped while busy) — used to suppress
+    // a spurious PIR buffer overlay.
+    function latestChangeIsManual(data) {
+        const latest = Array.isArray(data.logs) && data.logs.length ? data.logs[0] : null;
+        if (latest && latest.event_time) {
+            const t = new Date(String(latest.event_time).replace(' ', 'T')).getTime();
+            const recent = !isNaN(t) && (Date.now() - t) < 10000;
+            if (recent && latest.triggered_by && latest.triggered_by !== 'PIR') return true;
+        }
+        return false;
+    }
+
+    function holdPirBuffer(label) {
+        if (!window.__lightGridBusy) return;
+        window.__lightGridBusy.begin(label);
+        if (pirBufferTimer) clearTimeout(pirBufferTimer);
+        pirBufferTimer = setTimeout(() => {
+            window.__lightGridBusy.end();
+            pirBufferTimer = null;
+        }, PIR_BUFFER_MS);
+    }
 
     async function checkWebcam() {
         try {
@@ -26,10 +53,31 @@ function updateBadge(id, ok) {
     async function fetchStatus() {
         try {
             if (!CLASSROOM_ID) return;
+            if (window.__lightGridBusy && window.__lightGridBusy.isBusy()) return; // don't clobber in-flight toggle/gesture
             const res = await fetch(`../../api/faculty-status.php?classroom_id=${CLASSROOM_ID}`);
             if (!res.ok) return;
             const data = await res.json();
             if (!data.success) return;
+
+            // PIR motion in a valid schedule → buffering overlay over the grid.
+            // Server turns the rows on (api/pir-log.php / api/pir.php); the change
+            // arrives here via poll, so hold the overlay briefly to mask the flip.
+            const pirNow = data.pir_occupied === true;
+            const rowsOn = data.row1_status === 'on' || data.row2_status === 'on' || data.row3_status === 'on';
+            if (window.__lightGridBusy && !window.__lightGridBusy.isBusy()) {
+                if (prevPirOccupied === false && pirNow && data.schedule_active && rowsOn
+                    && !latestChangeIsManual(data)) {
+                    holdPirBuffer('Motion detected — turning lights on...');
+                } else if (prevPirOccupied === true && !pirNow && prevRowsOn === true && !rowsOn
+                    && !latestChangeIsManual(data)) {
+                    // PIR inactivity timeout → server auto-off (api/pir-log.php
+                    // motion-stopped branch ends the schedule and clears rows).
+                    // Manual overrides keep lights on (no rows transition → no overlay).
+                    holdPirBuffer('No motion — turning lights off...');
+                }
+            }
+            prevPirOccupied = pirNow;
+            prevRowsOn = rowsOn;
 
             updateBadge('statusLighting', data.light_status === 'on');
             updateBadge('statusPIR', data.pir_occupied === true);

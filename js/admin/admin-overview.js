@@ -2614,10 +2614,17 @@ function showGanttSessionPanel(block) {
         return;
     }
 
-    fetch('../../api/session-detail.php?classroom_id=' + cid +
+    loadSessionDetailIntoPanel('classroom_id=' + cid +
         '&date=' + encodeURIComponent(date) +
         '&start=' + encodeURIComponent(start) +
-        '&end=' + encodeURIComponent(end))
+        '&end=' + encodeURIComponent(end));
+}
+
+// Shared fetch+render tail for the session-detail panel. Accepts either the
+// Gantt-block window params or session_id=N (History view). Output shape of
+// api/session-detail.php is identical either way.
+function loadSessionDetailIntoPanel(query) {
+    fetch('../../api/session-detail.php?' + query)
         .then(function (r) { return r.json(); })
         .then(function (data) {
             if (!data || data.success === false) throw new Error('bad');
@@ -2649,5 +2656,166 @@ const ganttModalEl = document.getElementById('facultyGanttModal');
 if (ganttModalEl) {
     ganttModalEl.addEventListener('hidden.bs.modal', function () {
         closeGanttSessionPanel();
+        setGanttView('day');
     });
 }
+
+/* ── Gantt Day / History view toggle + session history search ─────────────── */
+// History view searches all CLOSED power_sessions (api/sessions.php) with
+// date-range + room + faculty filters. Opening a result reuses the same
+// session-detail panel + renderers as a clicked Gantt block.
+let ganttView = 'day';
+let sessHistPage = 1;
+let sessHistFiltersInit = false;
+const SESS_HIST_LIMIT = 20;
+
+function setGanttView(v) {
+    ganttView = (v === 'history') ? 'history' : 'day';
+    const isHist = ganttView === 'history';
+    const ganttEl = document.getElementById('facultyGantt');
+    const scrollEl = document.getElementById('ganttScrollWrap');
+    const histEl = document.getElementById('ganttHistoryWrap');
+    const dayBtn = document.getElementById('ganttViewDayBtn');
+    const histBtn = document.getElementById('ganttViewHistBtn');
+    if (ganttEl) ganttEl.style.display = isHist ? 'none' : '';
+    if (scrollEl) scrollEl.style.display = isHist ? 'none' : '';
+    if (histEl) histEl.style.display = isHist ? '' : 'none';
+    if (dayBtn) dayBtn.classList.toggle('active', !isHist);
+    if (histBtn) histBtn.classList.toggle('active', isHist);
+    closeGanttSessionPanel();
+    if (isHist) {
+        initSessHistFilters();
+        loadSessionHistory();
+    }
+}
+
+function initSessHistFilters() {
+    if (sessHistFiltersInit) return;
+    sessHistFiltersInit = true;
+    const roomSel = document.getElementById('sessHistRoom');
+    if (roomSel && typeof roomData !== 'undefined') {
+        roomData.forEach(function (r) {
+            const opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = r.room_name;
+            roomSel.appendChild(opt);
+        });
+    }
+    const facSel = document.getElementById('sessHistFac');
+    if (facSel && typeof FACULTY !== 'undefined') {
+        FACULTY.forEach(function (f) {
+            const opt = document.createElement('option');
+            opt.value = f.id;
+            opt.textContent = f.first_name + ' ' + f.last_name;
+            facSel.appendChild(opt);
+        });
+    }
+}
+
+function sessHistParams() {
+    const p = new URLSearchParams();
+    const from = document.getElementById('sessHistFrom')?.value || '';
+    const to = document.getElementById('sessHistTo')?.value || '';
+    const room = parseInt(document.getElementById('sessHistRoom')?.value || '0', 10) || 0;
+    const fac = parseInt(document.getElementById('sessHistFac')?.value || '0', 10) || 0;
+    if (from) p.append('from', from);
+    if (to) p.append('to', to);
+    if (room > 0) p.append('room_id', room);
+    if (fac > 0) p.append('faculty_id', fac);
+    p.append('page', sessHistPage);
+    p.append('limit', SESS_HIST_LIMIT);
+    return p.toString();
+}
+
+function fmtHistTime(dt) {
+    // 'YYYY-MM-DD HH:MM:SS' → 'HH:MM'
+    const m = String(dt || '').match(/(\d{2}):(\d{2}):\d{2}$/);
+    return m ? m[1] + ':' + m[2] : '';
+}
+
+function loadSessionHistory() {
+    const listEl = document.getElementById('sessHistList');
+    const metaEl = document.getElementById('sessHistMeta');
+    const pageEl = document.getElementById('sessHistPage');
+    if (listEl) listEl.innerHTML = '<div class="gantt-sd-empty text-muted py-2">Loading sessions…</div>';
+    fetch('../../api/sessions.php?' + sessHistParams())
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data || data.success === false) throw new Error('bad');
+            renderSessHistList(data.sessions || []);
+            const total = parseInt(data.total || 0, 10);
+            const pages = Math.max(parseInt(data.pages || 0, 10), total > 0 ? 1 : 0);
+            if (metaEl) metaEl.textContent = total + ' session' + (total === 1 ? '' : 's');
+            if (pageEl) pageEl.textContent = total > 0 ? ('Page ' + data.page + ' of ' + pages) : '';
+            document.getElementById('sessHistPrevBtn')?.toggleAttribute('disabled', sessHistPage <= 1);
+            document.getElementById('sessHistNextBtn')?.toggleAttribute('disabled', sessHistPage >= pages);
+        })
+        .catch(function () {
+            if (listEl) listEl.innerHTML = '<div class="gantt-sd-empty text-muted py-2">Could not load sessions.</div>';
+        });
+}
+
+function renderSessHistList(sessions) {
+    const listEl = document.getElementById('sessHistList');
+    if (!listEl) return;
+    if (!sessions.length) {
+        listEl.innerHTML = '<div class="gantt-sd-empty text-muted py-2">No sessions match these filters.</div>';
+        return;
+    }
+    listEl.innerHTML = sessions.map(function (s) {
+        const wh = s.total_energy_wh !== null ? (Number(s.total_energy_wh).toFixed(2) + ' Wh') : '—';
+        const fac = s.faculty_name ? escapeHtml(s.faculty_name) : '<em class="text-muted">Unassigned</em>';
+        return '<button type="button" class="sess-hist-row" data-session-id="' + s.id + '">' +
+            '<span class="sess-hist-main"><strong>' + escapeHtml(s.session_date) + '</strong>' +
+            ' · ' + fmtHistTime(s.start_dt) + '–' + fmtHistTime(s.end_dt) +
+            ' · ' + escapeHtml(s.room_name) + '</span>' +
+            '<span class="sess-hist-sub">' + fac +
+            ' · ' + s.duration_mins + ' min · ' + wh +
+            ' · <span class="sess-hist-trigger">' + escapeHtml(s.trigger_source || '') + '</span></span>' +
+            '</button>';
+    }).join('');
+}
+
+function openSessionFromHistory(id) {
+    const sid = parseInt(id, 10);
+    if (!(sid > 0)) return;
+    const btn = document.querySelector('.sess-hist-row[data-session-id="' + sid + '"]');
+    document.querySelectorAll('.sess-hist-row.selected').forEach(function (el) { el.classList.remove('selected'); });
+    if (btn) {
+        btn.classList.add('selected');
+        const main = btn.querySelector('.sess-hist-main')?.textContent || 'Session';
+        const sub = btn.querySelector('.sess-hist-sub')?.textContent || '';
+        document.getElementById('ganttSdTitle').textContent = main;
+        const subEl = document.getElementById('ganttSdSubtitle');
+        if (subEl) subEl.textContent = sub;
+    }
+    const panel = document.getElementById('ganttSessionDetail');
+    if (panel) panel.classList.remove('d-none');
+    document.getElementById('ganttSdStats').innerHTML = '<div class="gantt-sd-empty text-muted py-2">Loading session data…</div>';
+    document.getElementById('ganttSdAnomalies').innerHTML = '';
+    destroyGanttSdChart();
+    const canvas = document.getElementById('ganttSdChart');
+    if (canvas) canvas.style.display = 'none';
+    loadSessionDetailIntoPanel('session_id=' + sid);
+}
+
+// History view wiring (elements live inside #facultyGanttModal).
+document.getElementById('ganttViewDayBtn')?.addEventListener('click', function () { setGanttView('day'); });
+document.getElementById('ganttViewHistBtn')?.addEventListener('click', function () { setGanttView('history'); });
+document.getElementById('sessHistSearchBtn')?.addEventListener('click', function () { sessHistPage = 1; loadSessionHistory(); });
+document.getElementById('sessHistResetBtn')?.addEventListener('click', function () {
+    ['sessHistFrom', 'sessHistTo'].forEach(function (id) { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['sessHistRoom', 'sessHistFac'].forEach(function (id) { const el = document.getElementById(id); if (el) el.value = '0'; });
+    sessHistPage = 1;
+    loadSessionHistory();
+});
+document.getElementById('sessHistPrevBtn')?.addEventListener('click', function () {
+    if (sessHistPage > 1) { sessHistPage -= 1; loadSessionHistory(); }
+});
+document.getElementById('sessHistNextBtn')?.addEventListener('click', function () {
+    sessHistPage += 1; loadSessionHistory();
+});
+document.getElementById('sessHistList')?.addEventListener('click', function (e) {
+    const row = e.target.closest('.sess-hist-row');
+    if (row) openSessionFromHistory(row.getAttribute('data-session-id'));
+});

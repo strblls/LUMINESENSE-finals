@@ -13,10 +13,36 @@ if (empty($_SESSION['admin_logged_in']) && empty($_SESSION['faculty_logged_in'])
     echo json_encode(['success' => false, 'message' => 'Unauthorized.']); exit;
 }
 
-$cid   = (int)($_GET['classroom_id'] ?? 0);
-$date  = trim($_GET['date'] ?? '');
-$start = trim($_GET['start'] ?? '');
-$end   = trim($_GET['end'] ?? '');
+// Accepts either an exact session id (?session_id=N, from the History view)
+// or a raw window (?classroom_id=X&date=YYYY-MM-DD&start=HH:MM:SS&end=HH:MM:SS,
+// from a clicked Gantt block). Output shape is identical either way.
+$sessionId = (int)($_GET['session_id'] ?? 0);
+if ($sessionId > 0) {
+    $stmt = $conn->prepare("
+        SELECT classroom_id, session_date,
+               DATE_FORMAT(start_time, '%H:%i:%s') AS start_t,
+               DATE_FORMAT(end_time, '%H:%i:%s') AS end_t
+        FROM power_sessions
+        WHERE id = ? AND end_time IS NOT NULL
+        LIMIT 1
+    ");
+    $stmt->bind_param('i', $sessionId);
+    $stmt->execute();
+    $ps = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$ps) {
+        echo json_encode(['success' => false, 'message' => 'Session not found.']); exit;
+    }
+    $cid   = (int)$ps['classroom_id'];
+    $date  = $ps['session_date'];
+    $start = $ps['start_t'];
+    $end   = $ps['end_t'];
+} else {
+    $cid   = (int)($_GET['classroom_id'] ?? 0);
+    $date  = trim($_GET['date'] ?? '');
+    $start = trim($_GET['start'] ?? '');
+    $end   = trim($_GET['end'] ?? '');
+}
 
 if ($cid <= 0
     || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)

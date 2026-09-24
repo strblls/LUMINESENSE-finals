@@ -184,6 +184,10 @@ unsigned long lastNtpResync = 0;
 #define PIR_INACTIVITY_MS 300000ul // 5 minutes
 #define NTP_RESYNC_MS     3600000ul // 1 hour
 
+// ── Firmware version (printed at boot; bump on every reflash so chip-vs-repo
+// skew is visible in one glance of the Serial Monitor) ──
+#define FW_VERSION "2026-09-24-pzem-schedfix"
+
 // ── Async WebSocket helpers (instant Serial2 forwarding) ────
 // Forward a lighting command to Mega with zero HTTP overhead — the fast path
 inline void forwardToMega(const String &cmd) {
@@ -499,6 +503,7 @@ void setup() {
     // Start async server + WebSocket regardless of WiFi state (AP mode still serves UI)
     initAsyncServer();
 
+    Serial.print(F("[FW] version=")); Serial.println(F(FW_VERSION));
     Serial.println(F("=== ESP32 Ready ==="));
 }
 
@@ -589,18 +594,20 @@ void loop() {
     checkArchiveDayRollover();
 
     // Only one HTTP task runs per loop iteration — they take turns.
-    // pollDatabase() is first priority for fastest light-control response.
+    // Event-driven one-shots go FIRST: pollDatabase() does a blocking HTTPS
+    // GET (~2s with fresh TLS handshake on a weak hotspot). If the periodic
+    // poll stays first priority and each poll takes longer than DB_POLL_MS,
+    // its timer is always due and every queue below starves indefinitely
+    // (PZEM/FLAG/SCHEDULE/CONFIG/PIR all go silent while [DB] looks alive).
     if (!httpBusy) {
-        if (now - lastDbPoll >= DB_POLL_MS) {
-            lastDbPoll = now;
-            pollDatabase();
+        if (pendingPzem != "") {
+            // Only clear on attempt: a skipped push (offline/busy) is retried
+            // next loop instead of being silently dropped.
+            if (forwardPzemToDb(pendingPzem)) pendingPzem = "";
         } else if (archiveBatchPending != "") {
             String j = archiveBatchPending;
             archiveBatchPending = "";
             postArchive(j);
-        } else if (pendingPzem != "") {
-            forwardPzemToDb(pendingPzem);
-            pendingPzem = "";
         } else if (pendingReconcile != "") {
             forwardReconcile(pendingReconcile);
             pendingReconcile = "";
@@ -610,6 +617,16 @@ void loop() {
         } else if (pendingTiltLog != -1) {
             forwardTiltLog(pendingTiltLog);
             pendingTiltLog = -1;
+        } else if (now - lastDbPoll >= DB_POLL_MS) {
+            lastDbPoll = now;
+            unsigned long t0 = millis();
+            pollDatabase();
+            unsigned long took = millis() - t0;
+            if (took > 1500) {
+                Serial.print(F("[LOOP] slow DB poll took "));
+                Serial.print(took);
+                Serial.println(F("ms — lower queues may starve; check hotspot signal"));
+            }
         } else if (now - lastFlagPoll >= FLAG_POLL_MS) {
             lastFlagPoll = now;
             checkScheduleFlag();
@@ -700,6 +717,7 @@ void handleMegaMessages() {
 
             if (msg.startsWith("{")) {
                 pendingPzem = msg;
+                Serial.println(F("[PZEM] armed from Mega"));
                 // DON'T return — just continue the while loop
             } else if (msg.startsWith("RECONCILE:") || msg.startsWith("reconcile:")) {
                 pendingReconcile = msg.substring(10);
@@ -797,6 +815,8 @@ void pollDatabase() {
     String url = toggleUrl();
     HTTPClient http;
     beginHttp(http, url);
+    http.setReuse(true); // keep-alive on the shared client: skips a fresh TLS
+                         // handshake per poll (~2s saved on weak hotspots)
     http.setTimeout(5000);
     int httpCode = http.GET();
 
@@ -969,10 +989,19 @@ void syncTimeToMega() {
 // ============================================================
 // FORWARD PZEM JSON TO DATABASE
 // ============================================================
-void forwardPzemToDb(String jsonStr) {
-    if (WiFi.status() != WL_CONNECTED) return;
-    if (httpBusy) return;
+// Returns true when the reading was attempted (caller may clear the buffer);
+// false when skipped (caller must RETRY — never silently drop a reading).
+bool forwardPzemToDb(String jsonStr) {
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println(F("[PZEM] skipped: WiFi offline — retrying"));
+        return false;
+    }
+    if (httpBusy) {
+        Serial.println(F("[PZEM] skipped: HTTP busy — retrying"));
+        return false;
+    }
     httpBusy = true;
+    Serial.println(F("[PZEM] dispatching to DB..."));
 
     // Parse what Mega sent so we can add classroom_id
     StaticJsonDocument<256> doc;
@@ -980,7 +1009,7 @@ void forwardPzemToDb(String jsonStr) {
     if (err) {
         Serial.println(F("[PZEM] JSON parse error — dropping"));
         httpBusy = false;
-        return;
+        return true;
     }
 
     // Add classroom_id if Mega didn't include it
@@ -993,6 +1022,7 @@ void forwardPzemToDb(String jsonStr) {
 
     HTTPClient http;
     beginHttp(http, pzemPostUrl());
+    http.setReuse(true); // same shared client as polls — reuse TLS session
     http.setTimeout(5000);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Token", deviceToken);
@@ -1007,6 +1037,7 @@ void forwardPzemToDb(String jsonStr) {
 
     http.end();
     httpBusy = false;
+    return true;
 }
 
 

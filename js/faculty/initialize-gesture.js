@@ -225,11 +225,15 @@ async function fetchServerRowStates() {
 
 async function executePendingStack() {
     if (!pendingStack.length) return;
+    if (window.__lightGridBusy && window.__lightGridBusy.isBusy()) return; // block while a toggle POST is in flight
 
     const stack = pendingStack.slice();
     pendingStack = [];
     clearPendingTimeout();
 
+    const busy = window.__lightGridBusy;
+    if (busy) busy.begin();
+    try {
     // Compute the baseline from the SERVER's authoritative state, not the DOM
     // switches. The switches are only refreshed every ~3s by faculty-status.php
     // (and stop refreshing if that poll fails), so toggling against them fires
@@ -312,7 +316,15 @@ async function executePendingStack() {
         form.append('row', String(r));
         form.append('state', final[r] ? 'on' : 'off');
         form.append('new_global_light_status', overallOn ? 'on' : 'off');
-        await fetch('../../api/lights.php', { method: 'POST', body: form });
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 8000);
+        try {
+            await fetch('../../api/lights.php', { method: 'POST', body: form, signal: ctrl.signal });
+        } catch (e) {
+            console.warn('executePendingStack persist error:', e);
+        } finally {
+            clearTimeout(timer);
+        }
     }
 
     if (typeof logGestureEvent === 'function') {
@@ -322,6 +334,9 @@ async function executePendingStack() {
     renderStackQueue();
     updatePillsState();
     showStackFeedback(`<span class="text-success bold">✔ CONFIRMED: ${stack.length} command${stack.length > 1 ? 's' : ''} executed</span>`);
+    } finally {
+        if (busy) busy.end();
+    }
 }
 
 function clearPendingTimeout() {

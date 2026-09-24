@@ -491,6 +491,15 @@ $lighting_blocked = $lighting_reason !== null;
                                     </div>
                                 </div>
                             </div>
+                            <!-- Lighting busy overlay (buffering feedback while a toggle/gesture POST is in flight) -->
+                            <div id="lightGridBusyOverlay" class="light-grid-busy-overlay" style="display:none;">
+                                <div class="gesture-loading-spinner">
+                                    <div class="spinner-border text-light" role="status">
+                                        <span class="visually-hidden">Updating...</span>
+                                    </div>
+                                    <span id="lightGridBusyLabel">Updating lights...</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     </div><!-- /col 2 -->

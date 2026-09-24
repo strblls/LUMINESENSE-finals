@@ -1906,6 +1906,96 @@ body.live-mode .overview-normal {
     color: var(--muted-dark);
 }
 
+/* ── Gantt Day/History view toggle + session history search ────────────────── */
+.gantt-view-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px 8px;
+}
+.gantt-view-tab.active {
+    background: var(--secondary-color-1, #2f004f);
+    color: #fff;
+}
+.gantt-view-tab.active .timetable-btn-title {
+    color: #fff;
+}
+#ganttHistoryWrap {
+    padding: 0 10px 10px;
+}
+.gantt-history-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid #ece7f3;
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+.gantt-history-filters .form-control,
+.gantt-history-filters .form-select {
+    flex: 1 1 140px;
+    max-width: 220px;
+    font-size: 13px;
+}
+.gantt-history-meta {
+    font-size: 12px;
+    color: #6c757d;
+    padding: 0 4px 6px;
+}
+#sessHistList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+.sess-hist-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+    background: #fff;
+    border: 1px solid #ece7f3;
+    border-radius: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: inherit;
+    width: 100%;
+}
+.sess-hist-row:hover {
+    border-color: #742fd3;
+    background: #faf7ff;
+}
+.sess-hist-row.selected {
+    border-color: #742fd3;
+    background: #f3eafd;
+}
+.sess-hist-main {
+    font-size: 13px;
+}
+.sess-hist-sub {
+    font-size: 12px;
+    color: #6c757d;
+}
+.sess-hist-trigger {
+    text-transform: capitalize;
+}
+.gantt-history-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding-top: 8px;
+    font-size: 13px;
+    color: #4d4d4d;
+}
+
 .gantt-sd-stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
