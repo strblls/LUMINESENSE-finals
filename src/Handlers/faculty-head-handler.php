@@ -301,6 +301,7 @@ if ($action === 'add_schedule') {
 
     if ($stmt->execute()) {
         $stmt->close();
+        $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = $room_id");
         echo json_encode(['success' => true]); exit;
     }
     $err = $stmt->error;
@@ -423,6 +424,15 @@ if ($action === 'update_schedule') {
     }
     $chk_teacher->close();
 
+    // Room may change on update — flag BOTH old and new rooms after save.
+    $old_room_id = 0;
+    $grOld = $conn->prepare("SELECT classroom_id FROM schedules WHERE id = ?");
+    $grOld->bind_param('i', $slot_id);
+    $grOld->execute();
+    $grOld->bind_result($old_room_id);
+    $grOld->fetch();
+    $grOld->close();
+
     if ($target_subject_id > 0) {
         $stmt = $conn->prepare("
             UPDATE schedules
@@ -443,6 +453,10 @@ if ($action === 'update_schedule') {
 
     if ($stmt->execute()) {
         $stmt->close();
+        $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = $room_id");
+        if ($old_room_id > 0 && $old_room_id != $room_id) {
+            $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = $old_room_id");
+        }
         echo json_encode(['success' => true]); exit;
     }
     $stmt->close();
@@ -470,6 +484,7 @@ if ($action === 'delete_schedule') {
 
     if ($stmt->execute()) {
         $stmt->close();
+        $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = {$slot['classroom_id']}");
         echo json_encode(['success' => true]); exit;
     }
     $stmt->close();

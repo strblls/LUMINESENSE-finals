@@ -16,8 +16,26 @@ let recognizer = null;
 let stream = null;
 let active = false;
 let lastVideoTime = -1;
-let _landmarksFirstDrawn = false;
 let _startToken = 0;
+let _pipelineReady = false; // true once video is live AND first inference ran
+let _videoListenersAttached = false;
+
+// ── Loading-overlay stage label ─────────────────────────────────────────────
+function setLoadingLabel(text) {
+    const el = document.getElementById('gestureLoadingLabel');
+    if (el) el.textContent = text;
+}
+
+// ── Promise timeout so a hung stage fails loudly instead of spinning forever
+function withTimeout(promise, ms, label) {
+    let timer = null;
+    const timeout = new Promise(function (_, reject) {
+        timer = setTimeout(function () { reject(new Error(label + ' timed out')); }, ms);
+    });
+    return Promise.race([promise, timeout]).finally(function () {
+        if (timer) clearTimeout(timer);
+    });
+}
 
 // ── Chroma Key & Enhancement toggles ──────────────────────────────────────────
 let chromaKeyEnabled = true;
@@ -37,9 +55,11 @@ const GESTURE_COLOUR = {
 };
 
 // ── Initialize MediaPipe Gesture Recognizer ───────────────────────────────────
-async function initializeRecognizer() {
+// quiet=true for background preload: no button side effects (the button stays
+// clickable; a failed preload simply retries on the next explicit start).
+async function initializeRecognizer(quiet) {
     if (recognizer) return;
-    if (enableBtn) {
+    if (!quiet && enableBtn) {
         enableBtn.disabled = true;
         enableBtn.textContent = 'Loading AI Model…';
     }
@@ -47,13 +67,27 @@ async function initializeRecognizer() {
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm"
     );
     // Initialize recognizer with options, explicitly enabling video running mode!
-    recognizer = await GestureRecognizer.createFromOptions(vision, {
-        baseOptions: {
-            modelAssetPath: "../../models/gesture_recognizer.task",
-            delegate: "GPU"
-        },
-        runningMode: "VIDEO"
-    });
+    const modelPath = "../../models/gesture_recognizer.task";
+    try {
+        recognizer = await GestureRecognizer.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath: modelPath,
+                delegate: "GPU"
+            },
+            runningMode: "VIDEO"
+        });
+    } catch (e) {
+        // GPU/WebGL unavailable or too slow — fall back to CPU instead of
+        // failing the whole camera start.
+        console.warn('Gesture GPU delegate failed, falling back to CPU:', e);
+        recognizer = await GestureRecognizer.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath: modelPath,
+                delegate: "CPU"
+            },
+            runningMode: "VIDEO"
+        });
+    }
 }
 
 function setProgressStyle(gesture, confidence) {
@@ -633,12 +667,6 @@ function drawLandmarks(landmarks) {
 
     if (!landmarks || landmarks.length === 0) return;
 
-    // Hide loading overlay on first successful landmark draw
-    if (!_landmarksFirstDrawn) {
-        _landmarksFirstDrawn = true;
-        if (loadingOverlay) loadingOverlay.style.display = 'none';
-    }
-
     const width = webcamCanvas.width;
     const height = webcamCanvas.height;
 
@@ -756,6 +784,14 @@ async function predictLoop() {
 
             const results = recognizer.recognizeForVideo(inputSource, now);
 
+            // Pipeline is live once the first inference completes — even with
+            // no hand in frame. The overlay must NOT wait for a hand.
+            if (!_pipelineReady) {
+                _pipelineReady = true;
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
+                if (gestureResult && !pendingStack.length) gestureResult.textContent = 'Show your hand to begin';
+            }
+
             // Collect one detection per hand so both hands can queue commands
             const handDetections = [];
             const handLandmarks = results.landmarks || results.handLandmarks || [];
@@ -808,23 +844,38 @@ async function startWebcam() {
     try {
         if (enableBtn) {
             enableBtn.disabled = true;
-            enableBtn.textContent = 'Starting camera…';
+            enableBtn.textContent = 'Preparing…';
         }
 
-        _landmarksFirstDrawn = false;
+        _pipelineReady = false;
         active = true; // Active from the start of preparation so the idle session timeout stays suspended while the model/camera load
         if (loadingOverlay) loadingOverlay.style.display = '';
+        setLoadingLabel('Loading AI model…');
 
-        await initializeRecognizer();
-        if (token !== _startToken) return; // aborted mid-preparation
-
-        const media = await navigator.mediaDevices.getUserMedia({
-            video: { width: 640, height: 480, facingMode: "user" }
+        // Model download/compile and camera warm-up run CONCURRENTLY (the old
+        // code awaited them one after another, summing both waits). The
+        // permission prompt also appears immediately, so user think-time
+        // overlaps the download instead of adding to it.
+        const modelP = initializeRecognizer().then(function () {
+            if (token === _startToken) setLoadingLabel('Starting camera…');
         });
-        if (token !== _startToken) {
-            media.getTracks().forEach(t => t.stop());
-            return;
-        }
+        const cameraP = withTimeout(
+            navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: "user" }
+            }),
+            20000,
+            'Camera start'
+        ).then(function (m) {
+            // Model failed (or reset) while the camera succeeded → don't leak tracks.
+            if (token !== _startToken) {
+                m.getTracks().forEach(function (t) { t.stop(); });
+                throw new Error('aborted');
+            }
+            return m;
+        });
+        await modelP;
+        if (token !== _startToken) return; // aborted mid-preparation
+        const media = await cameraP;
         stream = media;
 
         webcamVideo.srcObject = stream;
@@ -839,11 +890,10 @@ async function startWebcam() {
 
         active = true;
 
-        // Robust start: trigger predictLoop on load, metadata, or immediately if ready
-        webcamVideo.addEventListener('loadedmetadata', predictLoop);
-        webcamVideo.addEventListener('loadeddata', predictLoop);
-        webcamVideo.addEventListener('playing', predictLoop);
-
+        // Video listeners are attached once (module scope) — re-attaching on
+        // every enable stacked duplicate rAF inference loops and the pipeline
+        // got progressively slower with each toggle.
+        attachVideoListenersOnce();
         if (webcamVideo.readyState >= 2) {
             predictLoop();
         }
@@ -860,6 +910,8 @@ async function startWebcam() {
 function resetState() {
     _startToken++; // cancel any in-flight startWebcam() so a reset actually aborts preparation
     active = false;
+    _pipelineReady = false;
+    setLoadingLabel('Preparing gesture control...');
     if (loadingOverlay) loadingOverlay.style.display = 'none';
     if (stream) {
         stream.getTracks().forEach(t => t.stop());
@@ -908,4 +960,29 @@ if (enableBtn) {
 }
 if (disableBtn) {
     disableBtn.addEventListener('click', resetState);
+}
+
+// Attach video→loop wiring exactly once; predictLoop() early-returns while
+// inactive, so idle events are harmless.
+function attachVideoListenersOnce() {
+    if (_videoListenersAttached || !webcamVideo) return;
+    _videoListenersAttached = true;
+    webcamVideo.addEventListener('loadedmetadata', predictLoop);
+    webcamVideo.addEventListener('loadeddata', predictLoop);
+    webcamVideo.addEventListener('playing', predictLoop);
+}
+attachVideoListenersOnce();
+
+// Warm the AI model while the page idles so the first activation usually
+// skips the multi-MB download + compile entirely. Quiet: no button changes;
+// a failed preload simply retries on explicit start.
+function preloadGestureModel() {
+    initializeRecognizer(true).catch(function (e) {
+        console.warn('Gesture model preload failed (will retry on enable):', e);
+    });
+}
+if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    requestIdleCallback(preloadGestureModel, { timeout: 8000 });
+} else {
+    setTimeout(preloadGestureModel, 3000);
 }

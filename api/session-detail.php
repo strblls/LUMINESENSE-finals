@@ -59,10 +59,25 @@ $sp = explode(':', $start);
 $ep = explode(':', $end);
 $durMin = max(((int)$ep[0] * 60 + (int)$ep[1]) - ((int)$sp[0] * 60 + (int)$sp[1]), 0);
 
+// "Time consumed" = actually elapsed, not the planned window: for a live
+// session (end in the future) only start→now has been consumed. Past windows
+// and closed sessions report the full duration; future windows report 0.
+$startTs = strtotime("$date $start");
+$endTs   = strtotime("$date $end");
+$nowTs   = time();
+$elapsedMin = 0;
+if ($startTs && $endTs) {
+    $elapsedMin = max(min($nowTs, $endTs) - $startTs, 0);
+    $elapsedMin = (int)floor($elapsedMin / 60);
+}
+$isLive = ($startTs && $endTs && $startTs <= $nowTs && $nowTs < $endTs);
+
 // - 1. Summary from pzem_readings in the window --------------------
 $out = [
     'success'        => true,
-    'duration_min'   => $durMin,
+    'duration_min'   => $elapsedMin,
+    'planned_min'    => $durMin,
+    'is_live'        => $isLive,
     'has_data'       => false,
     'avg_voltage'    => 0,
     'avg_current'    => 0,

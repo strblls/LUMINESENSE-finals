@@ -59,6 +59,7 @@ if ($action === 'create') {
     if ($stmt->execute()) {
         $new_id = $conn->insert_id;
         $stmt->close();
+        $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = $room_id");
 
         // âœ… Fetch room name and faculty name for the log
         $room_name  = $conn->query("SELECT room_name FROM classrooms WHERE id = $room_id")->fetch_assoc()['room_name'] ?? 'Unknown Room';
@@ -114,6 +115,7 @@ if ($action === 'update') {
     $stmt->bind_param('isssi', $faculty_id, $day, $start, $end, $slot_id);
     if ($stmt->execute()) {
         $stmt->close();
+        $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = $existing_room");
 
         // âœ… Fetch room name for the log
         $room_name = $conn->query("SELECT room_name FROM classrooms WHERE id = $existing_room")->fetch_assoc()['room_name'] ?? 'Unknown Room';
@@ -133,7 +135,7 @@ if ($action === 'delete') {
 
     // âœ… Fetch details BEFORE deleting so we still have them for the log
     $info = $conn->query("
-        SELECT c.room_name, s.day_of_week, s.start_time, s.end_time
+        SELECT c.room_name, s.day_of_week, s.start_time, s.end_time, s.classroom_id
         FROM schedules s
         JOIN classrooms c ON c.id = s.classroom_id
         WHERE s.id = $slot_id
@@ -145,6 +147,10 @@ if ($action === 'delete') {
     $stmt->bind_param('i', $slot_id);
     if ($stmt->execute()) {
         $stmt->close();
+        $delCid = (int)($info['classroom_id'] ?? 0);
+        if ($delCid > 0) {
+            $conn->query("UPDATE classrooms SET schedule_dirty = 1 WHERE id = $delCid");
+        }
 
         // âœ… Log after successful delete
         log_admin_action($conn, $_SESSION['admin_id'], 'schedule_deleted', $log_target, $log_notes);

@@ -327,7 +327,7 @@ $lighting_blocked = $lighting_reason !== null;
                                     <div class="spinner-border text-light" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
-                                    <span>Preparing gesture control...</span>
+                                    <span id="gestureLoadingLabel">Preparing gesture control...</span>
                                 </div>
                             </div>
 

@@ -2511,10 +2511,20 @@ function renderGanttSdStats(data) {
     const energyTxt = has
         ? (energyWh >= 1000 ? (energyWh / 1000).toFixed(3) + ' kWh' : energyWh.toFixed(2) + ' Wh')
         : 'No data';
+    // Time consumed = actually elapsed (API clamps live windows to start→now).
+    // Live sessions show the planned total alongside; future windows show it
+    // as upcoming instead of a misleading 0.
+    let timeTxt = fmtDurationMin(data.duration_min);
+    const plannedMin = parseInt(data.planned_min, 10) || 0;
+    if (data.is_live && plannedMin > 0) {
+        timeTxt += ' <span class="text-muted">of ' + fmtDurationMin(plannedMin) + ' planned</span>';
+    } else if (!parseInt(data.duration_min, 10) && plannedMin > 0) {
+        timeTxt = fmtDurationMin(plannedMin) + ' <span class="text-muted">upcoming</span>';
+    }
     el.innerHTML =
         '<div class="gantt-sd-empty px-1 pb-2" ' + (has ? 'style="display:none;"' : '') + '>No energy readings recorded for this session.</div>' +
         '<div class="gantt-sd-stat-grid">' +
-        ganttSdStat('Time consumed', fmtDurationMin(data.duration_min)) +
+        ganttSdStat('Time consumed', timeTxt) +
         ganttSdStat('Total energy', energyTxt) +
         ganttSdStat('Est. cost', has ? '₱' + parseFloat(data.est_cost_php || 0).toFixed(2) : dash) +
         ganttSdStat('Avg Voltage', has ? (data.avg_voltage || 0) + ' V' : dash) +
