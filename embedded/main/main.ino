@@ -169,7 +169,8 @@ void setup()
     if (rtc.lostPower())
     {
         rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-        Serial.println(F("[RTC] Time synced from compile time"));
+        Serial.println(F("[RTC] WARNING: lost power — compile-time fallback in use"));
+        Serial.println(F("[RTC] Schedule gating unreliable until ESP pushes TIME:"));
     }
 
     if (!SD.begin(SD_CS_PIN))
@@ -228,6 +229,23 @@ void loop()
     handleEsp32Messages();
     handlePIR(now);
     handleTilt(now);
+
+    // Local PIR-inactivity auto-off (backstop for a dead ESP link).
+    // The ESP owns the primary 5-min timer, but if its ALL:OFF never arrives
+    // (loose Serial2, ESP offline) the Mega must not hold the room ON forever.
+    // Guarded like the server: manual override is never killed, and the PIR
+    // input must currently read LOW (no motion) so an occupied room whose
+    // sensor holds HIGH is never switched off here.
+    if ((row1State || row2State || row3State) && !lightOverride && pirState == LOW &&
+        lastPirActivity != 0 && (now - lastPirActivity >= pirInactivityTimeoutMs))
+    {
+        Serial.println(F("[PIR] Inactivity timeout — auto OFF"));
+        setAllRows(false);
+        saveState();
+        syncStateToFrontend();
+        Serial2.println("LOG_PIR:0");
+        lastPirActivity = now;
+    }
 
     if (now - lastPzemRead >= PZEM_INTERVAL_MS)
     {
@@ -600,6 +618,12 @@ void handleEsp32Messages()
             {
                 parseSchedulePayload(msg.substring(9));
                 checkSchedule();
+                // Echo the applied verdict so the ESP log shows it (as [MEGA])
+                // without needing a second Serial Monitor on the Mega.
+                Serial2.print(F("SCHED:APPLIED count="));
+                Serial2.print(scheduleCount);
+                Serial2.print(F(" inSchedule="));
+                Serial2.println(isWithinSchedule(rtc.now()) ? 1 : 0);
                 continue;
             }
             if (msg.startsWith("SCHED:") || msg.startsWith("sched:"))
@@ -723,7 +747,14 @@ bool isWithinSchedule(DateTime now)
     {
         int startMins = schedule[i].startH * 60 + schedule[i].startM;
         int endMins = schedule[i].endH * 60 + schedule[i].endM;
-        if (nowMins >= startMins && nowMins < endMins)
+        if (endMins < startMins)
+        {
+            // Overnight slot (e.g. 22:00-06:00) — matches either side of midnight.
+            // (Previously such slots could never match.)
+            if (nowMins >= startMins || nowMins < endMins)
+                return true;
+        }
+        else if (nowMins >= startMins && nowMins < endMins)
             return true;
     }
     return false;
@@ -863,6 +894,11 @@ void parseSchedulePayload(String payload)
     Serial.print(F("[SCHED] Loaded "));
     Serial.print(scheduleCount);
     Serial.println(F(" slot(s)"));
+    if (payload.length() > 0)
+    {
+        // Slots beyond MAX_SLOTS were silently dropped above — say so loudly.
+        Serial.println(F("[SCHED] WARNING: slots exceed MAX_SLOTS, extras dropped"));
+    }
     saveScheduleCache();
 }
 

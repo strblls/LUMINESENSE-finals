@@ -31,3 +31,8 @@ while ($row = $res->fetch_assoc()) {
 $stmt->close();
 
 echo implode(',', $slots);
+
+// The device now holds today's fresh list, so the dirty flag can be cleared.
+// (Cleared here — not in esp32-schedule-flag.php — so a flag consumed by a
+// poll is never lost when this fetch fails halfway on flaky WiFi.)
+$conn->query("UPDATE classrooms SET schedule_dirty = 0 WHERE id = $cid");

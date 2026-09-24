@@ -608,3 +608,82 @@ function filterFacultyByType(el, type) {
         btn.addEventListener('mouseleave', close);
     });
 })();
+
+/* ── Live extension-requests list (no page refresh) ─────────────────────────
+   Polls api/pending-extensions.php every 10s and re-renders ONLY the
+   extension-request rows in the Pending Approvals panel. New requests appear
+   and auto-approved/decided ones disappear on their own — the admin never
+   needs to refresh to see the current state. DOM is touched only when the
+   pending id-set actually changes, so Grant/Deny clicks are never disturbed. */
+(function () {
+    var POLL_MS = 10000;
+    var listSel = '.pending-body-right .pending-body-list';
+
+    function fmtTime12(t) {
+        var m = String(t || '').match(/^(\d{2}):(\d{2})(?::\d{2})?$/);
+        if (!m) return String(t || '');
+        var h = parseInt(m[1], 10);
+        var ap = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        if (h === 0) h = 12;
+        return h + ':' + m[2] + ' ' + ap;
+    }
+
+    function esc(v) { return escapeHtml(v === null || v === undefined ? '' : String(v)); }
+
+    function rowHtml(r) {
+        return '<div class="room-info-row">'
+            + '<div class="item-info">'
+            + '<h5>' + esc(r.faculty_name) + '</h5>'
+            + '<span>' + esc(r.room_name) + ' &middot; ' + esc(r.subject_name || 'No subject') + ' &middot; ' + esc(r.day_of_week) + ' &middot; ' + fmtTime12(r.start_time) + ' &ndash; ' + fmtTime12(r.end_time) + ' &middot; +' + esc(r.extend_mins) + ' mins</span>'
+            + '</div>'
+            + '<div class="d-flex gap-1">'
+            + '<form method="POST" class="mb-0">'
+            + '<input type="hidden" name="extension_id" value="' + esc(r.id) + '">'
+            + '<input type="hidden" name="action" value="ext_reject">'
+            + '<button type="submit" class="btn-icon btn-icon-view d-inline-flex align-items-center justify-content-center" title="Deny"><i class="bi bi-x-lg"></i></button>'
+            + '</form>'
+            + '<form method="POST" class="mb-0">'
+            + '<input type="hidden" name="extension_id" value="' + esc(r.id) + '">'
+            + '<input type="hidden" name="action" value="ext_approve">'
+            + '<button type="submit" class="btn-icon btn-icon-view d-inline-flex align-items-center justify-content-center" title="Grant"><i class="bi bi-check-lg"></i></button>'
+            + '</form>'
+            + '</div>'
+            + '</div>';
+    }
+
+    function emptyHtml() {
+        return '<div class="empty-state"><i class="bi bi-clock-history"></i>No extension requests at this time.</div>';
+    }
+
+    var lastIds = null;
+
+    function poll() {
+        var list = document.querySelector(listSel);
+        if (!list) return;
+        fetch('../../api/pending-extensions.php', { cache: 'no-store' })
+            .then(function (res) {
+                if (res.status === 401) return null; // logged out — leave DOM alone
+                if (!res.ok) return null;
+                return res.json();
+            })
+            .then(function (data) {
+                if (!data || data.success !== true) return;
+                var ids = (data.pending || []).map(function (r) { return String(r.id); }).join(',');
+                if (ids === lastIds) return; // unchanged — don't touch the DOM
+                lastIds = ids;
+                if (!data.pending || !data.pending.length) {
+                    list.innerHTML = emptyHtml();
+                } else {
+                    list.innerHTML = data.pending.map(rowHtml).join('');
+                }
+            })
+            .catch(function () {});
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!document.querySelector(listSel)) return;
+        poll();
+        setInterval(poll, POLL_MS);
+    });
+})();

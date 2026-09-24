@@ -679,23 +679,96 @@ $conn->query("
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 ");
 
-// ── MySQL EVENT: extension_flush_event (runs every Saturday 23:59) ──────────
+// ── MySQL EVENT: auto_approve_extensions_event (every 1 minute) ────────────
+// Unattended auto-approval so extensions are approved when grace_minutes > 0
+// even if no admin (or faculty-home page) ever loads. v2 body additionally
+// flags affected classrooms dirty (device refresh) and writes an admin log.
+// Version marker forces a ONE-TIME drop + recreate on installs carrying an
+// older/manual copy; recreating unconditionally would re-anchor the run
+// phase on every page load.
 $eventScheduler = $conn->query("SHOW VARIABLES LIKE 'event_scheduler'")->fetch_assoc();
 $eventsEnabled = ($eventScheduler['Value'] ?? '') === 'ON';
 if ($eventsEnabled) {
-    $evtCheck = $conn->query("SHOW EVENTS LIKE 'extension_flush_event'");
-    if ($evtCheck && $evtCheck->num_rows === 0) {
+    $aaVerRow = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'auto_approve_event_version'");
+    $aaVerRow = $aaVerRow ? $aaVerRow->fetch_assoc() : null;
+    if (($aaVerRow['setting_value'] ?? '') !== '2') {
+        $conn->query("DROP EVENT IF EXISTS auto_approve_extensions_event");
+        $conn->query("DROP PROCEDURE IF EXISTS auto_approve_extensions_proc");
+        @$conn->query("
+            CREATE PROCEDURE auto_approve_extensions_proc()
+            BEGIN
+                DECLARE grace_val INT DEFAULT 0;
+                SET time_zone = '+08:00';
+                SELECT CAST(setting_value AS UNSIGNED) INTO grace_val
+                FROM system_settings WHERE setting_key = 'grace_minutes';
+                IF grace_val > 0 THEN
+                    UPDATE classrooms c
+                    JOIN schedules s ON s.classroom_id = c.id
+                    JOIN extension_requests er ON er.schedule_id = s.id
+                    SET c.schedule_dirty = 1
+                    WHERE er.status = 'pending' AND s.day_of_week = DAYNAME(CURDATE());
+                    UPDATE extension_requests er
+                    JOIN schedules s ON s.id = er.schedule_id
+                    SET er.status = 'approved',
+                        er.reviewed_at = NOW(),
+                        s.extended_until = ADDTIME(
+                            COALESCE(s.extended_until, s.end_time),
+                            SEC_TO_TIME(er.extend_mins * 60)
+                        )
+                    WHERE er.status = 'pending'
+                      AND s.day_of_week = DAYNAME(CURDATE());
+                    INSERT INTO admin_logs (admin_id, action, target_name, notes)
+                    VALUES (0, 'extension_auto_approved', 'Extensions Auto-approved', CONCAT('Auto-approved ', ROW_COUNT(), ' extension(s) by MySQL EVENT'));
+                END IF;
+            END
+        ");
+        @$conn->query("
+            CREATE EVENT auto_approve_extensions_event
+            ON SCHEDULE EVERY 1 MINUTE
+            STARTS CURRENT_TIMESTAMP
+            ON COMPLETION PRESERVE
+            DO CALL auto_approve_extensions_proc()
+        ");
+        $aaCheck = $conn->query("SHOW EVENTS LIKE 'auto_approve_extensions_event'");
+        if ($aaCheck && $aaCheck->num_rows > 0) {
+            $conn->query("INSERT INTO system_settings (setting_key, setting_value) VALUES ('auto_approve_event_version', '2') ON DUPLICATE KEY UPDATE setting_value = '2'");
+        }
+    }
+}
+// ── MySQL EVENT: extension_flush_event (runs every Saturday 23:59) ──────────
+// v2 body archives extension_requests before wiping (safety net, mirroring
+// execute_extension_flush()). The version marker forces a ONE-TIME drop +
+// recreate on installs already carrying v1 — recreating unconditionally would
+// re-anchor the weekly STARTS timestamp on every page load.
+$eventScheduler = $conn->query("SHOW VARIABLES LIKE 'event_scheduler'")->fetch_assoc();
+$eventsEnabled = ($eventScheduler['Value'] ?? '') === 'ON';
+if ($eventsEnabled) {
+    $evtVerRow = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'extension_event_version'");
+    $evtVerRow = $evtVerRow ? $evtVerRow->fetch_assoc() : null;
+    if (($evtVerRow['setting_value'] ?? '') !== '2') {
+        $conn->query("DROP EVENT IF EXISTS extension_flush_event");
         @$conn->query("
             CREATE EVENT extension_flush_event
             ON SCHEDULE EVERY 1 WEEK
             STARTS CURRENT_TIMESTAMP + INTERVAL (6 - WEEKDAY(CURRENT_TIMESTAMP)) DAY + INTERVAL 23 HOUR + INTERVAL 59 MINUTE
             ON COMPLETION PRESERVE
             DO BEGIN
-                UPDATE schedules SET extended_until = NULL WHERE extended_until IS NOT NULL;
+                INSERT INTO archive_registry (semester, academic_year, flush_type, flushed_by, notes)
+                VALUES ('Weekly', CONCAT(YEAR(CURDATE()), '-', YEAR(CURDATE()) + 1), 'manual', 0, 'Weekly extension auto-clear (MySQL EVENT)');
+                SET @rid = LAST_INSERT_ID();
+                INSERT INTO archived_extension_requests (registry_id, original_id, schedule_id, faculty_id, extend_mins, status, requested_at, reviewed_by, reviewed_at)
+                SELECT @rid, id, schedule_id, faculty_id, extend_mins, status, requested_at, reviewed_by, reviewed_at FROM extension_requests;
+                SET @arch = ROW_COUNT();
                 DELETE FROM extension_requests;
+                UPDATE archive_registry SET total_archived = @arch, total_cleared = @arch WHERE id = @rid;
+                UPDATE schedules SET extended_until = NULL WHERE extended_until IS NOT NULL;
                 INSERT INTO admin_logs (admin_id, action, target_name, notes)
                 VALUES (0, 'extension_flush', 'Extensions Cleared', 'Auto-cleared by MySQL EVENT');
             END
         ");
+        $evtCheck = $conn->query("SHOW EVENTS LIKE 'extension_flush_event'");
+        if ($evtCheck && $evtCheck->num_rows > 0) {
+            $conn->query("INSERT INTO system_settings (setting_key, setting_value) VALUES ('extension_event_version', '2') ON DUPLICATE KEY UPDATE setting_value = '2'");
+        }
     }
 }

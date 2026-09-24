@@ -1,6 +1,9 @@
 <?php
 // esp32-schedule-flag.php
-// ESP32 polls this every 5s — returns dirty flag and resets it
+// ESP32 polls this every 3s — returns the dirty flag READ-ONLY.
+// The flag is cleared by api/esp32-schedule.php after it successfully serves
+// the fresh slot list, so a consumed flag is never lost when the follow-up
+// schedule fetch fails on flaky WiFi (it just retries on the next poll).
 
 require_once __DIR__ . "/../src/Config/db_connect.php";
 header('Content-Type: application/json');
@@ -24,11 +27,6 @@ if (!$row) {
 }
 
 $dirty = (bool)$row['schedule_dirty'];
-
-// Reset the flag immediately after reading
-if ($dirty) {
-    $conn->query("UPDATE classrooms SET schedule_dirty = 0 WHERE id = $classroom_id");
-}
 
 echo json_encode(['dirty' => $dirty]);
 $conn->close();

@@ -10,7 +10,23 @@
  */
 function execute_extension_flush($conn) {
     $conn->query("UPDATE schedules SET extended_until = NULL WHERE extended_until IS NOT NULL");
+
+    // Safety net: archive requests before wiping (same pattern as the
+    // semester flush) so the weekly clear is recoverable. Registry row uses
+    // flush_type='manual' + flushed_by=0 (system, matching admin_logs).
+    $year = date('Y');
+    $acad = $year . '-' . ($year + 1);
+    $reg_stmt = $conn->prepare("INSERT INTO archive_registry (semester, academic_year, flush_type, flushed_by, notes) VALUES ('Weekly', ?, 'manual', 0, 'Weekly extension auto-clear')");
+    $reg_stmt->bind_param('s', $acad);
+    $reg_stmt->execute();
+    $registry_id = (int)$conn->insert_id;
+    $reg_stmt->close();
+
+    $conn->query("INSERT INTO archived_extension_requests (registry_id, original_id, schedule_id, faculty_id, extend_mins, status, requested_at, reviewed_by, reviewed_at)
+                  SELECT $registry_id, id, schedule_id, faculty_id, extend_mins, status, requested_at, reviewed_by, reviewed_at FROM extension_requests");
+    $archived = (int)$conn->affected_rows;
     $conn->query("DELETE FROM extension_requests");
+    $conn->query("UPDATE archive_registry SET total_archived = $archived, total_cleared = $archived WHERE id = $registry_id");
 
     $conn->query("DELETE FROM system_settings WHERE setting_key = 'extension_reset_datetime'");
 

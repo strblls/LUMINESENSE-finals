@@ -563,6 +563,57 @@
                 var btn = document.querySelector('[data-panel="panelExtRequests"]');
                 if (btn) btn.classList.remove('has-update');
             }
+
+            syncSlotBadges(data);
+        }
+
+        var EXT_BADGE_HTML = {
+            pending: '<span class="badge-ext-pending" title="Extension request pending" data-bs-toggle="tooltip"><i class="bi bi-hourglass-bottom"></i></span>',
+            approved: '<span class="badge-ext-approved" title="Extension approved" data-bs-toggle="tooltip"><i class="bi bi-check-circle"></i></span>',
+            rejected: '<span class="badge-ext-rejected" title="Extension rejected" data-bs-toggle="tooltip"><i class="bi bi-x-circle"></i></span>'
+        };
+
+        // Live-sync the per-slot badges beside the Request Extension buttons
+        // (server-rendered PHP only refreshes them on page reload). Latest
+        // request per slot wins, mirroring the PHP ext_status subquery's
+        // ORDER BY requested_at DESC LIMIT 1. Buttons are left untouched —
+        // they re-render correctly on the next full load.
+        function syncSlotBadges(data) {
+            var rows = document.querySelectorAll('.slot-row[data-slot-id]');
+            if (!rows.length) return;
+            var bySlot = {};
+            ['today', 'other'].forEach(function (k) {
+                (data[k] || []).forEach(function (r) {
+                    var sid = String(r.schedule_id);
+                    if (!(sid in bySlot)) bySlot[sid] = r.status;
+                });
+            });
+            rows.forEach(function (row) {
+                var sid = row.getAttribute('data-slot-id');
+                var actions = row.querySelector('.slot-actions');
+                if (!actions) return;
+                var want = bySlot[sid] || null;
+                if (!EXT_BADGE_HTML[want]) want = null; // unknown/empty → no badge (matches PHP else branch)
+                var cur = actions.querySelector('.badge-ext-pending,.badge-ext-approved,.badge-ext-rejected');
+                var curStatus = null;
+                if (cur) {
+                    curStatus = cur.classList.contains('badge-ext-pending') ? 'pending'
+                        : cur.classList.contains('badge-ext-approved') ? 'approved' : 'rejected';
+                }
+                if (curStatus === want) return; // already correct
+                if (cur) cur.remove();
+                if (want) {
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = EXT_BADGE_HTML[want];
+                    var badge = tmp.firstChild;
+                    var earlyEnd = actions.querySelector('.badge-early-end');
+                    if (earlyEnd) actions.insertBefore(badge, earlyEnd);
+                    else actions.appendChild(badge);
+                    if (window.bootstrap && window.bootstrap.Tooltip) {
+                        try { new window.bootstrap.Tooltip(badge); } catch (e) {}
+                    }
+                }
+            });
         }
 
         function fetchExtRequests() {

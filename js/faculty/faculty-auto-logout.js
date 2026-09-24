@@ -8,7 +8,11 @@
 (function () {
     var POLL_MS = 5000;          // match existing status-poll cadence
     var LOGOUT_GRACE = 30;       // seconds shown before auto-logout fires
+    var NEVER_ACTIVE_ARM_MS = 10 * 60 * 1000; // no-schedule logins: arm logout
+                                 // escalation after this long without any
+                                 // active class (Option A)
     var wasActive = false;       // only react to a real active->ended transition
+    var neverActiveSince = null; // first poll tick with no active class yet
     var dismissed = false;       // user chose "Stay signed in" this session
     var seqTimer = null;
     var remaining = 0;
@@ -71,6 +75,7 @@
             if (data.active) {
                 wasActive = true;
                 dismissed = false; // a new session started - re-arm the watcher
+                neverActiveSince = null;
                 window.lumiPostClassArmed = false;
                 sessionStorage.removeItem('lumi_postclass_armed');
                 if (typeof window.lumiCancelFiveMinEscalation === 'function') {
@@ -79,6 +84,18 @@
                 cancelSequence(); // extension granted / still running
             } else if (wasActive && !dismissed) {
                 startSequence();
+            } else if (!wasActive) {
+                // Never had an active class this login (e.g. signed in with no
+                // schedule): after sustained inactivity, arm the same 60s-PIN
+                // → 5-min-warning → logout chain the post-class flow uses.
+                // Verifying the PIN keeps working (hidePageTimeout clears the
+                // 5-min timer); only a truly idle user reaches logout.
+                if (neverActiveSince === null) neverActiveSince = Date.now();
+                if (!window.lumiPostClassArmed &&
+                    Date.now() - neverActiveSince >= NEVER_ACTIVE_ARM_MS) {
+                    window.lumiPostClassArmed = true;
+                    sessionStorage.setItem('lumi_postclass_armed', '1');
+                }
             }
         } catch (e) { /* transient network error - retry on next tick */ }
     }
