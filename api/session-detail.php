@@ -118,7 +118,7 @@ if ($hasReadings) {
     $out['peak_power_w']    = (float)$row['peak_power_w'];
     $out['total_energy_wh'] = (float)$row['total_energy_wh'];
     $out['readings']        = (int)$row['reading_count'];
-    $out['est_cost_php']    = round(($out['total_energy_wh'] / 1000) * 11, 2);
+    $out['est_cost_php']    = round(($out['total_energy_wh'] / 1000) * 14, 2);
 
     // - 2. Per-minute chart series --------------------------------
     $stmt = $conn->prepare("
@@ -169,7 +169,7 @@ if (!$hasReadings) {
         $out['duration_min']    = (int)($ps['duration_mins'] ?? $durMin);
         $hrs = $out['duration_min'] / 60;
         $out['avg_power'] = $hrs > 0 ? round($out['total_energy_wh'] / $hrs, 2) : 0;
-        $out['est_cost_php'] = round(($out['total_energy_wh'] / 1000) * 11, 2);
+        $out['est_cost_php'] = round(($out['total_energy_wh'] / 1000) * 14, 2);
     }
 }
 

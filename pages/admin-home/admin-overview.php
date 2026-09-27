@@ -480,7 +480,7 @@ if ($row = $res->fetch_assoc()) {
     $summary['avg_voltage']      = (float)$row['avg_voltage'];
     $summary['avg_current']      = (float)$row['avg_current'];
     $summary['peak_power_w']     = (float)$row['peak_power_w'];
-    $summary['est_cost_php']     = round($row['energy_wh'] / 1000 * 11, 2);
+    $summary['est_cost_php']     = round($row['energy_wh'] / 1000 * 14, 2);
 }
 $res = $conn->query("SELECT COUNT(*) AS c FROM room_logs WHERE event_type = 'issue_raised' AND event_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
 if ($row = $res->fetch_assoc()) $summary['total_anomalies'] = (int)$row['c'];
@@ -558,7 +558,7 @@ $costAcc = 0;
 foreach ($last7 as $d) {
     $day = $dayAgg[$d] ?? [];
     $wh = (float)($day['energy_wh'] ?? 0);
-    $costAcc += $wh / 1000 * 11;
+    $costAcc += $wh / 1000 * 14;
     $sparkSummary['energy'][]  = $wh;
     $sparkSummary['minutes'][] = (int)($day['minutes'] ?? 0);
     $sparkSummary['voltage'][] = (float)($day['avg_voltage'] ?? 0);

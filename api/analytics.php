@@ -217,7 +217,7 @@ if ($days === 1) {
 }
 
 $summary['total_energy_kwh'] = round(($summary['total_energy_wh'] ?? 0) / 1000, 4);
-$summary['est_cost_php']     = round($summary['total_energy_kwh'] * 11, 2);
+    $summary['est_cost_php']     = round($summary['total_energy_kwh'] * 14, 2);
 $summary['peak_power_kw']    = round(($summary['peak_power_w'] ?? 0) / 1000, 4);
 
 // - Anomaly count -----------------------------
@@ -655,7 +655,7 @@ $stmt = $conn->prepare("
         ROUND(ps.peak_power / 1000, 4)      AS peak_power_kw,
         ROUND(ps.total_energy_wh, 2)        AS total_energy_wh,
         ROUND(ps.total_energy_wh / 1000, 4) AS total_energy_kwh,
-        ROUND((ps.total_energy_wh / 1000) * 11, 2) AS est_cost_php
+            ROUND((ps.total_energy_wh / 1000) * 14, 2) AS est_cost_php
     FROM power_sessions ps
     JOIN classrooms c ON c.id = ps.classroom_id
     WHERE $psWinSql

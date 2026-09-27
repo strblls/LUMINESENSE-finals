@@ -1,11 +1,56 @@
         document.addEventListener('DOMContentLoaded', function() {
 
+            function currentView() {
+                if (document.getElementById('panel-faculty')?.style.display !== 'none' &&
+                    document.getElementById('panel-faculty')?.offsetParent !== null) return 'faculty';
+                if (document.getElementById('panel-status')?.style.display !== 'none' &&
+                    document.getElementById('panel-status')?.offsetParent !== null) return 'status';
+                return 'landing';
+            }
+
+            window.showReportPanel = function(panel, subTab) {
+                document.getElementById('reportLanding').style.display = 'none';
+                document.getElementById('panel-faculty').style.display = panel === 'faculty' ? '' : 'none';
+                document.getElementById('panel-status').style.display = panel === 'status' ? '' : 'none';
+                document.getElementById('reportBackBtn').style.display = '';
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', panel === 'status' ? (subTab || 'activity') : 'faculty');
+                    window.history.replaceState(null, '', url.toString());
+                } catch (e) { /* ignore */ }
+                if (panel === 'status') {
+                    switchTab(subTab || currentSubTab() || 'activity');
+                } else if (panel === 'faculty') {
+                    filterFaculty();
+                }
+            };
+
+            window.showReportLanding = function() {
+                document.getElementById('reportLanding').style.display = '';
+                document.getElementById('panel-faculty').style.display = 'none';
+                document.getElementById('panel-status').style.display = 'none';
+                document.getElementById('reportBackBtn').style.display = 'none';
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('tab');
+                    window.history.replaceState(null, '', url.toString());
+                } catch (e) { /* ignore */ }
+            };
+
+            function currentSubTab() {
+                var activeEl = document.querySelector('#panel-status .timetable-btn[data-tab].active');
+                return activeEl ? activeEl.dataset.tab : null;
+            }
+
             function switchTab(tab) {
-                document.querySelectorAll('.timetable-btn[data-tab]').forEach(b => b.classList.remove('active'));
+                if (document.getElementById('panel-status').style.display === 'none') {
+                    window.showReportPanel('status', tab);
+                    return;
+                }
+                document.querySelectorAll('#panel-status .timetable-btn[data-tab]').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-                document.getElementById('defaultState').style.display = 'none';
-                document.querySelector(`.timetable-btn[data-tab="${tab}"]`)?.classList.add('active');
-                document.getElementById('tab-' + tab).classList.add('active');
+                document.querySelector(`#panel-status .timetable-btn[data-tab="${tab}"]`)?.classList.add('active');
+                document.getElementById('tab-' + tab)?.classList.add('active');
 
                 if (tab === 'activity') {
                     filterActivity();
@@ -15,10 +60,11 @@
                     filterRooms();
                 }
 
-                document.querySelectorAll('.stat-card').forEach(function(card) {
+                document.querySelectorAll('#panel-status .stat-card').forEach(function(card) {
                     var icon = card.querySelector('.stat-icon i');
                     var valEl = card.querySelector('.stat-value');
                     var labelEl = card.querySelector('.stat-label');
+                    if (!card.dataset.aVal) return;
                     if (tab === 'rooms') {
                         if (icon) icon.className = 'bi ' + card.dataset.rIcon;
                         if (valEl) valEl.textContent = card.dataset.rVal;
@@ -33,17 +79,26 @@
                         if (labelEl) labelEl.textContent = card.dataset.aLabel;
                     }
                 });
+                try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', tab);
+                    window.history.replaceState(null, '', url.toString());
+                } catch (e) { /* ignore */ }
             }
 
-            document.querySelectorAll('.timetable-btn[data-tab]').forEach(btn => {
+            document.querySelectorAll('#panel-status .timetable-btn[data-tab]').forEach(btn => {
                 btn.addEventListener('click', () => switchTab(btn.dataset.tab));
             });
 
             const urlParams = new URLSearchParams(window.location.search);
             const tabParam = urlParams.get('tab');
-            if (tabParam) {
-                const target = document.querySelector(`.timetable-btn[data-tab="${tabParam}"]`);
-                if (target) switchTab(tabParam);
+            if (tabParam === 'faculty') {
+                window.showReportPanel('faculty');
+            } else if (tabParam === 'status') {
+                window.showReportPanel('status', 'activity');
+            } else if (tabParam) {
+                const target = document.querySelector(`#panel-status .timetable-btn[data-tab="${tabParam}"]`);
+                if (target) window.showReportPanel('status', tabParam);
             }
 
             (function() {
@@ -70,15 +125,19 @@
                 });
             })();
 
+            function applySearchForCurrentView() {
+                if (currentView() === 'faculty') { filterFaculty(); return; }
+                if (currentView() !== 'status') return;
+                var activeEl = document.querySelector('#panel-status .timetable-btn[data-tab].active');
+                if (!activeEl) return;
+                if (activeEl.dataset.tab === 'activity') filterActivity();
+                else if (activeEl.dataset.tab === 'issues') filterIssues();
+                else filterRooms();
+            }
+
             const reportsSearch = document.getElementById('reportsSearch');
             if (reportsSearch) {
-                reportsSearch.addEventListener('input', function() {
-                    var activeEl = document.querySelector('.timetable-btn[data-tab].active');
-                    if (!activeEl) return;
-                    if (activeEl.dataset.tab === 'activity') filterActivity();
-                    else if (activeEl.dataset.tab === 'issues') filterIssues();
-                    else filterRooms();
-                });
+                reportsSearch.addEventListener('input', applySearchForCurrentView);
             }
 
             const globalSearch = document.getElementById('globalSearch');
@@ -86,11 +145,17 @@
                 globalSearch.addEventListener('input', function() {
                     var reportsSearch = document.getElementById('reportsSearch');
                     if (reportsSearch) reportsSearch.value = this.value;
-                    var activeEl = document.querySelector('.timetable-btn[data-tab].active');
-                    if (!activeEl) return;
-                    if (activeEl.dataset.tab === 'activity') filterActivity();
-                    else if (activeEl.dataset.tab === 'issues') filterIssues();
-                    else filterRooms();
+                    applySearchForCurrentView();
+                });
+            }
+
+            function filterFaculty() {
+                const q = (document.getElementById('reportsSearch')?.value || '').toLowerCase();
+                const status = document.getElementById('facultyStatusFilter')?.value || '';
+                document.querySelectorAll('#facultyTable tbody .faculty-main-row').forEach(row => {
+                    const matchQ = !q || (row.dataset.search && row.dataset.search.includes(q));
+                    const matchStatus = !status || row.dataset.status === status;
+                    row.style.display = (matchQ && matchStatus) ? '' : 'none';
                 });
             }
 
@@ -192,9 +257,18 @@
             document.getElementById('roomLightFilter').addEventListener('change', filterRooms);
             document.getElementById('issueType').addEventListener('change', filterIssues);
             document.getElementById('issueDate').addEventListener('change', filterIssues);
+            document.getElementById('facultyStatusFilter')?.addEventListener('change', filterFaculty);
 
             function getFilterParams() {
-                const active = document.querySelector('.timetable-btn[data-tab].active');
+                if (currentView() === 'faculty') {
+                    return {
+                        tab: 'faculty',
+                        search: document.getElementById('reportsSearch')?.value || '',
+                        type: document.getElementById('facultyStatusFilter')?.value || '',
+                        date: ''
+                    };
+                }
+                const active = document.querySelector('#panel-status .timetable-btn[data-tab].active');
                 const tab = active ? active.dataset.tab : 'activity';
                 const search = document.getElementById('reportsSearch')?.value || '';
                 let type = '';
@@ -215,7 +289,7 @@
                 const el = document.getElementById('exportConfirmModal');
                 document.getElementById('exportModalIcon').className = 'bi ' + (type === 'csv' ? 'bi-filetype-csv' : 'bi-filetype-pdf');
                 const { tab, search, type: ftype, date } = getFilterParams();
-                const label = tab === 'rooms' ? 'Room Activity' : tab === 'issues' ? 'Issues Logged' : 'Recent Activity';
+                const label = tab === 'faculty' ? 'Faculty Reports' : tab === 'rooms' ? 'Room Activity' : tab === 'issues' ? 'Issues Logged' : tab === 'status' ? 'Status Reports' : 'Recent Activity';
                 document.getElementById('exportModalMsg').textContent = 'Export ' + label + ' as ' + type.toUpperCase() + '?';
                 document.getElementById('exportConfirmBtn').onclick = function() {
                     const bs = bootstrap.Modal.getInstance(el);
@@ -233,7 +307,21 @@
             }
 
             function doExportCSV() {
-                const active = document.querySelector('.timetable-btn[data-tab].active');
+                if (currentView() === 'faculty') {
+                    const rows = [['Faculty', 'Email', 'Status', 'Schedules', 'Extensions', 'Lighting Events', 'Last Activity']];
+                    document.querySelectorAll('#facultyTable tbody .faculty-main-row').forEach(row => {
+                        if (row.style.display === 'none') return;
+                        rows.push([...row.querySelectorAll('td')].map(td => td.innerText.trim()));
+                    });
+                    const csv = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(',')).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `report-faculty-${new Date().toISOString().slice(0, 10)}.csv`;
+                    a.click();
+                    return;
+                }
+                const active = document.querySelector('#panel-status .timetable-btn[data-tab].active');
                 const tab = active ? active.dataset.tab : 'activity';
                 let rows = [];
                 if (tab === 'rooms') {
@@ -337,7 +425,7 @@
             }
 
             function updateStats(stats) {
-                const cards = document.querySelectorAll('.stat-card');
+                const cards = document.querySelectorAll('#panel-status .stat-card');
                 if (cards.length >= 3) {
                     cards[0].dataset.aVal = stats.total_logs;
                     cards[1].dataset.aVal = stats.total_rooms;
@@ -345,7 +433,7 @@
                     cards[0].dataset.iVal = (stats.issue_raised + stats.issue_resolved) || 0;
                     cards[1].dataset.iVal = stats.issue_raised || 0;
                     cards[2].dataset.iVal = stats.issue_resolved || 0;
-                    var active = document.querySelector('.tab-btn.active, .timetable-btn[data-tab].active');
+                    var active = document.querySelector('#panel-status .tab-btn.active, #panel-status .timetable-btn[data-tab].active');
                     var tab = active ? active.dataset.tab : 'activity';
                     if (tab === 'rooms') {
                         cards[0].querySelector('.stat-value').textContent = cards[0].dataset.rVal;
@@ -364,7 +452,9 @@
             }
 
             function reapplyFilters() {
-                var active = document.querySelector('.timetable-btn[data-tab].active');
+                if (currentView() === 'faculty') { filterFaculty(); return; }
+                if (currentView() !== 'status') return;
+                var active = document.querySelector('#panel-status .timetable-btn[data-tab].active');
                 if (!active) return;
                 if (active.dataset.tab === 'activity') {
                     actPage = 1;

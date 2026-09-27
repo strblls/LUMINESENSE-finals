@@ -171,6 +171,108 @@ foreach ($issues as $issue) {
     elseif ($issue['event_type'] === 'issue_resolved') $issue_resolved_count++;
 }
 
+/* -----------------------
+   FETCH: Faculty Reports (per-faculty activity aggregation)
+   Provisional stat pills — final labels/numbers can be swapped later.
+----------------------- */
+$faculty_reports = [];
+$faculty_total = 0;
+$faculty_pending = 0;
+$faculty_approved_count = 0;
+$faculty_schedules_total = 0;
+$ext_pending_total = 0;
+
+$hasFacultyIdSched = false;
+$hasCreatedBySched = false;
+$hasFacultyIdLight = false;
+$hasExtTable = false;
+$hasFacultyIdExt = false;
+try {
+    $c = $conn->query("SHOW COLUMNS FROM schedules LIKE 'faculty_id'");
+    $hasFacultyIdSched = ($c && $c->num_rows > 0);
+    if ($c) $c->free();
+    $c = $conn->query("SHOW COLUMNS FROM schedules LIKE 'created_by'");
+    $hasCreatedBySched = ($c && $c->num_rows > 0);
+    if ($c) $c->free();
+    $c = $conn->query("SHOW COLUMNS FROM lighting_logs LIKE 'faculty_id'");
+    $hasFacultyIdLight = ($c && $c->num_rows > 0);
+    if ($c) $c->free();
+    $t = $conn->query("SHOW TABLES LIKE 'extension_requests'");
+    $hasExtTable = ($t && $t->num_rows > 0);
+    if ($t) $t->free();
+    if ($hasExtTable) {
+        $c = $conn->query("SHOW COLUMNS FROM extension_requests LIKE 'faculty_id'");
+        $hasFacultyIdExt = ($c && $c->num_rows > 0);
+        if ($c) $c->free();
+    }
+} catch (Throwable $e) { /* keep defaults, faculty panel shows directory only */ }
+
+$resF = $conn->query("SELECT id, first_name, last_name, email, is_verified, approved_by, created_at FROM faculty ORDER BY last_name ASC, first_name ASC");
+if ($resF) {
+    while ($frow = $resF->fetch_assoc()) {
+        $fid = (int)$frow['id'];
+        $isApproved = ((int)$frow['is_verified'] === 1 && $frow['approved_by'] !== null);
+        $isPending = ((int)$frow['is_verified'] === 1 && $frow['approved_by'] === null);
+        $schedCount = 0;
+        $extCount = 0;
+        $extApproved = 0;
+        $lightCount = 0;
+        $lastActivity = null;
+        if ($hasFacultyIdSched || $hasCreatedBySched) {
+            $conds = [];
+            if ($hasFacultyIdSched) $conds[] = "faculty_id = $fid";
+            if ($hasCreatedBySched) $conds[] = "created_by = $fid";
+            $q = $conn->query("SELECT COUNT(*) AS c, MAX(created_at) AS m FROM schedules WHERE " . implode(' OR ', $conds));
+            if ($q && ($r = $q->fetch_assoc())) {
+                $schedCount = (int)($r['c'] ?? 0);
+                if (!empty($r['m'])) $lastActivity = $r['m'];
+            }
+            if ($q) $q->free();
+        }
+        if ($hasExtTable && $hasFacultyIdExt) {
+            $q = $conn->query("SELECT COUNT(*) AS c, SUM(status='approved') AS a, MAX(requested_at) AS m FROM extension_requests WHERE faculty_id = $fid");
+            if ($q && ($r = $q->fetch_assoc())) {
+                $extCount = (int)($r['c'] ?? 0);
+                $extApproved = (int)($r['a'] ?? 0);
+                if (!empty($r['m']) && ($lastActivity === null || $r['m'] > $lastActivity)) $lastActivity = $r['m'];
+            }
+            if ($q) $q->free();
+        }
+        if ($hasFacultyIdLight) {
+            $q = $conn->query("SELECT COUNT(*) AS c, MAX(event_time) AS m FROM lighting_logs WHERE faculty_id = $fid");
+            if ($q && ($r = $q->fetch_assoc())) {
+                $lightCount = (int)($r['c'] ?? 0);
+                if (!empty($r['m']) && ($lastActivity === null || $r['m'] > $lastActivity)) $lastActivity = $r['m'];
+            }
+            if ($q) $q->free();
+        }
+        $faculty_reports[] = [
+            'id' => $fid,
+            'name' => trim(($frow['first_name'] ?? '') . ' ' . ($frow['last_name'] ?? '')),
+            'email' => $frow['email'] ?? '',
+            'is_approved' => $isApproved,
+            'is_pending' => $isPending,
+            'schedules' => $schedCount,
+            'extensions' => $extCount,
+            'extensions_approved' => $extApproved,
+            'lighting_events' => $lightCount,
+            'last_activity' => $lastActivity,
+        ];
+        $faculty_schedules_total += $schedCount;
+    }
+    $resF->free();
+}
+$faculty_total = count($faculty_reports);
+foreach ($faculty_reports as $fr) {
+    if ($fr['is_pending']) $faculty_pending++;
+    if ($fr['is_approved']) $faculty_approved_count++;
+}
+if ($hasExtTable) {
+    $q = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE status='pending'");
+    if ($q && ($r = $q->fetch_assoc())) $ext_pending_total = (int)($r['c'] ?? 0);
+    if ($q) $q->free();
+}
+
 $conn->close();
 
 /* -- Icon map for event types -- */
@@ -246,6 +348,10 @@ function event_icon(string $type): array
 
             <div class="main-container faculty-timetable-heading d-flex align-items-center w-auto" style="background-color: var(--secondary-color-2);">
                 <div class="d-flex align-items-center flex-grow-1" style="position:relative;">
+                    <button type="button" id="reportBackBtn" class="timetable-btn ms-2" onclick="showReportLanding()" title="Back" style="display:none;">
+                        <i class="bi bi-arrow-left"></i>
+                        <span class="timetable-btn-title bold">Back</span>
+                    </button>
                     <button type="button" class="timetable-btn ms-2" data-panel="panelGuideInfo" title="Guide">
                         <i class="bi bi-info-lg"></i>
                         <span class="timetable-btn-title bold">Guide</span>
@@ -254,7 +360,8 @@ function event_icon(string $type): array
                         <div class="section-container timetable" style="background-color:#f8f9fa;width:320px;">
                             <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Reports Guide</h6>
                             <ol class="ps-3 mb-0" style="font-size:13px;line-height:1.7;">
-                                <li>Press <strong>Recent Activity</strong>, <strong>Room Activity</strong>, or <strong>Issues Logged</strong> in the heading to load a report.</li>
+                                <li>Press <strong>Faculty Reports</strong> or <strong>Status Reports</strong> to open a panel.</li>
+                                <li>In <strong>Status Reports</strong>, use <strong>Recent Activity</strong>, <strong>Room Activity</strong>, or <strong>Issues Logged</strong> to switch views.</li>
                                 <li>Use the search bar to find entries by room, actor, or action keyword.</li>
                                 <li>Use the dropdown filters inside each tab to narrow by type or date.</li>
                                 <li>In <strong>Room Activity</strong>, click a room row to expand its recent event log.</li>
@@ -265,6 +372,141 @@ function event_icon(string $type): array
                     <input type="text" id="reportsSearch" class="form-control" placeholder="Search room name or faculty..." style="max-width:500px;margin-left:16px;">
                 </div>
                 <div class="d-flex align-items-center pe-2" style="position:relative; gap:6px;">
+                    <button type="button" class="timetable-btn" onclick="exportCSV()" title="Export CSV">
+                        <i class="bi bi-filetype-csv"></i>
+                        <span class="timetable-btn-title bold">Export<br>CSV</span>
+                    </button>
+                    <button type="button" class="timetable-btn" onclick="exportPDF()" title="Export PDF">
+                        <i class="bi bi-filetype-pdf"></i>
+                        <span class="timetable-btn-title bold">Export<br>PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ══ LANDING: two main panels ══ -->
+            <div id="reportLanding" class="report-landing">
+                <button type="button" class="report-landing-card" data-landing="faculty" onclick="showReportPanel('faculty')" aria-label="Open Faculty Reports">
+                    <span class="landing-bg" aria-hidden="true">
+                        <img class="landing-img off" src="../../images/admin/reports/faculty-reports-off.png" alt="" loading="eager">
+                        <img class="landing-img on" src="../../images/admin/reports/faculty-reports-on.png" alt="" loading="eager">
+                    </span>
+                    <span class="landing-stats">
+                        <span class="mini-stat-pill"><i class="bi bi-people-fill"></i><b><?= (int)$faculty_total ?></b><small>Total Faculty</small></span>
+                        <span class="mini-stat-pill"><i class="bi bi-person-plus"></i><b><?= (int)$faculty_pending ?></b><small>Pending Approvals</small></span>
+                        <span class="mini-stat-pill"><i class="bi bi-calendar-check"></i><b><?= (int)$faculty_schedules_total ?></b><small>Total Schedules</small></span>
+                    </span>
+                    <span class="landing-caption">
+                        <span class="landing-title">Faculty Reports</span>
+                        <span class="landing-sub">Overall activities per faculty</span>
+                    </span>
+                    <span class="press-hint">Press to view <i class="bi bi-play-fill"></i></span>
+                </button>
+                <button type="button" class="report-landing-card" data-landing="status" onclick="showReportPanel('status')" aria-label="Open Status Reports">
+                    <span class="landing-bg" aria-hidden="true">
+                        <img class="landing-img off" src="../../images/admin/reports/status-reports-off.png" alt="" loading="eager">
+                        <img class="landing-img on" src="../../images/admin/reports/status-reports-on.png" alt="" loading="eager">
+                    </span>
+                    <span class="landing-stats">
+                        <span class="mini-stat-pill"><i class="bi bi-journal-text"></i><b><?= count($activity_logs) ?></b><small>Total Log Entries</small></span>
+                        <span class="mini-stat-pill"><i class="bi bi-door-open"></i><b><?= count($rooms) ?></b><small>Tracked Rooms</small></span>
+                        <span class="mini-stat-pill"><i class="bi bi-exclamation-triangle-fill"></i><b><?= (int)$issue_raised_count ?></b><small>Issues Raised</small></span>
+                    </span>
+                    <span class="landing-caption">
+                        <span class="landing-title">Status Reports</span>
+                        <span class="landing-sub">Summary of all activities</span>
+                    </span>
+                    <span class="press-hint">Press to view <i class="bi bi-play-fill"></i></span>
+                </button>
+            </div>
+
+            <!-- ══ PANEL: Faculty Reports ══ -->
+            <div id="panel-faculty" class="report-view" style="display:none;">
+                <div style="background-color:#f8f9fa;" class="section-container">
+                    <div class="stat-row">
+                        <div class="stat-card">
+                            <span class="stat-icon"><i class="bi bi-people-fill" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                            <div>
+                                <div class="stat-value"><?= (int)$faculty_total ?></div>
+                                <p class="stat-label">Total Faculty</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon"><i class="bi bi-person-plus" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                            <div>
+                                <div class="stat-value"><?= (int)$faculty_pending ?></div>
+                                <p class="stat-label">Pending Approvals</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-icon"><i class="bi bi-calendar-check" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
+                            <div>
+                                <div class="stat-value"><?= (int)$faculty_schedules_total ?></div>
+                                <p class="stat-label">Total Schedules</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reports-card">
+                    <div class="reports-card-header">
+                        <h2 class="bold"><i class="bi bi-people-fill"></i>Faculty Reports</h2>
+                        <div class="filter-bar">
+                            <select id="facultyStatusFilter">
+                                <option value="">All Faculty</option>
+                                <option value="approved">Approved</option>
+                                <option value="pending">Pending</option>
+                                <option value="other">Unverified / Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <?php if (empty($faculty_reports)): ?>
+                        <div class="empty-state">
+                            <i class="bi bi-people"></i>
+                            <p>No faculty records found.</p>
+                        </div>
+                    <?php else: ?>
+                        <div style="overflow-x:auto;">
+                            <table class="room-table" id="facultyTable">
+                                <thead>
+                                    <tr>
+                                        <th>Faculty</th>
+                                        <th>Status</th>
+                                        <th>Schedules</th>
+                                        <th>Extensions</th>
+                                        <th>Lighting Events</th>
+                                        <th>Last Activity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($faculty_reports as $fr):
+                                        $statusKey = $fr['is_approved'] ? 'approved' : ($fr['is_pending'] ? 'pending' : 'other');
+                                        $statusLabel = $fr['is_approved'] ? 'Approved' : ($fr['is_pending'] ? 'Pending' : 'Unverified');
+                                        $statusBg = $fr['is_approved'] ? '#0f5132' : ($fr['is_pending'] ? '#664d03' : '#5a5a5a');
+                                        $lastStr = !empty($fr['last_activity']) ? date('M j, g:i A', strtotime($fr['last_activity'])) : 'No activity yet';
+                                    ?>
+                                        <tr class="faculty-main-row"
+                                            data-status="<?= $statusKey ?>"
+                                            data-search="<?= strtolower(htmlspecialchars($fr['name'] . ' ' . $fr['email'])) ?>">
+                                            <td>
+                                                <div style="font-weight:600;"><?= htmlspecialchars($fr['name'] !== '' ? $fr['name'] : 'Unnamed Faculty') ?></div>
+                                                <div style="font-size:0.72rem;color:var(--muted);"><?= htmlspecialchars($fr['email']) ?></div>
+                                            </td>
+                                            <td><span class="tl-type-badge" style="background:<?= $statusBg ?>; color:#fff;"><?= $statusLabel ?></span></td>
+                                            <td><span class="event-count-badge"><?= (int)$fr['schedules'] ?></span></td>
+                                            <td><span class="event-count-badge"><?= (int)$fr['extensions'] ?><?= ((int)$fr['extensions_approved'] > 0 ? ' (' . (int)$fr['extensions_approved'] . ' approved)' : '') ?></span></td>
+                                            <td><span class="event-count-badge"><?= (int)$fr['lighting_events'] ?></span></td>
+                                            <td class="last-event-text"><?= $lastStr ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- ══ PANEL: Status Reports (existing 3 tabs) ══ -->
+            <div id="panel-status" class="report-view" style="display:none;">
+                <div class="status-subnav">
                     <button type="button" class="timetable-btn" data-tab="activity" title="Recent Activity">
                         <i class="bi bi-clock-history"></i>
                         <span class="timetable-btn-title bold">Recent<br>Activity</span>
@@ -277,17 +519,7 @@ function event_icon(string $type): array
                         <i class="bi bi-exclamation-triangle"></i>
                         <span class="timetable-btn-title bold">Issues<br>Logged</span>
                     </button>
-                    <button type="button" class="timetable-btn" onclick="exportCSV()" title="Export CSV">
-                        <i class="bi bi-filetype-csv"></i>
-                        <span class="timetable-btn-title bold">Export<br>CSV</span>
-                    </button>
-                    <button type="button" class="timetable-btn" onclick="exportPDF()" title="Export PDF">
-                        <i class="bi bi-filetype-pdf"></i>
-                        <span class="timetable-btn-title bold">Export<br>PDF</span>
-                    </button>
                 </div>
-            </div>
-
             <div style="background-color:#f8f9fa;" class="section-container">
                 <div class="stat-row" id="statRow">
                     <div class="stat-card"
@@ -324,10 +556,7 @@ function event_icon(string $type): array
             </div>
 
             <!-- - Default state - -->
-            <div class="default-state" id="defaultState">
-                <i class="bi bi-arrow-up-circle"></i>
-                <p>Select <strong>Recent Activity</strong>, <strong>Room Activity</strong>, or <strong>Issues Logged</strong> from the heading above to view reports.</p>
-            </div>
+            <!-- landing replaces default state -->
 
             <!-- â•â• TAB: Activity Log â•â• -->
             <div class="tab-panel" id="tab-activity">
@@ -547,6 +776,7 @@ function event_icon(string $type): array
                     </div>
                 </div>
             </div>
+            </div><!-- /panel-status -->
 
         </div><!-- /reports-layout -->
 

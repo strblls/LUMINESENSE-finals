@@ -111,6 +111,71 @@ if ($tab === 'rooms') {
         }
     }
     $html .= '</tbody></table>';
+} elseif ($tab === 'faculty') {
+    $where = [];
+    if ($search) {
+        $s = $conn->real_escape_string($search);
+        $where[] = "(CONCAT(f.first_name,' ',f.last_name) LIKE '%$s%' OR f.email LIKE '%$s%')";
+    }
+    if ($type === 'approved') {
+        $where[] = "(f.is_verified = 1 AND f.approved_by IS NOT NULL)";
+    } elseif ($type === 'pending') {
+        $where[] = "(f.is_verified = 1 AND f.approved_by IS NULL)";
+    } elseif ($type === 'other') {
+        $where[] = "NOT (f.is_verified = 1)";
+    }
+    $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+    $faculty = [];
+    $res = $conn->query("SELECT id, first_name, last_name, email, is_verified, approved_by FROM faculty $whereClause ORDER BY last_name ASC, first_name ASC LIMIT 500");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) $faculty[] = $row;
+        $res->free();
+    }
+    $hasFidSched = ($conn->query("SHOW COLUMNS FROM schedules LIKE 'faculty_id'")->num_rows ?? 0) > 0;
+    $hasCbSched = ($conn->query("SHOW COLUMNS FROM schedules LIKE 'created_by'")->num_rows ?? 0) > 0;
+    $hasFidLight = ($conn->query("SHOW COLUMNS FROM lighting_logs LIKE 'faculty_id'")->num_rows ?? 0) > 0;
+    $hasExt = ($conn->query("SHOW TABLES LIKE 'extension_requests'")->num_rows ?? 0) > 0;
+    $html = '<h2 style="text-align:center;margin-bottom:20px;">Faculty Reports</h2>';
+    if ($search) $html .= '<p style="text-align:center;color:#888;font-size:10px;">Filtered by: "' . htmlspecialchars($search) . '"</p>';
+    $html .= '<table><thead><tr>
+        <th>Faculty</th><th>Status</th><th>Schedules</th><th>Extensions</th><th>Lighting Events</th>
+    </tr></thead><tbody>';
+    if (empty($faculty)) {
+        $html .= '<tr><td colspan="5" style="text-align:center;color:#999;">No faculty match the current filters.</td></tr>';
+    } else {
+        foreach ($faculty as $f) {
+            $fid = (int)$f['id'];
+            $approved = ((int)$f['is_verified'] === 1 && $f['approved_by'] !== null);
+            $pending = ((int)$f['is_verified'] === 1 && $f['approved_by'] === null);
+            $sched = 0; $ext = 0; $light = 0;
+            if ($hasFidSched || $hasCbSched) {
+                $conds = [];
+                if ($hasFidSched) $conds[] = "faculty_id = $fid";
+                if ($hasCbSched) $conds[] = "created_by = $fid";
+                $q = $conn->query("SELECT COUNT(*) AS c FROM schedules WHERE " . implode(' OR ', $conds));
+                if ($q && ($r = $q->fetch_assoc())) $sched = (int)($r['c'] ?? 0);
+                if ($q) $q->free();
+            }
+            if ($hasExt) {
+                $q = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE faculty_id = $fid");
+                if ($q && ($r = $q->fetch_assoc())) $ext = (int)($r['c'] ?? 0);
+                if ($q) $q->free();
+            }
+            if ($hasFidLight) {
+                $q = $conn->query("SELECT COUNT(*) AS c FROM lighting_logs WHERE faculty_id = $fid");
+                if ($q && ($r = $q->fetch_assoc())) $light = (int)($r['c'] ?? 0);
+                if ($q) $q->free();
+            }
+            $html .= '<tr>';
+            $html .= '<td style="font-weight:600;">' . htmlspecialchars(trim(($f['first_name'] ?? '') . ' ' . ($f['last_name'] ?? ''))) . '<br><span style="color:#888;font-size:10px;">' . htmlspecialchars($f['email'] ?? '') . '</span></td>';
+            $html .= '<td>' . ($approved ? 'Approved' : ($pending ? 'Pending' : 'Unverified')) . '</td>';
+            $html .= '<td>' . $sched . '</td>';
+            $html .= '<td>' . $ext . '</td>';
+            $html .= '<td>' . $light . '</td>';
+            $html .= '</tr>';
+        }
+    }
+    $html .= '</tbody></table>';
 } elseif ($tab === 'issues') {
     $where = ["event_type IN ('issue_raised','issue_resolved','tilt_alert')"];
     if ($search) {

@@ -287,8 +287,8 @@ foreach ($faculty_list as $_f) {
                         <div class="summary-expand">
                             <i class="bi bi-calculator"></i>
                             <span class="summary-info-label">Formula:</span>
-                            <span class="summary-info-val">Cost = Total kWh &times; &dollar;11.00/kWh</span>
-                            <span class="summary-info-desc">Estimated cost using the national average rate of &#x20B1;11.00 per kWh.</span>
+                            <span class="summary-info-val">Cost = Total kWh &times; &#x20B1;14/kWh</span>
+                            <span class="summary-info-desc">Estimated cost using the national average rate of &#x20B1;14.00 per kWh.</span>
                         </div>
                     </div>
                     <div class="live-stat-card">

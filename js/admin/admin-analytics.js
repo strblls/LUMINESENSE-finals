@@ -1195,7 +1195,7 @@ function renderFindingsReport(data, range, archiveDate) {
     // Sparklines (cumulative energy + cumulative cost)
     var seriesFlat = series.filter(function(v) { return typeof v === 'number' && !isNaN(v); });
     var cumEnergy = [], cumCost = [], runE = 0;
-    seriesFlat.forEach(function(v) { runE += v; cumEnergy.push(runE); cumCost.push(+(runE * 11).toFixed(2)); });
+    seriesFlat.forEach(function(v) { runE += v; cumEnergy.push(runE); cumCost.push(+(runE * 14).toFixed(2)); });
     drawFindingsSpark('findingsSparkEnergy', cumEnergy, '#58078f');
     drawFindingsSpark('findingsSparkCost', cumCost, '#c0004e');
 
