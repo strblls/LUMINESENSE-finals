@@ -681,8 +681,8 @@
 
 /* ── Report landing (Faculty / Status cards) ── */
 .report-landing {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.25rem;
     width: 100%;
 }
@@ -691,8 +691,8 @@
     position: relative;
     display: block;
     width: 100%;
-    aspect-ratio: 4 / 3.4;
-    min-height: 420px;
+    min-width: 0;
+    height: 520px;
     border: 4px solid #cfcfcf;
     border-radius: 14px;
     overflow: hidden;
@@ -712,27 +712,36 @@
     outline: none;
 }
 
+/* Single background layer: off image by default, on image fades in on hover */
 .landing-bg {
     position: absolute;
     inset: 0;
     display: block;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
-.landing-img {
+.landing-bg::after {
+    content: "";
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
     display: block;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0;
     transition: opacity 0.25s ease;
+    pointer-events: none;
 }
 
-.landing-img.on { opacity: 0; }
-.report-landing-card:hover .landing-img.on,
-.report-landing-card:focus-visible .landing-img.on { opacity: 1; }
-.report-landing-card:hover .landing-img.off,
-.report-landing-card:focus-visible .landing-img.off { opacity: 0; }
+.landing-faculty { background-image: url("../../images/admin/reports/faculty-reports-off.png"); }
+.landing-faculty::after { background-image: url("../../images/admin/reports/faculty-reports-on.png"); }
+.landing-status { background-image: url("../../images/admin/reports/status-reports-off.png"); }
+.landing-status::after { background-image: url("../../images/admin/reports/status-reports-on.png"); }
+
+.report-landing-card:hover .landing-bg::after,
+.report-landing-card:focus-visible .landing-bg::after { opacity: 1; }
 
 .landing-stats {
     position: absolute;
@@ -830,8 +839,8 @@
 }
 
 @media (max-width: 900px) {
-    .report-landing { grid-template-columns: 1fr; }
-    .report-landing-card { min-height: 340px; }
+    .report-landing { grid-template-columns: minmax(0, 1fr); }
+    .report-landing-card { height: 380px; }
     .landing-title { font-size: 2.2rem; }
     .mini-stat-pill { min-width: 200px; }
 }

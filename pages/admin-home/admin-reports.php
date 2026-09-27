@@ -333,8 +333,10 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928">
     <link rel="stylesheet" href="../../css/admin/common.css">
+    <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
+    <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
 </head>
 
 <body class="contrast-bg">
@@ -386,10 +388,7 @@ function event_icon(string $type): array
             <!-- ══ LANDING: two main panels ══ -->
             <div id="reportLanding" class="report-landing">
                 <button type="button" class="report-landing-card" data-landing="faculty" onclick="showReportPanel('faculty')" aria-label="Open Faculty Reports">
-                    <span class="landing-bg" aria-hidden="true">
-                        <img class="landing-img off" src="../../images/admin/reports/faculty-reports-off.png" alt="" loading="eager">
-                        <img class="landing-img on" src="../../images/admin/reports/faculty-reports-on.png" alt="" loading="eager">
-                    </span>
+                    <span class="landing-bg landing-faculty" aria-hidden="true"></span>
                     <span class="landing-stats">
                         <span class="mini-stat-pill"><i class="bi bi-people-fill"></i><b><?= (int)$faculty_total ?></b><small>Total Faculty</small></span>
                         <span class="mini-stat-pill"><i class="bi bi-person-plus"></i><b><?= (int)$faculty_pending ?></b><small>Pending Approvals</small></span>
@@ -402,10 +401,7 @@ function event_icon(string $type): array
                     <span class="press-hint">Press to view <i class="bi bi-play-fill"></i></span>
                 </button>
                 <button type="button" class="report-landing-card" data-landing="status" onclick="showReportPanel('status')" aria-label="Open Status Reports">
-                    <span class="landing-bg" aria-hidden="true">
-                        <img class="landing-img off" src="../../images/admin/reports/status-reports-off.png" alt="" loading="eager">
-                        <img class="landing-img on" src="../../images/admin/reports/status-reports-on.png" alt="" loading="eager">
-                    </span>
+                    <span class="landing-bg landing-status" aria-hidden="true"></span>
                     <span class="landing-stats">
                         <span class="mini-stat-pill"><i class="bi bi-journal-text"></i><b><?= count($activity_logs) ?></b><small>Total Log Entries</small></span>
                         <span class="mini-stat-pill"><i class="bi bi-door-open"></i><b><?= count($rooms) ?></b><small>Tracked Rooms</small></span>
