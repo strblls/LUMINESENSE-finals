@@ -15,9 +15,9 @@
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    padding: 1.25rem 1rem 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
+    padding: 1.25rem 0 2rem;
+    max-width: none;
+    margin: 0;
     width: 100%;
 }
 
@@ -742,6 +742,27 @@
 
 .report-landing-card:hover .landing-bg::after,
 .report-landing-card:focus-visible .landing-bg::after { opacity: 1; }
+
+/* Caption readability shade: purple gradient idle, dark-yellow gradient on hover */
+.report-landing-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(to top,
+        rgba(47, 0, 79, 0.94) 0%,
+        rgba(47, 0, 79, 0.62) 32%,
+        rgba(47, 0, 79, 0) 58%);
+    pointer-events: none;
+}
+
+.report-landing-card:hover::before,
+.report-landing-card:focus-visible::before {
+    background: linear-gradient(to top,
+        rgba(107, 82, 0, 0.94) 0%,
+        rgba(107, 82, 0, 0.62) 32%,
+        rgba(107, 82, 0, 0) 58%);
+}
 
 .landing-stats {
     position: absolute;

@@ -348,7 +348,7 @@ function event_icon(string $type): array
     <div class="child-container">
         <div class="reports-layout">
 
-            <div class="main-container faculty-timetable-heading d-flex align-items-center w-auto" style="background-color: var(--secondary-color-2);">
+            <div id="reportToolbar" class="main-container faculty-timetable-heading d-flex align-items-center w-auto" style="background-color: var(--secondary-color-2); display:none;">
                 <div class="d-flex align-items-center flex-grow-1" style="position:relative;">
                     <button type="button" id="reportBackBtn" class="timetable-btn ms-2" onclick="showReportLanding()" title="Back" style="display:none;">
                         <i class="bi bi-arrow-left"></i>
