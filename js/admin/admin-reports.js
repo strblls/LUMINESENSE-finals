@@ -10,7 +10,7 @@
 
             window.showReportPanel = function(panel, subTab) {
                 document.getElementById('reportLanding').style.display = 'none';
-                document.getElementById('reportToolbar').style.display = '';
+                document.getElementById('reportToolbar').style.display = 'flex';
                 document.getElementById('panel-faculty').style.display = panel === 'faculty' ? '' : 'none';
                 document.getElementById('panel-status').style.display = panel === 'status' ? '' : 'none';
                 document.getElementById('reportBackBtn').style.display = '';
