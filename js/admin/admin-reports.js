@@ -1,18 +1,26 @@
         document.addEventListener('DOMContentLoaded', function() {
 
+            // Single source of truth for landing/panel visibility: the `hidden`
+            // attribute (enforced by CSS with !important, immune to other
+            // stylesheets). Inline `display` styles are never used here.
+            function setHidden(id, hide) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                el.hidden = !!hide;
+                el.style.display = '';
+            }
+
             function currentView() {
-                if (document.getElementById('panel-faculty')?.style.display !== 'none' &&
-                    document.getElementById('panel-faculty')?.offsetParent !== null) return 'faculty';
-                if (document.getElementById('panel-status')?.style.display !== 'none' &&
-                    document.getElementById('panel-status')?.offsetParent !== null) return 'status';
+                if (!document.getElementById('panel-faculty')?.hidden) return 'faculty';
+                if (!document.getElementById('panel-status')?.hidden) return 'status';
                 return 'landing';
             }
 
             window.showReportPanel = function(panel, subTab) {
-                document.getElementById('reportLanding').style.display = 'none';
-                document.getElementById('reportToolbar').style.display = 'flex';
-                document.getElementById('panel-faculty').style.display = panel === 'faculty' ? '' : 'none';
-                document.getElementById('panel-status').style.display = panel === 'status' ? '' : 'none';
+                setHidden('reportLanding', true);
+                setHidden('reportToolbar', false);
+                setHidden('panel-faculty', panel !== 'faculty');
+                setHidden('panel-status', panel !== 'status');
                 document.getElementById('reportBackBtn').style.display = '';
                 try {
                     const url = new URL(window.location.href);
@@ -27,10 +35,10 @@
             };
 
             window.showReportLanding = function() {
-                document.getElementById('reportLanding').style.display = '';
-                document.getElementById('reportToolbar').style.display = 'none';
-                document.getElementById('panel-faculty').style.display = 'none';
-                document.getElementById('panel-status').style.display = 'none';
+                setHidden('reportLanding', false);
+                setHidden('reportToolbar', true);
+                setHidden('panel-faculty', true);
+                setHidden('panel-status', true);
                 document.getElementById('reportBackBtn').style.display = 'none';
                 try {
                     const url = new URL(window.location.href);
@@ -45,7 +53,7 @@
             }
 
             function switchTab(tab) {
-                if (document.getElementById('panel-status').style.display === 'none') {
+                if (document.getElementById('panel-status')?.hidden) {
                     window.showReportPanel('status', tab);
                     return;
                 }
@@ -92,15 +100,18 @@
                 btn.addEventListener('click', () => switchTab(btn.dataset.tab));
             });
 
+            // Explicit init: enforce a known-visible state on every load.
+            // No ?tab= -> landing (toolbar + panels stay hidden).
             const urlParams = new URLSearchParams(window.location.search);
             const tabParam = urlParams.get('tab');
             if (tabParam === 'faculty') {
                 window.showReportPanel('faculty');
             } else if (tabParam === 'status') {
                 window.showReportPanel('status', 'activity');
-            } else if (tabParam) {
-                const target = document.querySelector(`#panel-status .timetable-btn[data-tab="${tabParam}"]`);
-                if (target) window.showReportPanel('status', tabParam);
+            } else if (tabParam && document.querySelector(`#panel-status .timetable-btn[data-tab="${tabParam}"]`)) {
+                window.showReportPanel('status', tabParam);
+            } else {
+                window.showReportLanding();
             }
 
             (function() {

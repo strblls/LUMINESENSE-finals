@@ -336,10 +336,10 @@
         ],
         'admin-reports.php': [
             {
-                selector: '[data-tab="activity"]',
+                selector: '.report-landing-card[data-landing="status"]',
                 title: 'Reports Overview',
-                desc: 'Switch between Recent Activity and Room Activity tabs. Use the Export buttons to download reports as CSV or PDF.',
-                position: 'bottom'
+                desc: 'Pick Faculty Reports for per-faculty activity, or Status Reports for the full activity log, room summary, and issues. Use the Export buttons to download reports as CSV or PDF.',
+                position: 'top'
             },
             {
                 selector: '#tab-activity #activityTimeline',
@@ -347,7 +347,7 @@
                 title: 'Activity Timeline',
                 desc: 'Filterable timeline of all room events and admin actions. Use the type and date filters to narrow down results.',
                 position: 'bottom',
-                onEnter: 'switchTab("activity")'
+                onEnter: 'showReportPanel("status","activity")'
             },
             {
                 selector: '#tab-rooms #roomTable',
@@ -355,7 +355,7 @@
                 title: 'Room Activity',
                 desc: 'Summary table of room activity with expandable rows. Click any room to view detailed event logs for that room.',
                 position: 'top',
-                onEnter: 'switchTab("rooms")'
+                onEnter: 'showReportPanel("status","rooms")'
             }
         ],
         'admin-room-manage.php': [

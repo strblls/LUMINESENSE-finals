@@ -333,7 +333,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev2">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
@@ -348,7 +348,7 @@ function event_icon(string $type): array
     <div class="child-container">
         <div class="reports-layout">
 
-            <div id="reportToolbar" class="main-container faculty-timetable-heading align-items-center w-auto" style="background-color: var(--secondary-color-2); display:none !important;">
+            <div id="reportToolbar" class="main-container faculty-timetable-heading d-flex align-items-center w-auto" style="background-color: var(--secondary-color-2);" hidden>
                 <div class="d-flex align-items-center flex-grow-1" style="position:relative;">
                     <button type="button" id="reportBackBtn" class="timetable-btn ms-2" onclick="showReportLanding()" title="Back" style="display:none;">
                         <i class="bi bi-arrow-left"></i>
@@ -416,7 +416,7 @@ function event_icon(string $type): array
             </div>
 
             <!-- ══ PANEL: Faculty Reports ══ -->
-            <div id="panel-faculty" class="report-view" style="display:none;">
+            <div id="panel-faculty" class="report-view" hidden>
                 <div style="background-color:#f8f9fa;" class="section-container">
                     <div class="stat-row">
                         <div class="stat-card">
@@ -501,7 +501,7 @@ function event_icon(string $type): array
             </div>
 
             <!-- ══ PANEL: Status Reports (existing 3 tabs) ══ -->
-            <div id="panel-status" class="report-view" style="display:none;">
+            <div id="panel-status" class="report-view" hidden>
                 <div class="status-subnav">
                     <button type="button" class="timetable-btn" data-tab="activity" title="Recent Activity">
                         <i class="bi bi-clock-history"></i>
@@ -805,7 +805,7 @@ function event_icon(string $type): array
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
 
-    <script src="../../js/admin/admin-reports.js"></script>
+    <script src="../../js/admin/admin-reports.js?v=20260928rev2"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 

@@ -679,6 +679,14 @@
     padding: 8px 12px;
 }
 
+/* ── Report landing/view visibility: hidden attribute always wins ── */
+#reportToolbar[hidden],
+#reportLanding[hidden],
+#panel-faculty[hidden],
+#panel-status[hidden] {
+    display: none !important;
+}
+
 /* ── Report landing (Faculty / Status cards) ── */
 .report-landing {
     display: grid !important;
