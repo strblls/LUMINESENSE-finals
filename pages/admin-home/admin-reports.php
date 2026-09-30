@@ -172,6 +172,28 @@ foreach ($issues as $issue) {
 }
 
 /* -----------------------
+   Status KPIs (from merged $activity_logs + $issues)
+----------------------- */
+$issue_actions = ['issue_raised', 'issue_resolved', 'tilt_alert'];
+$room_actions_count = 0;
+$admin_actions_count = 0;
+foreach ($activity_logs as $log) {
+    if (($log['log_type'] ?? '') === 'admin') $admin_actions_count++;
+    else $room_actions_count++;
+}
+$anomalies_count = count($issues);
+
+/* Source label helper for the unified status table */
+function log_source(array $log): string
+{
+    $actor = strtolower($log['actor'] ?? '');
+    if (($log['log_type'] ?? '') === 'admin') return 'Admin';
+    if ($actor === 'pir') return 'PIR';
+    if ($actor === 'schedule') return 'Schedule';
+    return 'Manual';
+}
+
+/* -----------------------
    FETCH: Faculty Reports (per-faculty activity aggregation)
    Provisional stat pills — final labels/numbers can be swapped later.
 ----------------------- */
@@ -325,6 +347,7 @@ function event_icon(string $type): array
         integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!--Relative links-->
     <link rel="icon" type="image/png" sizes="32x32" href="../../images/icon.png">
@@ -363,10 +386,9 @@ function event_icon(string $type): array
                             <h6 class="bold mb-2"><i class="bi bi-info-circle me-1"></i>Reports Guide</h6>
                             <ol class="ps-3 mb-0" style="font-size:13px;line-height:1.7;">
                                 <li>Press <strong>Faculty Reports</strong> or <strong>Status Reports</strong> to open a panel.</li>
-                                <li>In <strong>Status Reports</strong>, use <strong>Recent Activity</strong>, <strong>Room Activity</strong>, or <strong>Issues Logged</strong> to switch views.</li>
+                                <li>In <strong>Status Reports</strong>, read the KPI cards, then use the type and date filters above the table to narrow entries.</li>
                                 <li>Use the search bar to find entries by room, actor, or action keyword.</li>
-                                <li>Use the dropdown filters inside each tab to narrow by type or date.</li>
-                                <li>In <strong>Room Activity</strong>, click a room row to expand its recent event log.</li>
+                                <li>Use Prev / Next to page through the status table.</li>
                                 <li>Click <strong>Export CSV</strong> or <strong>Export PDF</strong> to download the currently viewed report.</li>
                             </ol>
                         </div>
@@ -502,276 +524,101 @@ function event_icon(string $type): array
 
             <!-- ══ PANEL: Status Reports (existing 3 tabs) ══ -->
             <div id="panel-status" class="report-view" hidden>
-                <div class="status-subnav">
-                    <button type="button" class="timetable-btn" data-tab="activity" title="Recent Activity">
-                        <i class="bi bi-clock-history"></i>
-                        <span class="timetable-btn-title bold">Recent<br>Activity</span>
-                    </button>
-                    <button type="button" class="timetable-btn" data-tab="rooms" title="Room Activity">
-                        <i class="bi bi-door-open"></i>
-                        <span class="timetable-btn-title bold">Room<br>Activity</span>
-                    </button>
-                    <button type="button" class="timetable-btn" data-tab="issues" title="Issues Logged">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <span class="timetable-btn-title bold">Issues<br>Logged</span>
-                    </button>
-                </div>
-            <div style="background-color:#f8f9fa;" class="section-container">
-                <div class="stat-row" id="statRow">
-                    <div class="stat-card"
-                         data-a-icon="bi-journal-text" data-a-label="Total Log Entries" data-a-val="<?= count($activity_logs) ?>"
-                         data-r-icon="bi-door-open"     data-r-label="Total Rooms"        data-r-val="<?= count($rooms) ?>"
-                         data-i-icon="bi-exclamation-triangle" data-i-label="Total Issues" data-i-val="<?= count($issues) ?>">
-                        <span class="stat-icon"><i class="bi bi-journal-text" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                        <div>
-                            <div class="stat-value"><?= count($activity_logs) ?></div>
-                            <p class="stat-label">Total Log Entries</p>
-                        </div>
+                <div class="status-board">
+                    <div class="status-kpis">
+                        <span class="mini-stat-pill"><i class="bi bi-door-open"></i><b id="kpiRoomActions"><?= (int)$room_actions_count ?></b><small>Total Room Actions</small></span>
+                        <span class="mini-stat-pill"><i class="bi bi-exclamation-triangle-fill"></i><b id="kpiAnomalies"><?= (int)$anomalies_count ?></b><small>Total Anomalies</small></span>
+                        <span class="mini-stat-pill"><i class="bi bi-shield-check"></i><b id="kpiAdminActions"><?= (int)$admin_actions_count ?></b><small>Total Admin Actions</small></span>
                     </div>
-                    <div class="stat-card"
-                         data-a-icon="bi-door-open"          data-a-label="Tracked Rooms"        data-a-val="<?= count($rooms) ?>"
-                         data-r-icon="bi-lightbulb-fill"     data-r-label="Lights On"            data-r-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?>"
-                         data-i-icon="bi-exclamation-triangle-fill" data-i-label="Issue Raised" data-i-val="<?= $issue_raised_count ?>">
-                        <span class="stat-icon"><i class="bi bi-door-open" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                        <div>
-                            <div class="stat-value"><?= count($rooms) ?></div>
-                            <p class="stat-label">Tracked Rooms</p>
+                    <div class="status-main">
+                        <div class="status-graphs">
+                            <div class="status-graph-card"><span class="status-graph-label">Chart 1 &mdash; coming soon</span><canvas id="statusChart1"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">Chart 2 &mdash; coming soon</span><canvas id="statusChart2"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">Chart 3 &mdash; coming soon</span><canvas id="statusChart3"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">Chart 4 &mdash; coming soon</span><canvas id="statusChart4"></canvas></div>
                         </div>
-                    </div>
-                    <div class="stat-card"
-                         data-a-icon="bi-lightbulb-fill"         data-a-label="Lights Currently On"  data-a-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?>"
-                         data-r-icon="bi-lightbulb"             data-r-label="Lights Off"           data-r-val="<?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'off')) ?>"
-                         data-i-icon="bi-check-circle-fill" data-i-label="Issue Resolved" data-i-val="<?= $issue_resolved_count ?>">
-                        <span class="stat-icon"><i class="bi bi-lightbulb-fill" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                        <div>
-                            <div class="stat-value"><?= count(array_filter($rooms, fn($r) => $r['light_status'] === 'on')) ?></div>
-                            <p class="stat-label">Lights Currently On</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- - Default state - -->
-            <!-- landing replaces default state -->
-
-            <!-- â•â• TAB: Activity Log â•â• -->
-            <div class="tab-panel" id="tab-activity">
-                <div class="reports-card">
-                    <div class="reports-card-header">
-                        <h2 class="bold"><i class="bi bi-clock-history"></i>Activity Logs</h2>
-                        <div class="filter-bar">
-                            <select id="activityType">
-                                <option value="">All Types</option>
-                                <option value="room">Room Events</option>
-                                <option value="admin">Admin Actions</option>
-                                <option value="pir">PIR Events</option>
-                                <option value="class">Class Events</option>
-                            </select>
-                            <select id="activityDate">
-                                <option value="">All Dates</option>
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month">This Month</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="timeline" id="activityTimeline">
-                        <?php if (empty($activity_logs)): ?>
-                            <div class="empty-state">
-                                <i class="bi bi-journal-x"></i>
-                                <p>No activity logs found. Events will appear here as they are recorded.</p>
-                            </div>
-                        <?php else: ?>
-                            <?php foreach ($activity_logs as $i => $log):
-                                [$icon, $iconColor, $iconBg] = event_icon($log['action']);
-                                $isRoom  = $log['log_type'] === 'room';
-                                $typeBg  = $isRoom  ? '#ede6f2' : '#4a0078';
-                                $typeClr = $isRoom  ? '#4a0078' : '#ede6f2';
-                                $typeLabel = $isRoom ? 'Room' : 'Admin';
-                                $logDate = strtotime($log['log_time']);
-                                $dateStr = date('M j, Y', $logDate);
-                                $timeStr = date('g:i A', $logDate);
-                            ?>
-                                <div class="timeline-item"
-                                    data-type="<?= $log['log_type'] ?>"
-                                    data-action="<?= htmlspecialchars($log['action']) ?>"
-                                    data-date="<?= date('Y-m-d', $logDate) ?>"
-                                    data-search="<?= strtolower(htmlspecialchars($log['target'] . ' ' . $log['actor'] . ' ' . $log['action'])) ?>">
-                                    <div class="tl-icon" style="background:<?= $iconBg ?>; color:<?= $iconColor ?>;">
-                                        <i class="bi <?= $isRoom ? 'bi-door-open' : $icon ?>"></i>
-                                    </div>
-                                    <div class="tl-body">
-                                        <p class="tl-action">
-                                            <?= htmlspecialchars(str_replace('Pir ', 'PIR ', ucwords(str_replace('_', ' ', $log['action'])))) ?>
-                                            <?php if (!empty($log['target'])): ?>
-                                                &mdash; <span style="color:var(--secondary-color-3);"><?= htmlspecialchars($log['target']) ?></span>
-                                            <?php endif; ?>
-                                        </p>
-                                        <div class="tl-meta">
-                                            <span><i class="bi bi-clock"></i> <?= $timeStr ?>, <?= $dateStr ?></span>
-                                            <?php if (!empty($log['actor'])): ?>
-                                                <span><i class="bi bi-person"></i> <?= htmlspecialchars($log['actor']) ?></span>
-                                            <?php endif; ?>
-                                            <span class="tl-type-badge" style="background:<?= $typeBg ?>; color:<?= $typeClr ?>;"><?= $typeLabel ?></span>
-                                        </div>
-                                        <?php if (!empty($log['notes'])): ?>
-                                            <span class="tl-notes"><i class="bi bi-chat-left-text me-1"></i><?= htmlspecialchars($log['notes']) ?></span>
-                                        <?php endif; ?>
-                                    </div>
+                        <div class="reports-card">
+                            <div class="reports-card-header">
+                                <h2 class="bold"><i class="bi bi-activity"></i>Status Reports</h2>
+                                <div class="filter-bar">
+                                    <select id="statusType">
+                                        <option value="">All Types</option>
+                                        <option value="room">Room Events</option>
+                                        <option value="admin">Admin Actions</option>
+                                        <option value="pir">PIR Events</option>
+                                        <option value="class">Class Events</option>
+                                        <option value="anomaly">Anomalies</option>
+                                    </select>
+                                    <select id="statusDate">
+                                        <option value="">All Dates</option>
+                                        <option value="today">Today</option>
+                                        <option value="week">This Week</option>
+                                        <option value="month">This Month</option>
+                                    </select>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="activity-pagination" id="activityPagination">
-                        <button id="activityPrev" onclick="goActivityPage(-1)" disabled>&laquo; Prev</button>
-                        <span id="activityPageInfo">Page 1 of 1</span>
-                        <button id="activityNext" onclick="goActivityPage(1)" disabled>Next &raquo;</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- â•â• TAB: Room Activity â•â• -->
-            <div class="tab-panel" id="tab-rooms">
-                <div class="reports-card">
-                    <div class="reports-card-header">
-                        <h2><i class="bi bi-door-open"></i> Room Activity Summary</h2>
-                        <div class="filter-bar">
-                            <select id="roomLightFilter">
-                                <option value="">All Lights</option>
-                                <option value="on">Lights On</option>
-                                <option value="off">Lights Off</option>
-                                <option value="pir_motion">PIR Motion</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <?php if (empty($rooms)): ?>
-                        <div class="empty-state">
-                            <i class="bi bi-building-x"></i>
-                            <p>No rooms found. Add classrooms to start tracking activity.</p>
-                        </div>
-                    <?php else: ?>
-                        <div style="overflow-x:auto;">
-                            <table class="room-table" id="roomTable">
-                                <thead>
-                                    <tr>
-                                        <th>Room</th>
-                                        <th>Light Status</th>
-                                        <th>Size</th>
-                                        <th>Total Events</th>
-                                        <th>Last Activity</th>
-                                        <th>Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($rooms as $room):
-                                        $on       = $room['light_status'] === 'on';
-                                        $hasLast  = !empty($room['last_event']);
-                                        $lastStr  = $hasLast ? date('M j, g:i A', strtotime($room['last_event'])) : 'No events yet';
-                                        $roomName = htmlspecialchars($room['room_name']);
-                                    ?>
-                                        <tr class="room-main-row" data-room="<?= $roomName ?>"
-                                            data-light="<?= $room['light_status'] ?>"
-                                            data-search="<?= strtolower(htmlspecialchars($room['room_name'] . ' ' . $room['description'])) ?>"
-                                            onclick="toggleRoomAccordion(this)">
-                                            <td>
-                                                <div style="font-weight:600;"><i class="bi bi-chevron-right room-chevron me-1" style="font-size:11px;transition:transform .2s;"></i><?= $roomName ?></div>
-                                            </td>
-                                            <td>
-                                                <span class="light-pill <?= $on ? 'light-on' : 'light-off' ?>">
-                                                    <span class="light-dot <?= $on ? 'dot-on' : 'dot-off' ?>"></span>
-                                                    <?= $on ? 'ON' : 'OFF' ?>
-                                                </span>
-                                            </td>
-                                            <td><?= ucfirst(htmlspecialchars($room['room_size'])) ?></td>
-                                            <td><span class="event-count-badge"><?= (int)$room['total_events'] ?></span></td>
-                                            <td class="last-event-text"><?= $lastStr ?></td>
-                                            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:0.75rem;">
-                                                <?= htmlspecialchars($room['description'] ?? '-') ?>
-                                            </td>
-                                        </tr>
-                                        <tr class="room-accordion-row" style="display:none;">
-                                            <td colspan="6">
-                                                <div class="room-accordion-content">Loading...</div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- â•â• TAB: Issues Logged â•â• -->
-            <div class="tab-panel" id="tab-issues">
-                <div class="reports-card">
-                    <div class="reports-card-header">
-                        <h2><i class="bi bi-exclamation-triangle"></i> Issues Logged</h2>
-                        <div class="filter-bar">
-                            <select id="issueType">
-                                <option value="">All Issues</option>
-                                <option value="issue_raised">Issue Raised</option>
-                                <option value="issue_resolved">Issue Resolved</option>
-                                <option value="tilt_alert">Tilt Alerts</option>
-                            </select>
-                            <select id="issueDate">
-                                <option value="">All Dates</option>
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month">This Month</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="timeline" id="issueTimeline">
-                        <?php if (empty($issues)): ?>
-                            <div class="empty-state">
-                                <i class="bi bi-inbox"></i>
-                                <p>No issues logged yet. Issues will appear here when PIR detects motion outside schedule, the prototype is tilted or shaken, or other anomalies occur.</p>
                             </div>
-                        <?php else: ?>
-                            <?php foreach ($issues as $issue):
-                                [$icon, $iconColor, $iconBg] = event_icon($issue['event_type']);
-                                $logDate = strtotime($issue['event_time']);
-                                $dateStr = date('M j, Y', $logDate);
-                                $timeStr = date('g:i A', $logDate);
-                                $isTilt  = $issue['event_type'] === 'tilt_alert';
-                                $isRaised = $issue['event_type'] === 'issue_raised';
-                                $issueLabel = $isTilt ? 'Tilt Alert' : ($isRaised ? 'Issue Raised' : 'Issue Resolved');
-                            ?>
-                                <div class="timeline-item"
-                                    data-type="issue"
-                                    data-action="<?= $issue['event_type'] ?>"
-                                    data-date="<?= date('Y-m-d', $logDate) ?>"
-                                    data-search="<?= strtolower(htmlspecialchars($issue['room_name'] . ' ' . $issue['notes'])) ?>">
-                                    <div class="tl-icon" style="background:<?= $iconBg ?>; color:<?= $iconColor ?>;">
-                                        <i class="bi <?= $icon ?>"></i>
-                                    </div>
-                                    <div class="tl-body">
-                                        <p class="tl-action">
-                                            <?= $issueLabel ?>
-                                            &mdash; <span style="color:var(--secondary-color-3);"><?= htmlspecialchars($issue['room_name']) ?></span>
-                                        </p>
-                                        <div class="tl-meta">
-                                            <span><i class="bi bi-clock"></i> <?= $timeStr ?>, <?= $dateStr ?></span>
-                                            <span><i class="bi bi-person"></i> <?= htmlspecialchars($issue['triggered_by']) ?></span>
-                                            <span class="tl-type-badge" style="background:<?= $isTilt ? '#7f1d1d' : ($isRaised ? '#842029' : '#0f5132') ?>; color:#fff;">
-                                                <?= $issueLabel ?>
-                                            </span>
-                                        </div>
-                                        <?php if (!empty($issue['notes'])): ?>
-                                            <span class="tl-notes"><i class="bi bi-chat-left-text me-1"></i><?= htmlspecialchars($issue['notes']) ?></span>
-                                        <?php endif; ?>
-                                    </div>
+                            <?php if (empty($activity_logs)): ?>
+                                <div class="empty-state">
+                                    <i class="bi bi-journal-x"></i>
+                                    <p>No activity logged yet. Events will appear here as they are recorded.</p>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                            <?php else: ?>
+                                <div style="overflow-x:auto;">
+                                    <table class="room-table" id="statusTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Action</th>
+                                                <th>Action Type</th>
+                                                <th>Actor</th>
+                                                <th>Source</th>
+                                                <th>Description</th>
+                                                <th>Date and Time</th>
+                                                <th>Notes</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($activity_logs as $log):
+                                                [$icon, $iconColor, $iconBg] = event_icon($log['action']);
+                                                $isRoom  = ($log['log_type'] ?? '') === 'room';
+                                                $typeBg  = $isRoom  ? '#ede6f2' : '#4a0078';
+                                                $typeClr = $isRoom  ? '#4a0078' : '#ede6f2';
+                                                $typeLabel = $isRoom ? 'Room' : 'Admin';
+                                                $logDate = strtotime($log['log_time']);
+                                                $dateStr = date('M j, Y', $logDate);
+                                                $timeStr = date('g:i A', $logDate);
+                                                $actionLabel = htmlspecialchars(str_replace('Pir ', 'PIR ', ucwords(str_replace('_', ' ', $log['action']))));
+                                                $source = log_source($log);
+                                                $target = trim($log['target'] ?? '');
+                                            ?>
+                                                <tr class="status-row"
+                                                    data-type="<?= $log['log_type'] ?>"
+                                                    data-action="<?= htmlspecialchars($log['action']) ?>"
+                                                    data-date="<?= date('Y-m-d', $logDate) ?>"
+                                                    data-search="<?= strtolower(htmlspecialchars($log['target'] . ' ' . $log['actor'] . ' ' . $log['action'] . ' ' . $source . ' ' . $log['notes'])) ?>">
+                                                    <td>
+                                                        <span class="accordion-log-icon" style="background:<?= $iconBg ?>; color:<?= $iconColor ?>;"><i class="bi <?= $icon ?>"></i></span>
+                                                        <span style="font-weight:600;"><?= $actionLabel ?></span>
+                                                    </td>
+                                                    <td><span class="tl-type-badge" style="background:<?= $typeBg ?>; color:<?= $typeClr ?>;"><?= $typeLabel ?></span></td>
+                                                    <td><?= !empty($log['actor']) ? htmlspecialchars($log['actor']) : '-' ?></td>
+                                                    <td><span class="event-count-badge"><?= $source ?></span></td>
+                                                    <td><?= $target !== '' ? htmlspecialchars($target) : '-' ?></td>
+                                                    <td class="last-event-text" style="white-space:nowrap;"><?= $timeStr ?>, <?= $dateStr ?></td>
+                                                    <td style="max-width:220px; color:var(--muted); font-size:0.75rem;"><?= !empty($log['notes']) ? htmlspecialchars($log['notes']) : '-' ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="activity-pagination" id="activityPagination">
+                                    <button id="activityPrev" onclick="goActivityPage(-1)" disabled>&laquo; Prev</button>
+                                    <span id="activityPageInfo">Page 1 of 1</span>
+                                    <button id="activityNext" onclick="goActivityPage(1)" disabled>Next &raquo;</button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
-            </div>
             </div><!-- /panel-status -->
 
         </div><!-- /reports-layout -->

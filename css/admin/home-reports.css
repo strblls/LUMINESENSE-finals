@@ -778,6 +778,7 @@
 .landing-stats {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 12px;
     margin-bottom: 14px;
 }
@@ -856,6 +857,93 @@
 .report-landing-card:focus-visible .press-hint { opacity: 1; }
 
 .report-view { width: 100%; }
+
+/* ── Status board: KPI rail + main column ── */
+.status-board {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    align-items: stretch;
+}
+
+.status-kpis {
+    flex: 0 0 15%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 0 1rem 1rem;
+    box-sizing: border-box;
+}
+
+.status-kpis .mini-stat-pill {
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.status-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 1rem 1rem 0;
+    box-sizing: border-box;
+}
+
+/* ── Status graph placeholders (4-in-a-row, Chart.js-ready) ── */
+.status-graphs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.status-graph-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    height: 15vh;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.status-graph-card canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.status-graph-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+
+.status-row td:first-child {
+    white-space: nowrap;
+}
+
+.status-row .accordion-log-icon {
+    margin-right: 8px;
+}
+
+@media (max-width: 900px) {
+    .status-board { flex-direction: column; }
+    .status-kpis {
+        flex: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 1rem 1rem 0 1rem;
+    }
+    .status-kpis .mini-stat-pill { flex: 1 1 160px; }
+    .status-main { padding: 0 1rem 1rem 1rem; }
+    .status-graphs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 .status-subnav {
     display: flex;

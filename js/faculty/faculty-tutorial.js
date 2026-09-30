@@ -342,20 +342,20 @@
                 position: 'top'
             },
             {
-                selector: '#tab-activity #activityTimeline',
-                fallbackSelector: '#tab-activity',
-                title: 'Activity Timeline',
-                desc: 'Filterable timeline of all room events and admin actions. Use the type and date filters to narrow down results.',
-                position: 'bottom',
-                onEnter: 'showReportPanel("status","activity")'
+                selector: '#statusTable',
+                fallbackSelector: '#panel-status',
+                title: 'Status Table',
+                desc: 'Unified table of all room events, admin actions, and anomalies with icon, source, and notes. Use the type and date filters to narrow down rows.',
+                position: 'top',
+                onEnter: 'showReportPanel("status")'
             },
             {
-                selector: '#tab-rooms #roomTable',
-                fallbackSelector: '#tab-rooms',
-                title: 'Room Activity',
-                desc: 'Summary table of room activity with expandable rows. Click any room to view detailed event logs for that room.',
-                position: 'top',
-                onEnter: 'showReportPanel("status","rooms")'
+                selector: '.status-kpis',
+                fallbackSelector: '#panel-status',
+                title: 'Status KPIs',
+                desc: 'Totals for room actions, anomalies, and admin actions at a glance. The graph cards above the table are placeholders for future charts.',
+                position: 'right',
+                onEnter: 'showReportPanel("status")'
             }
         ],
         'admin-room-manage.php': [

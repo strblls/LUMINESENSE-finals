@@ -411,22 +411,25 @@ if ($tab === 'rooms') {
 
     usort($activity_logs, fn($a, $b) => strtotime($b['log_time']) - strtotime($a['log_time']));
 
-    // Apply type filter in PHP (log_type: room/admin, or action prefix: pir_*/class_*)
+    // Apply type filter in PHP (log_type: room/admin, action prefix: pir_*/class_*, or anomaly set)
+    $issueActions = ['issue_raised', 'issue_resolved', 'tilt_alert'];
     if ($type) {
-        $activity_logs = array_filter($activity_logs, function($log) use ($type) {
+        $activity_logs = array_filter($activity_logs, function($log) use ($type, $issueActions) {
             if ($type === 'pir') return str_starts_with($log['action'], 'pir_');
             if ($type === 'class') return str_starts_with($log['action'], 'class_');
+            if ($type === 'anomaly') return in_array($log['action'], $issueActions, true);
+            if ($type === 'room') return $log['log_type'] === 'room' && !in_array($log['action'], $issueActions, true);
             return $log['log_type'] === $type;
         });
     }
 
-    $html = '<h2 style="text-align:center;margin-bottom:20px;">Activity Log</h2>';
+    $html = '<h2 style="text-align:center;margin-bottom:20px;">' . ($tab === 'status' ? 'Status Reports' : 'Activity Log') . '</h2>';
     if ($search) $html .= '<p style="text-align:center;color:#888;font-size:10px;">Filtered by: "' . htmlspecialchars($search) . '"</p>';
     $html .= '<table><thead><tr>
-        <th>Time</th><th>Action</th><th>Target</th><th>Actor</th><th>Type</th><th>Notes</th>
+        <th>Action</th><th>Action Type</th><th>Actor</th><th>Source</th><th>Description</th><th>Date and Time</th><th>Notes</th>
     </tr></thead><tbody>';
     if (empty($activity_logs)) {
-        $html .= '<tr><td colspan="6" style="text-align:center;color:#999;">No activity logs match the current filters.</td></tr>';
+        $html .= '<tr><td colspan="7" style="text-align:center;color:#999;">No activity logs match the current filters.</td></tr>';
     } else {
         foreach ($activity_logs as $log) {
             $logDate = strtotime($log['log_time']);
@@ -436,12 +439,15 @@ if ($tab === 'rooms') {
             $typeBg = $isRoom ? '#ede6f2' : '#4a0078';
             $typeClr = $isRoom ? '#4a0078' : '#ede6f2';
             $actionLabel = str_replace('Pir ', 'PIR ', ucwords(str_replace('_', ' ', $log['action'])));
+            $actorLower = strtolower($log['actor'] ?? '');
+            $source = !$isRoom ? 'Admin' : ($actorLower === 'pir' ? 'PIR' : ($actorLower === 'schedule' ? 'Schedule' : 'Manual'));
             $html .= '<tr>';
-            $html .= '<td style="white-space:nowrap;">' . $timeStr . '</td>';
             $html .= '<td style="font-weight:600;">' . htmlspecialchars($actionLabel) . '</td>';
-            $html .= '<td>' . htmlspecialchars($log['target'] ?? '') . '</td>';
-            $html .= '<td>' . htmlspecialchars($log['actor'] ?? '') . '</td>';
             $html .= '<td><span style="background:' . $typeBg . ';color:' . $typeClr . ';padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">' . $typeLabel . '</span></td>';
+            $html .= '<td>' . htmlspecialchars($log['actor'] ?? '') . '</td>';
+            $html .= '<td>' . $source . '</td>';
+            $html .= '<td>' . htmlspecialchars($log['target'] ?? '') . '</td>';
+            $html .= '<td style="white-space:nowrap;">' . $timeStr . '</td>';
             $html .= '<td style="color:#888;font-size:10px;">' . htmlspecialchars($log['notes'] ?? '') . '</td>';
             $html .= '</tr>';
         }
