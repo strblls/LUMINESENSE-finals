@@ -947,8 +947,7 @@
 .filter-clear {
     position: absolute;
     right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 3px;
     width: 16px;
     height: 16px;
     border-radius: 50%;

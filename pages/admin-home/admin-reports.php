@@ -203,6 +203,22 @@ function log_source(array $log): string
     return 'Manual';
 }
 
+/* Display label for anomaly rows.
+   - Issue Raised  -> Power Spike (PZEM power events) or Motion Outside Schedule (PIR)
+   - Issue Resolved -> Power Normal, but ONLY when the PZEM sensor confirmed power is back */
+function issue_label(array $issue): string
+{
+    $event = $issue['event_type'] ?? '';
+    $actor = strtolower(trim($issue['actor'] ?? $issue['triggered_by'] ?? ''));
+    if ($event === 'tilt_alert') return 'Tilt Alert';
+    if ($event === 'issue_resolved') {
+        return ($actor === 'pzem') ? 'Power Normal' : 'Issue Resolved';
+    }
+    if ($actor === 'pir') return 'Motion Outside Schedule';
+    if ($actor === 'pzem') return 'Power Spike';
+    return 'Issue Raised';
+}
+
 /* -----------------------
    FETCH: Faculty Reports (per-faculty activity aggregation)
    Provisional stat pills — final labels/numbers can be swapped later.
@@ -366,7 +382,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev5">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev6">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
@@ -403,7 +419,7 @@ function event_icon(string $type): array
                             </ol>
                         </div>
                     </div>
-                    <input type="text" id="reportsSearch" class="form-control" placeholder="Search room name or faculty..." style="max-width:500px;margin-left:16px;">
+                    <input type="text" id="reportsSearch" class="form-control" placeholder="Search action, type, actor, source, room, date, notes..." style="max-width:500px;margin-left:16px;">
                 </div>
                 <div class="d-flex align-items-center pe-2" style="position:relative; gap:6px;">
                     <button type="button" class="timetable-btn" onclick="exportCSV()" title="Export CSV">
@@ -613,7 +629,18 @@ function event_icon(string $type): array
                                         </thead>
                                         <tbody>
                                             <?php foreach ($activity_logs as $log):
-                                                [$icon, $iconColor, $iconBg] = event_icon($log['action']);
+                                                $rawAction = $log['action'];
+                                                $actorLower = strtolower($log['actor'] ?? '');
+                                                if (in_array($rawAction, $issue_actions, true)) {
+                                                    $plainLabel = issue_label(['event_type' => $rawAction, 'actor' => ($log['actor'] ?? '')]);
+                                                    $iconKey = ($rawAction === 'issue_raised' && $actorLower === 'pir') ? 'pir_motion' : $rawAction;
+                                                    [$icon, $iconColor, $iconBg] = event_icon($iconKey);
+                                                    $actionLabel = htmlspecialchars($plainLabel);
+                                                } else {
+                                                    [$icon, $iconColor, $iconBg] = event_icon($rawAction);
+                                                    $plainLabel = str_replace('Pir ', 'PIR ', ucwords(str_replace('_', ' ', $rawAction)));
+                                                    $actionLabel = htmlspecialchars($plainLabel);
+                                                }
                                                 $isRoom  = ($log['log_type'] ?? '') === 'room';
                                                 $typeBg  = $isRoom  ? '#ede6f2' : '#4a0078';
                                                 $typeClr = $isRoom  ? '#4a0078' : '#ede6f2';
@@ -621,7 +648,6 @@ function event_icon(string $type): array
                                                 $logDate = strtotime($log['log_time']);
                                                 $dateStr = date('M j, Y', $logDate);
                                                 $timeStr = date('g:i A', $logDate);
-                                                $actionLabel = htmlspecialchars(str_replace('Pir ', 'PIR ', ucwords(str_replace('_', ' ', $log['action']))));
                                                 $source = log_source($log);
                                                 $target = trim($log['target'] ?? '');
                                             ?>
@@ -631,7 +657,7 @@ function event_icon(string $type): array
                                                     data-actor="<?= strtolower(htmlspecialchars($log['actor'] ?? '')) ?>"
                                                     data-source="<?= strtolower($source) ?>"
                                                     data-date="<?= date('Y-m-d', $logDate) ?>"
-                                                    data-search="<?= strtolower(htmlspecialchars($log['target'] . ' ' . $log['actor'] . ' ' . $log['action'] . ' ' . $source . ' ' . $log['log_type'] . ' ' . date('Y-m-d', $logDate) . ' ' . $log['notes'])) ?>">
+                                                    data-search="<?= strtolower(htmlspecialchars($plainLabel . ' ' . $log['target'] . ' ' . $log['actor'] . ' ' . $log['action'] . ' ' . $source . ' ' . $log['log_type'] . ' ' . date('Y-m-d', $logDate) . ' ' . $log['notes'])) ?>">
                                                     <td>
                                                         <span class="accordion-log-icon" style="background:<?= $iconBg ?>; color:<?= $iconColor ?>;"><i class="bi <?= $icon ?>"></i></span>
                                                         <span style="font-weight:600;"><?= $actionLabel ?></span>

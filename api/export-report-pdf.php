@@ -33,6 +33,18 @@ function pdfEventStyle(string $action): array {
     return $map[$action] ?? ['#5a5a5a', '#e9ecef'];
 }
 
+/* Display label for anomaly rows (mirrors issue_label() in admin-reports.php) */
+function pdf_issue_label(string $event, string $actor): string {
+    $actor = strtolower(trim($actor));
+    if ($event === 'tilt_alert') return 'Tilt Alert';
+    if ($event === 'issue_resolved') {
+        return ($actor === 'pzem') ? 'Power Normal' : 'Issue Resolved';
+    }
+    if ($actor === 'pir') return 'Motion Outside Schedule';
+    if ($actor === 'pzem') return 'Power Spike';
+    return 'Issue Raised';
+}
+
 if ($tab === 'rooms') {
     $rooms = [];
     $where = [];
@@ -220,9 +232,7 @@ if ($tab === 'rooms') {
     } else {
         foreach ($issues as $issue) {
             [$fg, $bg] = pdfEventStyle($issue['event_type']);
-            $isTilt   = $issue['event_type'] === 'tilt_alert';
-            $isRaised = $issue['event_type'] === 'issue_raised';
-            $label = $isTilt ? 'Tilt Alert' : ($isRaised ? 'Issue Raised' : 'Issue Resolved');
+            $label = pdf_issue_label($issue['event_type'], $issue['triggered_by'] ?? '');
             $timeStr = date('M j, Y g:i A', strtotime($issue['event_time']));
             $html .= '<tr>';
             $html .= '<td style="white-space:nowrap;">' . $timeStr . '</td>';
@@ -446,7 +456,9 @@ if ($tab === 'rooms') {
             $typeLabel = $isRoom ? 'Room' : 'Admin';
             $typeBg = $isRoom ? '#ede6f2' : '#4a0078';
             $typeClr = $isRoom ? '#4a0078' : '#ede6f2';
-            $actionLabel = str_replace('Pir ', 'PIR ', ucwords(str_replace('_', ' ', $log['action'])));
+            $actionLabel = in_array($log['action'], $issueActions, true)
+                ? pdf_issue_label($log['action'], $log['actor'] ?? '')
+                : str_replace('Pir ', 'PIR ', ucwords(str_replace('_', ' ', $log['action'])));
             $actorLower = strtolower($log['actor'] ?? '');
             $source = !$isRoom ? 'Admin' : ($actorLower === 'pir' ? 'PIR' : ($actorLower === 'schedule' ? 'Schedule' : 'Manual'));
             $html .= '<tr>';
