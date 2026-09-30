@@ -166,6 +166,8 @@
                         matchType = action.startsWith('pir_');
                     } else if (type === 'class') {
                         matchType = action.startsWith('class_');
+                    } else if (type === 'light') {
+                        matchType = action === 'light_on' || action === 'light_off';
                     } else if (type === 'room') {
                         matchType = row.dataset.type === 'room' && !ISSUE_ACTIONS.includes(action);
                     } else if (type === 'admin') {

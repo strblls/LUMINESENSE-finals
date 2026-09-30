@@ -389,6 +389,37 @@ if ($tab === 'rooms') {
         $res4->free();
     }
 
+    // lighting_logs (physical on/off only)
+    $lightWhere = [];
+    if ($search) {
+        $s = $conn->real_escape_string($search);
+        $lightWhere[] = "(c.room_name LIKE '%$s%' OR l.triggered_by LIKE '%$s%' OR l.event_type LIKE '%$s%')";
+    }
+    if ($date === 'today') {
+        $lightWhere[] = "DATE(l.event_time) = '$today'";
+    } elseif ($date === 'week') {
+        $lightWhere[] = "DATE(l.event_time) >= '$weekAgo'";
+    } elseif ($date === 'month') {
+        $lightWhere[] = "DATE(l.event_time) >= '$monthAgo'";
+    }
+    $lightWhereClause = $lightWhere ? 'AND ' . implode(' AND ', $lightWhere) : '';
+
+    $resL = $conn->query("
+        SELECT 'room' AS log_type, l.id,
+               CASE l.event_type WHEN 'on' THEN 'light_on' ELSE 'light_off' END AS action,
+               c.room_name AS target, COALESCE(NULLIF(l.triggered_by,''),'Manual') AS actor,
+               l.event_time AS log_time, '' AS notes
+        FROM lighting_logs l
+        JOIN classrooms c ON c.id = l.classroom_id
+        WHERE l.event_type IN ('on', 'off')
+        $lightWhereClause
+        ORDER BY l.event_time DESC LIMIT 200
+    ");
+    if ($resL) {
+        while ($row = $resL->fetch_assoc()) $activity_logs[] = $row;
+        $resL->free();
+    }
+
     // admin_logs - only when no type filter excludes 'admin'
     if (!$type || $type === 'admin') {
         $adminWhere = ["al.action IN ('faculty_approved','faculty_rejected','faculty_pending','extension_approved','extension_rejected')"];
@@ -434,6 +465,7 @@ if ($tab === 'rooms') {
             if ($sourceFilter !== '' && $source !== $sourceFilter) return false;
             if ($type === 'pir') return str_starts_with($log['action'], 'pir_');
             if ($type === 'class') return str_starts_with($log['action'], 'class_');
+            if ($type === 'light') return $log['action'] === 'light_on' || $log['action'] === 'light_off';
             if ($type === 'anomaly') return in_array($log['action'], $issueActions, true);
             if ($type === 'room') return $log['log_type'] === 'room' && !in_array($log['action'], $issueActions, true);
             if ($type !== '') return $log['log_type'] === $type;

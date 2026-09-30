@@ -99,6 +99,27 @@ if ($res4) {
     $res4->free();
 }
 
+// Physical light state changes (on/off only) from lighting_logs
+$resL = $conn->query("
+    SELECT
+        'room'                                                      AS log_type,
+        l.id,
+        CASE l.event_type WHEN 'on' THEN 'light_on' ELSE 'light_off' END AS action,
+        c.room_name                                                 AS target,
+        COALESCE(NULLIF(l.triggered_by, ''), 'Manual')             AS actor,
+        l.event_time                                                AS log_time,
+        ''                                                          AS notes
+    FROM lighting_logs l
+    JOIN classrooms c ON c.id = l.classroom_id
+    WHERE l.event_type IN ('on', 'off')
+    ORDER BY l.event_time DESC
+    LIMIT 200
+");
+if ($resL) {
+    while ($row = $resL->fetch_assoc()) $activity_logs[] = $row;
+    $resL->free();
+}
+
 // Sort merged list newest-first
 usort($activity_logs, fn($a, $b) => strtotime($b['log_time']) - strtotime($a['log_time']));
 
@@ -382,7 +403,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev6">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev7">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
@@ -572,9 +593,10 @@ function event_icon(string $type): array
                                             <option value="">All Types</option>
                                             <option value="room">Room Events</option>
                                             <option value="admin">Admin Actions</option>
-                                            <option value="pir">PIR Events</option>
-                                            <option value="class">Class Events</option>
-                                            <option value="anomaly">Anomalies</option>
+                                        <option value="pir">PIR Events</option>
+                                        <option value="class">Class Events</option>
+                                        <option value="light">Light Events</option>
+                                        <option value="anomaly">Anomalies</option>
                                         </select>
                                         <button type="button" class="filter-clear" data-clear="statusType" title="Clear type filter" hidden>&times;</button>
                                     </span>
@@ -715,7 +737,7 @@ function event_icon(string $type): array
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
 
-    <script src="../../js/admin/admin-reports.js?v=20260928rev5"></script>
+    <script src="../../js/admin/admin-reports.js?v=20260928rev7"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 

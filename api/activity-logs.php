@@ -110,6 +110,32 @@ if ($res_ll) {
     $res_ll->free();
 }
 
+// Physical light state changes (on/off only)
+$res_light = $conn->query("
+    SELECT
+        'room'                                                      AS log_type,
+        l.id,
+        CASE l.event_type WHEN 'on' THEN 'light_on' ELSE 'light_off' END AS action,
+        c.room_name                                                  AS target,
+        COALESCE(NULLIF(l.triggered_by, ''), 'Manual')              AS actor,
+        l.event_time                                                 AS log_time,
+        ''                                                           AS notes
+    FROM lighting_logs l
+    JOIN classrooms c ON c.id = l.classroom_id
+    WHERE l.event_type IN ('on', 'off')
+    ORDER BY l.event_time DESC
+    LIMIT 200
+");
+if ($res_light) {
+    while ($row = $res_light->fetch_assoc()) {
+        if (!empty($row['log_time'])) {
+            $row['log_time'] = date('Y-m-d\TH:i:s', strtotime($row['log_time'])) . '+08:00';
+        }
+        $logs[] = $row;
+    }
+    $res_light->free();
+}
+
 // Admin / approval logs
 $res2 = $conn->query("
     SELECT
