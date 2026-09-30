@@ -929,6 +929,8 @@
 }
 
 .status-row .accordion-log-icon {
+    display: inline-flex;
+    vertical-align: middle;
     margin-right: 8px;
 }
 

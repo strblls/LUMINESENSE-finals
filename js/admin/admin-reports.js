@@ -139,6 +139,8 @@
             function filterStatus() {
                 const q = (document.getElementById('reportsSearch')?.value || '').toLowerCase();
                 const type = document.getElementById('statusType')?.value || '';
+                const actor = document.getElementById('statusActor')?.value || '';
+                const source = document.getElementById('statusSource')?.value || '';
                 const date = document.getElementById('statusDate')?.value || '';
                 const today = new Date().toISOString().slice(0, 10);
                 const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
@@ -148,6 +150,8 @@
 
                 rows.forEach(row => {
                     const matchQ = !q || (row.dataset.search && row.dataset.search.includes(q));
+                    const matchActor = !actor || (row.dataset.actor || '') === actor;
+                    const matchSource = !source || (row.dataset.source || '') === source;
                     let matchType = true;
                     const action = row.dataset.action || '';
                     if (type === 'anomaly') {
@@ -165,7 +169,7 @@
                     if (date === 'today') matchDate = row.dataset.date === today;
                     if (date === 'week') matchDate = row.dataset.date >= weekAgo;
                     if (date === 'month') matchDate = row.dataset.date >= monthAgo;
-                    row.dataset.filtered = (matchQ && matchType && matchDate) ? '1' : '0';
+                    row.dataset.filtered = (matchQ && matchActor && matchSource && matchType && matchDate) ? '1' : '0';
                 });
 
                 const filtered = [...rows].filter(r => r.dataset.filtered === '1');
@@ -197,6 +201,8 @@
             };
 
             document.getElementById('statusType')?.addEventListener('change', () => { actPage = 1; filterStatus(); });
+            document.getElementById('statusActor')?.addEventListener('change', () => { actPage = 1; filterStatus(); });
+            document.getElementById('statusSource')?.addEventListener('change', () => { actPage = 1; filterStatus(); });
             document.getElementById('statusDate')?.addEventListener('change', () => { actPage = 1; filterStatus(); });
             document.getElementById('facultyStatusFilter')?.addEventListener('change', filterFaculty);
 
@@ -214,6 +220,8 @@
                     tab: 'status',
                     search,
                     type: document.getElementById('statusType')?.value || '',
+                    actor: document.getElementById('statusActor')?.value || '',
+                    source: document.getElementById('statusSource')?.value || '',
                     date: document.getElementById('statusDate')?.value || ''
                 };
             }
@@ -221,7 +229,7 @@
             function showExportModal(type) {
                 const el = document.getElementById('exportConfirmModal');
                 document.getElementById('exportModalIcon').className = 'bi ' + (type === 'csv' ? 'bi-filetype-csv' : 'bi-filetype-pdf');
-                const { tab, search, type: ftype, date } = getFilterParams();
+                const { tab, search, type: ftype, actor: factor, source: fsource, date } = getFilterParams();
                 const label = tab === 'faculty' ? 'Faculty Reports' : 'Status Reports';
                 document.getElementById('exportModalMsg').textContent = 'Export ' + label + ' as ' + type.toUpperCase() + '?';
                 document.getElementById('exportConfirmBtn').onclick = function() {
@@ -232,6 +240,8 @@
                         var params = new URLSearchParams({ tab: tab });
                         if (search) params.set('search', search);
                         if (ftype) params.set('type', ftype);
+                        if (factor) params.set('actor', factor);
+                        if (fsource) params.set('source', fsource);
                         if (date) params.set('date', date);
                         window.location.href = '../../api/export-report-pdf.php?' + params.toString();
                     }

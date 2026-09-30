@@ -183,6 +183,16 @@ foreach ($activity_logs as $log) {
 }
 $anomalies_count = count($issues);
 
+/* Distinct actors for the Status Actor filter (lowercase keys, display labels) */
+$status_actors = [];
+foreach ($activity_logs as $log) {
+    $actorName = trim($log['actor'] ?? '');
+    if ($actorName === '') continue;
+    $key = strtolower($actorName);
+    if (!isset($status_actors[$key])) $status_actors[$key] = $actorName;
+}
+ksort($status_actors);
+
 /* Source label helper for the unified status table */
 function log_source(array $log): string
 {
@@ -549,6 +559,19 @@ function event_icon(string $type): array
                                         <option value="class">Class Events</option>
                                         <option value="anomaly">Anomalies</option>
                                     </select>
+                                    <select id="statusActor">
+                                        <option value="">All Actors</option>
+                                        <?php foreach ($status_actors as $key => $label): ?>
+                                            <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <select id="statusSource">
+                                        <option value="">All Sources</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="pir">PIR</option>
+                                        <option value="schedule">Schedule</option>
+                                        <option value="manual">Manual</option>
+                                    </select>
                                     <select id="statusDate">
                                         <option value="">All Dates</option>
                                         <option value="today">Today</option>
@@ -593,8 +616,10 @@ function event_icon(string $type): array
                                                 <tr class="status-row"
                                                     data-type="<?= $log['log_type'] ?>"
                                                     data-action="<?= htmlspecialchars($log['action']) ?>"
+                                                    data-actor="<?= strtolower(htmlspecialchars($log['actor'] ?? '')) ?>"
+                                                    data-source="<?= strtolower($source) ?>"
                                                     data-date="<?= date('Y-m-d', $logDate) ?>"
-                                                    data-search="<?= strtolower(htmlspecialchars($log['target'] . ' ' . $log['actor'] . ' ' . $log['action'] . ' ' . $source . ' ' . $log['notes'])) ?>">
+                                                    data-search="<?= strtolower(htmlspecialchars($log['target'] . ' ' . $log['actor'] . ' ' . $log['action'] . ' ' . $source . ' ' . $log['log_type'] . ' ' . date('Y-m-d', $logDate) . ' ' . $log['notes'])) ?>">
                                                     <td>
                                                         <span class="accordion-log-icon" style="background:<?= $iconBg ?>; color:<?= $iconColor ?>;"><i class="bi <?= $icon ?>"></i></span>
                                                         <span style="font-weight:600;"><?= $actionLabel ?></span>

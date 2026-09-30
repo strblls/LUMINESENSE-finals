@@ -8,6 +8,8 @@ use Dompdf\Dompdf;
 $tab    = $_GET['tab'] ?? 'activity';
 $search = $_GET['search'] ?? '';
 $type   = $_GET['type'] ?? '';
+$actorFilter  = strtolower($_GET['actor'] ?? '');
+$sourceFilter = strtolower($_GET['source'] ?? '');
 $date   = $_GET['date'] ?? '';
 $today  = date('Y-m-d');
 $weekAgo = date('Y-m-d', strtotime('-7 days'));
@@ -411,15 +413,21 @@ if ($tab === 'rooms') {
 
     usort($activity_logs, fn($a, $b) => strtotime($b['log_time']) - strtotime($a['log_time']));
 
-    // Apply type filter in PHP (log_type: room/admin, action prefix: pir_*/class_*, or anomaly set)
+    // Apply type/actor/source filter in PHP (log_type: room/admin, action prefix: pir_*/class_*, or anomaly set)
     $issueActions = ['issue_raised', 'issue_resolved', 'tilt_alert'];
-    if ($type) {
-        $activity_logs = array_filter($activity_logs, function($log) use ($type, $issueActions) {
+    if ($type || $actorFilter || $sourceFilter) {
+        $activity_logs = array_filter($activity_logs, function($log) use ($type, $issueActions, $actorFilter, $sourceFilter) {
+            if ($actorFilter !== '' && strtolower($log['actor'] ?? '') !== $actorFilter) return false;
+            $actorLower = strtolower($log['actor'] ?? '');
+            $isRoom = ($log['log_type'] ?? '') === 'room';
+            $source = !$isRoom ? 'admin' : ($actorLower === 'pir' ? 'pir' : ($actorLower === 'schedule' ? 'schedule' : 'manual'));
+            if ($sourceFilter !== '' && $source !== $sourceFilter) return false;
             if ($type === 'pir') return str_starts_with($log['action'], 'pir_');
             if ($type === 'class') return str_starts_with($log['action'], 'class_');
             if ($type === 'anomaly') return in_array($log['action'], $issueActions, true);
             if ($type === 'room') return $log['log_type'] === 'room' && !in_array($log['action'], $issueActions, true);
-            return $log['log_type'] === $type;
+            if ($type !== '') return $log['log_type'] === $type;
+            return true;
         });
     }
 
