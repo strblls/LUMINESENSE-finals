@@ -186,9 +186,36 @@
                 var kpiRoom = document.getElementById('kpiRoomActions');
                 var kpiAnom = document.getElementById('kpiAnomalies');
                 var kpiAdm = document.getElementById('kpiAdminActions');
-                if (kpiRoom) kpiRoom.textContent = filtered.filter(r => r.dataset.type !== 'admin').length;
-                if (kpiAdm) kpiAdm.textContent = filtered.filter(r => r.dataset.type === 'admin').length;
-                if (kpiAnom) kpiAnom.textContent = filtered.filter(r => ISSUE_ACTIONS.includes(r.dataset.action || '')).length;
+                const roomRows = filtered.filter(r => r.dataset.type !== 'admin');
+                const adminRows = filtered.filter(r => r.dataset.type === 'admin');
+                const anomRows = filtered.filter(r => ISSUE_ACTIONS.includes(r.dataset.action || ''));
+                if (kpiRoom) kpiRoom.textContent = roomRows.length;
+                if (kpiAdm) kpiAdm.textContent = adminRows.length;
+                if (kpiAnom) kpiAnom.textContent = anomRows.length;
+
+                // Breakdown bullets recomputed from the same filtered set
+                const days = spanDays(filtered.map(r => r.dataset.date || ''));
+                const onCount = filtered.filter(r => r.dataset.action === 'light_on').length;
+                const offCount = filtered.filter(r => r.dataset.action === 'light_off').length;
+                setText('kpiLightsOn', onCount);
+                setText('kpiLightsOff', offCount);
+                setText('kpiLightsFreq', freqPerDay(onCount + offCount, days));
+                const spike = filtered.filter(r => r.dataset.action === 'issue_raised' && (r.dataset.actor || '') === 'pzem' && (r.dataset.search || '').includes('spike')).length;
+                const motion = filtered.filter(r => r.dataset.action === 'issue_raised' && (r.dataset.actor || '') === 'pir').length;
+                const powerRes = filtered.filter(r => r.dataset.action === 'issue_resolved' && (r.dataset.actor || '') === 'pzem').length;
+                setText('kpiSpike', spike);
+                setText('kpiMotion', motion);
+                setText('kpiPowerResolved', powerRes);
+                setText('kpiOther', Math.max(0, anomRows.length - spike - motion - powerRes));
+                setText('kpiAnomFreq', freqPerDay(anomRows.length, days));
+                setText('kpiFacApproved', adminRows.filter(r => r.dataset.action === 'faculty_approved').length);
+                setText('kpiFacRejected', adminRows.filter(r => r.dataset.action === 'faculty_rejected').length);
+                setText('kpiExtDecisions', adminRows.filter(r => r.dataset.action === 'extension_approved' || r.dataset.action === 'extension_rejected').length);
+                const pendingEl = document.getElementById('kpiPending');
+                if (pendingEl) {
+                    const extPending = parseInt(pendingEl.dataset.extPending || '0', 10) || 0;
+                    pendingEl.textContent = adminRows.filter(r => r.dataset.action === 'faculty_pending').length + extPending;
+                }
 
                 const totalPages = Math.max(1, Math.ceil(filtered.length / ACT_PAGE_SIZE));
                 if (actPage > totalPages) actPage = totalPages;
@@ -258,6 +285,34 @@
                     else filterStatus();
                 });
             });
+            document.querySelectorAll('.kpi-expandable').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const isOpen = btn.classList.contains('open');
+                    document.querySelectorAll('.kpi-expandable.open').forEach(b => {
+                        b.classList.remove('open');
+                        b.setAttribute('aria-expanded', 'false');
+                    });
+                    if (!isOpen) {
+                        btn.classList.add('open');
+                        btn.setAttribute('aria-expanded', 'true');
+                    }
+                });
+            });
+
+            function setText(id, val) {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val;
+            }
+
+            function spanDays(dates) {
+                const uniq = [...new Set(dates)];
+                return Math.max(1, uniq.length);
+            }
+
+            function freqPerDay(count, days) {
+                return (Math.round((count / days) * 10) / 10) + '/day';
+            }
+
             document.getElementById('statusType')?.addEventListener('change', () => { actPage = 1; refreshClearButtons(); filterStatus(); });
             document.getElementById('statusActor')?.addEventListener('change', () => { actPage = 1; refreshClearButtons(); filterStatus(); });
             document.getElementById('statusSource')?.addEventListener('change', () => { actPage = 1; refreshClearButtons(); filterStatus(); });
@@ -407,12 +462,36 @@
                 const roomActions = logs.filter(l => l.log_type !== 'admin').length;
                 const adminActions = logs.filter(l => l.log_type === 'admin').length;
                 const anomalies = (stats.issue_raised || 0) + (stats.issue_resolved || 0);
-                var roomEl = document.getElementById('kpiRoomActions');
-                var anomEl = document.getElementById('kpiAnomalies');
-                var admEl = document.getElementById('kpiAdminActions');
-                if (roomEl && logs.length) roomEl.textContent = roomActions;
-                if (admEl && logs.length) admEl.textContent = adminActions;
-                if (anomEl && (stats.issue_raised !== undefined || stats.issue_resolved !== undefined)) anomEl.textContent = anomalies;
+                setText('kpiRoomActions', logs.length ? roomActions : document.getElementById('kpiRoomActions')?.textContent);
+                setText('kpiAdminActions', logs.length ? adminActions : document.getElementById('kpiAdminActions')?.textContent);
+                if (stats.issue_raised !== undefined || stats.issue_resolved !== undefined) setText('kpiAnomalies', anomalies);
+                if (!logs.length) return;
+                const lo = l => (l.log_type || '');
+                const ac = l => (l.action || '');
+                const at = l => (l.actor || '').toLowerCase();
+                const nt = l => (l.notes || '').toLowerCase();
+                const onCount = logs.filter(l => ac(l) === 'light_on').length;
+                const offCount = logs.filter(l => ac(l) === 'light_off').length;
+                const days = spanDays(logs.map(l => (l.log_time || '').slice(0, 10)));
+                setText('kpiLightsOn', onCount);
+                setText('kpiLightsOff', offCount);
+                setText('kpiLightsFreq', freqPerDay(onCount + offCount, days));
+                const spike = logs.filter(l => ac(l) === 'issue_raised' && at(l) === 'pzem' && nt(l).includes('spike')).length;
+                const motion = logs.filter(l => ac(l) === 'issue_raised' && at(l) === 'pir').length;
+                const powerRes = logs.filter(l => ac(l) === 'issue_resolved' && at(l) === 'pzem').length;
+                setText('kpiSpike', spike);
+                setText('kpiMotion', motion);
+                setText('kpiPowerResolved', powerRes);
+                setText('kpiOther', Math.max(0, anomalies - spike - motion - powerRes));
+                setText('kpiAnomFreq', freqPerDay(anomalies, days));
+                setText('kpiFacApproved', logs.filter(l => ac(l) === 'faculty_approved').length);
+                setText('kpiFacRejected', logs.filter(l => ac(l) === 'faculty_rejected').length);
+                setText('kpiExtDecisions', logs.filter(l => ac(l) === 'extension_approved' || ac(l) === 'extension_rejected').length);
+                const pendingEl = document.getElementById('kpiPending');
+                if (pendingEl) {
+                    const extPending = parseInt(pendingEl.dataset.extPending || '0', 10) || 0;
+                    pendingEl.textContent = logs.filter(l => ac(l) === 'faculty_pending').length + extPending;
+                }
             }
 
             function reapplyFilters() {

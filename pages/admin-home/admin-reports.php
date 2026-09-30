@@ -204,6 +204,59 @@ foreach ($activity_logs as $log) {
 }
 $anomalies_count = count($issues);
 
+/* -----------------------
+   Status KPI breakdowns (initial totals; JS recomputes live from filters)
+----------------------- */
+$lights_on_total = 0;
+$lights_off_total = 0;
+$q = $conn->query("SELECT event_type, COUNT(*) AS c FROM lighting_logs WHERE event_type IN ('on','off') GROUP BY event_type");
+if ($q) {
+    while ($r = $q->fetch_assoc()) {
+        if ($r['event_type'] === 'on') $lights_on_total = (int)$r['c'];
+        else $lights_off_total = (int)$r['c'];
+    }
+    $q->free();
+}
+
+$spike_count = 0;
+$motion_count = 0;
+$power_resolved_count = 0;
+$q = $conn->query("SELECT event_type, triggered_by, COUNT(*) AS c FROM room_logs WHERE event_type IN ('issue_raised','issue_resolved','tilt_alert') GROUP BY event_type, triggered_by");
+if ($q) {
+    while ($r = $q->fetch_assoc()) {
+        $actor = strtolower($r['triggered_by'] ?? '');
+        if ($r['event_type'] === 'issue_raised' && $actor === 'pir') $motion_count += (int)$r['c'];
+    }
+    $q->free();
+}
+$q = $conn->query("SELECT COUNT(*) AS c FROM room_logs WHERE event_type = 'issue_raised' AND triggered_by = 'PZEM' AND notes LIKE '%spike%'");
+if ($q && ($r = $q->fetch_assoc())) $spike_count = (int)$r['c'];
+if ($q) $q->free();
+$q = $conn->query("SELECT COUNT(*) AS c FROM room_logs WHERE event_type = 'issue_resolved' AND triggered_by = 'PZEM'");
+if ($q && ($r = $q->fetch_assoc())) $power_resolved_count = (int)$r['c'];
+if ($q) $q->free();
+$other_anomalies_count = max(0, $anomalies_count - $spike_count - $motion_count - $power_resolved_count);
+
+$admin_counts = ['faculty_approved' => 0, 'faculty_rejected' => 0, 'faculty_pending' => 0, 'extension_approved' => 0, 'extension_rejected' => 0];
+$q = $conn->query("SELECT action, COUNT(*) AS c FROM admin_logs WHERE action IN ('faculty_approved','faculty_rejected','faculty_pending','extension_approved','extension_rejected') GROUP BY action");
+if ($q) {
+    while ($r = $q->fetch_assoc()) {
+        if (isset($admin_counts[$r['action']])) $admin_counts[$r['action']] = (int)$r['c'];
+    }
+    $q->free();
+}
+$ext_decisions_count = $admin_counts['extension_approved'] + $admin_counts['extension_rejected'];
+$pending_reviews_count = $admin_counts['faculty_pending'] + ($ext_pending_total ?? 0);
+
+/* Distinct-day span of the merged log (frequency denominator) */
+$status_day_set = [];
+foreach ($activity_logs as $log) {
+    if (!empty($log['log_time'])) $status_day_set[date('Y-m-d', strtotime($log['log_time']))] = true;
+}
+$status_span_days = max(1, count($status_day_set));
+$lights_freq = round(($lights_on_total + $lights_off_total) / $status_span_days, 1);
+$anom_freq = round($anomalies_count / $status_span_days, 1);
+
 /* Distinct actors for the Status Actor filter (lowercase keys, display labels) */
 $status_actors = [];
 foreach ($activity_logs as $log) {
@@ -341,6 +394,8 @@ if ($hasExtTable) {
     if ($q && ($r = $q->fetch_assoc())) $ext_pending_total = (int)($r['c'] ?? 0);
     if ($q) $q->free();
 }
+/* Pending Reviews needs live extension count (faculty block runs after the KPI block) */
+$pending_reviews_count = $admin_counts['faculty_pending'] + $ext_pending_total;
 
 $conn->close();
 
@@ -403,7 +458,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev7">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev8">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
@@ -573,9 +628,33 @@ function event_icon(string $type): array
             <div id="panel-status" class="report-view" hidden>
                 <div class="status-board">
                     <div class="status-kpis">
-                        <span class="mini-stat-pill"><i class="bi bi-door-open"></i><b id="kpiRoomActions"><?= (int)$room_actions_count ?></b><small>Total Room Actions</small></span>
-                        <span class="mini-stat-pill"><i class="bi bi-exclamation-triangle-fill"></i><b id="kpiAnomalies"><?= (int)$anomalies_count ?></b><small>Total Anomalies</small></span>
-                        <span class="mini-stat-pill"><i class="bi bi-shield-check"></i><b id="kpiAdminActions"><?= (int)$admin_actions_count ?></b><small>Total Admin Actions</small></span>
+                        <button type="button" class="mini-stat-pill kpi-expandable" data-kpi="room" aria-expanded="false" title="Show breakdown">
+                            <span class="kpi-top"><i class="bi bi-door-open"></i><b id="kpiRoomActions"><?= (int)$room_actions_count ?></b><small>Total Room Actions</small><i class="bi bi-chevron-down kpi-chevron"></i></span>
+                            <ul class="kpi-breakdown">
+                                <li><span>Lights On Entries</span><b id="kpiLightsOn"><?= (int)$lights_on_total ?></b></li>
+                                <li><span>Lights Off Entries</span><b id="kpiLightsOff"><?= (int)$lights_off_total ?></b></li>
+                                <li><span>Frequency On/Off</span><b id="kpiLightsFreq"><?= $lights_freq ?>/day</b></li>
+                            </ul>
+                        </button>
+                        <button type="button" class="mini-stat-pill kpi-expandable" data-kpi="anomaly" aria-expanded="false" title="Show breakdown">
+                            <span class="kpi-top"><i class="bi bi-exclamation-triangle-fill"></i><b id="kpiAnomalies"><?= (int)$anomalies_count ?></b><small>Total Anomalies</small><i class="bi bi-chevron-down kpi-chevron"></i></span>
+                            <ul class="kpi-breakdown">
+                                <li><span>Power Spiking Logs</span><b id="kpiSpike"><?= (int)$spike_count ?></b></li>
+                                <li><span>Out-Class Motion Logs</span><b id="kpiMotion"><?= (int)$motion_count ?></b></li>
+                                <li><span>Power Resolution</span><b id="kpiPowerResolved"><?= (int)$power_resolved_count ?></b></li>
+                                <li><span>Other</span><b id="kpiOther"><?= (int)$other_anomalies_count ?></b></li>
+                                <li><span>Frequency of Anomalies</span><b id="kpiAnomFreq"><?= $anom_freq ?>/day</b></li>
+                            </ul>
+                        </button>
+                        <button type="button" class="mini-stat-pill kpi-expandable" data-kpi="admin" aria-expanded="false" title="Show breakdown">
+                            <span class="kpi-top"><i class="bi bi-shield-check"></i><b id="kpiAdminActions"><?= (int)$admin_actions_count ?></b><small>Total Admin Actions</small><i class="bi bi-chevron-down kpi-chevron"></i></span>
+                            <ul class="kpi-breakdown">
+                                <li><span>Faculty Approvals</span><b id="kpiFacApproved"><?= (int)$admin_counts['faculty_approved'] ?></b></li>
+                                <li><span>Faculty Rejections</span><b id="kpiFacRejected"><?= (int)$admin_counts['faculty_rejected'] ?></b></li>
+                                <li><span>Extension Decisions</span><b id="kpiExtDecisions"><?= (int)$ext_decisions_count ?></b></li>
+                                <li><span>Pending Reviews</span><b id="kpiPending" data-ext-pending="<?= (int)$ext_pending_total ?>"><?= (int)$pending_reviews_count ?></b></li>
+                            </ul>
+                        </button>
                     </div>
                     <div class="status-main">
                         <div class="status-graphs">
@@ -737,7 +816,7 @@ function event_icon(string $type): array
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
 
-    <script src="../../js/admin/admin-reports.js?v=20260928rev7"></script>
+    <script src="../../js/admin/admin-reports.js?v=20260928rev8"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 
