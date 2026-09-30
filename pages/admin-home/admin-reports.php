@@ -366,7 +366,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev4">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev5">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
@@ -551,33 +551,45 @@ function event_icon(string $type): array
                             <div class="reports-card-header">
                                 <h2 class="bold"><i class="bi bi-activity"></i>Status Reports</h2>
                                 <div class="filter-bar">
-                                    <select id="statusType">
-                                        <option value="">All Types</option>
-                                        <option value="room">Room Events</option>
-                                        <option value="admin">Admin Actions</option>
-                                        <option value="pir">PIR Events</option>
-                                        <option value="class">Class Events</option>
-                                        <option value="anomaly">Anomalies</option>
-                                    </select>
-                                    <select id="statusActor">
-                                        <option value="">All Actors</option>
-                                        <?php foreach ($status_actors as $key => $label): ?>
-                                            <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <select id="statusSource">
-                                        <option value="">All Sources</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="pir">PIR</option>
-                                        <option value="schedule">Schedule</option>
-                                        <option value="manual">Manual</option>
-                                    </select>
-                                    <select id="statusDate">
-                                        <option value="">All Dates</option>
-                                        <option value="today">Today</option>
-                                        <option value="week">This Week</option>
-                                        <option value="month">This Month</option>
-                                    </select>
+                                    <span class="filter-select-wrap">
+                                        <select id="statusType">
+                                            <option value="">All Types</option>
+                                            <option value="room">Room Events</option>
+                                            <option value="admin">Admin Actions</option>
+                                            <option value="pir">PIR Events</option>
+                                            <option value="class">Class Events</option>
+                                            <option value="anomaly">Anomalies</option>
+                                        </select>
+                                        <button type="button" class="filter-clear" data-clear="statusType" title="Clear type filter" hidden>&times;</button>
+                                    </span>
+                                    <span class="filter-select-wrap">
+                                        <select id="statusActor">
+                                            <option value="">All Actors</option>
+                                            <?php foreach ($status_actors as $key => $label): ?>
+                                                <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <button type="button" class="filter-clear" data-clear="statusActor" title="Clear actor filter" hidden>&times;</button>
+                                    </span>
+                                    <span class="filter-select-wrap">
+                                        <select id="statusSource">
+                                            <option value="">All Sources</option>
+                                            <option value="admin">Admin</option>
+                                            <option value="pir">PIR</option>
+                                            <option value="schedule">Schedule</option>
+                                            <option value="manual">Manual</option>
+                                        </select>
+                                        <button type="button" class="filter-clear" data-clear="statusSource" title="Clear source filter" hidden>&times;</button>
+                                    </span>
+                                    <span class="filter-select-wrap">
+                                        <select id="statusDate">
+                                            <option value="">All Dates</option>
+                                            <option value="today">Today</option>
+                                            <option value="week">This Week</option>
+                                            <option value="month">This Month</option>
+                                        </select>
+                                        <button type="button" class="filter-clear" data-clear="statusDate" title="Clear date filter" hidden>&times;</button>
+                                    </span>
                                 </div>
                             </div>
                             <?php if (empty($activity_logs)): ?>
@@ -677,7 +689,7 @@ function event_icon(string $type): array
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
 
-    <script src="../../js/admin/admin-reports.js?v=20260928rev2"></script>
+    <script src="../../js/admin/admin-reports.js?v=20260928rev5"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 

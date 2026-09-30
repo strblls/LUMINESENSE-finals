@@ -20,6 +20,9 @@
             }
 
             window.showReportPanel = function(panel, subTab) {
+                // Exiting one tab clears its selections and searches
+                if (panel === 'status') resetFacultyFilters();
+                else resetStatusFilters();
                 setHidden('reportLanding', true);
                 setHidden('reportToolbar', false);
                 setHidden('panel-faculty', panel !== 'faculty');
@@ -39,6 +42,9 @@
             };
 
             window.showReportLanding = function() {
+                // Back clears every selection and search
+                resetStatusFilters();
+                resetFacultyFilters();
                 setHidden('reportLanding', false);
                 setHidden('reportToolbar', true);
                 setHidden('panel-faculty', true);
@@ -173,6 +179,15 @@
                 });
 
                 const filtered = [...rows].filter(r => r.dataset.filtered === '1');
+
+                // KPIs reflect the current search + dropdown selection
+                var kpiRoom = document.getElementById('kpiRoomActions');
+                var kpiAnom = document.getElementById('kpiAnomalies');
+                var kpiAdm = document.getElementById('kpiAdminActions');
+                if (kpiRoom) kpiRoom.textContent = filtered.filter(r => r.dataset.type !== 'admin').length;
+                if (kpiAdm) kpiAdm.textContent = filtered.filter(r => r.dataset.type === 'admin').length;
+                if (kpiAnom) kpiAnom.textContent = filtered.filter(r => ISSUE_ACTIONS.includes(r.dataset.action || '')).length;
+
                 const totalPages = Math.max(1, Math.ceil(filtered.length / ACT_PAGE_SIZE));
                 if (actPage > totalPages) actPage = totalPages;
 
@@ -200,10 +215,51 @@
                 filterStatus();
             };
 
-            document.getElementById('statusType')?.addEventListener('change', () => { actPage = 1; filterStatus(); });
-            document.getElementById('statusActor')?.addEventListener('change', () => { actPage = 1; filterStatus(); });
-            document.getElementById('statusSource')?.addEventListener('change', () => { actPage = 1; filterStatus(); });
-            document.getElementById('statusDate')?.addEventListener('change', () => { actPage = 1; filterStatus(); });
+            function statusFiltersActive() {
+                if ((document.getElementById('reportsSearch')?.value || '') !== '') return true;
+                return ['statusType', 'statusActor', 'statusSource', 'statusDate']
+                    .some(id => (document.getElementById(id)?.value || '') !== '');
+            }
+
+            function refreshClearButtons() {
+                document.querySelectorAll('.filter-clear').forEach(btn => {
+                    var sel = document.getElementById(btn.dataset.clear);
+                    btn.hidden = !sel || sel.value === '';
+                });
+            }
+
+            function resetStatusFilters() {
+                var search = document.getElementById('reportsSearch');
+                if (search) search.value = '';
+                ['statusType', 'statusActor', 'statusSource', 'statusDate'].forEach(id => {
+                    var sel = document.getElementById(id);
+                    if (sel) sel.value = '';
+                });
+                actPage = 1;
+                refreshClearButtons();
+            }
+
+            function resetFacultyFilters() {
+                var search = document.getElementById('reportsSearch');
+                if (search) search.value = '';
+                var sel = document.getElementById('facultyStatusFilter');
+                if (sel) sel.value = '';
+            }
+
+            document.querySelectorAll('.filter-clear').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    var sel = document.getElementById(btn.dataset.clear);
+                    if (sel) sel.value = '';
+                    actPage = 1;
+                    refreshClearButtons();
+                    if (currentView() === 'faculty') filterFaculty();
+                    else filterStatus();
+                });
+            });
+            document.getElementById('statusType')?.addEventListener('change', () => { actPage = 1; refreshClearButtons(); filterStatus(); });
+            document.getElementById('statusActor')?.addEventListener('change', () => { actPage = 1; refreshClearButtons(); filterStatus(); });
+            document.getElementById('statusSource')?.addEventListener('change', () => { actPage = 1; refreshClearButtons(); filterStatus(); });
+            document.getElementById('statusDate')?.addEventListener('change', () => { actPage = 1; refreshClearButtons(); filterStatus(); });
             document.getElementById('facultyStatusFilter')?.addEventListener('change', filterFaculty);
 
             function getFilterParams() {
@@ -342,6 +398,8 @@
             }
 
             function updateStats(res) {
+                // Never overwrite KPIs that reflect an active search/filter
+                if (currentView() === 'status' && statusFiltersActive()) return;
                 const stats = res.stats || {};
                 const logs = res.data || [];
                 const roomActions = logs.filter(l => l.log_type !== 'admin').length;
