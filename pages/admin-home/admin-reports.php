@@ -333,7 +333,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev2">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev4">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
@@ -389,12 +389,12 @@ function event_icon(string $type): array
             <div id="reportLanding" class="report-landing">
                 <button type="button" class="report-landing-card" data-landing="faculty" onclick="showReportPanel('faculty')" aria-label="Open Faculty Reports">
                     <span class="landing-bg landing-faculty" aria-hidden="true"></span>
-                    <span class="landing-stats">
-                        <span class="mini-stat-pill"><i class="bi bi-people-fill"></i><b><?= (int)$faculty_total ?></b><small>Total Faculty</small></span>
-                        <span class="mini-stat-pill"><i class="bi bi-person-plus"></i><b><?= (int)$faculty_pending ?></b><small>Pending Approvals</small></span>
-                        <span class="mini-stat-pill"><i class="bi bi-calendar-check"></i><b><?= (int)$faculty_schedules_total ?></b><small>Total Schedules</small></span>
-                    </span>
                     <span class="landing-caption">
+                        <span class="landing-stats">
+                            <span class="mini-stat-pill"><i class="bi bi-people-fill"></i><b><?= (int)$faculty_total ?></b><small>Total Faculty</small></span>
+                            <span class="mini-stat-pill"><i class="bi bi-person-plus"></i><b><?= (int)$faculty_pending ?></b><small>Pending Approvals</small></span>
+                            <span class="mini-stat-pill"><i class="bi bi-calendar-check"></i><b><?= (int)$faculty_schedules_total ?></b><small>Total Schedules</small></span>
+                        </span>
                         <span class="landing-title">Faculty Reports</span>
                         <span class="landing-sub">Overall activities per faculty</span>
                     </span>
@@ -402,12 +402,12 @@ function event_icon(string $type): array
                 </button>
                 <button type="button" class="report-landing-card" data-landing="status" onclick="showReportPanel('status')" aria-label="Open Status Reports">
                     <span class="landing-bg landing-status" aria-hidden="true"></span>
-                    <span class="landing-stats">
-                        <span class="mini-stat-pill"><i class="bi bi-journal-text"></i><b><?= count($activity_logs) ?></b><small>Total Log Entries</small></span>
-                        <span class="mini-stat-pill"><i class="bi bi-door-open"></i><b><?= count($rooms) ?></b><small>Tracked Rooms</small></span>
-                        <span class="mini-stat-pill"><i class="bi bi-exclamation-triangle-fill"></i><b><?= (int)$issue_raised_count ?></b><small>Issues Raised</small></span>
-                    </span>
                     <span class="landing-caption">
+                        <span class="landing-stats">
+                            <span class="mini-stat-pill"><i class="bi bi-journal-text"></i><b><?= count($activity_logs) ?></b><small>Total Log Entries</small></span>
+                            <span class="mini-stat-pill"><i class="bi bi-door-open"></i><b><?= count($rooms) ?></b><small>Tracked Rooms</small></span>
+                            <span class="mini-stat-pill"><i class="bi bi-exclamation-triangle-fill"></i><b><?= (int)$issue_raised_count ?></b><small>Issues Raised</small></span>
+                        </span>
                         <span class="landing-title">Status Reports</span>
                         <span class="landing-sub">Summary of all activities</span>
                     </span>
