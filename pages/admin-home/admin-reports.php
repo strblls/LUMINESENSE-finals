@@ -555,7 +555,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev9">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev10">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">

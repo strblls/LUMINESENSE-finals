@@ -894,13 +894,15 @@
 
 .status-kpis .mini-stat-pill.kpi-expandable:hover {
     transform: scale(1.03);
-    border-left-color: var(--accent-yellow, #f8c64f);
+    background: var(--accent-yellow, #f8c64f);
+    border-left-color: var(--secondary-color-1);
     box-shadow: 0 8px 22px rgba(248, 198, 79, 0.45);
 }
 
 .status-kpis .mini-stat-pill.kpi-expandable.open {
     transform: scale(1.03);
-    border-left-color: var(--accent-yellow, #f8c64f);
+    background: var(--accent-yellow, #f8c64f);
+    border-left-color: var(--secondary-color-1);
 }
 
 .kpi-top {
@@ -969,8 +971,8 @@
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 10px;
-    height: 15vh;
-    min-height: 120px;
+    height: 18.75vh;
+    min-height: 150px;
     display: flex;
     align-items: center;
     justify-content: center;
