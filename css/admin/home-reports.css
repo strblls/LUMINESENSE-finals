@@ -894,27 +894,19 @@
 
 .status-kpis .mini-stat-pill.kpi-expandable:hover {
     transform: scale(1.03);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+    border-left-color: var(--accent-yellow, #f8c64f);
+    box-shadow: 0 8px 22px rgba(248, 198, 79, 0.45);
 }
 
 .status-kpis .mini-stat-pill.kpi-expandable.open {
     transform: scale(1.03);
+    border-left-color: var(--accent-yellow, #f8c64f);
 }
 
 .kpi-top {
     display: flex;
     align-items: center;
     gap: 10px;
-}
-
-.kpi-chevron {
-    margin-left: auto;
-    font-size: 0.85rem;
-    transition: transform 0.25s ease;
-}
-
-.kpi-expandable.open .kpi-chevron {
-    transform: rotate(180deg);
 }
 
 .kpi-breakdown {
@@ -994,8 +986,17 @@
 }
 
 .status-graph-label {
-    font-size: 0.72rem;
-    color: var(--muted);
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    z-index: 1;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--secondary-color-2);
+    background: rgba(255, 255, 255, 0.88);
+    padding: 1px 8px;
+    border-radius: 10px;
+    pointer-events: none;
 }
 
 .status-row td:first-child {

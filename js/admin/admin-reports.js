@@ -35,6 +35,7 @@
                 } catch (e) { /* ignore */ }
                 if (panel === 'status') {
                     actPage = 1;
+                    if (window.initStatusCharts) window.initStatusCharts();
                     filterStatus();
                 } else if (panel === 'faculty') {
                     filterFaculty();

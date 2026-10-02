@@ -257,6 +257,103 @@ $status_span_days = max(1, count($status_day_set));
 $lights_freq = round(($lights_on_total + $lights_off_total) / $status_span_days, 1);
 $anom_freq = round($anomalies_count / $status_span_days, 1);
 
+/* -----------------------
+   Status chart datasets (Chart.js)
+----------------------- */
+$room_durations = []; // room_name => ['on' => secs_on, 'off' => secs_off]
+$room_toggles = [];   // room_name => ['on' => n, 'off' => n]
+$q = $conn->query("
+    SELECT l.classroom_id, c.room_name, l.event_type, UNIX_TIMESTAMP(l.event_time) AS ts
+    FROM lighting_logs l
+    JOIN classrooms c ON c.id = l.classroom_id
+    WHERE l.event_type IN ('on', 'off')
+    ORDER BY l.classroom_id ASC, l.event_time ASC
+    LIMIT 2000
+");
+if ($q) {
+    $pendingOn = [];
+    $firstTs = [];
+    $lastTs = [];
+    while ($r = $q->fetch_assoc()) {
+        $rn = $r['room_name'];
+        if (!isset($room_durations[$rn])) $room_durations[$rn] = ['on' => 0, 'span' => 0];
+        if (!isset($room_toggles[$rn])) $room_toggles[$rn] = ['on' => 0, 'off' => 0];
+        if (!isset($firstTs[$rn])) $firstTs[$rn] = (int)$r['ts'];
+        $lastTs[$rn] = (int)$r['ts'];
+        if ($r['event_type'] === 'on') {
+            $room_toggles[$rn]['on']++;
+            if (!isset($pendingOn[$rn])) $pendingOn[$rn] = (int)$r['ts'];
+        } else {
+            $room_toggles[$rn]['off']++;
+            if (isset($pendingOn[$rn])) {
+                $room_durations[$rn]['on'] += max(0, (int)$r['ts'] - $pendingOn[$rn]);
+                unset($pendingOn[$rn]);
+            }
+        }
+    }
+    $q->free();
+    foreach ($room_durations as $rn => $d) {
+        $span = max(0, ($lastTs[$rn] ?? 0) - ($firstTs[$rn] ?? 0));
+        $room_durations[$rn]['off'] = max(0, $span - $d['on']);
+    }
+}
+uasort($room_durations, fn($a, $b) => $b['on'] <=> $a['on']);
+$dur_rooms = array_slice(array_keys($room_durations), 0, 6);
+$chart_durations = [
+    'rooms' => array_values($dur_rooms),
+    'on' => array_values(array_map(fn($rn) => round($room_durations[$rn]['on'] / 3600, 2), $dur_rooms)),
+    'off' => array_values(array_map(fn($rn) => round($room_durations[$rn]['off'] / 3600, 2), $dur_rooms)),
+];
+
+/* Entries by action type (disjoint partition of the merged log) */
+$type_counts = ['Admin' => 0, 'Lights' => 0, 'PIR Motion' => 0, 'Class' => 0, 'Anomalies' => 0, 'Other Room' => 0];
+foreach ($activity_logs as $log) {
+    $a = $log['action'] ?? '';
+    if (($log['log_type'] ?? '') === 'admin') $type_counts['Admin']++;
+    elseif ($a === 'light_on' || $a === 'light_off') $type_counts['Lights']++;
+    elseif (in_array($a, $issue_actions, true)) $type_counts['Anomalies']++;
+    elseif (str_starts_with($a, 'pir_')) $type_counts['PIR Motion']++;
+    elseif (str_starts_with($a, 'class_')) $type_counts['Class']++;
+    else $type_counts['Other Room']++;
+}
+
+/* Entries per room (top rooms + Other for non-room targets) */
+$room_names = [];
+foreach ($rooms as $rm) $room_names[$rm['room_name']] = true;
+$per_room = [];
+$other_targets = 0;
+foreach ($activity_logs as $log) {
+    $t = $log['target'] ?? '';
+    if ($t !== '' && isset($room_names[$t])) $per_room[$t] = ($per_room[$t] ?? 0) + 1;
+    else $other_targets++;
+}
+arsort($per_room);
+$top_rooms = array_slice($per_room, 0, 7, true);
+$chart_per_room = ['labels' => array_keys($top_rooms), 'data' => array_values($top_rooms)];
+$remainder = array_sum(array_slice($per_room, 7, null, true)) + $other_targets;
+if ($remainder > 0) {
+    $chart_per_room['labels'][] = 'Other';
+    $chart_per_room['data'][] = $remainder;
+}
+
+/* Toggles per room (top 8 by total) */
+$toggle_totals = [];
+foreach ($room_toggles as $rn => $t) $toggle_totals[$rn] = $t['on'] + $t['off'];
+arsort($toggle_totals);
+$tog_rooms = array_slice(array_keys($toggle_totals), 0, 8);
+$chart_toggles = [
+    'rooms' => array_values($tog_rooms),
+    'on' => array_values(array_map(fn($rn) => $room_toggles[$rn]['on'], $tog_rooms)),
+    'off' => array_values(array_map(fn($rn) => $room_toggles[$rn]['off'], $tog_rooms)),
+];
+
+$status_charts = [
+    'durations' => $chart_durations,
+    'types' => ['labels' => array_keys($type_counts), 'data' => array_values($type_counts)],
+    'perRoom' => $chart_per_room,
+    'toggles' => $chart_toggles,
+];
+
 /* Distinct actors for the Status Actor filter (lowercase keys, display labels) */
 $status_actors = [];
 foreach ($activity_logs as $log) {
@@ -458,7 +555,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev8">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev9">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
@@ -629,7 +726,7 @@ function event_icon(string $type): array
                 <div class="status-board">
                     <div class="status-kpis">
                         <button type="button" class="mini-stat-pill kpi-expandable" data-kpi="room" aria-expanded="false" title="Show breakdown">
-                            <span class="kpi-top"><i class="bi bi-door-open"></i><b id="kpiRoomActions"><?= (int)$room_actions_count ?></b><small>Total Room Actions</small><i class="bi bi-chevron-down kpi-chevron"></i></span>
+                            <span class="kpi-top"><i class="bi bi-door-open"></i><b id="kpiRoomActions"><?= (int)$room_actions_count ?></b><small>Total Room Actions</small></span>
                             <ul class="kpi-breakdown">
                                 <li><span>Lights On Entries</span><b id="kpiLightsOn"><?= (int)$lights_on_total ?></b></li>
                                 <li><span>Lights Off Entries</span><b id="kpiLightsOff"><?= (int)$lights_off_total ?></b></li>
@@ -637,7 +734,7 @@ function event_icon(string $type): array
                             </ul>
                         </button>
                         <button type="button" class="mini-stat-pill kpi-expandable" data-kpi="anomaly" aria-expanded="false" title="Show breakdown">
-                            <span class="kpi-top"><i class="bi bi-exclamation-triangle-fill"></i><b id="kpiAnomalies"><?= (int)$anomalies_count ?></b><small>Total Anomalies</small><i class="bi bi-chevron-down kpi-chevron"></i></span>
+                            <span class="kpi-top"><i class="bi bi-exclamation-triangle-fill"></i><b id="kpiAnomalies"><?= (int)$anomalies_count ?></b><small>Total Anomalies</small></span>
                             <ul class="kpi-breakdown">
                                 <li><span>Power Spiking Logs</span><b id="kpiSpike"><?= (int)$spike_count ?></b></li>
                                 <li><span>Out-Class Motion Logs</span><b id="kpiMotion"><?= (int)$motion_count ?></b></li>
@@ -647,7 +744,7 @@ function event_icon(string $type): array
                             </ul>
                         </button>
                         <button type="button" class="mini-stat-pill kpi-expandable" data-kpi="admin" aria-expanded="false" title="Show breakdown">
-                            <span class="kpi-top"><i class="bi bi-shield-check"></i><b id="kpiAdminActions"><?= (int)$admin_actions_count ?></b><small>Total Admin Actions</small><i class="bi bi-chevron-down kpi-chevron"></i></span>
+                            <span class="kpi-top"><i class="bi bi-shield-check"></i><b id="kpiAdminActions"><?= (int)$admin_actions_count ?></b><small>Total Admin Actions</small></span>
                             <ul class="kpi-breakdown">
                                 <li><span>Faculty Approvals</span><b id="kpiFacApproved"><?= (int)$admin_counts['faculty_approved'] ?></b></li>
                                 <li><span>Faculty Rejections</span><b id="kpiFacRejected"><?= (int)$admin_counts['faculty_rejected'] ?></b></li>
@@ -657,11 +754,12 @@ function event_icon(string $type): array
                         </button>
                     </div>
                     <div class="status-main">
+                        <script id="statusChartData" type="application/json"><?= json_encode($status_charts, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?></script>
                         <div class="status-graphs">
-                            <div class="status-graph-card"><span class="status-graph-label">Chart 1 &mdash; coming soon</span><canvas id="statusChart1"></canvas></div>
-                            <div class="status-graph-card"><span class="status-graph-label">Chart 2 &mdash; coming soon</span><canvas id="statusChart2"></canvas></div>
-                            <div class="status-graph-card"><span class="status-graph-label">Chart 3 &mdash; coming soon</span><canvas id="statusChart3"></canvas></div>
-                            <div class="status-graph-card"><span class="status-graph-label">Chart 4 &mdash; coming soon</span><canvas id="statusChart4"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">On vs Off Hours by Room</span><canvas id="statusChart1" aria-label="Clustered bar chart of lights on versus off hours by room"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">Entries by Action Type</span><canvas id="statusChart2" aria-label="Pie chart of log entries by action type"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">Entries per Room</span><canvas id="statusChart3" aria-label="Donut chart of log entries per room"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">Toggles per Room</span><canvas id="statusChart4" aria-label="Horizontal bar chart of lights on and off toggles per room"></canvas></div>
                         </div>
                         <div class="reports-card">
                             <div class="reports-card-header">
@@ -816,7 +914,8 @@ function event_icon(string $type): array
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
 
-    <script src="../../js/admin/admin-reports.js?v=20260928rev8"></script>
+    <script src="../../js/admin/admin-reports.js?v=20260928rev9"></script>
+    <script src="../../js/admin/status-charts.js?v=20260928rev9"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 
