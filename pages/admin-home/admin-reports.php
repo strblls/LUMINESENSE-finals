@@ -555,7 +555,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev10">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev11">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
@@ -756,10 +756,10 @@ function event_icon(string $type): array
                     <div class="status-main">
                         <script id="statusChartData" type="application/json"><?= json_encode($status_charts, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?></script>
                         <div class="status-graphs">
-                            <div class="status-graph-card"><span class="status-graph-label">On vs Off Hours by Room</span><canvas id="statusChart1" aria-label="Clustered bar chart of lights on versus off hours by room"></canvas></div>
-                            <div class="status-graph-card"><span class="status-graph-label">Entries by Action Type</span><canvas id="statusChart2" aria-label="Pie chart of log entries by action type"></canvas></div>
-                            <div class="status-graph-card"><span class="status-graph-label">Entries per Room</span><canvas id="statusChart3" aria-label="Donut chart of log entries per room"></canvas></div>
-                            <div class="status-graph-card"><span class="status-graph-label">Toggles per Room</span><canvas id="statusChart4" aria-label="Horizontal bar chart of lights on and off toggles per room"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">On vs Off Hours by Room</span><button type="button" class="graph-expand-btn" data-graph="durations" title="Maximize"><i class="bi bi-arrows-expand"></i></button><canvas id="statusChart1" aria-label="Clustered bar chart of lights on versus off hours by room"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">Entries by Action Type</span><button type="button" class="graph-expand-btn" data-graph="types" title="Maximize"><i class="bi bi-arrows-expand"></i></button><canvas id="statusChart2" aria-label="Pie chart of log entries by action type"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">Entries per Room</span><button type="button" class="graph-expand-btn" data-graph="perRoom" title="Maximize"><i class="bi bi-arrows-expand"></i></button><canvas id="statusChart3" aria-label="Donut chart of log entries per room"></canvas></div>
+                            <div class="status-graph-card"><span class="status-graph-label">Toggles per Room</span><button type="button" class="graph-expand-btn" data-graph="toggles" title="Maximize"><i class="bi bi-arrows-expand"></i></button><canvas id="statusChart4" aria-label="Horizontal bar chart of lights on and off toggles per room"></canvas></div>
                         </div>
                         <div class="reports-card">
                             <div class="reports-card-header">
@@ -911,11 +911,35 @@ function event_icon(string $type): array
         </div>
     </div>
 
+    <!-- ═══ GRAPH MAXIMIZE MODAL ═══ -->
+    <div class="profile-details-modal modal fade" id="graphModal" tabindex="-1" aria-hidden="true">
+        <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold" id="graphModalTitle"><i class="bi bi-arrows-expand me-2"></i>Graph</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div style="height:55vh;position:relative;"><canvas id="graphModalCanvas"></canvas></div>
+                    <div style="overflow-x:auto;margin-top:1rem;max-height:30vh;overflow-y:auto;">
+                        <table class="room-table" id="graphModalTable">
+                            <thead><tr id="graphModalHeadRow"></tr></thead>
+                            <tbody id="graphModalBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex flex-row flex-nowrap justify-content-end gap-2">
+                    <button type="button" class="light bold w-100" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
 
     <script src="../../js/admin/admin-reports.js?v=20260928rev9"></script>
-    <script src="../../js/admin/status-charts.js?v=20260928rev9"></script>
+    <script src="../../js/admin/status-charts.js?v=20260928rev11"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 
