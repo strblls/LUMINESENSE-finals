@@ -887,8 +887,6 @@
     cursor: pointer;
     flex-direction: column;
     align-items: stretch;
-    justify-content: center;
-    min-height: 118px;
     text-align: left;
     font-family: var(--font-primary);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -1034,6 +1032,17 @@
     align-items: center;
     gap: 5px;
     white-space: nowrap;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.legend-item.struck {
+    opacity: 0.4;
+    text-decoration: line-through;
 }
 
 .legend-dot {

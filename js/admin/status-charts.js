@@ -138,22 +138,40 @@
             var ds = sets[0];
             var colors = Array.isArray(ds.backgroundColor) ? ds.backgroundColor : [];
             return labels.map(function (label, i) {
-                return { label: label, color: colors[i % Math.max(1, colors.length)] || '#999', value: (ds.data || [])[i] };
+                return { label: label, color: colors[i % Math.max(1, colors.length)] || '#999', value: (ds.data || [])[i], di: 0, idx: i, single: true };
             });
         }
-        return sets.map(function (ds) {
-            return { label: ds.label, color: ds.backgroundColor || '#999', value: null };
+        return sets.map(function (ds, di) {
+            return { label: ds.label, color: ds.backgroundColor || '#999', value: null, di: di, idx: 0, single: false };
         });
     }
 
     function renderLegendFooter(footerEl, chart) {
         if (!footerEl || !chart) return;
-        footerEl.innerHTML = legendItems(chart).map(function (item) {
-            return '<span class="legend-item"><span class="legend-dot" style="background:' +
-                esc(item.color) + ';"></span><span>' + esc(item.label) + '</span>' +
+        footerEl.innerHTML = legendItems(chart).map(function (item, n) {
+            return '<button type="button" class="legend-item" data-n="' + n + '">' +
+                '<span class="legend-dot" style="background:' + esc(item.color) + ';"></span>' +
+                '<span>' + esc(item.label) + '</span>' +
                 (item.value !== null && item.value !== undefined
-                    ? '<span class="legend-val">' + esc(item.value) + '</span>' : '') + '</span>';
+                    ? '<span class="legend-val">' + esc(item.value) + '</span>' : '') + '</button>';
         }).join('');
+        var items = legendItems(chart);
+        footerEl.querySelectorAll('.legend-item').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var item = items[parseInt(btn.dataset.n, 10)];
+                if (!item) return;
+                var hidden;
+                if (item.single) {
+                    chart.toggleDataVisibility(item.idx, !chart.getDataVisibility(item.idx));
+                    hidden = !chart.getDataVisibility(item.idx);
+                } else {
+                    chart.setDatasetVisibility(item.di, !chart.isDatasetVisible(item.di));
+                    hidden = !chart.isDatasetVisible(item.di);
+                }
+                chart.update();
+                btn.classList.toggle('struck', !!hidden);
+            });
+        });
     }
 
     window.openStatusGraph = function (key, title) {
