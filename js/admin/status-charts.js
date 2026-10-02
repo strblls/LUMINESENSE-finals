@@ -12,8 +12,10 @@
 
     var PALETTE = ['#58078f', '#790faf', '#9b00e9', '#f8c64f', '#198754', '#dc3545', '#0dcaf0', '#6c757d'];
 
-    function smallLegend(position) {
-        return { position: position || 'bottom', labels: { boxWidth: 8, boxHeight: 8, font: { size: 8 }, padding: 6 } };
+    // Legends render as HTML footers under each chart (and in the modal),
+    // so Chart.js built-in legends stay off everywhere.
+    function noLegend() {
+        return { display: false };
     }
 
     function smallScales(xTitle, yTitle) {
@@ -22,10 +24,6 @@
             x: { ticks: tick, grid: { display: false }, title: xTitle ? { display: true, text: xTitle, font: { size: 8 } } : undefined },
             y: { ticks: tick, beginAtZero: true, title: yTitle ? { display: true, text: yTitle, font: { size: 8 } } : undefined }
         };
-    }
-
-    function bigLegend(position) {
-        return { position: position || 'bottom', labels: { boxWidth: 14, boxHeight: 14, font: { size: 12 }, padding: 12 } };
     }
 
     function bigScales(xTitle, yTitle) {
@@ -62,7 +60,7 @@
                             return { label: room, data: [d.on[i] || 0, d.off[i] || 0], backgroundColor: PALETTE[i % PALETTE.length] };
                         })
                     },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: smallLegend() }, scales: smallScales(null, 'Hours') }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: noLegend() }, scales: smallScales(null, 'Hours') }
                 },
                 thead: ['Room', 'On Hours', 'Off Hours'],
                 rows: d.rooms.map(function (room, i) { return [room, d.on[i] || 0, d.off[i] || 0]; })
@@ -76,7 +74,7 @@
                         labels: t.labels,
                         datasets: [{ data: t.data, backgroundColor: t.labels.map(function (_, i) { return PALETTE[i % PALETTE.length]; }) }]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: smallLegend('right') } }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: noLegend() } }
                 },
                 thead: ['Action Type', 'Entries'],
                 rows: t.labels.map(function (label, i) { return [label, t.data[i] || 0]; })
@@ -90,7 +88,7 @@
                         labels: r.labels,
                         datasets: [{ data: r.data, backgroundColor: r.labels.map(function (_, i) { return PALETTE[i % PALETTE.length]; }) }]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: smallLegend('right') } }
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: noLegend() } }
                 },
                 thead: ['Room', 'Entries'],
                 rows: r.labels.map(function (label, i) { return [label, r.data[i] || 0]; })
@@ -107,7 +105,7 @@
                             { label: 'Off', data: g.off, backgroundColor: '#f8c64f' }
                         ]
                     },
-                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: smallLegend() }, scales: smallScales('Toggles', null) }
+                    options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: noLegend() }, scales: smallScales('Toggles', null) }
                 },
                 thead: ['Room', 'On Toggles', 'Off Toggles'],
                 rows: g.rooms.map(function (room, i) { return [room, g.on[i] || 0, g.off[i] || 0]; })
@@ -122,8 +120,7 @@
         cfg.options.responsive = true;
         cfg.options.maintainAspectRatio = false;
         cfg.options.plugins = cfg.options.plugins || {};
-        var isPie = cfg.type === 'pie' || cfg.type === 'doughnut';
-        cfg.options.plugins.legend = bigLegend(isPie ? 'right' : 'bottom');
+        cfg.options.plugins.legend = { display: false };
         if (cfg.type === 'bar' && def.canvas === 'statusChart4') {
             cfg.options.indexAxis = 'y';
             cfg.options.scales = bigScales('Toggles', null);
@@ -131,6 +128,32 @@
             cfg.options.scales = bigScales(null, 'Hours');
         }
         return cfg;
+    }
+
+    function legendItems(chart) {
+        var data = chart.data || {};
+        var labels = data.labels || [];
+        var sets = data.datasets || [];
+        if (sets.length === 1) {
+            var ds = sets[0];
+            var colors = Array.isArray(ds.backgroundColor) ? ds.backgroundColor : [];
+            return labels.map(function (label, i) {
+                return { label: label, color: colors[i % Math.max(1, colors.length)] || '#999', value: (ds.data || [])[i] };
+            });
+        }
+        return sets.map(function (ds) {
+            return { label: ds.label, color: ds.backgroundColor || '#999', value: null };
+        });
+    }
+
+    function renderLegendFooter(footerEl, chart) {
+        if (!footerEl || !chart) return;
+        footerEl.innerHTML = legendItems(chart).map(function (item) {
+            return '<span class="legend-item"><span class="legend-dot" style="background:' +
+                esc(item.color) + ';"></span><span>' + esc(item.label) + '</span>' +
+                (item.value !== null && item.value !== undefined
+                    ? '<span class="legend-val">' + esc(item.value) + '</span>' : '') + '</span>';
+        }).join('');
     }
 
     window.openStatusGraph = function (key, title) {
@@ -155,7 +178,10 @@
         modalEl.addEventListener('shown.bs.modal', function onShown() {
             modalEl.removeEventListener('shown.bs.modal', onShown);
             if (modalChart) { try { modalChart.destroy(); } catch (e) { /* ignore */ } modalChart = null; }
-            try { modalChart = new Chart(ctx('graphModalCanvas'), modalizeConfig(def)); }
+            try {
+                modalChart = new Chart(ctx('graphModalCanvas'), modalizeConfig(def));
+                renderLegendFooter(document.getElementById('graphModalLegend'), modalChart);
+            }
             catch (e) { /* ignore */ }
         });
         if (window.bootstrap && bootstrap.Modal) {
@@ -196,7 +222,9 @@
                 var def = defs[key];
                 if (!def.hasData) return;
                 modalSources[key] = def;
-                charts.push(new Chart(ctx(def.canvas), def.config));
+                var chart = new Chart(ctx(def.canvas), def.config);
+                charts.push(chart);
+                renderLegendFooter(document.querySelector('.graph-legend-footer[data-legend="' + key + '"]'), chart);
             });
         } catch (e) { return false; }
 

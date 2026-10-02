@@ -19,6 +19,11 @@
                 return 'landing';
             }
 
+            function setTopbarTitle(text) {
+                const el = document.getElementById('topbarTitle');
+                if (el) el.textContent = text;
+            }
+
             window.showReportPanel = function(panel, subTab) {
                 // Exiting one tab clears its selections and searches
                 if (panel === 'status') resetFacultyFilters();
@@ -35,9 +40,11 @@
                 } catch (e) { /* ignore */ }
                 if (panel === 'status') {
                     actPage = 1;
+                    setTopbarTitle('Status Reports');
                     if (window.initStatusCharts) window.initStatusCharts();
                     filterStatus();
                 } else if (panel === 'faculty') {
+                    setTopbarTitle('Faculty Reports');
                     filterFaculty();
                 }
             };
@@ -46,6 +53,7 @@
                 // Back clears every selection and search
                 resetStatusFilters();
                 resetFacultyFilters();
+                setTopbarTitle('Report Management');
                 setHidden('reportLanding', false);
                 setHidden('reportToolbar', true);
                 setHidden('panel-faculty', true);
