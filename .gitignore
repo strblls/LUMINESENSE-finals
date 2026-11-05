@@ -69,4 +69,6 @@ htmlcov/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-```
+
+# Local research material (large binaries, not part of the app)
+Research/

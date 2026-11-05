@@ -354,13 +354,39 @@ $status_charts = [
     'toggles' => $chart_toggles,
 ];
 
+/* Normalise an actor handle for display:
+     "admin_override"      -> "Admin Override"
+     "faculty_end_early"   -> "Faculty End Early"
+     "gesture"             -> "Gesture"
+   Names that already carry proper capitalisation are left untouched
+   ("Alexandra Ballesteros", "LumineSense Admin", "PIR"). */
+function actor_label(string $name): string
+{
+    $name = trim($name);
+    if ($name === '') return '';
+
+    $acronyms = ['pir' => 'PIR', 'pzem' => 'PZEM', 'esp32' => 'ESP32', 'esp' => 'ESP', 'id' => 'ID'];
+
+    $needsFormat = strpos($name, '_') !== false || $name === strtolower($name);
+    if (!$needsFormat) return $name;
+
+    $words = preg_split('/[_\s]+/', $name);
+    $out = [];
+    foreach ($words as $w) {
+        if ($w === '') continue;
+        $lower = strtolower($w);
+        $out[] = $acronyms[$lower] ?? ucfirst($lower);
+    }
+    return implode(' ', $out);
+}
+
 /* Distinct actors for the Status Actor filter (lowercase keys, display labels) */
 $status_actors = [];
 foreach ($activity_logs as $log) {
     $actorName = trim($log['actor'] ?? '');
     if ($actorName === '') continue;
     $key = strtolower($actorName);
-    if (!isset($status_actors[$key])) $status_actors[$key] = $actorName;
+    if (!isset($status_actors[$key])) $status_actors[$key] = actor_label($actorName);
 }
 ksort($status_actors);
 
@@ -390,108 +416,15 @@ function issue_label(array $issue): string
     return 'Issue Raised';
 }
 
-/* -----------------------
-   FETCH: Faculty Reports (per-faculty activity aggregation)
-   Provisional stat pills — final labels/numbers can be swapped later.
------------------------ */
-$faculty_reports = [];
-$faculty_total = 0;
-$faculty_pending = 0;
-$faculty_approved_count = 0;
-$faculty_schedules_total = 0;
-$ext_pending_total = 0;
-
-$hasFacultyIdSched = false;
-$hasCreatedBySched = false;
-$hasFacultyIdLight = false;
-$hasExtTable = false;
-$hasFacultyIdExt = false;
-try {
-    $c = $conn->query("SHOW COLUMNS FROM schedules LIKE 'faculty_id'");
-    $hasFacultyIdSched = ($c && $c->num_rows > 0);
-    if ($c) $c->free();
-    $c = $conn->query("SHOW COLUMNS FROM schedules LIKE 'created_by'");
-    $hasCreatedBySched = ($c && $c->num_rows > 0);
-    if ($c) $c->free();
-    $c = $conn->query("SHOW COLUMNS FROM lighting_logs LIKE 'faculty_id'");
-    $hasFacultyIdLight = ($c && $c->num_rows > 0);
-    if ($c) $c->free();
-    $t = $conn->query("SHOW TABLES LIKE 'extension_requests'");
-    $hasExtTable = ($t && $t->num_rows > 0);
-    if ($t) $t->free();
-    if ($hasExtTable) {
-        $c = $conn->query("SHOW COLUMNS FROM extension_requests LIKE 'faculty_id'");
-        $hasFacultyIdExt = ($c && $c->num_rows > 0);
-        if ($c) $c->free();
-    }
-} catch (Throwable $e) { /* keep defaults, faculty panel shows directory only */ }
-
-$resF = $conn->query("SELECT id, first_name, last_name, email, is_verified, approved_by, created_at FROM faculty ORDER BY last_name ASC, first_name ASC");
-if ($resF) {
-    while ($frow = $resF->fetch_assoc()) {
-        $fid = (int)$frow['id'];
-        $isApproved = ((int)$frow['is_verified'] === 1 && $frow['approved_by'] !== null);
-        $isPending = ((int)$frow['is_verified'] === 1 && $frow['approved_by'] === null);
-        $schedCount = 0;
-        $extCount = 0;
-        $extApproved = 0;
-        $lightCount = 0;
-        $lastActivity = null;
-        if ($hasFacultyIdSched || $hasCreatedBySched) {
-            $conds = [];
-            if ($hasFacultyIdSched) $conds[] = "faculty_id = $fid";
-            if ($hasCreatedBySched) $conds[] = "created_by = $fid";
-            $q = $conn->query("SELECT COUNT(*) AS c, MAX(created_at) AS m FROM schedules WHERE " . implode(' OR ', $conds));
-            if ($q && ($r = $q->fetch_assoc())) {
-                $schedCount = (int)($r['c'] ?? 0);
-                if (!empty($r['m'])) $lastActivity = $r['m'];
-            }
-            if ($q) $q->free();
-        }
-        if ($hasExtTable && $hasFacultyIdExt) {
-            $q = $conn->query("SELECT COUNT(*) AS c, SUM(status='approved') AS a, MAX(requested_at) AS m FROM extension_requests WHERE faculty_id = $fid");
-            if ($q && ($r = $q->fetch_assoc())) {
-                $extCount = (int)($r['c'] ?? 0);
-                $extApproved = (int)($r['a'] ?? 0);
-                if (!empty($r['m']) && ($lastActivity === null || $r['m'] > $lastActivity)) $lastActivity = $r['m'];
-            }
-            if ($q) $q->free();
-        }
-        if ($hasFacultyIdLight) {
-            $q = $conn->query("SELECT COUNT(*) AS c, MAX(event_time) AS m FROM lighting_logs WHERE faculty_id = $fid");
-            if ($q && ($r = $q->fetch_assoc())) {
-                $lightCount = (int)($r['c'] ?? 0);
-                if (!empty($r['m']) && ($lastActivity === null || $r['m'] > $lastActivity)) $lastActivity = $r['m'];
-            }
-            if ($q) $q->free();
-        }
-        $faculty_reports[] = [
-            'id' => $fid,
-            'name' => trim(($frow['first_name'] ?? '') . ' ' . ($frow['last_name'] ?? '')),
-            'email' => $frow['email'] ?? '',
-            'is_approved' => $isApproved,
-            'is_pending' => $isPending,
-            'schedules' => $schedCount,
-            'extensions' => $extCount,
-            'extensions_approved' => $extApproved,
-            'lighting_events' => $lightCount,
-            'last_activity' => $lastActivity,
-        ];
-        $faculty_schedules_total += $schedCount;
-    }
-    $resF->free();
-}
-$faculty_total = count($faculty_reports);
-foreach ($faculty_reports as $fr) {
-    if ($fr['is_pending']) $faculty_pending++;
-    if ($fr['is_approved']) $faculty_approved_count++;
-}
-if ($hasExtTable) {
-    $q = $conn->query("SELECT COUNT(*) AS c FROM extension_requests WHERE status='pending'");
-    if ($q && ($r = $q->fetch_assoc())) $ext_pending_total = (int)($r['c'] ?? 0);
-    if ($q) $q->free();
-}
-/* Pending Reviews needs live extension count (faculty block runs after the KPI block) */
+/* Faculty landing counts and Status Reports pending reviews */
+$faculty_counts = $conn->query("
+    SELECT COUNT(*) AS total, SUM(is_verified = 1 AND approved_by IS NULL) AS pending
+    FROM faculty
+")->fetch_assoc();
+$faculty_total = (int)$faculty_counts['total'];
+$faculty_pending = (int)$faculty_counts['pending'];
+$faculty_schedules_total = (int)$conn->query("SELECT COUNT(*) AS total FROM schedules")->fetch_assoc()['total'];
+$ext_pending_total = (int)$conn->query("SELECT COUNT(*) AS total FROM extension_requests WHERE status = 'pending'")->fetch_assoc()['total'];
 $pending_reviews_count = $admin_counts['faculty_pending'] + $ext_pending_total;
 
 $conn->close();
@@ -555,7 +488,7 @@ function event_icon(string $type): array
     <link rel="stylesheet" href="../../css/base/containers.css">
     <link rel="stylesheet" href="../../css/base/modals.css">
     <link rel="stylesheet" href="../../css/faculty/timetable.css">
-    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20260928rev13">
+    <link rel="stylesheet" href="../../css/admin/home-reports.css?v=20261027rev20">
     <link rel="stylesheet" href="../../css/admin/common.css">
     <link rel="preload" as="image" href="../../images/admin/reports/faculty-reports-on.png">
     <link rel="preload" as="image" href="../../images/admin/reports/status-reports-on.png">
@@ -587,19 +520,20 @@ function event_icon(string $type): array
                                 <li>Press <strong>Faculty Reports</strong> or <strong>Status Reports</strong> to open a panel.</li>
                                 <li>In <strong>Status Reports</strong>, read the KPI cards, then use the type and date filters above the table to narrow entries.</li>
                                 <li>Use the search bar to find entries by room, actor, or action keyword.</li>
-                                <li>Use Prev / Next to page through the status table.</li>
-                                <li>Click <strong>Export CSV</strong> or <strong>Export PDF</strong> to download the currently viewed report.</li>
+                                <li>In <strong>Faculty Reports</strong>, choose a date range and room, then select a faculty member to see the events behind their totals.</li>
+                                <li>Use Prev / Next to page through the tables.</li>
+                                <li>Click <strong>Export CSV</strong> to download the filtered comparison or status table. Status Reports also supports PDF export.</li>
                             </ol>
                         </div>
                     </div>
-                    <input type="text" id="reportsSearch" class="form-control" placeholder="Search action, type, actor, source, room, date, notes..." style="max-width:500px;margin-left:16px;">
+                    <input type="text" id="reportsSearch" class="form-control" aria-label="Search reports" placeholder="Search action, type, actor, source, room, date, notes..." style="max-width:500px;margin-left:16px;">
                 </div>
                 <div class="d-flex align-items-center pe-2" style="position:relative; gap:6px;">
-                    <button type="button" class="timetable-btn" onclick="exportCSV()" title="Export CSV">
+                    <button type="button" class="timetable-btn" id="reportExportCsv" onclick="exportCSV()" title="Export CSV">
                         <i class="bi bi-filetype-csv"></i>
                         <span class="timetable-btn-title bold">Export<br>CSV</span>
                     </button>
-                    <button type="button" class="timetable-btn" onclick="exportPDF()" title="Export PDF">
+                    <button type="button" class="timetable-btn" id="reportExportPdf" onclick="exportPDF()" title="Export PDF">
                         <i class="bi bi-filetype-pdf"></i>
                         <span class="timetable-btn-title bold">Export<br>PDF</span>
                     </button>
@@ -636,91 +570,127 @@ function event_icon(string $type): array
                 </button>
             </div>
 
-            <!-- ══ PANEL: Faculty Reports ══ -->
+            <!-- Faculty Reports -->
             <div id="panel-faculty" class="report-view" hidden>
-                <div style="background-color:#f8f9fa;" class="section-container">
-                    <div class="stat-row">
-                        <div class="stat-card">
-                            <span class="stat-icon"><i class="bi bi-people-fill" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                            <div>
-                                <div class="stat-value"><?= (int)$faculty_total ?></div>
-                                <p class="stat-label">Total Faculty</p>
+                <div class="status-board">
+                    <div class="status-kpis">
+                        <span class="mini-stat-pill"><i class="bi bi-people-fill"></i><b id="facultyRosterCount">—</b><small>Faculty in Roster</small></span>
+                        <span class="mini-stat-pill"><i class="bi bi-hand-index-thumb"></i><b id="facultyGestureCount">—</b><small>Gestures</small></span>
+                        <span class="mini-stat-pill"><i class="bi bi-toggle-on"></i><b id="facultyToggleCount">—</b><small>UI Toggles</small></span>
+                    </div>
+                    <div class="status-main">
+                        <div class="status-graphs faculty-graphs" id="facultyReportGraphs" hidden>
+                            <?php foreach ([
+                                'facultyGestures' => 'Most-Used Gestures',
+                                'facultyControls' => 'Gesture vs UI Activity',
+                                'facultyExtensions' => 'Classes with Extension Requests',
+                            ] as $graph => $label): ?>
+                                <div class="status-graph-card">
+                                    <div class="graph-card-header">
+                                        <span class="status-graph-label"><?= $label ?></span>
+                                        <button type="button" class="graph-expand-btn" data-graph="<?= $graph ?>" title="Maximize <?= $label ?>" aria-label="Maximize <?= $label ?>">
+                                            <i class="bi bi-arrows-expand" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    <div class="graph-canvas-wrap">
+                                        <canvas id="<?= $graph ?>Chart" role="img" aria-label="<?= $label ?>"></canvas>
+                                        <span class="faculty-graph-empty text-muted" hidden>No recorded activity for this selection.</span>
+                                    </div>
+                                    <div class="graph-legend-footer" data-legend="<?= $graph ?>"></div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="reports-card">
+                            <div class="reports-card-header">
+                                <h2 class="bold"><i class="bi bi-people-fill"></i>Faculty Reports</h2>
+                                <form class="filter-bar" id="facultyReportFilters">
+                                    <select id="facultyReportRoom" aria-label="Filter by room">
+                                        <option value="">All Rooms</option>
+                                    </select>
+                                    <span class="date-range-wrap">
+                                        <input type="date" id="facultyReportStart" aria-label="From date" required>
+                                        <span class="small">to</span>
+                                        <input type="date" id="facultyReportEnd" aria-label="To date" required>
+                                    </span>
+                                    <button type="submit">Apply</button>
+                                    <button type="reset" class="light" title="Reset to the last 30 days and all rooms">Reset</button>
+                                </form>
+                            </div>
+                            <p id="facultyReportStatus" class="faculty-report-message" role="status"></p>
+                            <div id="facultyComparison" hidden>
+                                <?php $facultyMetrics = [
+                                    'name' => ['Faculty', 'Current faculty member. Select a name to open their activity details.'],
+                                    'active_days' => ['Active Days', 'Distinct dates with a recorded sign-in or explicit sign-out.'],
+                                    'sign_ins' => ['Sign-ins', 'Number of recorded sign-ins.'],
+                                    'sign_outs' => ['Explicit Sign-outs', 'Number of recorded sign-outs initiated by the faculty member.'],
+                                    'gesture_count' => ['Gestures', 'Number of recorded confirmed gesture events, including older gesture stacks.'],
+                                    'top_gesture' => ['Top Gesture', 'Most frequently recorded named gesture.'],
+                                    'ui_toggles' => ['UI Toggles', 'Number of lights-on or lights-off actions recorded from the faculty controls.'],
+                                    'ui_share' => ['UI Share (UI vs. Gestures)', 'UI toggles as a percentage of UI toggles plus recorded gesture events.'],
+                                    'early_endings' => ['Early Ends', 'Number of recorded early class endings.'],
+                                    'early_rate' => ['Early End Rate', 'Share of matched recorded class endings that ended early.'],
+                                    'median_minutes_early' => ['Median Minutes Early', 'Median minutes between matched early endings and their scheduled end times.'],
+                                    'extension_requests' => ['Extension Requests', 'Number of recorded requests to extend a class.'],
+                                    'extension_rate' => ['Share of Classes with Requests', 'Share of scheduled class occurrences with at least one extension request.'],
+                                ]; ?>
+                                <div class="table-responsive">
+                                    <table class="room-table faculty-report-table" id="facultyTable">
+                                        <thead>
+                                            <tr>
+                                                <?php foreach ($facultyMetrics as $metric => [$label, $description]): ?>
+                                                    <th scope="col"<?= $metric === 'gesture_count' ? ' aria-sort="descending"' : '' ?>>
+                                                        <button type="button" class="faculty-sort-button" data-metric="<?= $metric ?>" data-description="<?= htmlspecialchars($description) ?>">
+                                                            <?= $label ?> <i class="bi <?= $metric === 'gesture_count' ? 'bi-sort-down' : 'bi-arrow-down-up' ?>" aria-hidden="true"></i>
+                                                        </button>
+                                                    </th>
+                                                <?php endforeach; ?>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                                <div class="activity-pagination">
+                                    <button type="button" id="facultyReportPrev" disabled>&laquo; Prev</button>
+                                    <span id="facultyReportPage">Page 1 of 1</span>
+                                    <button type="button" id="facultyReportNext" disabled>Next &raquo;</button>
+                                </div>
+                                <p class="faculty-report-message text-muted">A dash indicates an unavailable value or a rate with no applicable events.</p>
+                                <div class="legend-guide" id="facultyReportLegendGuide">
+                                    <button type="button" class="legend-guide-toggle" data-bs-toggle="collapse" data-bs-target="#facultyReportLegendList" aria-expanded="false" aria-controls="facultyReportLegendList">
+                                        <i class="bi bi-book" aria-hidden="true"></i> <span>Legend Guide</span> <i class="bi bi-chevron-down ms-auto" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="collapse" id="facultyReportLegendList">
+                                        <ul class="legend-guide-list">
+                                            <?php foreach ($facultyMetrics as [$label, $description]): ?>
+                                                <li>
+                                                    <span class="legend-guide-dot" aria-hidden="true"></span>
+                                                    <span class="legend-guide-label"><?= htmlspecialchars($label) ?></span>
+                                                    <span class="legend-guide-desc"><?= htmlspecialchars($description) ?></span>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                        <ul class="legend-guide-list" id="facultyReportNotices" hidden></ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="stat-card">
-                            <span class="stat-icon"><i class="bi bi-person-plus" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                            <div>
-                                <div class="stat-value"><?= (int)$faculty_pending ?></div>
-                                <p class="stat-label">Pending Approvals</p>
+                        <section class="reports-card" id="facultyPirReport" hidden>
+                            <div class="reports-card-header">
+                                <h2 class="bold"><i class="bi bi-person-bounding-box"></i>PIR Detections</h2>
                             </div>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-icon"><i class="bi bi-calendar-check" style="font-size:2rem;color:var(--secondary-color-2);"></i></span>
-                            <div>
-                                <div class="stat-value"><?= (int)$faculty_schedules_total ?></div>
-                                <p class="stat-label">Total Schedules</p>
+                            <p class="faculty-report-message text-muted">Room activity grouped by hour. Counts reflect recorded PIR detections.</p>
+                            <p id="facultyPirEmpty" class="faculty-report-message" hidden>No PIR detections for this period and room selection.</p>
+                            <div class="table-responsive">
+                                <table class="room-table" id="facultyPirTable" hidden>
+                                    <thead><tr><th scope="col">Room</th><th scope="col">Hour</th><th scope="col">Scheduled</th><th scope="col">Unscheduled</th></tr></thead>
+                                    <tbody></tbody>
+                                </table>
                             </div>
-                        </div>
+                        </section>
                     </div>
                 </div>
-                <div class="reports-card">
-                    <div class="reports-card-header">
-                        <h2 class="bold"><i class="bi bi-people-fill"></i>Faculty Reports</h2>
-                        <div class="filter-bar">
-                            <select id="facultyStatusFilter">
-                                <option value="">All Faculty</option>
-                                <option value="approved">Approved</option>
-                                <option value="pending">Pending</option>
-                                <option value="other">Unverified / Other</option>
-                            </select>
-                        </div>
-                    </div>
-                    <?php if (empty($faculty_reports)): ?>
-                        <div class="empty-state">
-                            <i class="bi bi-people"></i>
-                            <p>No faculty records found.</p>
-                        </div>
-                    <?php else: ?>
-                        <div style="overflow-x:auto;">
-                            <table class="room-table" id="facultyTable">
-                                <thead>
-                                    <tr>
-                                        <th>Faculty</th>
-                                        <th>Status</th>
-                                        <th>Schedules</th>
-                                        <th>Extensions</th>
-                                        <th>Lighting Events</th>
-                                        <th>Last Activity</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($faculty_reports as $fr):
-                                        $statusKey = $fr['is_approved'] ? 'approved' : ($fr['is_pending'] ? 'pending' : 'other');
-                                        $statusLabel = $fr['is_approved'] ? 'Approved' : ($fr['is_pending'] ? 'Pending' : 'Unverified');
-                                        $statusBg = $fr['is_approved'] ? '#0f5132' : ($fr['is_pending'] ? '#664d03' : '#5a5a5a');
-                                        $lastStr = !empty($fr['last_activity']) ? date('M j, g:i A', strtotime($fr['last_activity'])) : 'No activity yet';
-                                    ?>
-                                        <tr class="faculty-main-row"
-                                            data-status="<?= $statusKey ?>"
-                                            data-search="<?= strtolower(htmlspecialchars($fr['name'] . ' ' . $fr['email'])) ?>">
-                                            <td>
-                                                <div style="font-weight:600;"><?= htmlspecialchars($fr['name'] !== '' ? $fr['name'] : 'Unnamed Faculty') ?></div>
-                                                <div style="font-size:0.72rem;color:var(--muted);"><?= htmlspecialchars($fr['email']) ?></div>
-                                            </td>
-                                            <td><span class="tl-type-badge" style="background:<?= $statusBg ?>; color:#fff;"><?= $statusLabel ?></span></td>
-                                            <td><span class="event-count-badge"><?= (int)$fr['schedules'] ?></span></td>
-                                            <td><span class="event-count-badge"><?= (int)$fr['extensions'] ?><?= ((int)$fr['extensions_approved'] > 0 ? ' (' . (int)$fr['extensions_approved'] . ' approved)' : '') ?></span></td>
-                                            <td><span class="event-count-badge"><?= (int)$fr['lighting_events'] ?></span></td>
-                                            <td class="last-event-text"><?= $lastStr ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
 
+                    </div>
             <!-- ══ PANEL: Status Reports (existing 3 tabs) ══ -->
             <div id="panel-status" class="report-view" hidden>
                 <div class="status-board">
@@ -805,7 +775,14 @@ function event_icon(string $type): array
                                         </select>
                                         <button type="button" class="filter-clear" data-clear="statusDate" title="Clear date filter" hidden>&times;</button>
                                     </span>
+                                    <span class="filter-select-wrap date-range-wrap" title="Custom date range (overrides preset)">
+                                        <input type="date" id="statusFrom" aria-label="From date" style="max-width:150px;">
+                                        <span style="align-self:center;color:var(--muted);font-size:0.75rem;">to</span>
+                                        <input type="date" id="statusTo" aria-label="To date" style="max-width:150px;">
+                                        <button type="button" class="filter-clear" data-clear="statusFrom" data-clear2="statusTo" title="Clear custom range" hidden>&times;</button>
+                                    </span>
                                 </div>
+                                <div class="chart-filter-chips" id="chartFilterChips" hidden></div>
                             </div>
                             <?php if (empty($activity_logs)): ?>
                                 <div class="empty-state">
@@ -912,6 +889,56 @@ function event_icon(string $type): array
     </div>
 
     <!-- ═══ GRAPH MAXIMIZE MODAL ═══ -->
+    <div class="profile-details-modal modal fade" id="facultyReportDetails" tabindex="-1" aria-labelledby="facultyReportDetailsTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title bold" id="facultyReportDetailsTitle">Faculty Activity</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="facultyDetailsStatus" class="text-muted" role="status"></p>
+                    <div id="facultyDetailsContent" hidden>
+                        <div class="row g-3">
+                            <section class="col-md-6">
+                                <h6 class="bold">Gesture Breakdown</h6>
+                                <div class="faculty-detail-chart"><canvas id="facultyDetailsGestures" role="img" aria-label="Named gesture breakdown"></canvas></div>
+                                <p id="facultyDetailsUnknown" class="small text-muted"></p>
+                            </section>
+                            <section class="col-md-6">
+                                <h6 class="bold">Active Time</h6>
+                                <div class="faculty-detail-chart"><canvas id="facultyDetailsActiveTime" role="img" aria-label="First lights-on action relative to scheduled class start"></canvas></div>
+                                <p id="facultyDetailsCoverage" class="small text-muted"></p>
+                            </section>
+                        </div>
+                        <h6 class="bold mt-3">Activity Breakdown</h6>
+                        <div id="facultyDetailsBreakdown" class="row g-3"></div>
+                        <div class="reports-card-header mt-3">
+                            <h2><i class="bi bi-activity" aria-hidden="true"></i>Recorded Events</h2>
+                            <form id="facultyDetailsEventFilters" class="filter-bar">
+                                <input type="search" name="search" placeholder="Search events" aria-label="Search recorded events">
+                                <select name="room_id" aria-label="Recorded events room"><option value="">All Rooms</option></select>
+                                <span class="date-range-wrap">
+                                    <input type="date" name="start" aria-label="Recorded events start date" required>
+                                    <span class="small">to</span>
+                                    <input type="date" name="end" aria-label="Recorded events end date" required>
+                                </span>
+                                <button type="submit">Apply</button>
+                            </form>
+                        </div>
+                        <p id="facultyDetailsEmpty" hidden>No recorded faculty events for this period and room selection.</p>
+                        <div class="table-responsive faculty-detail-events-scroll" tabindex="0" role="region" aria-label="Recorded events table">
+                            <table class="room-table" id="facultyDetailsEvents" hidden>
+                                <thead><tr><th scope="col">Date and Time</th><th scope="col">Room</th><th scope="col">Event</th><th scope="col">Description</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="profile-details-modal modal fade" id="graphModal" tabindex="-1" aria-hidden="true">
         <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
@@ -920,8 +947,19 @@ function event_icon(string $type): array
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <p class="graph-about" id="graphModalAbout" hidden></p>
                     <div style="height:55vh;position:relative;"><canvas id="graphModalCanvas"></canvas></div>
                     <div id="graphModalLegend" class="graph-legend-footer" style="font-size:0.75rem;border-top:none;"></div>
+
+                    <!-- Legend Guide (collapsible, like KPI breakdown) -->
+                    <div class="legend-guide" id="graphModalLegendGuide" hidden>
+                        <button type="button" class="legend-guide-toggle" aria-expanded="false" aria-controls="legendGuideList">
+                            <i class="bi bi-book"></i> <span>Legend Guide</span> <i class="bi bi-chevron-down ms-auto"></i>
+                        </button>
+                        <ul class="legend-guide-list" id="legendGuideList" style="max-height:0;opacity:0;overflow:hidden;transition:max-height 0.3s ease, opacity 0.3s ease;">
+                        </ul>
+                    </div>
+
                     <div style="overflow-x:auto;margin-top:1rem;max-height:30vh;overflow-y:auto;">
                         <table class="room-table" id="graphModalTable">
                             <thead><tr id="graphModalHeadRow"></tr></thead>
@@ -939,8 +977,8 @@ function event_icon(string $type): array
     <script src="../../js/lib/animations.js"></script>
     <script src="../../js/lib/toggles.js"></script>
 
-    <script src="../../js/admin/admin-reports.js?v=20260928rev9"></script>
-    <script src="../../js/admin/status-charts.js?v=20260928rev13"></script>
+    <script src="../../js/admin/admin-reports.js?v=20261027rev12"></script>
+    <script src="../../js/admin/status-charts.js?v=20261027rev19"></script>
     <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 

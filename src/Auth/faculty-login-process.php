@@ -98,4 +98,11 @@ if ($sched) {
     ");
 }
 
+$stmt = $conn->prepare("INSERT INTO faculty_account_events (faculty_id, event_type) VALUES (?, 'sign_in')");
+if ($stmt) {
+    $stmt->bind_param('i', $faculty_id);
+    $stmt->execute();
+    $stmt->close();
+}
+
 header('Location: ../pages/faculty-home/faculty-home.php'); exit;

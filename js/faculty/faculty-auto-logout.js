@@ -28,9 +28,9 @@
         window.lumiPostClassArmed = false;
         sessionStorage.removeItem('lumi_postclass_armed');
         if (typeof dissolve === 'function') {
-            dissolve('../../handlers/logout.php');
+            dissolve('../../handlers/logout.php?reason=idle');
         } else {
-            window.location.href = '../../handlers/logout.php';
+            window.location.href = '../../handlers/logout.php?reason=idle';
         }
     }
 

@@ -110,26 +110,17 @@
     border-color: var(--secondary-color-3);
 }
 
-/* ── Export btn ── */
-.export-btn {
-    padding: 0.35rem 0.9rem;
-    border-radius: 8px;
-    border: 1.5px solid var(--secondary-color-1);
-    background: transparent;
-    font-family: var(--font-primary);
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--secondary-color-1);
-    cursor: pointer;
-    display: flex;
+.date-range-wrap {
+    display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    transition: background 0.15s, color 0.15s;
+    gap: 4px;
 }
 
-.export-btn:hover {
-    background: var(--secondary-color-1);
-    color: #fff;
+.date-range-wrap input[type="date"] {
+    width: auto;
+    margin: 0;
+    padding: 0.35rem 0.5rem;
+    background: #fff;
 }
 
 /* ── Timeline (Activity Log) ── */
@@ -148,6 +139,10 @@
     gap: 0.5rem;
     padding: 10px 1.25rem;
     border-top: 1px solid #f3edf7;
+}
+
+.activity-pagination[hidden] {
+    display: none;
 }
 
 .activity-pagination button {
@@ -172,7 +167,9 @@
     opacity: 0.85;
 }
 
-.activity-pagination #activityPageInfo {
+.activity-pagination #activityPageInfo,
+.activity-pagination #facultyReportPage,
+.activity-pagination #facultyDetailsPage {
     font-size: 0.78rem;
     color: var(--muted);
     min-width: 90px;
@@ -971,7 +968,7 @@
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 10px;
-    min-height: 24vh;
+    min-height: 30vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -999,7 +996,7 @@
 .graph-canvas-wrap {
     position: relative;
     flex: 1;
-    min-height: 120px;
+    min-height: 150px;
 }
 
 .graph-canvas-wrap canvas {
@@ -1013,6 +1010,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+    align-items: center;
     gap: 3px 10px;
     padding: 6px 6px 8px;
     font-size: 0.62rem;
@@ -1032,6 +1030,10 @@
     align-items: center;
     gap: 5px;
     white-space: nowrap;
+    width: auto;
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 0;
     background: none;
     border: none;
     padding: 0;
@@ -1045,6 +1047,12 @@
     text-decoration: line-through;
 }
 
+.legend-item:hover {
+    background: none;
+    transform: none;
+    box-shadow: none;
+}
+
 .legend-dot {
     width: 9px;
     height: 9px;
@@ -1055,6 +1063,242 @@
 .legend-val {
     font-weight: 700;
     color: var(--secondary-color-2);
+}
+
+/* ── Chart cross-filter (Power BI style, multi-select chips) ── */
+.chart-filter-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.chart-filter-chips[hidden] {
+    display: none !important;
+}
+
+.chart-filter-clear-all {
+    border: 1px solid rgba(155, 0, 233, 0.35);
+    background: transparent;
+    color: var(--secondary-color-1);
+    font-family: var(--font-primary);
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.chart-filter-clear-all:hover {
+    background: var(--secondary-color-2);
+    color: #fff;
+}
+
+.chart-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(155, 0, 233, 0.12);
+    border: 1px solid rgba(155, 0, 233, 0.35);
+    color: var(--secondary-color-1);
+    font-size: 12px;
+    font-weight: 600;
+    width: max-content;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    flex: 0 0 auto;
+}
+
+.chart-filter-chip[hidden] {
+    display: none !important;
+}
+
+.chart-filter-chip i {
+    color: var(--secondary-color-3);
+    font-size: 11px;
+}
+
+.chart-filter-clear {
+    border: none;
+    background: none;
+    padding: 0 0 0 2px;
+    margin: 0;
+    line-height: 1;
+    font-size: 14px;
+    color: var(--secondary-color-1);
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.chart-filter-clear:hover {
+    opacity: 1;
+}
+
+.legend-item.active {
+    background: rgba(155, 0, 233, 0.14);
+    border-radius: 999px;
+    font-weight: 700;
+    color: var(--secondary-color-1);
+    margin: -1px -5px;
+    padding: 1px 5px;
+}
+
+.legend-item.active .legend-dot {
+    box-shadow: 0 0 0 2px rgba(155, 0, 233, 0.35);
+}
+
+/* ── Legend explanations ── */
+.legend-item {
+    cursor: pointer;
+}
+
+.legend-item[data-tip] {
+    cursor: help;
+}
+
+/* Match base tooltip styling from css/base/tooltip.css exactly.
+   Fixed width so long explanations wrap into a compact block instead of
+   stretching into one long single-line rectangle. */
+.chart-tip {
+    position: fixed;
+    z-index: 1085; /* above Bootstrap modal (1055) + backdrop */
+    width: 240px;
+    max-width: calc(100vw - 16px);
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    background: var(--primary-color) !important;
+    color: var(--black) !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5) !important;
+    pointer-events: none;
+}
+
+.chart-tip[hidden] {
+    display: none !important;
+}
+
+/* ── Legend Guide (collapsible panel in graph modal) ── */
+.legend-guide {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #faf5ff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.legend-guide-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    background: none;
+    border: none;
+    padding: 0.5rem 0;
+    font-family: var(--font-primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--secondary-color-2);
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.legend-guide-toggle:hover {
+    color: var(--secondary-color-3);
+    transform: none;
+}
+
+.legend-guide-toggle i:first-child {
+    font-size: 1rem;
+}
+
+.legend-guide-toggle .bi-chevron-down {
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+    color: var(--muted);
+}
+
+.legend-guide.open .legend-guide-toggle .bi-chevron-down,
+.legend-guide-toggle[aria-expanded="true"] .bi-chevron-down {
+    transform: rotate(180deg);
+}
+
+.legend-guide-list {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem 0 0;
+    border-top: 1px solid var(--border);
+}
+
+.legend-guide-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: #333;
+}
+
+.legend-guide-list li:last-child {
+    padding-bottom: 0;
+}
+
+.legend-guide-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+
+#facultyReportLegendGuide .legend-guide-dot {
+    background: var(--secondary-color-3);
+}
+
+#panel-faculty #facultyReportLegendGuide .legend-guide-toggle:enabled:is(:hover, :focus-visible) {
+    background: transparent;
+    color: var(--secondary-color-3);
+    transform: none;
+}
+
+.legend-guide-label {
+    font-weight: 600;
+    color: var(--secondary-color-1);
+    min-width: 120px;
+}
+
+.legend-guide-desc {
+    flex: 1;
+    color: #555;
+    min-width: 0;
+}
+
+.graph-about {
+    margin: 0 0 0.75rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+.graph-about[hidden] {
+    display: none !important;
 }
 
 .graph-expand-btn {
@@ -1154,6 +1398,120 @@
     padding: 8px 10px;
 }
 
+:is(#facultyReportFilters, #facultyDetailsEventFilters) {
+    gap: 0.375rem;
+    max-width: 100%;
+}
+
+:is(#facultyReportFilters, #facultyDetailsEventFilters) select {
+    min-width: 5.5rem;
+    max-width: 9rem;
+    text-overflow: ellipsis;
+}
+
+:is(#facultyReportFilters, #facultyDetailsEventFilters) input[type="date"] {
+    width: 8rem;
+    min-width: 0;
+}
+
+:is(#facultyReportFilters, #facultyDetailsEventFilters) button {
+    width: auto;
+    margin: 0;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+#panel-faculty button:enabled:is(:hover, :focus-visible),
+#facultyDetailsEventFilters button:enabled:is(:hover, :focus-visible) {
+    background-color: var(--accent-yellow);
+    color: var(--accent-black);
+    opacity: 1;
+}
+
+#panel-faculty button:disabled {
+    pointer-events: none;
+}
+
+.faculty-graphs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.faculty-graphs[hidden] {
+    display: none;
+}
+
+.faculty-graph-empty:not([hidden]) {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 0.75rem;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 640px) {
+    #facultyReportFilters {
+        flex-wrap: wrap;
+    }
+
+    #facultyReportFilters .date-range-wrap {
+        max-width: 100%;
+    }
+
+    .status-graphs.faculty-graphs {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.faculty-report-message {
+    margin: 0;
+    padding: 0.65rem 1rem;
+    font-size: 0.8rem;
+}
+
+.faculty-report-message:empty {
+    display: none;
+}
+
+.faculty-report-table th:first-child {
+    min-width: 10rem;
+}
+
+.faculty-report-table th {
+    min-width: 6rem;
+    vertical-align: middle;
+    white-space: normal;
+}
+
+.faculty-sort-button,
+.faculty-detail-button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    padding: 0;
+    text-align: left;
+}
+
+.faculty-detail-button {
+    color: var(--secondary-color-1);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+#facultyPirReport .table-responsive {
+    max-height: 24rem;
+    overflow: auto;
+}
+
+#facultyPirTable th {
+    position: sticky;
+    top: 0;
+    background: #f6f0fb;
+}
+
 @media (max-width: 900px) {
     .report-landing { grid-template-columns: minmax(0, 1fr); }
     .report-landing-card { height: 380px; }
@@ -1161,3 +1519,79 @@
     .mini-stat-pill { min-width: 200px; }
 }
 
+
+.faculty-detail-chart {
+    position: relative;
+    height: 240px;
+}
+
+.faculty-detail-events-scroll {
+    max-height: 320px;
+    overflow: auto;
+}
+
+#facultyDetailsEventFilters {
+    flex-wrap: wrap;
+}
+
+#facultyDetailsEventFilters input[type="search"] {
+    width: 10rem;
+}
+
+.faculty-detail-category {
+    height: 100%;
+    padding: 0.85rem;
+    border: 1px solid var(--secondary-color-5);
+    border-top: 3px solid var(--accent-yellow);
+    border-radius: 8px;
+    background: var(--primary-color);
+    color: var(--secondary-color-1);
+}
+
+.faculty-detail-category h6 {
+    font-weight: 700;
+}
+
+.faculty-detail-metrics {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.faculty-detail-metrics .mini-stat-pill {
+    min-width: 0;
+}
+
+.faculty-detail-metrics .kpi-expandable {
+    flex-direction: column;
+    align-items: stretch;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.faculty-detail-metrics .kpi-expandable:is(:hover, :focus) {
+    background: var(--accent-yellow);
+    border-left-color: var(--secondary-color-1);
+    box-shadow: 0 8px 22px rgba(248, 198, 79, 0.45);
+}
+
+.faculty-detail-metrics .kpi-expandable:is(:hover, :focus) .kpi-breakdown {
+    max-height: 260px;
+    opacity: 1;
+}
+
+#chartFilterChips .chart-filter-chip,
+#chartFilterChips .chart-filter-clear-all {
+    flex: 0 0 auto;
+    width: max-content;
+    max-width: none;
+    white-space: nowrap;
+    overflow-wrap: normal;
+}
+
+#chartFilterChips .chart-filter-chip span {
+    white-space: nowrap;
+}
+
+#chartFilterChips button {
+    width: auto;
+    min-width: 0;
+}

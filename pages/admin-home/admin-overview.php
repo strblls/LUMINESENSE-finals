@@ -981,7 +981,7 @@ foreach (padMinuteSeries($chartTodayRaw) as $row) {
                                             </div>
                                             <div class="room-card-actions">
                                                 <div class="d-flex align-items-center room-icons gap-1">
-                                                    <button class="btn-icon btn-icon-access" title="Faculty info & access control" onclick="openFacultyInfoModal(<?= $fac['id'] ?>)"><i class="bi bi-person-badge"></i></button>
+                                                    <button type="button" class="btn-icon btn-icon-access" title="Open faculty details" aria-label="Open faculty details" onclick="window.location.href='admin-faculty-card.php?id=<?= (int)$fac['id'] ?>&amp;from=overview'"><i class="bi bi-person-badge"></i></button>
                                                 </div>
                                                 <button class="light" onclick="openFacultyViewModal(<?= $fac['id'] ?>)">View</button>
                                             </div>

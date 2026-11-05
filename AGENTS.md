@@ -50,7 +50,6 @@ Use the table below to pick the right subagent for a task.
 - JS: `node --check <file>`
 - New `src/` class: `composer dump-autoload`
 - After changes, check `logs/app-*.log` / `logs/error.log`.
-- Full run requires XAMPP (Apache + MySQL) at `http://localhost/LUMINESENSE-finals/`.
 
 ## Secret hygiene
 

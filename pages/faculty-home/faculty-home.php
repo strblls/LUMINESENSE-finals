@@ -582,7 +582,7 @@ $lighting_blocked = $lighting_reason !== null;
                                                     <?php if (!empty($log['triggered_by'])): ?>
                                                         <span><i class="bi bi-toggle-on"></i> <?= htmlspecialchars(ucfirst($log['triggered_by'])) ?></span>
                                                     <?php endif; ?>
-                                                    <span class="tl-type-badge" style="background:<?= $iconData['typeBg'] ?>; color:<?= $iconData['typeClr'] ?>;"><?= $iconData['typeLabel'] ?></span>
+                                                    <span class="tl-type-badge" data-log-type="<?= strtolower($iconData['typeLabel']) ?>"><?= $iconData['typeLabel'] ?></span>
                                                 </div>
                                                 <?php if (!empty($iconData['notes'])): ?>
                                                     <span class="tl-notes"><i class="bi bi-chat-left-text me-1"></i><?= htmlspecialchars($iconData['notes']) ?></span>
@@ -827,7 +827,7 @@ $lighting_blocked = $lighting_reason !== null;
         </div>
     </div>
 
-    <!--  ACTIVITY DETAILS MODAL CHANGE 2: Added modal-dialog-centered -->
+    <!--  ACTIVITY DETAILS MODAL - styled like Recent Activities timeline with table headers -->
     <div class="profile-details-modal modal fade" id="activityDetailsModal" tabindex="-1" aria-labelledby="activityDetailsLabel"
         aria-hidden="true">
         <div class="d-flex justify-content-center modal-dialog modal-dialog-centered modal-lg">
@@ -836,83 +836,67 @@ $lighting_blocked = $lighting_reason !== null;
                     <h5 class="modal-title bold" id="activityDetailsLabel">
                         <i class="bi bi-clock-history me-2"></i>Recent Activity Details
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-0">
+                <div class="modal-body">
                     <?php if (empty($logs)): ?>
-                        <p class="text-muted text-center py-4">No recent activity yet.</p>
+                        <div class="d-flex align-items-center gap-3 p-4 bg-light rounded-3 text-muted">
+                            <i class="bi bi-clock-history" style="font-size:1.6rem;"></i>
+                            <div>No recent activity yet.</div>
+                        </div>
                     <?php else: ?>
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0 align-middle" style="font-size:0.85rem;">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="ps-3">Event</th>
-                                        <th>Room</th>
-                                        <th>Row Affected</th>
-                                        <th>Triggered By</th>
-                                        <th class="pe-3">Time</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($logs as $log): ?>
-                                        <tr>
-                                            <!-- Event type badge -->
-                                            <td class="ps-3">
-                                                <?php
-                                                $type = $log['event_type'] ?? '';
-                                                $badgeClass = match (true) {
-                                                    str_contains($type, 'on')      => 'bg-success',
-                                                    str_contains($type, 'off')     => 'bg-danger',
-                                                    str_contains($type, 'gesture') => 'bg-primary',
-                                                    default                        => 'bg-secondary'
-                                                };
-                                                ?>
-                                                <span class="badge <?= $badgeClass ?> rounded-pill">
-                                                    <?= ucfirst(str_replace('_', ' ', $type)) ?>
-                                                </span>
-                                            </td>
-
-                                            <!-- Room -->
-                                            <td><?= htmlspecialchars($log['room_name'] ?? '-') ?></td>
-
-                                            <!-- Row affected -->
-                                            <td>
-                                                <?php $rowAffected = $log['row_affected'] ?? null; ?>
-                                                <?php if ($rowAffected): ?>
-                                                    <span class="badge bg-info text-dark rounded-pill">Row
-                                                        <?= htmlspecialchars($rowAffected) ?></span>
-                                                <?php else: ?>
-                                                    <span class="text-muted">All rows</span>
-                                                <?php endif; ?>
-                                            </td>
-
-                                            <!-- Triggered by -->
-                                            <td>
-                                                <?php
-                                                $by = strtolower(trim($log['triggered_by'] ?? 'manual'));
-                                                $byBadge = match ($by) {
-                                                    'gesture', 'pir' => ['bg-primary', 'bi-hand-index-thumb', 'Gesture'],
-                                                    'manual'         => ['bg-secondary', 'bi-toggle-on',      'Manual'],
-                                                    default          => ['bg-secondary', 'bi-toggle-on',      ucfirst($by)],
-                                                };
-                                                ?>
-                                                <span class="badge <?= $byBadge[0] ?> rounded-pill">
-                                                    <i class="bi <?= $byBadge[1] ?> me-1"></i>
-                                                    <?= $byBadge[2] ?>
-                                                </span>
-                                            </td>
-
-                                            <!-- Time -->
-                                            <td class="pe-3 text-muted" style="white-space:nowrap;">
-                                                <?= date('g:i A', strtotime($log['event_time'])) ?>
-                                                <div style="font-size:0.72rem;">
-                                                    <?= date('M j, Y', strtotime($log['event_time'])) ?>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                        <div class="activity-list px-2 max-width" id="activityTimelineModal" style="max-height: 60vh; overflow-y: auto;">
+                            <!-- Table headers -->
+                            <div class="timeline-headers d-none d-md-grid" style="padding: 0.5rem 0; border-bottom: 2px solid var(--secondary-color-1); font-weight: 600; font-size: 0.8rem; color: var(--secondary-color-1);">
+                                <div></div>
+                                <div>Event</div>
+                                <div>Room</div>
+                                <div>Row Affected</div>
+                                <div>Triggered By</div>
+                                <div>Time</div>
+                            </div>
+                            <?php foreach ($logs as $log):
+                                $iconData = faculty_activity_icon($log);
+                                $rowAffected = $log['row_affected'] ?? null;
+                            ?>
+                                <div class="timeline-item" style="padding: 0.7rem 0; border-bottom: 1px solid #f3edf7;">
+                                    <!-- Column 1: Icon -->
+                                    <div class="tl-icon" style="background:<?= $iconData['bg'] ?>; color:<?= $iconData['color'] ?>; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.9rem; margin: 0 auto;">
+                                        <i class="bi <?= $iconData['icon'] ?>"></i>
+                                    </div>
+                                    <!-- Column 2: Event -->
+                                    <div class="tl-action" style="font-size: 14px; font-weight: 600; color: var(--secondary-color-1);">
+                                        <?= htmlspecialchars($iconData['label']) ?>
+                                    </div>
+                                    <!-- Column 3: Room -->
+                                    <div style="font-size: 0.9rem; color: var(--secondary-color-3); font-weight: 500;">
+                                        <?= htmlspecialchars($log['room_name'] ?? '-') ?>
+                                    </div>
+                                    <!-- Column 4: Row Affected -->
+                                    <div style="font-size: 0.8rem; color: var(--muted);">
+                                        <?php if ($rowAffected): ?>
+                                            <i class="bi bi-layout-text-window-reverse me-1"></i> Row <?= htmlspecialchars($rowAffected) ?>
+                                        <?php else: ?>
+                                            <i class="bi bi-grid-3x3-gap me-1"></i> All rows
+                                        <?php endif; ?>
+                                    </div>
+                                    <!-- Column 5: Triggered By -->
+                                    <div style="font-size: 0.8rem; color: var(--muted); display: flex; flex-direction: column; gap: 2px;">
+                                        <?php if (!empty($log['triggered_by'])): ?>
+                                            <span><i class="bi bi-toggle-on me-1"></i> <?= htmlspecialchars(ucfirst($log['triggered_by'])) ?></span>
+                                        <?php endif; ?>
+                                        <span class="tl-type-badge" data-log-type="<?= strtolower($iconData['typeLabel']) ?>"><?= $iconData['typeLabel'] ?></span>
+                                    </div>
+                                    <!-- Column 6: Time -->
+                                    <div style="font-size: 0.8rem; color: var(--muted);">
+                                        <i class="bi bi-clock me-1"></i> <?= date('g:i A', strtotime($log['event_time'])) ?>, <?= date('M j, Y', strtotime($log['event_time'])) ?>
+                                    </div>
+                                    <!-- Notes (spans all columns on mobile, appears as tooltip on desktop) -->
+                                    <?php if (!empty($iconData['notes'])): ?>
+                                        <div class="tl-notes" style="grid-column: 1 / -1; font-size: 0.72rem; color: #666; background: #f9f3fc; border-radius: 6px; padding: 3px 8px; margin-top: 4px; display: inline-block;"><i class="bi bi-chat-left-text me-1"></i><?= htmlspecialchars($iconData['notes']) ?></div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 </div>

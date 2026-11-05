@@ -280,7 +280,7 @@
     font-size: 0.9rem;
 }
 
-.tl-meta span {
+.tl-meta span:not(.tl-type-badge) {
     font-weight: 500;
     color: #6c6c6c;
 }
@@ -351,6 +351,45 @@
     border-radius: 20px;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+#activityDetailsModal .tl-type-badge {
+    align-self: flex-start;
+}
+
+.tl-type-badge[data-log-type="room"] {
+    background: #ede6f2;
+    color: #4a0078;
+}
+
+.tl-type-badge[data-log-type="admin"] {
+    background: #4a0078;
+    color: #ede6f2;
+}
+
+#activityTimelineModal .timeline-item {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 0.5rem;
+    align-items: center;
+}
+
+@media (max-width: 767.98px) {
+    #activityTimelineModal .timeline-item > :nth-child(n + 3):not(.tl-notes) {
+        grid-column: 2;
+    }
+}
+
+@media (min-width: 768px) {
+    #activityDetailsModal .modal-dialog {
+        --bs-modal-width: min(1000px, calc(100% - 3rem));
+    }
+
+    #activityTimelineModal .timeline-headers,
+    #activityTimelineModal .timeline-item {
+        grid-template-columns: 48px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);
+        gap: 0.5rem;
+    }
 }
 
 /* ΓöÇΓöÇ Gesture Maximize (fullscreen) ΓöÇΓöÇ */

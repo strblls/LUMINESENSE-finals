@@ -40,12 +40,22 @@ if (!$cid) {
 $events = $_POST['events'] ?? null;
 if ($events !== null && empty($_POST['row'])) {
     $decoded = json_decode($events, true);
+    $gestureNames = [
+        'Pointing_Up' => 'Pointing Up',
+        'Victory' => 'Victory',
+        'ILoveYou' => 'I Love You',
+        'Open_Palm' => 'Open Palm',
+        'Closed_Fist' => 'Closed Fist',
+    ];
     if (is_array($decoded)) {
         foreach ($decoded as $ev) {
+            if (!is_array($ev)) continue;
             $ev_type = !empty($ev['eventType']) ? $ev['eventType'] : 'gesture';
-            $stmt = $conn->prepare("INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by) VALUES (?,?,?,?)");
             $ev_type = in_array($ev_type, ['on', 'off', 'security_alert', 'gesture', 'schedule'], true) ? $ev_type : 'gesture';
-            $stmt->bind_param('iiss', $cid, $faculty_id, $ev_type, $triggered);
+            $metadata = $ev['metadata'] ?? null;
+            $gestureName = $ev_type === 'gesture' && is_string($metadata) ? ($gestureNames[$metadata] ?? null) : null;
+            $stmt = $conn->prepare("INSERT INTO lighting_logs (classroom_id, faculty_id, event_type, triggered_by, gesture_name) VALUES (?,?,?,?,?)");
+            $stmt->bind_param('iisss', $cid, $faculty_id, $ev_type, $triggered, $gestureName);
             $stmt->execute();
             $stmt->close();
         }

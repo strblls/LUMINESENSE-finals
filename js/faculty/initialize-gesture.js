@@ -362,7 +362,9 @@ async function executePendingStack() {
     }
 
     if (typeof logGestureEvent === 'function') {
-        logGestureEvent(`Stack (${stack.length}): ${stack.map(it => it.label).join(' + ')}`);
+        for (const command of stack) {
+            logGestureEvent('gesture', command.gesture);
+        }
     }
 
     renderStackQueue();

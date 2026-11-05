@@ -11,6 +11,114 @@ $type   = $_GET['type'] ?? '';
 $actorFilter  = strtolower($_GET['actor'] ?? '');
 $sourceFilter = strtolower($_GET['source'] ?? '');
 $date   = $_GET['date'] ?? '';
+$fromParam = (isset($_GET['from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'])) ? $_GET['from'] : '';
+$toParam   = (isset($_GET['to']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to'])) ? $_GET['to'] : '';
+
+// Chart cross-filter (parity with the on-screen Status panel, multi-select).
+$CROSS_KEYS = ['durations', 'types', 'perRoom', 'toggles'];
+
+function pdf_normalize_series(string $s): string
+{
+    $s = strtolower(trim($s));
+    if ($s === 'on' || $s === 'light_on') return 'light_on';
+    if ($s === 'off' || $s === 'light_off') return 'light_off';
+    return '';
+}
+
+$cross = [];
+foreach ($CROSS_KEYS as $k) $cross[$k] = [];
+$crossRaw = is_string($_GET['cross'] ?? null) ? trim($_GET['cross']) : '';
+if ($crossRaw !== '') {
+    $decoded = json_decode($crossRaw, true);
+    if (is_array($decoded)) {
+        foreach ($CROSS_KEYS as $k) {
+            if (empty($decoded[$k]) || !is_array($decoded[$k])) continue;
+            $seen = [];
+            foreach ($decoded[$k] as $p) {
+                $value = (is_array($p) && is_scalar($p['value'] ?? null)) ? trim((string)$p['value']) : '';
+                $series = pdf_normalize_series((is_array($p) && is_scalar($p['series'] ?? null)) ? (string)$p['series'] : '');
+                if ($value === '' && $series === '') continue;
+                if (mb_strlen($value) > 120) $value = mb_substr($value, 0, 120);
+                $sig = $value . "\0" . $series;
+                if (isset($seen[$sig])) continue;
+                $seen[$sig] = true;
+                $cross[$k][] = ['value' => $value, 'series' => $series];
+            }
+        }
+    }
+}
+
+// Legacy single-chart params still supported.
+$chartKey = is_string($_GET['chart'] ?? null) ? $_GET['chart'] : '';
+if (!in_array($chartKey, $CROSS_KEYS, true)) $chartKey = '';
+$chartValue = is_string($_GET['chartValue'] ?? null) ? trim($_GET['chartValue']) : '';
+$chartSeries = pdf_normalize_series(is_string($_GET['chartSeries'] ?? null) ? $_GET['chartSeries'] : '');
+if ($chartValue === '' && !(in_array($chartKey, ['durations', 'toggles'], true) && $chartSeries !== '')) $chartKey = '';
+if ($chartKey !== '' && empty($cross[$chartKey])) {
+    $cross[$chartKey][] = ['value' => $chartValue, 'series' => $chartSeries];
+}
+foreach ($cross as $k => $picks) {
+    $cross[$k] = array_values(array_filter($picks, function (array $p) use ($k): bool {
+        if ($k === 'types' || $k === 'perRoom') return $p['value'] !== '';
+        return $p['value'] !== '' || $p['series'] !== '';
+    }));
+}
+$chartsActivePdf = [];
+foreach ($cross as $k => $picks) if (!empty($picks)) $chartsActivePdf[] = $k;
+
+function pdf_chart_bucket(array $log, array $issueActions): string
+{
+    $action = $log['action'] ?? '';
+    if (($log['log_type'] ?? '') === 'admin') return 'Admin';
+    if ($action === 'light_on' || $action === 'light_off') return 'Lights';
+    if (in_array($action, $issueActions, true)) return 'Anomalies';
+    if (str_starts_with($action, 'pir_')) return 'PIR Motion';
+    if (str_starts_with($action, 'class_')) return 'Class';
+    return 'Other Room';
+}
+
+function pdf_pick_matches(array $log, array $pick, string $key, array $roomNames, array $topRooms, array $issueActions): bool
+{
+    $action = $log['action'] ?? '';
+    $target = $log['target'] ?? '';
+    $value = $pick['value'];
+    $series = $pick['series'];
+    if ($key === 'types') return $value !== '' && pdf_chart_bucket($log, $issueActions) === $value;
+    if ($key === 'perRoom') {
+        if ($value === '') return false;
+        $isRoom = ($target !== '' && isset($roomNames[$target]));
+        if ($value === 'Other') return !$isRoom || !in_array($target, $topRooms, true);
+        return $target === $value;
+    }
+    if (empty($log['_light'])) return false;
+    if ($value !== '' && $target !== $value) return false;
+    if ($series !== '' && $action !== $series) return false;
+    return true;
+}
+
+function pdf_matches_charts(array $log, array $cross, array $roomNames, array $topRooms, array $issueActions): bool
+{
+    foreach ($cross as $key => $picks) {
+        if (empty($picks)) continue;
+        $ok = false;
+        foreach ($picks as $p) {
+            if (pdf_pick_matches($log, $p, $key, $roomNames, $topRooms, $issueActions)) { $ok = true; break; }
+        }
+        if (!$ok) return false;
+    }
+    return true;
+}
+if ($fromParam !== '' && $toParam !== '' && $fromParam > $toParam) { $tmp = $fromParam; $fromParam = $toParam; $toParam = $tmp; }
+// Explicit From/To range wins over the preset (validated YYYY-MM-DD above,
+// safe to interpolate). Returns '' when no custom range is set.
+function pdf_range_cond(string $col): string
+{
+    global $fromParam, $toParam;
+    if ($fromParam !== '' && $toParam !== '') return "DATE($col) BETWEEN '$fromParam' AND '$toParam'";
+    if ($fromParam !== '') return "DATE($col) >= '$fromParam'";
+    if ($toParam !== '') return "DATE($col) <= '$toParam'";
+    return '';
+}
 $today  = date('Y-m-d');
 $weekAgo = date('Y-m-d', strtotime('-7 days'));
 $monthAgo = date('Y-m-d', strtotime('-30 days'));
@@ -200,7 +308,9 @@ if ($tab === 'rooms') {
         $t = $conn->real_escape_string($type);
         $where[] = "event_type = '$t'";
     }
-    if ($date === 'today') {
+    if (($rc = pdf_range_cond('event_time')) !== '') {
+        $where[] = $rc;
+    } elseif ($date === 'today') {
         $where[] = "DATE(event_time) = '$today'";
     } elseif ($date === 'week') {
         $where[] = "DATE(event_time) >= '$weekAgo'";
@@ -307,7 +417,9 @@ if ($tab === 'rooms') {
         $s = $conn->real_escape_string($search);
         $roomWhere[] = "(room_name LIKE '%$s%' OR triggered_by LIKE '%$s%' OR event_type LIKE '%$s%' OR notes LIKE '%$s%')";
     }
-    if ($date === 'today') {
+    if (($rc = pdf_range_cond('event_time')) !== '') {
+        $roomWhere[] = $rc;
+    } elseif ($date === 'today') {
         $roomWhere[] = "DATE(event_time) = '$today'";
     } elseif ($date === 'week') {
         $roomWhere[] = "DATE(event_time) >= '$weekAgo'";
@@ -336,7 +448,9 @@ if ($tab === 'rooms') {
         $s = $conn->real_escape_string($search);
         $pirWhere[] = "(c.room_name LIKE '%$s%' OR 'PIR' LIKE '%$s%')";
     }
-    if ($date === 'today') {
+    if (($rc = pdf_range_cond('pl.created_at')) !== '') {
+        $pirWhere[] = $rc;
+    } elseif ($date === 'today') {
         $pirWhere[] = "DATE(pl.created_at) = '$today'";
     } elseif ($date === 'week') {
         $pirWhere[] = "DATE(pl.created_at) >= '$weekAgo'";
@@ -366,7 +480,9 @@ if ($tab === 'rooms') {
         $s = $conn->real_escape_string($search);
         $classWhere[] = "(c.room_name LIKE '%$s%' OR cl.triggered_by LIKE '%$s%' OR cl.event_type LIKE '%$s%')";
     }
-    if ($date === 'today') {
+    if (($rc = pdf_range_cond('cl.event_time')) !== '') {
+        $classWhere[] = $rc;
+    } elseif ($date === 'today') {
         $classWhere[] = "DATE(cl.event_time) = '$today'";
     } elseif ($date === 'week') {
         $classWhere[] = "DATE(cl.event_time) >= '$weekAgo'";
@@ -395,7 +511,9 @@ if ($tab === 'rooms') {
         $s = $conn->real_escape_string($search);
         $lightWhere[] = "(c.room_name LIKE '%$s%' OR l.triggered_by LIKE '%$s%' OR l.event_type LIKE '%$s%')";
     }
-    if ($date === 'today') {
+    if (($rc = pdf_range_cond('l.event_time')) !== '') {
+        $lightWhere[] = $rc;
+    } elseif ($date === 'today') {
         $lightWhere[] = "DATE(l.event_time) = '$today'";
     } elseif ($date === 'week') {
         $lightWhere[] = "DATE(l.event_time) >= '$weekAgo'";
@@ -416,7 +534,7 @@ if ($tab === 'rooms') {
         ORDER BY l.event_time DESC LIMIT 200
     ");
     if ($resL) {
-        while ($row = $resL->fetch_assoc()) $activity_logs[] = $row;
+        while ($row = $resL->fetch_assoc()) { $row['_light'] = true; $activity_logs[] = $row; }
         $resL->free();
     }
 
@@ -427,7 +545,9 @@ if ($tab === 'rooms') {
             $s = $conn->real_escape_string($search);
             $adminWhere[] = "(al.target_name LIKE '%$s%' OR CONCAT(a.first_name,' ',a.last_name) LIKE '%$s%' OR al.action LIKE '%$s%')";
         }
-        if ($date === 'today') {
+        if (($rc = pdf_range_cond('al.created_at')) !== '') {
+            $adminWhere[] = $rc;
+        } elseif ($date === 'today') {
             $adminWhere[] = "DATE(al.created_at) = '$today'";
         } elseif ($date === 'week') {
             $adminWhere[] = "DATE(al.created_at) >= '$weekAgo'";
@@ -473,8 +593,53 @@ if ($tab === 'rooms') {
         });
     }
 
-    $html = '<h2 style="text-align:center;margin-bottom:20px;">' . ($tab === 'status' ? 'Status Reports' : 'Activity Log') . '</h2>';
+    // Chart cross-filter (multi-select; AND across charts, OR within a chart),
+    // same semantics as api/status-report.php so the export matches the screen.
+    if (!empty($chartsActivePdf)) {
+        $roomNames = [];
+        $q = $conn->query("SELECT room_name FROM classrooms");
+        if ($q) { while ($rr = $q->fetch_assoc()) $roomNames[$rr['room_name']] = true; $q->free(); }
+        // The perRoom chart's own top-7 (its picks excluded) defines "Other",
+        // mirroring the on-screen chart.
+        $otherBase = $activity_logs;
+        if (in_array('perRoom', $chartsActivePdf, true)) {
+            $crossNoRoom = $cross;
+            $crossNoRoom['perRoom'] = [];
+            $otherBase = array_filter($activity_logs, function ($log) use ($crossNoRoom, $issueActions, $roomNames) {
+                return pdf_matches_charts($log, $crossNoRoom, $roomNames, [], $issueActions);
+            });
+        }
+        $perRoomCounts = [];
+        foreach ($otherBase as $log) {
+            $t = $log['target'] ?? '';
+            if ($t !== '' && isset($roomNames[$t])) $perRoomCounts[$t] = ($perRoomCounts[$t] ?? 0) + 1;
+        }
+        arsort($perRoomCounts);
+        $topRooms = array_slice(array_keys($perRoomCounts), 0, 7);
+        $activity_logs = array_filter($activity_logs, function ($log) use ($cross, $issueActions, $roomNames, $topRooms) {
+            return pdf_matches_charts($log, $cross, $roomNames, $topRooms, $issueActions);
+        });
+    }
+
+    $title = ($tab === 'status' ? 'Status Reports' : 'Activity Log');
+    $html = '<h2 style="text-align:center;margin-bottom:20px;">' . $title . '</h2>';
     if ($search) $html .= '<p style="text-align:center;color:#888;font-size:10px;">Filtered by: "' . htmlspecialchars($search) . '"</p>';
+    if (!empty($chartsActivePdf)) {
+        $parts = [];
+        foreach ($chartsActivePdf as $ck) {
+            $chartLabel = $ck === 'types' ? 'Action type'
+                : ($ck === 'perRoom' ? 'Room' : ($ck === 'durations' ? 'Room (On/Off Hours)' : 'Room (Toggles)'));
+            $vals = [];
+            $seriesVals = [];
+            foreach ($cross[$ck] as $p) {
+                if ($p['value'] !== '') $vals[] = $p['value'];
+                if ($p['series'] !== '') $seriesVals[] = $p['series'] === 'light_on' ? 'On' : 'Off';
+            }
+            if ($vals) $parts[] = $chartLabel . ': ' . implode(', ', array_unique($vals));
+            if ($seriesVals) $parts[] = implode('/', array_unique($seriesVals)) . ' only';
+        }
+        $html .= '<p style="text-align:center;color:#888;font-size:10px;">Chart filters: ' . htmlspecialchars(implode(' · ', $parts)) . '</p>';
+    }
     $html .= '<table><thead><tr>
         <th>Action</th><th>Action Type</th><th>Actor</th><th>Source</th><th>Description</th><th>Date and Time</th><th>Notes</th>
     </tr></thead><tbody>';

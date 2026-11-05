@@ -10,6 +10,7 @@ require_once __DIR__ . "/../../src/Handlers/admin-handlers.php";
 
 // Guard - must have a faculty ID
 $faculty_id = (int)($_GET['id'] ?? 0);
+$fromOverview = ($_GET['from'] ?? '') === 'overview';
 if (!$faculty_id) {
     header('Location: admin-faculty-approvals.php');
     exit;
@@ -178,8 +179,8 @@ $conn->close();
     <div class="profile-wrapper flex-column">
         <div class="p-2 mb-3">
             <button class="light mb-2"
-                onclick="dissolve('admin-faculty-management.php?tab=faculty-directory')">
-                <i class="bi bi-arrow-left me-1"></i> Back to Faculty Management
+                onclick="dissolve('<?= $fromOverview ? 'admin-overview.php#facultyList' : 'admin-faculty-management.php?tab=faculty-directory' ?>')">
+                <i class="bi bi-arrow-left me-1"></i> <?= $fromOverview ? 'Back to Overview' : 'Back to Faculty Management' ?>
             </button>
         </div>
         <div class="page-shell main-container p-4 faculty-card">

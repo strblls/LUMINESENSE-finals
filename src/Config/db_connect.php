@@ -85,6 +85,9 @@ define('DB_NAME', getenv('DB_NAME') ?: 'luminesense_db');
 mysqli_report(MYSQLI_REPORT_OFF);
 $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS);
 if ($conn->connect_error) {
+    if (!empty($allowDbConnectionFailure)) {
+        return;
+    }
     die(json_encode(['success' => false, 'message' => 'DB connection failed: ' . $conn->connect_error]));
 }
 
@@ -193,6 +196,17 @@ $conn->set_charset('utf8mb4');
 // (event_time, pir_since, created_at, etc.) store correct local time
 $conn->query("SET time_zone = '+08:00'");
 
+$conn->query("
+    CREATE TABLE IF NOT EXISTS faculty_account_events (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        faculty_id INT NOT NULL,
+        event_type ENUM('sign_in','sign_out') NOT NULL,
+        event_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE,
+        INDEX idx_faculty_account_events_time (event_time, faculty_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
 // ── Runtime column migrations (safe – only adds if missing) ──────────────────
 // Helper to safely add a column if it doesn't exist
 function addColIfMissing($conn, $table, $column, $definition) {
@@ -201,6 +215,7 @@ function addColIfMissing($conn, $table, $column, $definition) {
         $conn->query("ALTER TABLE `$table` ADD COLUMN `$column` $definition");
     }
 }
+addColIfMissing($conn, 'lighting_logs', 'gesture_name', 'VARCHAR(32) DEFAULT NULL');
 // light_status on classrooms (used by dashboard poll + Arduino PIR webhook)
 addColIfMissing($conn, 'classrooms', 'light_status', "ENUM('on','off') DEFAULT 'off'");
 addColIfMissing($conn, 'classrooms', 'row1_status', "ENUM('on','off') DEFAULT 'off'");

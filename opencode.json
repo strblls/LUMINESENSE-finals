@@ -1,7 +1,12 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode/deepseek-v4-flash-free",
-  "small_model": "opencode/deepseek-v4-flash-free",
+  "model": "opencode/deepseek-v4.1-flash-free",
+  "small_model": "opencode/deepseek-v4.1-flash-free",
+  "agents": {
+    "compaction": {
+      "model": "opencode/deepseek-v4.1-flash-free#low"
+    }
+  },
   "permission": {
     "bash": {
       "*": "ask",
@@ -29,7 +34,9 @@
   },
   "compaction": {
     "auto": true,
-    "tail_turns": 15
+    "keep": {
+      "tokens": 15000
+    }
   },
   "mcp": {
     "mysql": {
