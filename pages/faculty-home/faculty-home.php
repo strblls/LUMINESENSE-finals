@@ -165,9 +165,11 @@ $lighting_blocked = $lighting_reason !== null;
                                 <h2 class="bold">Gesture Detection</h2>
                             </div>
                             <div class="d-flex mx-2 align-items-end gap-1">
+                                <!-- Gesture Test button temporarily disabled.
                                 <button class="light" id="gestureTestBtn" onclick="toggleGestureTestMode()" title="Test Mode: temporarily bypass the schedule lock so you can test gestures" data-bs-tooltip>
                                     <i class="bi bi-bug me-1"></i>Test
                                 </button>
+                                -->
                                 <button class="light" id="refreshBtn" title="Refresh" data-bs-toggle="tooltip">
                                     <i class="bi bi-arrow-clockwise"></i>
                                 </button>

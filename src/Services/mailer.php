@@ -31,6 +31,7 @@ require_once __DIR__ . '/../Config/config.php';
 function sendVerificationEmail(string $to, string $otp_code, string $name = 'User'): bool
 {
     $mail = new PHPMailer(true);
+    $mail->CharSet = PHPMailer::CHARSET_UTF8;
 
     try {
        $mail->isSMTP();
@@ -62,6 +63,7 @@ function sendVerificationEmail(string $to, string $otp_code, string $name = 'Use
 function sendApprovalEmail(string $to, string $name): bool
 {
     $mail = new PHPMailer(true);
+    $mail->CharSet = PHPMailer::CHARSET_UTF8;
 
     try {
         $mail->isSMTP();
@@ -80,7 +82,7 @@ function sendApprovalEmail(string $to, string $name): bool
         $mail->Body    = "
             <div style='font-family:Arial,sans-serif;max-width:480px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08);'>
                 <div style='background:#1a1a2e;padding:28px 32px;text-align:center;'>
-                    <h1 style='color:#f5c518;font-size:20px;margin:0;letter-spacing:2px;'>ðŸ’¡ LUMINESENSE</h1>
+                    <h1 style='color:#f5c518;font-size:20px;margin:0;letter-spacing:2px;'>&#x1F4A1; LUMINESENSE</h1>
                 </div>
                 <div style='padding:32px;color:#333;'>
                     <p>Hi <strong>{$name}</strong>,</p>
@@ -95,7 +97,7 @@ function sendApprovalEmail(string $to, string $name): bool
                     <p style='font-size:13px;color:#888;'>If you did not create a LumineSense account, please ignore this email.</p>
                 </div>
                 <div style='background:#f9f9f9;text-align:center;padding:16px;font-size:12px;color:#aaa;border-top:1px solid #eee;'>
-                    Â© 2025 LumineSense - University of Negros Occidental - Recoletos
+                    &copy; 2025 LumineSense - University of Negros Occidental - Recoletos
                 </div>
             </div>
         ";
@@ -113,6 +115,7 @@ function sendApprovalEmail(string $to, string $name): bool
 function sendRejectionEmail(string $to, string $name): bool
 {
     $mail = new PHPMailer(true);
+    $mail->CharSet = PHPMailer::CHARSET_UTF8;
 
     try {
         $mail->isSMTP();
@@ -191,7 +194,7 @@ function buildEmailBody(string $name, string $otp_code): string
 <body>
   <div class="wrapper">
     <div class="header">
-      <h1>ðŸ’¡ LUMINESENSE</h1>
+      <h1>&#x1F4A1; LUMINESENSE</h1>
     </div>
     <div class="body">
       <p>Hi <strong>{$name}</strong>,</p>
@@ -200,11 +203,11 @@ function buildEmailBody(string $name, string $otp_code): string
         <div class="otp-code">{$otp_code}</div>
       </div>
       <p>Enter this code on the verification page to confirm your email address.</p>
-      <p class="note">â° This code expires in <strong>15 minutes</strong>.<br>
+      <p class="note">&#x23F0; This code expires in <strong>15 minutes</strong>.<br>
          If you did not create a LumineSense account, you can safely ignore this email.</p>
     </div>
     <div class="footer">
-      Â© 2025 LumineSense - University of Negros Occidental - Recoletos
+      &copy; 2025 LumineSense - University of Negros Occidental - Recoletos
     </div>
   </div>
 </body>
@@ -218,6 +221,7 @@ HTML;
 function sendResetOTPEmail(string $to, string $otp_code, string $name = 'User'): bool
 {
     $mail = new PHPMailer(true);
+    $mail->CharSet = PHPMailer::CHARSET_UTF8;
     try {
         $mail->isSMTP();
         $mail->Host       = MAIL_HOST;
@@ -249,6 +253,7 @@ function sendResetOTPEmail(string $to, string $otp_code, string $name = 'User'):
 function sendChangeOTPEmail(string $to, string $otp_code, string $name = 'User'): bool
 {
     $mail = new PHPMailer(true);
+    $mail->CharSet = PHPMailer::CHARSET_UTF8;
     try {
         $mail->isSMTP();
         $mail->Host       = MAIL_HOST;
@@ -380,6 +385,7 @@ HTML;
 function sendArchiveNotificationEmail(string $to, string $name, string $semester, string $academic_year, array $stats): bool
 {
     $mail = new PHPMailer(true);
+    $mail->CharSet = PHPMailer::CHARSET_UTF8;
     try {
         $mail->isSMTP();
         $mail->Host = MAIL_HOST;
@@ -423,6 +429,7 @@ function sendArchiveNotificationEmail(string $to, string $name, string $semester
 function sendReactivationEmail(string $to, string $name): bool
 {
     $mail = new PHPMailer(true);
+    $mail->CharSet = PHPMailer::CHARSET_UTF8;
     try {
         $mail->isSMTP();
         $mail->Host = MAIL_HOST;

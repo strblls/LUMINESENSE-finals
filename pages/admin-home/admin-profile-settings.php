@@ -333,7 +333,7 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
                                             <div class="hover-info-trigger">
                                                 <i class="bi bi-layers-fill"></i>
                                                 <div class="hover-info-panel">
-                                                    <strong>Pyramid hierarchy:</strong> Departments â†’ Subject Areas â†’ Subjects.
+                                                    <strong>Pyramid hierarchy:</strong> Departments &rarr; Subject Areas &rarr; Subjects.
                                                     Higher levels include lower levels.
                                                 </div>
                                             </div>

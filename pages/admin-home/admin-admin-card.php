@@ -155,7 +155,7 @@ $conn->close();
             $toast_msg = '';
             $toast_class = '';
             if ($message === 'approved') {
-                $toast_msg = 'âœ… Admin account approved!';
+                $toast_msg = '✅ Admin account approved!';
                 $toast_class = 'show';
             }
             ?>
@@ -240,9 +240,9 @@ $conn->close();
                                     default => 'ai-unreadable'
                                 };
                                 $badge_icon = match ($ai_status) {
-                                    'matched' => 'âœ…',
-                                    'mismatched' => 'âš ï¸',
-                                    default => 'âŒ'
+                                    'matched' => '✅',
+                                    'mismatched' => '⚠️',
+                                    default => '❌'
                                 };
                                 $badge_text = match ($ai_status) {
                                     'matched' => 'Name Matched',

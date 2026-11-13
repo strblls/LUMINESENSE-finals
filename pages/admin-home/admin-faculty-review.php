@@ -158,13 +158,13 @@ $conn->close();
             $toast_msg = '';
             $toast_class = '';
             if ($message === 'approved') {
-                $toast_msg = 'âœ… Faculty member approved! Faculty ID: ' . htmlspecialchars($faculty['faculty_id']) . '. Approval email sent.';
+                $toast_msg = '✅ Faculty member approved! Faculty ID: ' . htmlspecialchars($faculty['faculty_id']) . '. Approval email sent.';
                 $toast_class = 'show';
             } elseif ($message === 'approved_no_email') {
-                $toast_msg = 'âœ… Faculty member approved! Faculty ID: ' . htmlspecialchars($faculty['faculty_id']) . '.';
+                $toast_msg = '✅ Faculty member approved! Faculty ID: ' . htmlspecialchars($faculty['faculty_id']) . '.';
                 $toast_class = 'show';
             } elseif (str_starts_with($message, 'error: ')) {
-                $toast_msg = 'âŒ ' . htmlspecialchars(substr($message, 7));
+                $toast_msg = '❌ ' . htmlspecialchars(substr($message, 7));
                 $toast_class = 'show error';
             }
             ?>
@@ -257,9 +257,9 @@ $conn->close();
                                     default => 'ai-unreadable'
                                 };
                                 $badge_icon = match ($status) {
-                                    'matched' => 'âœ…',
-                                    'mismatched' => 'âš ï¸',
-                                    default => 'âŒ'
+                                    'matched' => '✅',
+                                    'mismatched' => '⚠️',
+                                    default => '❌'
                                 };
                                 $badge_text = match ($status) {
                                     'matched' => 'Name Matched',

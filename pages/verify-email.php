@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($resent): ?>
             <div class="alert alert-success">
-                âœ… A new code has been sent! <strong>Please check your email for the latest code and discard any previous ones.</strong>
+                &#x2705; A new code has been sent! <strong>Please check your email for the latest code and discard any previous ones.</strong>
             </div>
         <?php endif; ?>
 

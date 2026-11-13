@@ -195,7 +195,7 @@ unset($raw_image_bytes);
 $mail_sent = sendVerificationEmail($email, $otp_code, $first_name);
 
 if (!$mail_sent) {
-    $_SESSION['email_warning'] = 'We could not send the verification email. Please use the Resend button.';
+    $_SESSION['email_warning'] = 'We could not send the verification email. Please click Resend.';
 }
 
 // - 12. Pass data to verify page via session ----------------

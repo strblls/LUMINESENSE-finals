@@ -43,6 +43,7 @@ while ($row = $reminder_candidates->fetch_assoc()) {
         require_once __DIR__ . '/../../vendor/autoload.php';
 
         $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+        $mail->CharSet = PHPMailer\PHPMailer\PHPMailer::CHARSET_UTF8;
         $mail->isSMTP();
         $mail->Host       = MAIL_HOST;
         $mail->SMTPAuth   = true;
