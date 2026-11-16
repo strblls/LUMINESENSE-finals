@@ -452,6 +452,7 @@ $conn->close();
     <script src="../../js/lib/toggles.js"></script>
     </div>
 
+    <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 
 </html>

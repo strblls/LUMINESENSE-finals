@@ -12,34 +12,29 @@
     var tutorialData = {
         'faculty-home.php': [
             {
-                selector: '#gestureSection',
-                title: 'Gesture Detection',
-                desc: 'Control your classroom lights using hand gestures via webcam. Queue up to 5 commands with one or both hands (pointing up = Row 1, victory = Row 2, ILY = Row 3, open palm = all on, fist = all off/clear), then hold a thumbs up to confirm the whole stack.',
-                position: 'bottom'
+                selector: "#gestureSection",
+                title: "Gesture Detection",
+                desc: "Start the camera to use gestures when your classroom controls are available. Open Gesture Guide for the supported signs and how to confirm queued commands."
             },
             {
-                selector: '#gestureSection .light[data-bs-target="#gestureHelpModal"]',
-                title: 'Gesture Guide',
-                desc: 'Click this button to open the Gesture Guide modal, which shows all available gestures with images and descriptions.',
-                position: 'bottom'
+                selector: "#gestureSection [data-bs-target=\"#gestureHelpModal\"]",
+                title: "Gesture Guide",
+                desc: "Review the hand signs for individual lighting rows, all lights, and confirming or clearing commands."
             },
             {
-                selector: '#lightingControlsWrapper',
-                title: 'Lighting Grid',
-                desc: 'Toggle individual rows of lights using the switches. The bulb icons show which rows are on. Use the power button to toggle all lights at once.',
-                position: 'bottom'
+                selector: "#lightingControlsWrapper",
+                title: "Lighting Controls",
+                desc: "Use the row switches or the master power button when lighting control is available for your assigned room."
             },
             {
-                selector: '#timerDisplay',
-                title: 'Time Left',
-                desc: 'Shows the remaining time for your current class. Use the Extend button to request more time or End Early to finish the class ahead of schedule.',
-                position: 'top'
+                selector: "#timerDisplay",
+                title: "Class Timer",
+                desc: "Check the remaining time for the current class. Use the adjacent actions to request an extension or end the class early when available."
             },
             {
-                selector: '#activityTimeline',
-                title: 'Recent Activities',
-                desc: 'View a timeline of recent lighting changes, gesture commands, and sensor events in your classroom.',
-                position: 'left'
+                selector: "#activityTimeline",
+                title: "Recent Activity",
+                desc: "Review recent classroom events and lighting changes."
             }
         ],
         'faculty-timetable.php': [
@@ -50,7 +45,7 @@
                 position: 'bottom'
             },
             {
-                selector: '.faculty-timetable-heading > .d-flex:first-child',
+                selector: '[data-panel="panelTimeLeft"]',
                 title: 'Quick Actions',
                 desc: 'Use these buttons to view Time Left info, Class Details, or submit and manage Extension Requests for your classes.',
                 position: 'bottom'
@@ -77,7 +72,7 @@
         ],
         'faculty-head-timetable.php': [
             {
-                selector: '.dept-info-card:first-child',
+                selector: '#deptGrid .dept-info-card',
                 title: 'Department Coverage',
                 desc: 'View the subject areas assigned to this department. Use the eye icon to see details or the pencil icon to add or edit coverage (subject areas and subjects).',
                 position: 'bottom'
@@ -98,7 +93,7 @@
             {
                 selector: '#deptGrid',
                 title: 'Prerequisite: Assign Coverage First',
-                desc: 'Before any faculty member (including yourself) can be assigned a schedule, you must first assign coverage for the department. Use the Assign Coverage button (pencil icon) next to "Department Coverage" to add subject areas and subjects. Then use the Edit Assignment button (briefcase icon) next to each faculty member to delegate specific subject areas and subjects to them. Only after coverage is assigned will the calendar icon become available to manage schedules.',
+                desc: 'Before any faculty member (including yourself) can be assigned a schedule, you must first assign coverage for the department. Use the Assign Coverage button (pencil icon) next to "Department Coverage" to add subject areas and subjects. Then use the Edit Assignment button (briefcase icon) next to each faculty member to delegate specific subject areas and subjects to them. After assigning coverage, use the calendar icon to manage the member’s schedule.',
                 position: 'top'
             }
         ],
@@ -111,8 +106,9 @@
             },
             {
                 selector: '.slot-content',
+                fallbackSelector: '.weekly-schedule-grid',
                 title: 'Schedule Slots',
-                desc: 'Each slot displays the room and subject. Use the pencil icon to edit or the trash icon to delete a slot.',
+                desc: 'Scheduled slots show the room and subject. Use the pencil or trash icon on a slot to edit or remove it.',
                 position: 'right'
             },
             {
@@ -124,32 +120,106 @@
         ],
         'faculty-readings.php': [
             {
-                selector: '.main-container > div:nth-child(1) .activity-list.sensor-readings',
-                title: 'Occupancy Logs',
-                desc: 'View PIR sensor data showing when motion was detected in your classroom. Helps track room occupancy patterns.',
-                position: 'bottom'
+                selector: ".sensor-readings",
+                targetIndex: 0,
+                title: "Occupancy Logs",
+                desc: "Review PIR motion events recorded in your classroom."
             },
             {
-                selector: '.main-container > div:nth-child(2) .activity-list.sensor-readings',
-                title: 'Lighting Logs',
-                desc: 'See a history of manual lighting adjustments you made, including which rows were toggled and when.',
-                position: 'bottom'
+                selector: ".sensor-readings",
+                targetIndex: 1,
+                title: "Lighting Logs",
+                desc: "Review recorded lighting changes and when they occurred."
             },
             {
-                selector: '.main-container > div:nth-child(3) .activity-list.sensor-readings',
-                title: 'Gesture Logs',
-                desc: 'Track all gesture-based commands received, including the gesture type and the resulting action taken.',
-                position: 'bottom'
+                selector: ".sensor-readings",
+                targetIndex: 2,
+                title: "Gesture Logs",
+                desc: "Review recorded gesture commands and their resulting actions."
             }
         ],
 
         /* ── Admin Pages ──────────────────────────────────────── */
 
+        'admin-overview.php': [
+            {
+                selector: "#liveToggleBtn",
+                title: "Live View",
+                desc: "Turn Live on for the live dashboard. Turn it off to return to the Rooms & Faculty view."
+            },
+            {
+                selector: "#hroomsList",
+                title: "Rooms",
+                desc: "Browse room status, assigned faculty, and lighting information. Select a room to focus the overview."
+            },
+            {
+                selector: "#facultyList",
+                title: "Faculty",
+                desc: "Browse faculty accounts and any class active when this page loaded. Open a faculty card for details and the weekly schedule."
+            },
+            {
+                selector: "#maximizeFacultyBtn",
+                title: "Schedule and Session History",
+                desc: "Open Maximize to inspect the faculty timetable by day or search past lighting sessions in History."
+            },
+            {
+                selector: "#overviewLineChart",
+                title: "Readings Chart",
+                desc: "Use Period and Metric to compare voltage, current, and power for the selected rooms."
+            }
+        ],
+
+        'faculty-profile-settings.php': [
+            {
+                selector: ".profile-sidebar",
+                title: "Profile Settings",
+                desc: "Choose a section to manage your faculty profile."
+            },
+            {
+                selector: "[data-section=\"contact\"]",
+                title: "Contact Information",
+                desc: "Open Contact Information to review your profile details."
+            },
+            {
+                selector: "[data-section=\"teaching\"]",
+                title: "Teaching Information",
+                desc: "Open Teaching Information to review your department and teaching assignments."
+            },
+            {
+                selector: "[data-section=\"credentials\"]",
+                title: "Change Credentials",
+                desc: "Open Change Credentials to update your password or manage your classroom control PIN."
+            },
+            {
+                selector: "[data-section=\"about\"]",
+                title: "Help Icon",
+                desc: "Open About System to show or hide the Help icon on this browser."
+            }
+        ],
+
+        'room-light-view.php': [
+            {
+                selector: "#statusBadge",
+                title: "Room Status",
+                desc: "Check the status of the selected classroom."
+            },
+            {
+                selector: "#facultySection",
+                title: "Scheduled Faculty",
+                desc: "See who is assigned to the room and check the time section for the scheduled slot."
+            },
+            {
+                selector: "#allLightsBtn",
+                title: "Lighting Controls",
+                desc: "When controls are available, use the master button or the switches below to change the lighting rows."
+            }
+        ],
+
         'admin-homepage.php': [
             {
                 selector: '.stat-row',
                 title: 'Dashboard Overview',
-                desc: 'At-a-glance summary of your institution: total rooms, rooms currently running, faculty members pending approval, and active extension requests.',
+                desc: 'Review the counts for rooms, running rooms, pending faculty approvals, and active extension requests.',
                 position: 'bottom'
             },
             {
@@ -185,28 +255,39 @@
         ],
         'admin-analytics.php': [
             {
-                selector: '.analytics-sidebar',
-                title: 'Rooms & Filters',
-                desc: 'Select a room to view its energy data, or click the filter panel to change the time period and metrics displayed in the charts below.',
-                position: 'right'
+                selector: "[data-panel=\"panelFilterInfo\"]",
+                title: "Analytics Filters",
+                desc: "Choose a room, period, and metric to scope the analytics."
             },
             {
-                selector: '#vawGroup',
-                title: 'Live Readings',
-                desc: 'Real-time voltage, current, power, energy consumption, and lighting status for the selected room. Data refreshes every 3 seconds.',
-                position: 'bottom'
+                selector: "#savingsCard",
+                title: "Energy Savings",
+                desc: "Expand the card to compare current and previous energy use. A previous period with recorded energy is required to calculate a percentage."
             },
             {
-                selector: '.chart-grid',
-                title: 'Energy Charts',
-                desc: 'Line and bar graphs showing energy trends over time. Switch between voltage, current, and power metrics using the filter panel.',
-                position: 'top'
+                selector: "#vawGroup",
+                title: "Live Readings",
+                desc: "See the latest available voltage, current, power, energy, and lighting status."
             },
             {
-                selector: '.breakdown-header',
-                title: 'Daily History',
-                desc: 'Tabular breakdown of energy consumption per session, including occupied time and estimated cost for the selected period.',
-                position: 'top'
+                selector: "#lineGraphCard",
+                title: "Reading Trends",
+                desc: "Use the line and bar charts to compare readings over the selected period."
+            },
+            {
+                selector: "#historyCard",
+                title: "History",
+                desc: "Review the recorded totals for the selected period."
+            },
+            {
+                selector: "#archiveOpenBtn, #exitArchiveBtn",
+                title: "Archives",
+                desc: "Open an archived date to review historical analytics. Use Exit Archive to return to current data."
+            },
+            {
+                selector: "button[title=\"Export CSV\"]",
+                title: "Export Analytics",
+                desc: "Use Export CSV or Export PDF to download analytics data."
             }
         ],
         'admin-faculty-card.php': [
@@ -217,9 +298,9 @@
                 position: 'bottom'
             },
             {
-                selector: '.faculty-info-card:nth-child(2)',
+                selector: '.faculty-info-card:has([onchange*="savePermission"])',
                 title: 'Access Control',
-                desc: 'Toggle lighting and gesture control permissions for this faculty member. Changes are saved automatically via API.',
+                desc: 'Use the switches to grant or revoke lighting and gesture controls for this faculty member. Changes save automatically.',
                 position: 'bottom'
             },
             {
@@ -233,7 +314,7 @@
             {
                 selector: '#facultyHeading',
                 title: 'Faculty Management',
-                desc: 'Central hub for managing faculty accounts, departments, and pending approvals. Use the tabs below to navigate between sections.',
+                desc: 'Open Pending Approvals, Departments, or Faculty Directory to manage faculty accounts and assignments.',
                 position: 'bottom'
             },
             {
@@ -245,9 +326,9 @@
             {
                 selector: '#panel-pending-approvals',
                 title: 'Pending Approvals',
-                desc: 'Review and approve pending faculty registrations and extension requests. Configure auto-accept grace periods as needed.',
+                desc: 'Review and approve pending faculty registrations and extension requests. Check the status of each request and use the available review actions.',
                 position: 'bottom',
-                onEnter: 'switchToTab("pending-approvals")'
+                onEnter: function () { window.switchToTab("pending-approvals"); }
             },
             {
                 selector: '#panel-departments .departments-grid .room-card:first-child',
@@ -255,7 +336,7 @@
                 title: 'Departments',
                 desc: 'Browse, add, edit, or delete academic departments. Each card shows the department head, faculty count, and status. Use the search bar to filter.',
                 position: 'bottom',
-                onEnter: 'switchToTab("departments");ensureTutorialCards()'
+                onEnter: function () { window.switchToTab("departments"); }
             },
             {
                 selector: '#panel-faculty-directory .faculty-grid .room-card:first-child',
@@ -263,7 +344,7 @@
                 title: 'Faculty Directory',
                 desc: 'Complete list of all faculty members with search and filter options. View details, revoke access, or delete accounts as needed.',
                 position: 'bottom',
-                onEnter: 'switchToTab("faculty-directory");ensureTutorialCards()'
+                onEnter: function () { window.switchToTab("faculty-directory"); }
             }
         ],
         'admin-faculty-review.php': [
@@ -281,9 +362,9 @@
                 position: 'bottom'
             },
             {
-                selector: '.review-card button.medium',
+                selector: '.review-card button[title^="Approve"], .review-card button[title^="Reject"]',
                 title: 'Approve or Reject',
-                desc: 'Approve the registration to grant access, or reject with a confirmation dialog. Approved faculty can immediately log into the system.',
+                desc: 'Use Approve or Reject for a pending faculty registration after reviewing the submitted details.',
                 position: 'top'
             }
         ],
@@ -302,81 +383,60 @@
                 position: 'bottom'
             },
             {
-                selector: '.review-card button.medium',
+                selector: '.review-card button[title^="Approve"], .review-card button[title^="Reject"]',
                 title: 'Approve or Reject',
-                desc: 'Approve to activate the admin account, or reject with a confirmation dialog. Approved admins gain full system access.',
+                desc: 'Use Approve or Reject for a pending administrator registration after reviewing the submitted details.',
                 position: 'top'
             }
         ],
         'admin-profile-settings.php': [
             {
-                selector: '.profile-sidebar',
-                title: 'Settings Navigation',
-                desc: 'Use the sidebar to navigate between Contact Information, Change Credentials, and About System sections.',
-                position: 'right'
+                selector: ".profile-sidebar",
+                title: "Profile Settings",
+                desc: "Choose a section to manage your admin profile or review system settings."
             },
             {
-                selector: '#section-contact',
-                title: 'Contact Information',
-                desc: 'View your profile details including name and email. Click the Edit button to update your information.',
-                position: 'bottom'
+                selector: "[data-section=\"contact\"]",
+                title: "Contact Information",
+                desc: "Open Contact Information to view or edit your name and email."
             },
             {
-                selector: '#section-credentials',
-                title: 'Change Credentials',
-                desc: 'Update your password with strength validation and confirm-match checking for security.',
-                position: 'bottom'
+                selector: "[data-section=\"credentials\"]",
+                title: "Change Credentials",
+                desc: "Open Change Credentials to update your password through the verification flow."
             },
             {
-                selector: '#section-about',
-                title: 'About System',
-                desc: 'View system information and manage your tutorial preferences. Toggle the help icon on admin pages on or off.',
-                position: 'bottom'
+                selector: "[data-section=\"flush\"]",
+                title: "Data Reset",
+                desc: "Open the reset section to review the data affected and the confirmation required before scheduling a reset."
+            },
+            {
+                selector: "[data-section=\"archives\"]",
+                title: "Archives",
+                desc: "Open Archives to review available archived records."
+            },
+            {
+                selector: "[data-section=\"about\"]",
+                title: "Help Icon",
+                desc: "Open About System to show or hide the Help icon on this browser."
             }
         ],
         'admin-reports.php': [
             {
-                selector: '.report-landing-card[data-landing="status"]',
-                title: 'Reports Overview',
-                desc: 'Pick Faculty Reports for per-faculty activity, or Status Reports for the full activity log, room summary, and issues. Use the Export buttons to download reports as CSV or PDF.',
-                position: 'top'
+                selector: "[data-landing=\"faculty\"]",
+                title: "Faculty Reports",
+                desc: "Open Faculty Reports to review recorded activity by faculty member and export the results."
             },
             {
-                selector: '#statusTable',
-                fallbackSelector: '#panel-status',
-                title: 'Status Table',
-                desc: 'Unified table of all room events, admin actions, and anomalies with icon, source, and notes. Use the type and date filters to narrow down rows.',
-                position: 'top',
-                onEnter: 'showReportPanel("status")'
+                selector: "[data-landing=\"status\"]",
+                title: "Status Reports",
+                desc: "Open Status Reports to review room activity, status summaries, and reported issues."
             },
             {
-                selector: '.status-kpis',
-                fallbackSelector: '#panel-status',
-                title: 'Status KPIs',
-                desc: 'Totals for room actions, anomalies, and admin actions at a glance. The graph cards above the table are placeholders for future charts.',
-                position: 'right',
-                onEnter: 'showReportPanel("status")'
-            }
-        ],
-        'admin-room-manage.php': [
-            {
-                selector: '.main-container.faculty-timetable-heading',
-                title: 'Room Management',
-                desc: 'Overview of all classrooms. Use the Guide button for instructions, the search bar to find rooms, and the Subject Area / Subject filter buttons to narrow down the list.',
-                position: 'bottom'
-            },
-            {
-                selector: '#roomsGrid .room-card:first-child',
-                fallbackSelector: '#roomsGrid',
-                title: 'Room Cards',
-                desc: 'Each card shows room status (Occupied, Scheduled, or Vacant), current faculty, time slot, and lighting status. Use Edit, Delete, or Inspect to manage.',
-                position: 'bottom'
-            },
-            {
-                selector: '#roomSearch',
-                title: 'Search & Filters',
-                desc: 'Search rooms by name or faculty, or filter by Subject Area and Subject to quickly find specific classrooms.',
-                position: 'bottom'
+                selector: "#statusTable",
+                fallbackSelector: "#reportToolbar",
+                title: "Report Filters and Export",
+                desc: "Use the report filters to narrow the results and the toolbar to export the current report."
             }
         ],
         'admin-timetable-manage.php': [
@@ -389,7 +449,7 @@
             {
                 selector: '#schedTable',
                 title: 'Schedule Table',
-                desc: 'Grouped by day, the table shows all scheduled time slots with assigned faculty. Use the Edit and Delete buttons to modify entries.',
+                desc: 'Check each day for scheduled time slots and assigned faculty. Use the row actions to edit or remove a slot.',
                 position: 'top'
             }
         ]
@@ -402,18 +462,31 @@
     var tutorialActive = false;
     var currentHighlight = null;
     var highlightOriginals = {};
-    var hiddenPinOverlays = [];
-    var savedBlurStates = { gesture: null, lighting: null };
 
     function init() {
         if (isGloballyDisabled() || !steps) return;
         createFloater();
+        document.addEventListener('click', function (event) {
+            if (menu && !menu.contains(event.target) && !floater.contains(event.target)) hideMenu();
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== 'Escape') return;
+            if (tutorialActive) exitTutorial();
+            else if (menu && menu.style.display === 'block') {
+                hideMenu();
+                floater.focus();
+            }
+        });
     }
 
     var hoverTimer = null;
 
     function createFloater() {
-        floater = document.createElement('div');
+        floater = document.createElement('button');
+        floater.type = 'button';
+        floater.style.border = '0';
+        floater.setAttribute('aria-label', 'Help');
+        floater.setAttribute('aria-expanded', 'false');
         floater.id = 'tutorialFloater';
         floater.className = 'tutorial-floater';
         floater.innerHTML = '<i class="bi bi-info-circle"></i>';
@@ -424,10 +497,14 @@
         });
         floater.addEventListener('mouseleave', function () {
             if (hoverTimer) clearTimeout(hoverTimer);
-            hoverTimer = setTimeout(hideMenu, 400);
+            hoverTimer = setTimeout(hideMenuUnlessFocused, 400);
         });
         floater.addEventListener('click', function () {
-            if (tutorialActive) exitTutorial();
+            if (hoverTimer) clearTimeout(hoverTimer);
+            if (!tutorialActive) {
+                showMenu();
+                menu.querySelector('#tutorialStartBtn').focus();
+            }
         });
         document.body.appendChild(floater);
     }
@@ -457,21 +534,28 @@
                 if (hoverTimer) clearTimeout(hoverTimer);
             });
             menu.addEventListener('mouseleave', function () {
-                hoverTimer = setTimeout(hideMenu, 400);
+                hoverTimer = setTimeout(hideMenuUnlessFocused, 400);
             });
             document.body.appendChild(menu);
         }
         menu.style.display = 'block';
+        floater.setAttribute('aria-expanded', 'true');
+    }
+
+    function hideMenuUnlessFocused() {
+        if (!menu || !menu.contains(document.activeElement)) hideMenu();
     }
 
     function hideMenu() {
         if (menu) menu.style.display = 'none';
+        floater.setAttribute('aria-expanded', 'false');
     }
 
     function toggleGlobalDisable(disabled) {
         if (disabled) {
             localStorage.setItem(DISABLED_KEY, '1');
             if (floater) floater.style.display = 'none';
+            hideMenu();
         } else {
             localStorage.removeItem(DISABLED_KEY);
             if (floater) floater.style.display = 'flex';
@@ -489,10 +573,12 @@
 
     function exitTutorial() {
         tutorialActive = false;
-        restoreBlurStates();
         unlockFacultyPanels();
         removeOverlay();
-        if (floater && !isGloballyDisabled()) floater.style.display = 'flex';
+        if (floater && !isGloballyDisabled()) {
+            floater.style.display = 'flex';
+            floater.focus();
+        }
     }
 
     function createOverlay() {
@@ -515,11 +601,6 @@
     }
 
     function removeHighlight() {
-        // Restore any hidden PIN overlays
-        for (var i = 0; i < hiddenPinOverlays.length; i++) {
-            hiddenPinOverlays[i].el.style.display = hiddenPinOverlays[i].display;
-        }
-        hiddenPinOverlays = [];
         if (currentHighlight) {
             var keys = Object.keys(highlightOriginals);
             for (var i = 0; i < keys.length; i++) {
@@ -535,56 +616,6 @@
         if (!(prop in highlightOriginals)) {
             highlightOriginals[prop] = el.style[prop];
         }
-    }
-
-    function unblurControls() {
-        var gc = document.getElementById('gestureControlsContent');
-        var lc = document.getElementById('lightingControlsContent');
-        if (savedBlurStates.gesture === null) {
-            if (gc) {
-                savedBlurStates.gesture = {
-                    filter: gc.style.filter,
-                    pointerEvents: gc.style.pointerEvents,
-                    hasClass: gc.classList.contains('controls-blurred')
-                };
-            } else {
-                savedBlurStates.gesture = false;
-            }
-        }
-        if (savedBlurStates.lighting === null) {
-            if (lc) {
-                savedBlurStates.lighting = {
-                    filter: lc.style.filter,
-                    pointerEvents: lc.style.pointerEvents,
-                    hasClass: lc.classList.contains('controls-blurred')
-                };
-            } else {
-                savedBlurStates.lighting = false;
-            }
-        }
-        if (gc) { gc.style.filter = 'none'; gc.style.pointerEvents = 'none'; gc.classList.remove('controls-blurred'); }
-        if (lc) { lc.style.filter = 'none'; lc.style.pointerEvents = 'none'; lc.classList.remove('controls-blurred'); }
-    }
-
-    function restoreBlurStates() {
-        if (savedBlurStates.gesture) {
-            var gc = document.getElementById('gestureControlsContent');
-            if (gc) {
-                gc.style.filter = savedBlurStates.gesture.filter;
-                gc.style.pointerEvents = savedBlurStates.gesture.pointerEvents;
-                if (savedBlurStates.gesture.hasClass) gc.classList.add('controls-blurred');
-            }
-        }
-        if (savedBlurStates.lighting) {
-            var lc = document.getElementById('lightingControlsContent');
-            if (lc) {
-                lc.style.filter = savedBlurStates.lighting.filter;
-                lc.style.pointerEvents = savedBlurStates.lighting.pointerEvents;
-                if (savedBlurStates.lighting.hasClass) lc.classList.add('controls-blurred');
-            }
-        }
-        savedBlurStates.gesture = null;
-        savedBlurStates.lighting = null;
     }
 
     var panelsLocked = false;
@@ -612,36 +643,18 @@
         }
     }
 
-    function ensureTutorialCards() {
-        var deptGrid = document.querySelector('#panel-departments .departments-grid');
-        if (deptGrid && !deptGrid.querySelector('.room-card')) {
-            deptGrid.innerHTML = '<div class="room-card" style="opacity:0.7;pointer-events:none;">' +
-                '<div class="room-card-accent accent-vacant"></div>' +
-                '<div class="room-card-body">' +
-                '<div class="room-card-header"><div><h2 class="room-card-name">Sample Department</h2>' +
-                '<div class="room-card-section">Computer Science</div></div>' +
-                '<span class="room-status-badge badge-vacant">Active</span></div>' +
-                '<hr class="room-card-divider">' +
-                '<div class="room-info-row"><p class="d-flex align-items-center gap-2 mb-0">' +
-                '<i class="bi bi-person-badge"></i> <span class="room-info-label">Head:</span> ' +
-                '<span class="room-info-val">Dr. Sample</span></p></div></div></div>';
-        }
-        var facGrid = document.querySelector('#panel-faculty-directory .faculty-grid');
-        if (facGrid && !facGrid.querySelector('.room-card')) {
-            facGrid.innerHTML = '<div class="room-card" style="opacity:0.7;pointer-events:none;">' +
-                '<div class="room-card-accent accent-vacant"></div>' +
-                '<div class="room-card-body">' +
-                '<div class="room-card-header"><div><h2 class="room-card-name">Sample Faculty</h2>' +
-                '<div class="room-card-section">Professor</div></div>' +
-                '<span class="room-status-badge badge-vacant">Approved</span></div>' +
-                '<hr class="room-card-divider">' +
-                '<div class="room-info-row"><p class="d-flex align-items-center gap-2 mb-0">' +
-                '<i class="bi bi-person-badge"></i> <span class="room-info-label">Email:</span> ' +
-                '<span class="room-info-val">sample@example.com</span></p></div></div></div>';
-        }
+    function visibleTarget(selector, targetIndex) {
+        var el = typeof targetIndex === 'number'
+            ? document.querySelectorAll(selector)[targetIndex]
+            : Array.from(document.querySelectorAll(selector)).find(isVisible);
+        return el && isVisible(el) ? el : null;
     }
 
-    function showStep(index) {
+    function isVisible(el) {
+        return el.getClientRects().length > 0 && getComputedStyle(el).visibility === 'visible';
+    }
+
+    function showStep(index, direction) {
         if (!steps || index < 0 || index >= steps.length) {
             exitTutorial();
             return;
@@ -649,41 +662,22 @@
         var step = steps[index];
         removeHighlight();
 
-        // Execute step onEnter callback if present (before element lookup)
-        if (step.onEnter) {
-            try { var fn = new Function(step.onEnter); fn(); } catch (e) {}
-        }
+        if (step.onEnter) step.onEnter();
 
-        var el = document.querySelector(step.selector);
+        var el = visibleTarget(step.selector, step.targetIndex);
         if (!el && step.fallbackSelector) {
-            el = document.querySelector(step.fallbackSelector);
+            el = visibleTarget(step.fallbackSelector);
         }
         if (!el) {
-            if (index < steps.length - 1) {
-                showStep(index + 1);
+            var offset = direction || 1;
+            if (index + offset < 0 && currentStep > index) {
+                showStep(currentStep);
             } else {
-                exitTutorial();
+                showStep(index + offset, offset);
             }
             return;
         }
-
-        // Temporarily hide PIN overlays within the highlighted element
-        hiddenPinOverlays = [];
-        var pinSelectors = ['#gesturePinOverlay', '#lightingPinOverlay'];
-        for (var p = 0; p < pinSelectors.length; p++) {
-            var pinEl = el.querySelector(pinSelectors[p]);
-            if (pinEl && pinEl.style.display !== 'none') {
-                hiddenPinOverlays.push({ el: pinEl, display: pinEl.style.display });
-                pinEl.style.display = 'none';
-            }
-        }
-
-        // Unblur gesture/lighting controls on relevant home page steps
-        if (pageName === 'faculty-home.php' && index <= 2) {
-            unblurControls();
-        } else {
-            restoreBlurStates();
-        }
+        currentStep = index;
 
         // Lock panel interaction on admin-faculty-management page
         if (pageName === 'admin-faculty-management.php') {
@@ -716,7 +710,7 @@
         currentHighlight = el;
 
         // Scroll into view
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.scrollIntoView({ behavior: 'instant', block: 'center' });
 
         // Position bubble
         var rect = el.getBoundingClientRect();
@@ -724,7 +718,7 @@
         var bubbleHTML =
             '<div class="tutorial-bubble-header">' +
                 '<span class="tutorial-step-counter">' + (index + 1) + ' / ' + steps.length + '</span>' +
-                '<button class="tutorial-close-btn" id="tutorialExitBtn"><i class="bi bi-x-lg"></i></button>' +
+                '<button class="tutorial-close-btn" id="tutorialExitBtn" aria-label="Close tour"><i class="bi bi-x-lg"></i></button>' +
             '</div>' +
             '<div class="tutorial-bubble-body">' +
                 '<h4 class="tutorial-bubble-title">' + step.title + '</h4>' +
@@ -740,7 +734,8 @@
         bubble.innerHTML = bubbleHTML;
 
         // Position
-        var bubbleWidth = 340;
+        bubble.style.maxWidth = 'calc(100vw - 16px)';
+        var bubbleWidth = bubble.offsetWidth;
         var bubbleHeight = bubble.offsetHeight || 220;
         var top, left;
 
@@ -783,12 +778,13 @@
         if (exitBtn) exitBtn.addEventListener('click', exitTutorial);
 
         var prevBtn = document.getElementById('tutorialPrevBtn');
-        if (prevBtn) prevBtn.addEventListener('click', function () { showStep(index - 1); });
+        if (prevBtn) prevBtn.addEventListener('click', function () { showStep(index - 1, -1); });
 
         var nextBtn = document.getElementById('tutorialNextBtn');
         if (nextBtn) nextBtn.addEventListener('click', function () { showStep(index + 1); });
 
         var doneBtn = document.getElementById('tutorialDoneBtn');
+        (nextBtn || doneBtn || exitBtn).focus({ preventScroll: true });
         if (doneBtn) doneBtn.addEventListener('click', function () {
             exitTutorial();
             // Show completion toast

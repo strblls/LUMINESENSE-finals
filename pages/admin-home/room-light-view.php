@@ -33,6 +33,7 @@ $conn->close();
 <link rel="icon" href="../../images/icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../../css/admin/common.css">
 <link rel="stylesheet" href="../../css/pages/room-light-view.css">
 </head>
 <body>
@@ -132,5 +133,6 @@ $conn->close();
     window.lumiRoomId = <?= (int)$room_id ?>;
 </script>
 <script src="../../js/admin/admin-room-light-view.js"></script>
+    <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 </html>

@@ -695,5 +695,6 @@ if ($flush_schedule && !$flush_schedule['confirmed']) {
             }
         });
     </script>
+    <script src="../../js/faculty/faculty-tutorial.js"></script>
 </body>
 </html>
